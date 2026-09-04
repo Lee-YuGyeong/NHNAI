@@ -67,6 +67,8 @@ export function FallScene({ roster, aiIds, sendMove }: FallSceneProps) {
       <ambientLight intensity={def.ambient.intensity} color={def.ambient.color} />
       {/* 마당 위 작업등 — 홀의 링 조명은 무대에만 떨어져서 마당 가운데가 어둡다. 떨어지는 것이 보여야 피한다 */}
       <pointLight position={[ARENA_CX, 7.5, ARENA_CZ]} color="#dfe9ff" intensity={60} distance={22} decay={2} />
+      {/* 천장 틈(11.5m)에서 나오는 공이 트러스 그늘에 묻히지 않게 — 위에서 한 번 더 */}
+      <pointLight position={[ARENA_CX, 12.2, ARENA_CZ]} color="#ffe8c4" intensity={40} distance={14} decay={2} />
 
       <Suspense fallback={null}>
         <def.Scene quality="high" />

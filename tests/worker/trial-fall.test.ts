@@ -25,11 +25,11 @@ function dropUntilLanded(gravity: number, kind = BOWLING): { o: ReturnType<typeo
 }
 
 describe('sim — 낙하', () => {
-  it('볼링공은 중력 100% 에서 8.5m 를 거의 자유낙하(1.3~1.5초)로 떨어지고 한 번 튄다', () => {
+  it('볼링공은 중력 100% 에서 11.5m 를 거의 자유낙하(1.5~1.7초)로 떨어지고 한 번 튄다', () => {
     const { o, ms } = dropUntilLanded(gravityForPhase(1));
     expect(o.landedAt).not.toBeNull();
-    expect(ms).toBeGreaterThanOrEqual(1300);
-    expect(ms).toBeLessThanOrEqual(1500);
+    expect(ms).toBeGreaterThanOrEqual(1500);
+    expect(ms).toBeLessThanOrEqual(1700);
     expect(o.y).toBeCloseTo(o.r, 5);
     expect(o.vy).toBeGreaterThan(0); // 한 번 튄다
   });
@@ -37,7 +37,7 @@ describe('sim — 낙하', () => {
   it('가벼운 탁구공이 무거운 볼링공보다 늦게 닿는다 — 공기저항은 무게로 나뉜다', () => {
     const light = dropUntilLanded(gravityForPhase(1), PINGPONG).ms;
     const heavy = dropUntilLanded(gravityForPhase(1), BOWLING).ms;
-    expect(light).toBeGreaterThan(heavy + 300);
+    expect(light).toBeGreaterThan(heavy + 1500); // 탁구공 ~3.75s vs 볼링공 ~1.55s — 둥실 내려온다
     expect(BALL_DRAG[PINGPONG]).toBeGreaterThan(BALL_DRAG[BOWLING] * 10);
   });
 
