@@ -144,10 +144,10 @@ const partText = (p: TypedPart): string => (p === 'br' ? '\n' : typeof p === 'st
  * │ 일도 없다. 움직이는 것은 글자뿐이고 판은 처음부터 가만히 있는다.          │
  * └──────────────────────────────────────────────────────────────────────────┘
  *
- * @param ms     한 글자에 드는 시간. **표지의 제목은 느리게 찍는다** — 본문 제목의 속도로
+ * @param ms     한 글자에 드는 시간. **표식의 제목은 느리게 찍는다** — 본문 제목의 속도로
  *               치면 여덟 자가 0.3초에 끝나서 찍히는 줄도 모르고 지나간다. 제목은 문장이
  *               아니라 한 장면이라 또박또박 와야 한다.
- * @param onDone 다 찍힌 순간 한 번. 표지는 이걸 받아 **그 다음 것들을 올린다** (title sequence).
+ * @param onDone 다 찍힌 순간 한 번. 표식은 이걸 받아 **그 다음 것들을 올린다** (title sequence).
  */
 export function Typed({
   parts,
@@ -199,7 +199,7 @@ export function Typed({
 
   /*
    * 다 찍혔다고 알린다 — **한 번만.** 콜백이 매 렌더 새로 와도 다시 부르면 안 되고(ref),
-   * 이미 알린 뒤에 다시 알리면 표지가 두 번 올라온다(fired).
+   * 이미 알린 뒤에 다시 알리면 표식이 두 번 올라온다(fired).
    */
   const doneCb = useRef(onDone);
   doneCb.current = onDone;

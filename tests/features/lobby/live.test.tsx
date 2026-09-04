@@ -83,7 +83,7 @@ describe('한 자씩 찍기 — 다 적힌 글이 아니라 지금 오는 전문
     expect(container.querySelector('.bl-typed__ink em')?.textContent).toBe('인간');
   });
 
-  it('다 찍히면 한 번만 알린다 — 표지는 이걸 받아 그 다음 것들을 올린다', () => {
+  it('다 찍히면 한 번만 알린다 — 표식은 이걸 받아 그 다음 것들을 올린다', () => {
     vi.useFakeTimers();
     const done = vi.fn();
     render(<Typed parts={['가나']} onDone={done} />);
@@ -91,7 +91,7 @@ describe('한 자씩 찍기 — 다 적힌 글이 아니라 지금 오는 전문
     tick(42);
     tick(42);
     expect(done).toHaveBeenCalledTimes(1);
-    // 다 찍힌 뒤에 시계가 더 돌아도 두 번 부르지 않는다 (표지가 두 번 올라온다)
+    // 다 찍힌 뒤에 시계가 더 돌아도 두 번 부르지 않는다 (표식이 두 번 올라온다)
     tick(1000);
     expect(done).toHaveBeenCalledTimes(1);
   });

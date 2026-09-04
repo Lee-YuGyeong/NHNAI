@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * 표지(HeroKey, 복도 벌) — 여러 벌을 시험하던 시절의 규칙(58ddd2b) 을 하나로 정한 뒤에도
+ * 표식(HeroKey, 복도 벌) — 여러 벌을 시험하던 시절의 규칙(58ddd2b) 을 하나로 정한 뒤에도
  * 그대로 지킨다:
  *
  *   1. 제목 — 이 화면이 무슨 화면인지 말하는 한 줄
@@ -15,7 +15,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { HeroKey } from '@/features/lobby/heroes';
 
-describe('표지 (HeroKey · 복도)', () => {
+describe('표식 (HeroKey · 복도)', () => {
   afterEach(cleanup);
 
   /** 눌린 것을 순서대로 적는다 — 어느 단추가 어디로 가는지 한 번에 본다 */
@@ -40,16 +40,16 @@ describe('표지 (HeroKey · 복도)', () => {
     put();
     const title = screen.getByRole('heading', { level: 1 }).textContent ?? '';
     expect(title.replace(/\s+/g, '')).toContain('누가인간인가?');
-    // 방송은 새 기획(인간인 척)의 것이다 — 전원이 인간이라 진술했고, 하나는 거짓이다 (heroes.tsx 머리말)
-    expect(screen.getByText(/전원이 인간이라고 진술했다/)).toBeInTheDocument();
-    expect(screen.getByText(/하나는 거짓이다/)).toBeInTheDocument();
+    // 2026-09-04, PLANNING.md 개정 — 방송이 "AI가 없다"에서 "표식이 붙어 있다"로 뒤집혔다 (heroes.tsx 참고)
+    expect(screen.getByText(/여기, 전부 표식이 붙어 있다/)).toBeInTheDocument();
+    expect(screen.getByText(/붙어 있어야 한다/)).toBeInTheDocument();
   });
 
   it('문 셋이 다 있고 각자 제 곳으로 간다', () => {
     const hit = put();
     fireEvent.click(screen.getByRole('button', { name: /입장하기/ }));
     fireEvent.click(screen.getByRole('button', { name: '규칙 보기' }));
-    // 로그인 없이 노는 길 — 표지를 갈아 끼우다 제일 먼저 빠지는 단추다
+    // 로그인 없이 노는 길 — 표식을 갈아 끼우다 제일 먼저 빠지는 단추다
     fireEvent.click(screen.getByRole('button', { name: '로그인 없이 들어가기' }));
     expect(hit).toEqual(['enter', 'rules', 'guest']);
   });

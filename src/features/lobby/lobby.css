@@ -1983,7 +1983,7 @@
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
-/* 표지는 사진이 칸을 통째로 덮으므로 여백을 두지 않는다 */
+/* 표식은 사진이 칸을 통째로 덮으므로 여백을 두지 않는다 */
 .bl-snap.bl-hero {
   padding: 26px 16px 64px;
   min-height: calc(100dvh - 52px);

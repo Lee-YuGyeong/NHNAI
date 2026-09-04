@@ -46,9 +46,10 @@ import {
 import type { RoomPhase } from '../../src/world/mp/lobby';
 import type { ErrorCode, PlayerSnapshot, S2CMessage } from '../../src/world/mp/protocol';
 import { spawnFor } from '../../src/world/mp/spawn';
-import { cleanNickname, isC2SMessage, parseBroadcast, parseMove } from '../../src/world/mp/validate';
+import { cleanNickname, isC2SMessage, isTrialMessage, parseBroadcast, parseMove } from '../../src/world/mp/validate';
 import { verifyTicket, type AuthEnv } from './auth';
 import { lobbyStub, type LobbyEnv } from './lobby-do';
+import { TrialRuntime } from './trial/runtime';
 
 /**
  * 소켓에 매달아 두는 것 = 남에게 보내는 것 + **보내지 않는 것 하나**.
@@ -88,10 +89,22 @@ export class RoomDO implements DurableObject {
   /** 내보낸 계정들의 사본. 원본은 스토리지다 (BANS_KEY) — 잠들었다 깨어나도 밴은 남는다 */
   private bans: string[] | null = null;
 
+  /**
+   * 물리 미니게임(낙하 생존·정지선·색 사냥) 전부를 맡는 쪽 — 이 방의 나머지(입장·이동·채팅)는
+   * 그대로 두고, 라운드에 필요한 것만 여기로 위임한다 (worker/src/trial/runtime.ts 머리말).
+   */
+  private readonly trial: TrialRuntime;
+
   /** env 는 두 번째 인자로 온다 (Cloudflare 규약). 입장권 검증 비밀이 여기 있다 */
   constructor(private readonly ctx: DurableObjectState, private readonly env: RoomEnv) {
     // 플랫폼이 대신 pong 을 돌려준다 → 하트비트가 DO 를 깨우지 않는다.
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
+    this.trial = new TrialRuntime(
+      this.ctx.storage,
+      () => this.roster(),
+      (msg) => this.broadcast(msg),
+      (ws, msg) => this.send(ws, msg),
+    );
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -190,6 +203,12 @@ export class RoomDO implements DurableObject {
     const snap = ws.deserializeAttachment() as Attached | null;
     if (!snap) return;
 
+    // 물리 미니게임 메시지는 여기서 전부 갈라진다 — 이 파일에는 라운드 로직을 안 둔다 (파일 머리말)
+    if (isTrialMessage(parsed)) {
+      await this.trial.handle(ws, snap, parsed);
+      return;
+    }
+
     switch (parsed.t) {
       case 'move': {
         // 한 소켓이 이동을 쏟아부으면 DO 가 방 전원에게 N배로 증폭해 뿌린다. 서버가 바닥을 깐다.
@@ -209,6 +228,8 @@ export class RoomDO implements DurableObject {
         ws.serializeAttachment(snap);
 
         this.broadcast({ t: 'player_moved', id: snap.id, x: snap.x, z: snap.z, y: snap.y, heading: snap.heading, anim: snap.anim }, ws);
+        // 물리 미니게임(낙하 생존)이 사람의 자리를 아는 길 — 범위 검증을 통과한 좌표만 넘긴다
+        this.trial.onMove(snap.id, snap.x, snap.z, now);
         return;
       }
 
@@ -319,6 +340,8 @@ export class RoomDO implements DurableObject {
      */
     const remaining = snap ? this.roster().filter((p) => p.id !== snap.id).length : undefined;
     void this.report(remaining);
+    // 물리 미니게임 — 나간 사람을 기다리느라 라운드가 안 닫히지 않게 (worker/src/trial/runtime.ts 머리말 ★)
+    if (snap) void this.trial.onLeave(snap.id);
     /*
      * 마지막 사람이 나갔다 — 밴 명부를 태운다. 이 번호로 다음에 서는 방은 **다른 모임**이다:
      * 명부가 남으면 지난 판에 내보내진 사람이 남의 방 문 앞에서 영문도 모르고 돌아서게 된다.
@@ -349,6 +372,12 @@ export class RoomDO implements DurableObject {
     if (this.ctx.getWebSockets().length > 0) await this.ctx.storage.setAlarm(now + SWEEP_ALARM_MS);
     // 등록소의 시효를 갱신하는 맥박. 유령 소켓을 걷어낸 **뒤에** 세므로 목록의 인원이 실제와 같다
     await this.report();
+    /*
+     * 물리 미니게임의 안전망 — 새 알람 슬롯을 따로 두지 않는다(DO 알람은 하나뿐이다).
+     * 이 30초 청소 알람에 얹혀서 "누가 멈춰 서 라운드가 안 끝나는가"만 확인한다
+     * (worker/src/trial/runtime.ts 머리말).
+     */
+    await this.trial.onSweep(now);
   }
 
   private async ensureAlarm(): Promise<void> {

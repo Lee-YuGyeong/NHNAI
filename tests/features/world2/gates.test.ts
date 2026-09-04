@@ -76,10 +76,10 @@ describe('중앙 시설 — 소문 줄', () => {
 describe('관문 ① roll', () => {
   const base = { known: true, wobble: 0, lieTag: false, crossTag: false, secondUnknown: false };
 
-  it('사실 일치 · 표지 없음 → ok', () => {
+  it('사실 일치 · 표식 없음 → ok', () => {
     expect(gradeRoll({ ...base, text: 'A38-091', matchUnit: true })).toBe('ok');
   });
-  it('사실 일치 · 표지 검출(어투 흔들림 · 앞말과 어긋난 숫자) → okMarked', () => {
+  it('사실 일치 · 표식 검출(어투 흔들림 · 앞말과 어긋난 숫자) → okMarked', () => {
     expect(gradeRoll({ ...base, text: '091… 이요', matchUnit: true, wobble: 4 })).toBe('okMarked');
     expect(gradeRoll({ ...base, text: '091', matchUnit: true, lieTag: true })).toBe('okMarked');
   });

@@ -37,6 +37,10 @@ export const PART_NAMES = {
   wall_arm: '검사 암',
   // 작업 구역 맵 (world2/map/work.tsx)
   incinerator: '소각로 화구',
+  // 물리 미니게임 — 정지선 (features/trial/games/stop-line)
+  trial_gate: '정지선 게이트',
+  trial_beacon: '레인 비콘',
+  trial_pod: '낙하 포드',
 } as const satisfies Partial<Record<AssetId, string>>;
 
 export type PartId = keyof typeof PART_NAMES;

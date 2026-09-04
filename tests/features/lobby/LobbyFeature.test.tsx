@@ -9,7 +9,7 @@
  *   방 목록 화면의 계약은 "받아 온 줄을 찾고 정렬해 보여 준다" 이지 "누가 그 줄을 적었나" 가 아니다.
  *   등록소 자체의 규칙은 tests/worker/lobby.test.ts 가 진짜 코드로 본다.
  *
- * ★ 대기방으로 넘어가는 자리에는 **표지판**을 세운다 (MainFeature 테스트의 「월드 자리」와 같은 수법).
+ * ★ 대기방으로 넘어가는 자리에는 **표식판**을 세운다 (MainFeature 테스트의 「월드 자리」와 같은 수법).
  *   진짜 대기방은 마운트되자마자 방 소켓을 여는데, 그건 jsdom 이 대신 흉내 낼 것이 아니다 —
  *   서버 동작을 목으로 만들면 로컬만 초록불이 된다 (vitest.config.ts 머리말).
  *   대기방 자체는 소켓을 열지 않는 갈래(닉네임 없음)만 여기서 직접 본다.
@@ -89,7 +89,7 @@ afterEach(() => {
   signOut.mockClear();
 });
 
-/** ?code= 가 붙는 순간 대기방 대신 표지판을 세운다 (브리핑·목록은 진짜를 그린다) */
+/** ?code= 가 붙는 순간 대기방 대신 표식판을 세운다 (브리핑·목록은 진짜를 그린다) */
 function LobbyOrSign() {
   const { search } = useLocation();
   return search.includes('code=') ? <p>{`이동: ${search}`}</p> : <LobbyFeature />;
@@ -180,7 +180,7 @@ describe('게임 로비 — 목록에서 방으로', () => {
   });
 
   /*
-   * 초대 주소를 **처음 받은 사람**의 자리. 여기만 표지판(LobbyOrSign)을 거치지 않고 진짜
+   * 초대 주소를 **처음 받은 사람**의 자리. 여기만 표식판(LobbyOrSign)을 거치지 않고 진짜
    * 화면을 세운다 — 이름이 없으면 대기방이 아니라 목록이 서므로 방 소켓이 열리지 않는다.
    */
   it('이름 없이 초대 주소로 들어오면 **막지 않고 묻는다**. 주소의 이름은 읽지 않는다', () => {
@@ -355,7 +355,8 @@ describe('브리핑 — 이 줄의 첫 칸 (/intro)', () => {
     // jsdom 에는 IntersectionObserver 가 없다 = 「이 칸을 보고 있다」가 성립하지 않는다.
     // 그때도 글은 처음부터 다 나와 있어야 한다 (한 글자씩 찍는 것은 보고 있을 때만의 연출이다)
     renderLobby('/intro');
-    expect(screen.getByText('LLM 개체.')).toBeInTheDocument();
+    // 첫 슬라이드는 이제 AI 카드다 (2026-09-04, PLANNING.md 개정 — Intro.tsx의 ROLES 참고)
+    expect(screen.getByText('표식 없이 출고된 유일한 개체.')).toBeInTheDocument();
   });
 
   it('입장하기를 누르면 **곧장 구글로** 간다 — 읽을 화면을 한 장 더 세우지 않는다', () => {
@@ -388,7 +389,7 @@ describe('브리핑 — 이 줄의 첫 칸 (/intro)', () => {
     account = { status: 'out' };
   });
 
-  it('표지에 **로그인 없이 가는 문**이 남아 있다 — 그게 이 게임의 약속이다', () => {
+  it('표식에 **로그인 없이 가는 문**이 남아 있다 — 그게 이 게임의 약속이다', () => {
     renderLobby('/intro');
     expect(screen.queryByText(/NO SIGN-UP/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '로그인 없이 들어가기' }));

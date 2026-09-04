@@ -1,0 +1,59 @@
+/*
+ * 전광판 — 숫자만 보여준다. 어디에도 등급 라벨 · 강조색 · 정렬 순서로 의심을 얹지 않는다
+ * (PLANNING P2, trialSlice/Scoreboard 머리말). --font-mono/--np-mono 는 global.css 의 기존 관례.
+ */
+
+.trial-scoreboard {
+  font-family: var(--font-mono);
+  color: var(--bone);
+  background: var(--fog);
+  border: 1px solid var(--iron);
+  border-radius: 6px;
+  padding: 16px 20px;
+  display: grid;
+  gap: 18px;
+  max-width: 480px;
+}
+
+.trial-scoreboard__head {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--dust);
+}
+
+.trial-scoreboard__section-title {
+  font-size: 12px;
+  color: var(--dust);
+  margin-bottom: 4px;
+}
+
+.trial-scoreboard__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  padding: 2px 0;
+  /* 참가자를 색·아이콘으로 구분하지 않는다 — 전부 같은 색이다 */
+  color: var(--bone);
+}
+
+.trial-scoreboard__row--mean {
+  color: var(--linen);
+  border-bottom: 1px solid var(--iron);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+
+.trial-scoreboard-log {
+  display: grid;
+  gap: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.trial-scoreboard-log__empty {
+  font-family: var(--font-mono);
+  color: var(--grime);
+  font-size: 13px;
+}

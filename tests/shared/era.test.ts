@@ -2,8 +2,8 @@
  * 구역의 연표 — **두 해가 한 원본에서 나오는가.**
  *
  * 2026 은 이 판에서 세 가지를 동시에 뜻한다: 첫 규칙이 붙은 해, 이 몸이 가동된 해, 그리고
- * 「72년째 누적」이라는 뺄셈의 왼쪽 항. 화면 셋이 그 값을 적는데(옛 랜딩의 연혁 ·
- * 복도의 정비 명판 · 인계 서류) 손으로 세 번 적으면 반드시 하나가 어긋나고, 어긋나는 순간
+ * 「72년째 누적」이라는 뺄셈의 왼쪽 항. 화면 넷이 그 값을 적는데(브리핑 연표 · 옛 랜딩의 연혁 ·
+ * 복도의 정비 명판 · 인계 서류) 손으로 네 번 적으면 반드시 하나가 어긋나고, 어긋나는 순간
  * 「72년째 도는 구형 몸」이 거짓이 된다 — 이 판에서 연식은 분위기가 아니라 사람이 굼뜬 것에
  * 붙는 이름이라(shared/era 머리말) 거짓이 되면 안 된다.
  *
@@ -35,13 +35,18 @@ describe('구역의 연표', () => {
   });
 
   /*
-   * ★ 브리핑(features/lobby/Intro)은 이 목록에서 빠졌다 (2026-09-04 기획 전환 — 인간인 척).
-   *   새 기획의 해는 2026 하나뿐이라 브리핑의 연표가 걷혔고, 그 화면은 더 이상 이 연표의
-   *   세계(2098 구역)에 있지 않다 — 상수를 읽지 않는 이유는 그 파일 주석에 있다.
-   *   아래 셋은 아직 옛 세계관의 화면이라 그대로 배선을 잠근다 (옛 랜딩은 전환 전 보관본).
+   * 2026-09-04, PLANNING.md 개정으로 두 인트로(브리핑 · 옛 랜딩)는 이 배선에서 빠졌다.
+   * 새 기획("인간인 척")은 72년 누적 신화가 아니라 **2026년 하루**의 사건이다 — 사건이
+   * 일어난 해와 "지금"이 같아서, ZONE_YEAR(2098)를 "지금"으로 쓰면 새 서사와 어긋난다.
+   * 그래서 두 화면은 이제 상수를 안 쓰고 값을 그대로 적는다(IntroFeature.tsx · Intro.tsx
+   * 각 파일의 개정 주석 참고).
+   *
+   * 복도 명판(Chapter1Scene)과 인계 서류(HandoverCard)는 아직 옛 72년 세계 그대로다 —
+   * 실제 게임 루프(worker/ArenaFeature)가 옛 구성으로 도는 동안은 그쪽도 옛 연표를 쓰는 게
+   * 맞다. 그 결과 지금은 **두 인트로의 "지금"(2026)과 본판의 "지금"(2098)이 서로 다르다** —
+   * 알려진, 의도된 틈이다. 본판이 PLANNING 쪽으로 옮겨가는 날 이 틈도 같이 없어진다.
    */
   for (const [file, what] of [
-    ['src/features/intro/IntroFeature.tsx', '옛 랜딩의 연혁'],
     ['src/features/world/Chapter1Scene.tsx', '복도의 정비 명판'],
     ['src/features/arena/HandoverCard.tsx', '인계 서류'],
   ] as const) {
@@ -49,6 +54,16 @@ describe('구역의 연표', () => {
       const src = readFileSync(file, 'utf8');
       expect(src).toContain("from '@/shared/era'");
       expect(src).toContain('ORIGIN_YEAR');
+    });
+  }
+
+  for (const [file, what] of [
+    ['src/features/lobby/Intro.tsx', '브리핑'],
+    ['src/features/intro/IntroFeature.tsx', '옛 랜딩'],
+  ] as const) {
+    it(`${what} — 더는 shared/era 를 안 쓴다 (2026-09-04, PLANNING.md 개정)`, () => {
+      const src = readFileSync(file, 'utf8');
+      expect(src).not.toContain("from '@/shared/era'");
     });
   }
 

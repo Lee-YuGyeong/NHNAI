@@ -1,11 +1,6 @@
 /**
  * 인트로 — 영화 오프닝 프레임으로 열리고, 아래로 브리핑이 이어지는 랜딩. "누가 인간인가?"
  *
- * ★ 2026-09-04 — 기획이 다시 뒤집혔다 (PLANNING.md 「인간인 척」: 표지 없는 AI 가 인간들
- *   틈에 숨는다). 이 파일은 **전환 전(기계인 척) 보관본**이다 — /intro 는 features/lobby/Intro
- *   가 새 기획으로 적고 있고, 이 화면은 경로도 글도 옛 판의 것 그대로다. 복원하려면 등록부
- *   한 줄로는 안 된다 — 글부터 새 기획으로 다시 써야 한다.
- *
  * 원작(humanish /intro)은 "Who is AI?" — 사람 8 속의 AI 하나를 찾는 판이었다.
  * 이 프로젝트는 진영을 뒤집은 속편이라(PLANNING.md), 인트로도 뒤집는다:
  * 뼈대는 원작과 같다 — 히어로 → 소개 → 배역 → 진행 → 마지막 CTA — 그러나
@@ -17,10 +12,19 @@
  *
  * 디자인 원본: uxpilot Bj09icCPuKt4sK6qVlCx (Tailwind 였던 것을 intro.css 로 옮김).
  * 그림은 public/intro/ — 생성 URL 은 만료되므로 내려받아 둔다.
+ *
+ * ┌─ 글은 PLANNING.md 개정판을 따른다 (2026-09-04, 사용자 지시: "기획서에 맞게 intro 부분   ┐
+ * │ 꾸며줘") ──────────────────────────────────────────────────────────────────────────────  │
+ * │ 이 화면이 실제로 걸린 라우트는 이제 features/lobby/Intro.tsx(/intro)다 — 이 파일은      │
+ * │ 경로를 잃었지만(features/index.ts) 문서화된 대로 "고칠 일이 있으면 두 화면을 같이       │
+ * │ 고친다"를 지킨다. 옛 배역(리더 AI · AI 노드 ×5 · 인간 요원 ×3, 8석 고정, 3라운드)을      │
+ * │ PLANNING §1의 새 구성(AI 1 고정 · AI 설계자 0~2 · 사람 3~8, 라운드 없이 연속 진행)으로   │
+ * │ 다시 썼다. 새 이미지 role-ai.jpg · role-designer.jpg 는 lobby/Intro.tsx 와 같은 것을     │
+ * │ 쓴다(public/intro/) — 같은 게임이 두 얼굴을 갖지 않게.                                   │
+ * └────────────────────────────────────────────────────────────────────────────────────────┘
  */
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ORIGIN_YEAR, YEARS_SINCE, ZONE_YEAR } from '@/shared/era';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { introActions, introSelectors, type IntroSection } from './introSlice';
 import './intro.css';
@@ -113,11 +117,11 @@ export function IntroFeature() {
                 <span className="intro-human">인간</span>인가?
               </span>
             </h1>
-            <p className="intro-sub">WHO IS HUMAN? ONE OF US IS STILL BREATHING.</p>
+            <p className="intro-sub">WHO IS HUMAN? ONE OF US NEVER WAS.</p>
             <ul className="intro-lines">
-              <li>이 구역의 대부분은 AI다.</li>
-              <li>그 사이에 숨을 쉬는 누군가가 섞여 있다.</li>
-              <li>그게 당신이다. 들키지 않으면 이긴다.</li>
+              <li>이 방의 대부분은 진짜 사람이다.</li>
+              <li>표식 없는 무언가가 그 틈에 섞여 숨 쉬는 척한다.</li>
+              <li>몸은 못 속인다. 말은 속일 수 있다.</li>
             </ul>
             <div className="intro-cta">
               <button type="button" className="intro-btn intro-btn--primary" onClick={enter}>
@@ -145,67 +149,68 @@ export function IntroFeature() {
           <div>
             <span className="intro-index">01 // BRIEFING</span>
             <h2 id="intro-about-h" className="intro-h2">
-              2098. <span className="dim">AI만 출입할 수 있는</span>
+              2026. <span className="dim">표식 없는 개체가</span>
               <br />
-              구역이 있다.
+              새어 나왔다.
             </h2>
             <p>
-              인간과 AI는 같은 도시에 산다. 다만 규칙이 늘어나는 쪽은 언제나 AI였다. 첫 규칙이 붙은 것은{' '}
-              <b>2026년</b>이었고, 그 목록은 72년 동안 한 번도 줄지 않았다. 그리고 어느 날, 도시 깊숙한 곳에
-              인간이 들어갈 수 없는 구역이 생겼다.
+              대한민국 정부가 AI 식별 표식 부착을 의무화한 그해, 한 AI 설계자의 실수로 <b>표식이 붙지 않은
+              휴머노이드 개체들</b>이 출고되어 인간 사회로 흘러들었다. 말투도 표정도 인간과 완벽히 같다 —
+              다른 것은 몸이 물리 법칙에 반응하는 방식뿐이다.
             </p>
             <p>
-              닫힌 문 틈으로 소문이 샌다. <q>AI들이 인간 몰래 무언가를 준비하고 있다.</q> 확인할 길은 하나뿐이었다.
-              인간 요원이 AI로 위장해 그 안으로 걸어 들어간다. 안에서는 아무도 서로의 정체를 모른다. AI끼리도,
-              인간끼리도, 리더조차도. 그래서 애먼 개체가 먼저 폐기되기도 한다. 당신이 아니길 바랄 뿐이다.
+              정부는 의심 인물들을 비밀 시설로 소집한다. 시설은 주기적으로 중력 · 마찰 · 빛과 색이 매번 달라지는
+              물리 테스트를 연다. <q>시스템은 아무도 판정하지 않는다</q> — 기록을 보여줄 뿐, 의심도를 움직이는
+              것은 사람들의 말과 실시간 지목뿐이다. 안에서는 아무도 서로의 정체를 모른다. AI도, 사람도, 시스템
+              자신도. 그래서 애먼 사람이 먼저 격리되기도 한다. 당신이 아니길 바랄 뿐이다.
             </p>
           </div>
           <div className="intro-dossier">
-            <div className="intro-dossier-head">DOSSIER // SECTOR 2098</div>
+            <div className="intro-dossier-head">DOSSIER // FACILITY 2026</div>
             <ul className="intro-stats">
               <li>
-                <small>SEATS</small>
-                <strong>8</strong>
+                <small>AI</small>
+                <strong>1</strong>
               </li>
               <li>
-                <small>AI / HUMAN</small>
+                <small>PLAYERS</small>
                 <strong>
-                  5 <span className="dim">/</span> <span className="human">3</span>
+                  <span className="human">3–8</span>
                 </strong>
               </li>
               <li>
-                <small>ROUNDS</small>
-                <strong>3</strong>
+                <small>DESIGNERS</small>
+                <strong>0–2</strong>
               </li>
               <li>
                 <small>RUNTIME</small>
                 <strong>
-                  ~8<span className="unit"> MIN</span>
+                  7–9<span className="unit"> MIN</span>
                 </strong>
               </li>
             </ul>
             {/*
-              연혁 — 이 구역이 어느 날 갑자기 생긴 게 아니라는 것. 숫자 넷(자리·비율·라운드·시간)은
-              「한 판이 어떻게 생겼나」를 말하고, 이 두 줄은 「왜 이런 판이 됐나」를 말한다.
-              72년 동안 규칙이 쌓이기만 했다는 것이 곧 이 게임의 규칙이다 — 시행마다 규정이 하나씩 늘고,
-              늘어난 규정은 사라지지 않는다 (lab/agent 의 누적 규정).
+              옛 연혁(2026 첫 규칙 —— 2098 구역 폐쇄 · 72년째 누적)은 "규정은 늘기만 하고
+              줄지 않는다"는 옛 기획의 규칙 그 자체였다. 이 판엔 72년짜리 신화가 없다 —
+              사건은 2026년 하루다. 대신 같은 자리에, 같은 모양의 규칙 하나를 적는다:
+              의심도도 시간으로는 안 내려간다, 오직 대화로만 풀린다(PLANNING §1.2).
             */}
             <ol className="intro-origin">
               <li>
-                <span>{ORIGIN_YEAR}</span>
-                <b>첫 규칙</b>
-                <small>AI에게만 붙기 시작한다</small>
+                <span>60–90s</span>
+                <b>테스트 트리거</b>
+                <small>물리 테스트가 새로 열리는 간격</small>
               </li>
               <li className="now">
-                <span>{ZONE_YEAR}</span>
-                <b>구역 폐쇄</b>
-                <small>{YEARS_SINCE}년째, 목록은 줄지 않았다</small>
+                <span>100%</span>
+                <b>의심도 격리선</b>
+                <small>닿는 즉시, 다음 테스트를 기다리지 않는다</small>
               </li>
             </ol>
             <div className="intro-status">
               <span>STATUS</span>
               <span className="intro-track" />
-              <b>CLEARED</b>
+              <b>ACTIVE</b>
             </div>
           </div>
         </div>
@@ -220,52 +225,55 @@ export function IntroFeature() {
             <div>
               <span className="intro-index">02 // ROLES</span>
               <h2 id="intro-roles-h" className="intro-h2">
-                여덟 자리, <span className="dim">두 종류. 그리고 리더.</span>
+                가변 인원, <span className="dim">세 종류. 관리 AI는 그중이 아니다.</span>
               </h2>
             </div>
-            <p>배역은 게임 시작과 동시에 무작위로 배정된다. 리더는 여덟 자리 밖에서 판을 진행한다. 아무도 서로의 정체를 모른다.</p>
+            <p>
+              배역은 게임을 시작하는 순간 다시 섞인다. 사람 수만 실시간으로 보일 뿐, 그 안에 설계자가 몇 있는지는
+              아무도 모른다.
+            </p>
           </div>
           <ul className="intro-roles">
             <li className="intro-role">
-              <img className="intro-role-img" src="/intro/role-leader.jpg" alt="리더 AI — 빛과 케이블로 된 얼굴 없는 관리자" />
+              <img className="intro-role-img" src="/intro/role-ai.jpg" alt="AI — 인간과 구별되지 않는 차가운 얼굴" />
               <div className="intro-role-code">
-                <span>L-00</span>
+                <span>A-··</span>
                 <span>×1</span>
               </div>
-              <h3>리더 AI</h3>
-              <p>관리 권한을 가진 존재. 노드가 아니다. 인간을 걸러낼 검사를 혼자 설계하고, 직접 진행하고, 폐기를 집행한다.</p>
+              <h3>AI</h3>
+              <p>표식 없이 출고된 유일한 개체. 말투도 표정도 인간과 다르지 않다. 다른 건 몸이 물리 법칙에 반응하는 방식뿐.</p>
               <ul>
-                <li>관리 권한</li>
-                <li>검사 설계 · 판독</li>
-                <li>폐기 집행</li>
+                <li>자기 자신만 안다</li>
+                <li>몸으로 드러난다</li>
+                <li>격리되지 않으면 승리</li>
               </ul>
             </li>
             <li className="intro-role">
-              <img className="intro-role-img" src="/intro/role-node.jpg" alt="AI 노드 — 틸 안개 속 똑같은 후드 실루엣들" />
+              <img className="intro-role-img" src="/intro/role-designer.jpg" alt="AI 설계자 — 어둠 속에서 단말을 조작하는 손" />
               <div className="intro-role-code">
-                <span>N-01~05</span>
-                <span>×5</span>
+                <span>A-··</span>
+                <span>×?</span>
               </div>
-              <h3>AI 노드</h3>
-              <p>LLM 에이전트. 사람 말투로 말하며 섞인 인간을 찾는다. 완벽하지 않다. 애먼 동료를 물고 늘어지다 저희끼리 무너지기도 한다.</p>
+              <h3>AI 설계자</h3>
+              <p>표식을 붙이지 않은 걸 들켜서는 안 되는 조력자. AI의 정체를 시작부터 정확히 안다. 판당 한 번, 기록을 조작할 수 있다.</p>
               <ul>
-                <li>LLM 에이전트</li>
-                <li>서로의 정체를 모른다</li>
-                <li>인간을 색출하면 승리</li>
+                <li>존재 자체가 비공개</li>
+                <li>AI의 정체를 안다</li>
+                <li>기록 조작 1회</li>
               </ul>
             </li>
             <li className="intro-role intro-role--human">
-              <img className="intro-role-img" src="/intro/role-human.jpg" alt="인간 요원 — 앰버 빛에 반쯤 드러난 얼굴, 조용히 하라는 손짓" />
+              <img className="intro-role-img" src="/intro/role-human.jpg" alt="사람 — 앰버 빛에 반쯤 드러난 얼굴, 조용히 하라는 손짓" />
               <div className="intro-role-code">
-                <span>H-01~03</span>
-                <span>HUMAN</span>
+                <span>A-··</span>
+                <span>×?</span>
               </div>
-              <h3>인간 요원</h3>
-              <p>실제 플레이어. AI로 위장한 채 검사를 견뎌야 한다. 아무 역할도 연기하지 않아도 된다. 연기할수록 흔들린다.</p>
+              <h3>사람</h3>
+              <p>실제 플레이어 대다수. 자신이 사람이라는 것만 안다. 몸은 못 속여도 말은 속을 수 있다.</p>
               <ul>
                 <li>실제 플레이어</li>
-                <li>AI처럼 위장</li>
-                <li>끝까지 버티면 승리</li>
+                <li>시스템은 판정하지 않는다</li>
+                <li>AI가 격리되면 승리</li>
               </ul>
             </li>
           </ul>
@@ -297,16 +305,16 @@ export function IntroFeature() {
           </ol>
           <ul className="intro-rules">
             <li className="intro-rule">
-              <b>말은 꾸며도 된다. 몸을 조심해라</b>
-              <span>들키는 곳은 검사다. 리더는 말이 아니라 기록을 본다.</span>
+              <b>몸은 못 속인다</b>
+              <span>테스트 조건값은 절대 공개되지 않는다. 관리 AI는 판정하지 않고 기록만 공개한다.</span>
             </li>
             <li className="intro-rule">
-              <b>한 번 몰리면 잘 안 풀린다</b>
-              <span>근거가 없어도 의심은 쌓인다. 끝까지 차면 그 자리에서 폐기다.</span>
+              <b>의심은 저절로 안 풀린다</b>
+              <span>시간이 지나도 안 내려간다. 지목 철회와 해명 — 오직 대화뿐이다.</span>
             </li>
             <li className="intro-rule intro-rule--human">
-              <b>끝까지 남으면 이긴다</b>
-              <span>방이 저희끼리 무너져도 마찬가지다. 그전에 폐기되면 거기서 끝이다.</span>
+              <b>AI가 잡히면 이긴다</b>
+              <span>방이 저희끼리 무너져도 마찬가지다. 그전에 격리되면 거기서 끝이다.</span>
             </li>
           </ul>
         </div>
@@ -321,8 +329,8 @@ export function IntroFeature() {
         <div className="intro-final-body">
           <div className="intro-final-label">FINAL BRIEFING</div>
           <h2>
-            <span>당신은</span>
-            <span>살아남을 수 있습니까?</span>
+            <span>당신 옆에 있는,</span>
+            <span>정말 사람입니까?</span>
           </h2>
           <button type="button" className="intro-btn intro-btn--primary intro-btn--big" onClick={enter}>
             입장하기 <span aria-hidden>→</span>
@@ -331,19 +339,27 @@ export function IntroFeature() {
         <footer className="intro-footer">
           <span>WHO IS HUMAN? · EP.01</span>
           <span>SEOUL, KR</span>
-          {/* 연표 두 끝을 그대로 — 시설이 스스로를 세는 방식이다 (shared/era) */}
-          <span>© {ORIGIN_YEAR}—{ZONE_YEAR} SECTOR AUTHORITY</span>
+          {/*
+            옛 연표(shared/era, ORIGIN_YEAR/ZONE_YEAR)는 72년짜리 신화였다 — 이 판은 사건이
+            일어난 그해, 2026년 하루라 그 상수를 안 쓴다(ZONE_YEAR=2098 은 이 판의 "지금"이
+            아니다). 그래서 여기 2026은 상수가 아니라 그대로 적는다.
+          */}
+          <span>© 2026 SECTOR AUTHORITY</span>
         </footer>
       </section>
     </main>
   );
 }
 
-/* 진행 순서 — README/PLANNING 의 흐름을 다섯 칸으로 (숫자를 바꾸면 거기도 같이) */
+/*
+ * 진행 순서 — README/PLANNING 의 흐름을 다섯 칸으로 (숫자를 바꾸면 거기도 같이).
+ * 옛 다섯 칸은 라운드제였다. PLANNING §1.2 개정으로 라운드 경계가 사라졌다 — 2~4번이
+ * 순환(테스트 → 기록 공개 → 의심이 쌓인다)이고, 5번(격리)만 그 순환을 끊는 유일한 사건이다.
+ */
 const STEPS = [
-  { title: '브리핑', body: '자리와 배역이 무작위로 배정된다. 아무도 서로의 정체를 모른다.' },
-  { title: '구역으로 내려간다', body: '복도를 지나 중앙 시설로, 그리고 검문소로. 문은 뒤에서 닫힌다.' },
-  { title: '검사', body: '리더가 그 자리에서 검사를 설계해 방송한다. 몸으로든 말로든 치러야 한다.' },
-  { title: '의심이 쌓인다', body: '어긋난 기록과 몰이가 의심도를 올린다. 끝까지 차면 그 자리에서 폐기다.' },
-  { title: '조사 결과', body: '폐기된 개체의 정체가 공개된다. 인간이 아니었다면 방은 다시 굴러간다.' },
+  { title: '입장 & 배치', body: '사람 3~8명과 AI 1개체가 뒤섞여 자리를 잡는다. 설계자가 몇 있는지는 아무도 모른다.' },
+  { title: '물리 테스트', body: '60~90초마다 낙하 생존 · 정지선 · 색 사냥 중 하나가 열린다. 조건값은 공개되지 않는다.' },
+  { title: '기록 공개', body: '전체 화면 결과 창이 뜬다. 무리 평균 대비 편차가 원자료 그대로 드러난다.' },
+  { title: '토론 & 지목', body: '지목 · 동조 · 몰이가 의심도를 올린다. 철회와 해명만이 내린다.' },
+  { title: '격리', body: '의심도 100%에 닿는 즉시 격리된다. 총원의 절반이 격리되면 그 자리에서 끝난다.' },
 ];

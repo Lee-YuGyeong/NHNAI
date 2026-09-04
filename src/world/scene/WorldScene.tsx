@@ -5,6 +5,9 @@
  * Redux 를 모른다 — 명부(roster)와 말풍선 신호(bubbleTick)는 feature 가 props 로 준다.
  *
  * 경계는 mp/constants.ts 의 WORLD 하나뿐이고 서버가 같은 값으로 검증한다.
+ *
+ * Exposure · AdaptiveFov · MouseLook · Remotes 는 export 한다 — 물리 미니게임 방(features/trial)이 같은 맵 위에
+ * **자기 리그(레일 위를 달리는 1인칭)** 만 바꿔 끼우기 위해서다. 이 파일의 LocalRig 은 건드리지 않는다.
  */
 
 import { Html } from '@react-three/drei';
@@ -120,7 +123,7 @@ export function WorldScene({ conn, spawn, roster, bubbleTick, composing, paused,
 }
 
 /** 맵마다 톤매핑 노출이 다르다 — 캔버스는 한 번 만들어지므로 onCreated 가 아니라 여기서 건다 */
-function Exposure({ value }: { value: number }) {
+export function Exposure({ value }: { value: number }) {
   const gl = useThree((s) => s.gl);
   useEffect(() => {
     gl.toneMappingExposure = value;
@@ -129,7 +132,7 @@ function Exposure({ value }: { value: number }) {
 }
 
 /** 화면 비율이 바뀔 때마다 카메라 fov 를 다시 잡는다 (세로 화면 보정). */
-function AdaptiveFov() {
+export function AdaptiveFov() {
   const camera = useThree((s) => s.camera);
   const width = useThree((s) => s.size.width);
   const height = useThree((s) => s.size.height);
@@ -187,7 +190,7 @@ const MOUSE_STEP_MAX = 200;
  * 실어 보내는 엉뚱한 delta(커서가 있던 자리 → 화면 가운데)를 걸러 낼 자리가 없다 — 들어오자마자 시야가 아무 데로나 튀었다.
  * 잠그는 것은 feature 가 한다(어느 요소에 걸든 상관없다 — 이 문서에 잠금이 있으면 그게 우리 것이다). 여기는 시야만 돌린다.
  */
-function MouseLook() {
+export function MouseLook() {
   const gl = useThree((s) => s.gl);
   useEffect(() => {
     const doc = gl.domElement.ownerDocument;
@@ -406,7 +409,7 @@ function LocalRig({ conn, spawn, composing, paused, map }: { conn: WorldConnecti
 
 /* ─────────────────────────── 남의 아바타 (수신) ─────────────────────────── */
 
-function Remotes({ roster, bubbleTick }: { roster: readonly { id: string }[]; bubbleTick: number }) {
+export function Remotes({ roster, bubbleTick }: { roster: readonly { id: string }[]; bubbleTick: number }) {
   // 명부가 바뀔 때만 이 컴포넌트가 돈다. 좌표는 여기로 오지 않는다.
   return (
     <>

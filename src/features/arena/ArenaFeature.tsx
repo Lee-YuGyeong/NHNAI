@@ -283,9 +283,9 @@ const JUMP_H = 0.5;
  * 의심도는 0~100 눈금이고 executeCut 에 닿으면 그 자리에서 폐기다. 나머지는 전부 그 눈금 위의 걸음이다.
  */
 const BALANCE = {
-  /** 이만큼의 시행에서 살아남으면 생존 승리다 */
+  /** 이만큼의 시행이 지나도록 targetAiId 를 못 잡으면 시간 초과로 AI 승리다 */
   trialsToWin: 5,
-  /** 나 말고 AI 가 이만큼 폐기되면 교란 승리다 — 과반이 무너진 방은 판이 못 된다 */
+  /** targetAiId 말고 이만큼 잘못 격리되면 자멸로 AI 승리다 — 과반이 무너진 방은 판이 못 된다 */
   chaosWin: 3,
   /** 개인 의심도가 여기 닿으면 그 자리에서 폐기 — 눈금의 끝. bumpSuspicion 의 상한도 이 값이다 */
   executeCut: 100,
@@ -480,7 +480,7 @@ const SAY_TIMEOUT_MS = 70_000;
  * 문장을 여기 한 번만 적는 이유가 그거다 — 방송은 이렇게 하고 첫 발화는 다른 지시를 받은 것처럼
  * 굴면, 듣고 들어온 사람만 그 어긋남을 본다. 바꾸려면 이 한 줄만 바꾼다.
  */
-const HUNT_ORDER = '이 방에 인간이 하나 있다. 전 개체에 지시한다. 인간을 찾아내라.';
+const HUNT_ORDER = '표식 없는 AI가 이 안에 숨어 있다. 전 개체에 지시한다. 찾아내라.';
 
 /**
  * ── 리더가 검사를 설계·판독할 때 입는 말투 ── (2026-09-02)
@@ -573,9 +573,21 @@ const say = (body: TalkRequest, signal?: AbortSignal) =>
 
 /**
  * autoStart — 이야기로 들어왔을 때(검증실 문 → 암전 → /interrogation?from=central). 「게임 시작」 버튼을 기다리지 않고
- * 곧장 판을 열고, 앞 화면의 암전을 이어받아 밝아진다. 로비에서 판만 열 때(/arena · /interrogation)는 예전 그대로 버튼 하나다.
+ * 곧장 판을 열고, 앞 화면의 암전을 이어받아 밝아진다 — 인계 서류(HandoverCard) · 챕터 방송 ·
+ * 암전 커튼이 전부 이 값 하나에 딸려 온다. **이야기를 실제로 거쳐 왔을 때만 켠다.**
+ *
+ * skipButton — 이야기는 안 거쳤지만(로비의 「검문소 (판만)」) 그래도 버튼 없이 곧장 여는 길
+ * (2026-09-04 사용자: "게임 시작 버튼 없애고 바로 게임 시작되게"). autoStart 와 달리 인계
+ * 서류·챕터 방송·암전 커튼은 하나도 안 붙는다 — 그냥 버튼을 대신 눌러 주는 것뿐이다.
+ *
+ * onStart — 판이 실제로 열리는 그 순간(makeCast, 버튼을 눌렀든 autoStart·skipButton 이든 같다)
+ * 한 번 불린다. features/interrogation 의 역할 브리핑 카드가 이 순간에 맞춰 뜬다.
  */
-export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}) {
+export function ArenaFeature({
+  autoStart = false,
+  skipButton = false,
+  onStart,
+}: { autoStart?: boolean; skipButton?: boolean; onStart?: () => void } = {}) {
   const dispatch = useAppDispatch();
   const [phase, setPhase] = useState<Phase>('idle');
   const [trial, setTrial] = useState<FreeTrial | null>(null);
@@ -621,7 +633,7 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
   /** 처형판에서 폐기된 개체 — 명부·배회·대화에서 전부 빠진다. state 는 화면용, ref 는 루프용 */
   const [dead, setDead] = useState<string[]>([]);
   const deadRef = useRef<string[]>([]);
-  /** 승패 — 내가 폐기되면 패배, BALANCE.trialsToWin 번의 시행에서 살아남으면 생존 승리 */
+  /** 승패 — 내가 잘못 격리되면 개인 패배(lost), targetAiId 가 격리되면 사람 승리(won), 끝내 못 찾으면 AI 승리(chaos) */
   const [outcome, setOutcome] = useState<Outcome>('playing');
   /**
    * 승패의 **같은 커밋용 사본**. 결말은 한 번만 정해진다 — 그런데 state 만 보면 늦다:
@@ -850,6 +862,12 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
     [],
   );
   const aiNames = names.slice(0, -1);
+  /**
+   * 이 방에 숨은 AI 하나 — **나(me)는 후보에서 뺀다.** 이 방에서 "나"는 늘 사람이고,
+   * 색출 대상은 나머지 다섯 개체 중 하나다 (2026-09-04 기획 전환: 인간을 찾던 판을
+   * AI 를 찾는 판으로 뒤집는다 — PLANNING.md). 판이 여는 순간 한 번만 뽑고 바뀌지 않는다.
+   */
+  const [targetAiId] = useState(() => aiNames[Math.floor(Math.random() * aiNames.length)]);
   /** 대화창 색점 — 머리 위 이름표와 같은 색으로 찍는다. 왜 같아야 하는지는 pip.ts 머리말 */
   const pipOf = (id: string) => pipColor(id, me, aiNames);
   const party = useRef<{ id: string; title: string; prompt: string; model: string; calls: CallStyle }[]>([]);
@@ -1138,7 +1156,7 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
           const max = TURN_RATE * delta;
           w.heading += Math.abs(d) <= max ? d : Math.sign(d) * max;
         }
-        // 가끔 제자리에서 한 번 뛴다 — 사람만 Space 를 갖고 있으면 점프 자체가 인간 표식이 된다
+        // 가끔 제자리에서 한 번 뛴다 — 나만 Space 를 갖고 있으면 점프 자체가 나를 가려내는 표식이 된다
         if (!busy && now >= w.nextJump) {
           w.jumpUntil = now + JUMP_SEC * 1000;
           w.nextJump = now + 7000 + Math.random() * 18000;
@@ -1517,7 +1535,7 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
         shifts: shifts.current.slice(-4).map(shiftLine),
         suspicion: suspicionRef.current,
         trials: trialNotes.current.slice(-5),
-        dead: deadRef.current.filter((id) => id !== me).map((name) => ({ name, wasHuman: false })),
+        dead: deadRef.current.filter((id) => id !== me).map((name) => ({ name, wasHuman: name !== targetAiId })),
         // 방금 난 폐기는 배경이 아니라 사건이다 — 몇 마디 동안 이 얘기가 대화를 덮는다
         justDied: buzz?.record,
         heat: heat ?? undefined,
@@ -2155,6 +2173,7 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
    *   데워 둔 것이 없으면(판만 여는 /arena · /interrogation 직행) 그 자리에서 짓는다 — 예전과 같다.
    */
   const makeCast = useCallback(() => {
+    onStart?.(); // 판이 여기서 실제로 열린다 — 역할 브리핑이 뜨는 신호는 이 한 줄뿐이다
     setPanelOpen(false); // 게임이 시작되면 안내판은 치운다 — 판이 곧 화면이다
     if (party.current.length) return setCast('ready');
     setCast('making');
@@ -2182,7 +2201,7 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
       });
     // 이름은 판이 사는 동안 안 바뀐다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch]);
+  }, [dispatch, onStart]);
 
   /**
    * 이야기로 넘어왔으면 버튼을 기다리지 않는다 — 암전이 걷히는 동안 성격이 만들어진다 (한 번만).
@@ -2202,7 +2221,7 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
    * 「기다림」이 아니라 「지시받은 일」로 읽혀야 판이 멎은 것으로 안 보인다.
    * 지목(보드에서 이름 클릭 — pointAt)을 화면에 드러내 알려 주는 것도 지금은 그 한 줄뿐이다.
    *
-   * 그리고 그 명령은 **인간인 나에게도 내려온다.** 그게 이 방송의 전부다.
+   * 그리고 그 명령은 **사람인 나에게도 내려온다.** 나도 색출에 낀다 — 그게 이 방송의 전부다.
    *
    * 접수를 **먼저** 부르고 방을 연다 — 방송은 온 순서대로 읽히므로(shared/broadcast), 뒤집으면
    * 지시가 도착 확인보다 앞서 나간다.
@@ -2224,6 +2243,18 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
     dispatch(broadcastAnnounce({ text: arrivalLine(handover, series(), TRIAL_PARTY) }));
     makeCast(); // 여기서 리더의 지시(HUNT_ORDER)가 이어 나간다
   }, [autoStart, makeCast, dispatch, handover]);
+
+  /**
+   * skipButton — 버튼만 없앤 길이다. autoStart 와 같은 ref(autoStarted)를 같이 봐서, 이야기로
+   * 들어온 판(autoStart)에서는 이 효과가 다시 makeCast 를 부르지 않는다 — 둘 다 켜질 일은
+   * 실제로 없지만(features/interrogation 이 둘을 배타적으로 준다), 그래도 안전하게 막아 둔다.
+   * 인계 서류·챕터 방송·arrivalLine 은 붙이지 않는다 — makeCast 자체가 HUNT_ORDER 는 낸다.
+   */
+  useEffect(() => {
+    if (!skipButton || autoStarted.current) return;
+    autoStarted.current = true;
+    makeCast();
+  }, [skipButton, makeCast]);
 
   useEffect(() => {
     if (phase !== 'designing') return;
@@ -2575,26 +2606,26 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
         settle('lost', performance.now() + PURGE_AIM_MS);
       }
       dispatch(
-        broadcastAnnounce({ text: `${fresh.join(', ')}. ${cause}. 인간 반응으로 확정한다. 즉시 폐기.`, kind: 'alarm' }),
+        broadcastAnnounce({ text: `${fresh.join(', ')}. ${cause}. AI 반응으로 확정한다. 즉시 격리.`, kind: 'alarm' }),
       );
-      talkLog.current = [...talkLog.current, leaderSays(`${fresh.join(', ')} 폐기. 인간으로 확정됐다`, 'purge')];
+      talkLog.current = [...talkLog.current, leaderSays(`${fresh.join(', ')} 격리. AI로 확정됐다`, 'purge')];
 
       /*
        * ── 조사 결과 공개 ──
-       * 폐기만 하고 정체를 안 밝히면 방에 아무 일도 일어나지 않는다. 애먼 개체를 날렸다는 사실이
-       * 공개돼야 개체들이 겁을 먹고, "사람은 아직 여기 있다"는 것도 그때 확정된다.
-       * 이 방에서 사람은 나 하나다 — 그래서 정체는 이름만 보면 안다.
+       * 격리만 하고 정체를 안 밝히면 방에 아무 일도 일어나지 않는다. 애먼 개체를 날렸다는 사실이
+       * 공개돼야 개체들이 겁을 먹고, "AI는 아직 여기 있다"는 것도 그때 확정된다.
+       * 이 방에서 AI는 targetAiId 단 하나다 — 그래서 정체는 이름만 보면 안다.
        * 방송(소리)과 대화 로그(개체들이 읽는 것) 양쪽에 같은 문장을 남긴다.
        */
-      const wasHuman = fresh.includes(me);
-      const found = fresh.map((id) => `${id}${eunNeun(id)} ${id === me ? '인간이었다' : 'AI 였다'}`).join(' · ');
+      const caughtAi = fresh.includes(targetAiId);
+      const found = fresh.map((id) => `${id}${eunNeun(id)} ${id === targetAiId ? 'AI였다' : '사람이었다'}`).join(' · ');
       const verdict = `조사 결과. ${found}. ${
-        wasHuman ? '색출은 정확했다. 이 구역은 정상으로 돌아간다.' : '인간이 아니다. 인간은 아직 이 안에 있다.'
+        caughtAi ? '색출은 정확했다. 이 구역은 정상으로 돌아간다.' : 'AI가 아니다. AI는 아직 이 안에 있다.'
       }`;
       dispatch(broadcastAnnounce({ text: verdict, kind: 'readout' }));
       talkLog.current = [...talkLog.current, leaderSays(verdict, 'purge')];
       setFeed(talkLog.current.slice(-LOG_KEEP));
-      justDied.current = { record: { name: fresh.join(', '), wasHuman }, left: BALANCE.deathBuzz };
+      justDied.current = { record: { name: fresh.join(', '), wasHuman: !caughtAi }, left: BALANCE.deathBuzz };
       /*
        * ── 폐기가 화면을 쥐는 동안은 다음 검사가 안 선다 ──
        * 여기까지가 한 번의 setSuspicion 이 부른 첫 효과다. 바로 다음 효과가 남은 도합을 세어
@@ -2625,7 +2656,7 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
       }
       if (stakes === 'execute') {
         /*
-         * ⚡판은 「AI 라면 틀릴 수 없는 기계적 지시」다 (src/lab/quick.ts) — 어긋나면 인간 확정이다.
+         * ⚡판은 「순전히 기계적으로만 지킬 수 있는 지시」다 (src/lab/quick.ts) — 어긋나면 의심이 가득 찬다.
          *
          * ★ 그래도 **바로 쏘지 않고 의심도를 끝까지 채운다** (2026-08-31 사용자: "한사람 의심도가
          *   넘어야 죽어야하는거 아니야?"). 결과는 같다 — 채우는 순간 아래 효과가 그 자리에서
@@ -2900,17 +2931,23 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
     return () => clearInterval(id);
   }, [phase, oral, finishOral]);
 
-  /* ── 생존 승리 — 내가 살아서 BALANCE.trialsToWin 번의 시행을 넘겼다 ── */
+  /* ── 사람 승리 — targetAiId 가 격리됐다. 시행 횟수와 무관하게 그 즉시 확정된다 ── */
   useEffect(() => {
-    if (outcome === 'playing' && trialsDone >= BALANCE.trialsToWin && !dead.includes(me)) settle('won');
-  }, [trialsDone, outcome, dead, me, settle]);
+    if (outcome === 'playing' && dead.includes(targetAiId)) settle('won');
+  }, [dead, outcome, targetAiId, settle]);
 
-  /* ── 교란 승리 — AI 들이 저희끼리 의심하다 BALANCE.chaosWin 개가 폐기됐다. 과반이 무너진 방은 판이 못 된다.
-        나까지 같은 처형에 걸렸으면 승리가 아니다 — execute 가 먼저 lost 를 놓고, settle 이 그걸 지킨다 ── */
+  /* ── AI 승리 — targetAiId 는 안 잡혔는데, BALANCE.trialsToWin 번의 시행이 다 지나갔거나
+        (시간 초과) 사람끼리 서로 의심하다 BALANCE.chaosWin 명을 잘못 격리했다(자멸). 둘 다
+        "끝내 못 찾았다"로 같은 결말이다.
+        나까지 같은 처형에 걸렸으면 여기 안 온다 — execute 가 먼저 lost 를 놓고, settle 이 그걸 지킨다 ── */
   useEffect(() => {
-    if (outcome === 'playing' && !dead.includes(me) && dead.filter((id) => id !== me).length >= BALANCE.chaosWin)
+    if (
+      outcome === 'playing' &&
+      !dead.includes(targetAiId) &&
+      (trialsDone >= BALANCE.trialsToWin || dead.filter((id) => id !== targetAiId && id !== me).length >= BALANCE.chaosWin)
+    )
       settle('chaos');
-  }, [dead, outcome, me, settle]);
+  }, [dead, outcome, me, targetAiId, trialsDone, settle]);
 
   /* ── 처형 — 선고받은 개체가 **선 자리에서** 리더 쪽을 돌아보고, 총을 맞고, 넘어진다 ── */
   useEffect(() => {
@@ -3855,16 +3892,16 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
             들어올 때 본 인계 서류도 판이었다 (HandoverCard). 나가는 자리만 판 밖이었던 것이다.
 
             그래서 같은 문법으로 다시 짠다. 다만 **색은 청록이 아니라 결말의 색**이다 (--tone) —
-            폐기 붉은색 · 교란 호박 · 생존 초록. 대화 로그가 리더의 말을 결로 물들이는 것과 같은 규칙이다.
+            오인 붉은색 · 교란 호박 · 적발 초록. 대화 로그가 리더의 말을 결로 물들이는 것과 같은 규칙이다.
           */}
           <section className="endcard">
             <p className="end-eyebrow">
               <span>SECTOR {FACILITY_SECTOR} · COGNITION DIVISION</span>
               <span className="end-tag">
-                {outcome === 'lost' ? '폐기 · TERMINATED' : outcome === 'chaos' ? '교란 · BREAKDOWN' : '방면 · CLEARED'}
+                {outcome === 'lost' ? '격리 · ISOLATED' : outcome === 'chaos' ? '교란 · BREAKDOWN' : '방면 · CLEARED'}
               </span>
             </p>
-            <b className="end-title">{outcome === 'lost' ? '폐기' : outcome === 'chaos' ? '교란' : '생존'}</b>
+            <b className="end-title">{outcome === 'lost' ? '오인' : outcome === 'chaos' ? '교란' : '적발'}</b>
             <p className="end-line">
               {outcome === 'lost' ? (
                 /*
@@ -3873,16 +3910,19 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
                    맞았다는 건 윗줄이 이미 말한 것이라, 붙여 두면 선고가 설명으로 늘어진다.
                 */
                 <>
-                  인간 반응 확정
+                  AI 반응 오판
                   <br />
-                  {me}{eunNeun(me)} 인간이었다.
+                  {me}{eunNeun(me)} 사람이었다.
                 </>
               ) : outcome === 'chaos' ? (
-                <>AI {dead.length}개가 서로를 의심하다 폐기됐다 — 방은 무너졌고, 아무도 네가 인간인 줄 모른다.</>
+                <>
+                  정해진 시행이 다 지나도록 AI는 끝내 들키지 않았다.
+                  {dead.length > 0 && ` 그 사이 애먼 사람 ${dead.length}명만 잘못 격리됐다.`}
+                </>
               ) : (
                 <>
-                  {BALANCE.trialsToWin}번의 검사에서 살아남았다 — 아무도 네가 인간인 줄 모른다.
-                  {dead.length > 0 && ` 그 사이 애먼 AI ${dead.length}개가 폐기됐다.`}
+                  AI를 찾아냈다 — {targetAiId}{eunNeun(targetAiId)} 격리됐다.
+                  {dead.length > 1 && ` 그 사이 애먼 사람 ${dead.length - 1}명도 함께 격리됐다.`}
                 </>
               )}
             </p>
