@@ -82,8 +82,8 @@ describe('표지 배경 영상 (HeroVideo)', () => {
     expect(v).toHaveAttribute('playsinline');
   });
 
-  /** 2026-09-05 사용자: "20초부터 시작". loop 속성은 0초로 되감아서 ended 에서 직접 되감는다 */
-  it('길이를 받아 오면 20초로 놓고, 끝나면 다시 20초로 되감는다', () => {
+  /** 2026-09-05 사용자: "22초부터 시작". loop 속성은 0초로 되감아서 ended 에서 직접 되감는다 */
+  it('길이를 받아 오면 22초로 놓고, 끝나면 다시 22초로 되감는다', () => {
     render(<HeroVideo src="https://example.com/intro.mp4" />);
     const v = document.querySelector('video') as HTMLVideoElement;
     let t = 0;
@@ -91,11 +91,11 @@ describe('표지 배경 영상 (HeroVideo)', () => {
     Object.defineProperty(v, 'currentTime', { get: () => t, set: (x: number) => (t = x), configurable: true });
     Object.defineProperty(v, 'ended', { get: () => ended, configurable: true });
     fireEvent.loadedMetadata(v);
-    expect(t).toBe(20);
+    expect(t).toBe(22);
     t = 119;
     ended = true;
     fireEvent.ended(v);
-    expect(t).toBe(20);
+    expect(t).toBe(22);
   });
 
   it('로드가 죽으면 그림으로 내려앉는다 — 다시 시도하지 않는다', () => {

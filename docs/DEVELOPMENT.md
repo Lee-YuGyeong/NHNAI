@@ -639,7 +639,7 @@ ffmpeg -y -i "$SRC" -c:v libx264 -preset slower -b:v 600k -maxrate 1200k -bufsiz
 
 #### `/intro` 표지의 배경 영상 (`features/lobby/heroes.tsx` 의 `INTRO_VIDEO_SRC`)
 
-R2 의 `who_is_AI.faststart.mp4`. **20초부터** 소리 없이 돌고, 끝나면 다시 20초로 (`INTRO_VIDEO_START_SEC`).
+R2 의 `who_is_AI.faststart.mp4`. **22초부터** 소리 없이 돌고, 끝나면 다시 22초로 (`INTRO_VIDEO_START_SEC`).
 
 > ★ **색인(moov)이 파일 앞에 있어야 한다.** 처음 올린 `who_is_AI.mp4`(260MB) 는 색인이 mdat 뒤에 있어서
 > 브라우저가 파일을 **다 받아야** 첫 장면을 그렸다 — 「시작이 안 된다」(2026-09-05). 새 영상은 올리기 전에

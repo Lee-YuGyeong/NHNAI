@@ -131,7 +131,7 @@ function Guest({ guest, className = '' }: { guest: () => void; className?: strin
  * ★ 모션을 꺼 둔 사람에게는 틀지 않는다 (RoleSlides · Typed 와 같은 규칙).
  * ★ 소리는 없다(muted) — 자동재생의 조건이기도 하고, 이 화면의 소리 규칙
  *   (소리가 하는 일은 누른 것에 대답하는 것뿐, Intro.tsx)이기도 하다.
- * ★ INTRO_VIDEO_START_SEC 초부터 튼다 (2026-09-05 사용자: "20초부터 시작"). 끝나면 다시 거기로 —
+ * ★ INTRO_VIDEO_START_SEC 초부터 튼다 (2026-09-05 사용자: "22초부터 시작"). 끝나면 다시 거기로 —
  *   loop 속성은 0초로 되감기 때문에 안 쓰고 ended 에서 직접 되감는다.
  *
  * ┌─ 파일은 **faststart** 여야 한다 (2026-09-05 확인) ────────────────────────┐
@@ -143,8 +143,8 @@ function Guest({ guest, className = '' }: { guest: () => void; className?: strin
  * └──────────────────────────────────────────────────────────────────────────┘
  */
 export const INTRO_VIDEO_SRC = 'https://pub-016e853b3b9840f9a2cca5d4125552b7.r2.dev/who_is_AI.faststart.mp4';
-/** 이 초부터 튼다 — 앞 20초는 건너뛴다 */
-export const INTRO_VIDEO_START_SEC = 20;
+/** 이 초부터 튼다 — 앞 22초는 건너뛴다 (2026-09-05 사용자: 20 → 22) */
+export const INTRO_VIDEO_START_SEC = 22;
 
 export function HeroVideo({ src = INTRO_VIDEO_SRC, startSec = INTRO_VIDEO_START_SEC }: { src?: string; startSec?: number }) {
   /** 로드가 죽었다 — 이 판에서는 다시 시도하지 않고 그림으로 내려앉는다 */
