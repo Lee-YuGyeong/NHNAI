@@ -183,6 +183,11 @@ export const GAME_TEST_MS = 30_000;
 export const GAME_TEST_MAX_MS = 45_000;
 /** 하드캡 — 이만큼 지나면 그 자리에서 끝낸다 (§0 "하드캡 제안 10분") */
 export const GAME_HARD_CAP_MS = 10 * 60_000;
+/**
+ * 판정 종료 화면이 떠 있는 시간(ms) — 지나면 서버가 로비로 되돌려 같은 방에서 새 판을 열 수 있다.
+ * 서버(runtime.ts 의 로비 복귀 타이머)와 끝 화면의 시계(EndScreen)가 같은 값을 본다 — 두 벌로 두면 시계가 거짓말한다.
+ */
+export const GAME_ENDED_MS = 30_000;
 
 /** 의심도 걸음 (§1.2 제안값 — 플레이테스트로 조정) */
 export const SUSPICION = {

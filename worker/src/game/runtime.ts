@@ -28,6 +28,7 @@ import {
   CLAIM_MAX_LEN,
   GAME_BRIEFING_MS,
   GAME_DISCUSSION_MS,
+  GAME_ENDED_MS,
   GAME_FIRST_DISCUSSION_MS,
   GAME_HARD_CAP_MS,
   GAME_MAX_HUMANS,
@@ -103,8 +104,6 @@ interface Tamper {
 
 const LOG_KEEP = 40;
 const STATE_KEY = 'game:state';
-/** 승패 화면(EndScreen)이 떠 있는 시간(ms) — 지나면 로비로 돌아가 같은 방에서 새 판을 열 수 있다 */
-const ENDED_LINGER_MS = 30_000;
 /** 판에 묶인 실제 사람이 전원 나가고 이만큼(ms) 지나면 버려진 판으로 보고 접는다 — 새로고침 유예 */
 const ABANDONED_AFTER_MS = 90_000;
 /** 봇 발화 간격(ms) — 사람 채팅과 같은 지터 (P10) */
@@ -161,7 +160,7 @@ export class GameRuntime {
   private heldLines: { id: string; text: string }[] = [];
   private freshResultTurns = 0;
   private finishing = false;
-  /** 판이 끝난 시각 — ENDED_LINGER_MS 뒤 로비 복귀의 기준 (타이머를 잃어도 onSweep 이 민다) */
+  /** 판이 끝난 시각 — GAME_ENDED_MS 뒤 로비 복귀의 기준 (타이머를 잃어도 onSweep 이 민다) */
   private endedAtMs: number | null = null;
   /** 판에 묶인 사람이 전원 나간 것을 처음 본 시각 — ABANDONED_AFTER_MS 지나면 판을 접는다 */
   private abandonedSince: number | null = null;
@@ -241,7 +240,7 @@ export class GameRuntime {
     await this.restoreIfNeeded();
     // 승패 화면이 오래 남았다 — 로비로 (endGame 의 타이머를 잃었을 때의 안전망)
     if (this.phase === 'ended') {
-      if (this.endedAtMs !== null && now - this.endedAtMs >= ENDED_LINGER_MS) await this.resetToLobby();
+      if (this.endedAtMs !== null && now - this.endedAtMs >= GAME_ENDED_MS) await this.resetToLobby();
       return;
     }
     if (!this.active()) return;
@@ -754,7 +753,7 @@ export class GameRuntime {
     this.deps.broadcast({ t: 'game_ended', outcome, roles: this.rolesMap() });
     // 끝 화면이 잠시 선 뒤 로비로 — 같은 방에서 새 판을 열 수 있어야 한다. DO 가 잠들어 타이머를 잃으면 onSweep 이 민다
     this.endedAtMs = this.now();
-    this.phaseTimer = setTimeout(() => void this.resetToLobby(), ENDED_LINGER_MS);
+    this.phaseTimer = setTimeout(() => void this.resetToLobby(), GAME_ENDED_MS);
     void this.persist();
   }
 
@@ -769,7 +768,7 @@ export class GameRuntime {
   }
 
   /**
-   * 판을 접고 로비로 — 승패 화면이 다 섰거나(ENDED_LINGER_MS), 판에 묶인 사람이 전원 나가 버려졌을 때.
+   * 판을 접고 로비로 — 승패 화면이 다 섰거나(GAME_ENDED_MS), 판에 묶인 사람이 전원 나가 버려졌을 때.
    * 저장된 판도 지운다 — 남겨 두면 persist() 가 lobby 를 안 쓰므로(아래) DO 가 잠들었다 깨며 죽은 판이 되살아난다.
    */
   private async resetToLobby(): Promise<void> {

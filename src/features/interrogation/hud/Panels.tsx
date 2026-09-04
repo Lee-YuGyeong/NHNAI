@@ -439,12 +439,40 @@ export function DesignerPanel({ seats, mySeatId, tamperLeft, phase, onTamper }: 
 
 /* ─────────────────────────────── 끝 ─────────────────────────────── */
 
+/** 머리띠의 시계 — 00:30 처럼 자리를 고정해 덜덜 떨지 않게 (역할 카드의 시계와 같은 얼굴) */
+function mmss(seconds: number): string {
+  return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+/** 「사람이었다」·「설계자였다」 — 끝 글자에 받침이 있으면 「이었다」, 없으면 「였다」 */
+function wasCopula(word: string): string {
+  const code = word.charCodeAt(word.length - 1);
+  const hangul = code >= 0xac00 && code <= 0xd7a3;
+  return hangul && (code - 0xac00) % 28 !== 0 ? '이었다' : '였다';
+}
+
+/**
+ * 판정 종료 판 — 역할 카드(RoleBriefing, 「배정 통보」)와 **같은 판이 하나 더 켜지는 것**이다 (2026-09-05 사용자:
+ * "게임 끝나면 보여주는 승리 이런것도 디자인에 맞게"). 머리띠 → 판정 → 내 결과 → 정체표 → 발치. 모따기 ·
+ * 스캔라인 · 왼쪽 세로선 · 위 가장자리 헤어라인은 통신판의 그것이다 (interrogation.css 의 .ig-end).
+ *
+ * 색은 둘뿐이다 (docs/role-card/README.md 의 표). 판의 색(--rc)은 **이긴 진영**이 정한다 — 사람 진영이면 이
+ * 화면의 조명색(--amber), AI 면 비상등(--signal). 관리 AI 의 마지막 방송도 같은 갈림이다 (runtime.ts 의
+ * readout / alarm). 내 결과 칩만 따로 물든다 — 이겼으면 조명색, 졌으면 비상등. 그래서 AI 가 이긴 붉은 판
+ * 위에서 살아남은 설계자의 「개인 승리」 칩만 호박으로 켜진다. 예전의 초록(#8fbf87)은 이 화면의 팔레트에
+ * 없는 색이라 뺐다.
+ *
+ * 머리띠의 시계와 발치의 막대는 서버가 로비로 되돌리는 순간(GAME_ENDED_MS)을 센다 — 판이 걷히면 「소집 대기」가
+ * 선다. 재접속이라 game_ended 를 못 받았으면(endsAt null) 시계 없이 선다. 「다시 — 새 판」은 그 전에 먼저
+ * 걷고 싶을 때 쓴다 (새로고침 — 판이 끝난 방에 들어오면 서버가 즉시 로비로 되돌린다).
+ */
 export function EndScreen({
   outcome,
   roles,
   seats,
   mySeatId,
   myRole,
+  endsAt,
   onAgain,
 }: {
   outcome: GameOutcome;
@@ -452,39 +480,86 @@ export function EndScreen({
   seats: GameSeat[];
   mySeatId: string | null;
   myRole: GameRole | null;
+  /** 서버가 로비로 되돌리는 시각(내 시계) — 없으면 시계·막대 없이 선다 */
+  endsAt: number | null;
   onAgain: () => void;
 }) {
   const humansWon = outcome.winner === 'humans';
   const iWon = myRole === 'designer' ? mySeatId !== null && outcome.designersWon.includes(mySeatId) : myRole === 'ai' ? !humansWon : humansWon;
-  const tone = iWon ? '#8fbf87' : humansWon ? '#ffca8e' : '#ff3320';
+  const left = useCountdown(endsAt);
+  // 막대는 켜지는 순간 남은 시간만큼 한 번에 빠진다 — 머리띠의 숫자와 같은 endsAt 을 보니 어긋나지 않는다
+  const [showMs] = useState(() => (endsAt === null ? 0 : Math.max(0, endsAt - Date.now())));
+  const aiName = seats.find((s) => s.id === outcome.aiId)?.name ?? outcome.aiId;
+  const mine = myRole === null ? null : iWon ? (myRole === 'designer' && !humansWon ? '개인 승리' : '승리') : '패배';
+  const foiled = myRole === 'designer' && !humansWon && !iWon;
+
   return (
-    <div className="ig-end" style={{ ['--tone' as string]: tone }}>
-      <div className="ig-sheet">
-        <p className="ig-eyebrow">COGNITION DIVISION · VERDICT</p>
-        <p className="ig-title">{humansWon ? '사람 진영 승리' : 'AI 승리'}</p>
-        <p>{outcome.reason}</p>
-        {myRole ? (
-          <p>
-            나는 <b>{ROLE_LABEL[myRole]}</b>이었다 — {iWon ? '이겼다.' : '졌다.'}
-            {myRole === 'designer' && !humansWon && !iWon ? ' (격리돼 개인 승리가 무산됐다)' : ''}
+    <div
+      className="ig-end"
+      role="dialog"
+      aria-label="판정 종료"
+      style={{ ['--rc' as string]: humansWon ? 'var(--amber)' : 'var(--signal)', ['--show' as string]: `${showMs}ms` }}
+    >
+      <div className="ig-endpanel">
+        <div aria-hidden className="shine" />
+
+        <div className="hd">
+          <i aria-hidden className="live" />
+          <span className="ttl">판정 종료 · VERDICT</span>
+          {left !== null ? <span className="clock">{mmss(left)}</span> : null}
+        </div>
+
+        <div className="bd">
+          <p className="kicker">판정</p>
+          <p className="name">{humansWon ? '사람 진영 승리' : 'AI 승리'}</p>
+          <p className="tagline">{outcome.reason}</p>
+          <p className="reveal">
+            표식 없는 AI 는 <b>{aiName}</b> 이었다
           </p>
-        ) : null}
-        <ul>
-          {seats.map((s) => {
-            const r = roles?.[s.id];
-            return (
-              <li key={s.id} className={r ? `ig-role-${r}` : undefined}>
-                <b>{s.name}</b>
-                {r ? ROLE_LABEL[r] : '?'}
-                {s.isolated ? ' · 격리' : ''}
-                {s.id === mySeatId ? ' · 나' : ''}
-              </li>
-            );
-          })}
-        </ul>
-        <button type="button" onClick={onAgain}>
-          다시 — 새 판
-        </button>
+
+          {myRole && mine ? (
+            <div className={`mine ${iWon ? 'won' : 'lost'}`}>
+              <span className="who">
+                나는 <b>{ROLE_LABEL[myRole]}</b>
+                {wasCopula(ROLE_LABEL[myRole])}
+              </span>
+              <span className="chip">{mine}</span>
+              {foiled ? <small>격리돼 개인 승리가 무산됐다</small> : null}
+            </div>
+          ) : null}
+
+          <div className="rule" aria-hidden>
+            ▪
+          </div>
+
+          <ul className="roster">
+            {seats.map((s) => {
+              const r = roles?.[s.id];
+              return (
+                <li key={s.id} className={`${r ? `is-${r}` : 'is-unknown'}${s.isolated ? ' isolated' : ''}${s.id === mySeatId ? ' me' : ''}`}>
+                  <b>{s.name}</b>
+                  <span className="role">{r ? ROLE_LABEL[r] : '?'}</span>
+                  <span className="tags">
+                    {s.isolated ? <em>격리</em> : null}
+                    {s.id === mySeatId ? <em className="me">나</em> : null}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="ft">
+          <span className="ftx">{endsAt !== null ? '판이 걷히면 소집 대기로 돌아간다' : '방장이 새 판을 열 수 있다'}</span>
+          <button type="button" className="again" onClick={onAgain}>
+            다시 — 새 판
+          </button>
+          {endsAt !== null ? (
+            <span aria-hidden className="prog">
+              <i />
+            </span>
+          ) : null}
+        </div>
       </div>
     </div>
   );

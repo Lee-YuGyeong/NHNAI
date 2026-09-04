@@ -18,7 +18,7 @@ import { BackToRoot } from '@/shared/BackToRoot';
 import { broadcastAnnounce } from '@/shared/broadcast';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { GAME_TEST_MS, type GameSeat } from '@/world/mp/game-protocol';
+import { GAME_ENDED_MS, GAME_TEST_MS, type GameSeat } from '@/world/mp/game-protocol';
 import type { AnimState, PlayerSnapshot } from '@/world/mp/protocol';
 import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
@@ -71,6 +71,7 @@ export function InterrogationFeature() {
   const latestResult = useAppSelector(gameSelectors.selectLatestResult);
   const roles = useAppSelector(gameSelectors.selectRoles);
   const outcome = useAppSelector(gameSelectors.selectOutcome);
+  const endedAt = useAppSelector(gameSelectors.selectEndedAt);
   const reject = useAppSelector(gameSelectors.selectReject);
 
   const [locked, setLocked] = useState(false);
@@ -539,7 +540,15 @@ export function InterrogationFeature() {
         {reject && phase !== 'lobby' ? <p className="ig-banner alarm">{reject}</p> : null}
         {phase === 'result' && latestResult ? <ResultModal result={latestResult} nameOf={nameOf} mySeatId={mySeatId} endsAt={wire?.phaseEndsAt ?? null} /> : null}
         {phase === 'ended' && outcome ? (
-          <EndScreen outcome={outcome} roles={roles} seats={seats} mySeatId={mySeatId} myRole={me?.role ?? null} onAgain={() => window.location.reload()} />
+          <EndScreen
+            outcome={outcome}
+            roles={roles}
+            seats={seats}
+            mySeatId={mySeatId}
+            myRole={me?.role ?? null}
+            endsAt={endedAt === null ? null : endedAt + GAME_ENDED_MS}
+            onAgain={() => window.location.reload()}
+          />
         ) : null}
       </div>
 
