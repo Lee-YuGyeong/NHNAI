@@ -5,8 +5,9 @@
  *   토론 · 낙하 생존 · 색 사냥   FreeRig (자유 보행) — 낙하 생존은 마당이 좁고 낙하물(FallObjects)이 떨어진다
  *   정지선                      StopRig (레일) + TrackDressing, 남의 몸은 runnerState 타임라인으로 움직인다
  *
- * 남의 몸은 전부 remotePlayers(좌석 id 로 키) → Remotes 가 그린다. 실제 사람이든 대역이든 AI 든 **같은 길**이다 —
- * 어느 좌석이 사람인지 이 파일은 모른다 (game-protocol.ts 머리말).
+ * 남의 몸은 전부 remotePlayers(좌석 id 로 키) → SeatBodies 가 그린다 — **머리 위에 이름표와 의심도 막대**가 붙는다
+ * (옛 시행판이 하던 그대로, SeatAvatar.tsx). 실제 사람이든 대역이든 AI 든 같은 길이다 — 어느 좌석이 사람인지
+ * 이 파일은 모른다 (game-protocol.ts 머리말).
  */
 import { Suspense, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -16,8 +17,9 @@ import { MAPS } from '@/world/map';
 import { EYE_HEIGHT, FALL_ARENA } from '@/world/mp/constants';
 import type { AnimState, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
-import { AdaptiveFov, Exposure, MouseLook, Remotes } from '@/world/scene/WorldScene';
+import { AdaptiveFov, Exposure, MouseLook } from '@/world/scene/WorldScene';
 import { WorldCanvas } from '@/world/scene/WorldCanvas';
+import { SeatBodies } from './SeatAvatar';
 import { FallObjects } from './FallObjects';
 import { FreeRig, type Teleport } from './FreeRig';
 import { StopRig } from './stopline/StopRig';
@@ -31,8 +33,12 @@ export interface HallSceneProps {
   mySeatId: string | null;
   /** 내 레인(좌석 번호 − 1). 좌석이 없으면 0 */
   myLane: number;
-  /** 남의 좌석 id 들 (나 제외) */
+  /** 남의 좌석 id 들 (나 제외, 격리된 몸은 빠진다) */
   others: readonly { id: string }[];
+  /** 머리 위 막대가 프레임마다 묻는다 — 값으로 주면 눈금이 바뀔 때마다 아바타가 전부 다시 그려진다 */
+  getSuspicion: (id: string) => number;
+  /** 지금 내가 지목하고 있는 좌석 — 그 몸의 이름표에 👉 가 붙는다 */
+  markId: string | null;
   bubbleTick: number;
   /** 지금 도는 테스트 — 없으면 토론 */
   test: { game: TrialGame; round: number } | null;
@@ -73,7 +79,7 @@ export function HallScene(p: HallSceneProps) {
       {def.Effects ? <def.Effects /> : null}
       {fall ? <FallObjects /> : null}
 
-      <Remotes roster={p.others} bubbleTick={p.bubbleTick} />
+      <SeatBodies seats={p.others} getSuspicion={p.getSuspicion} markId={p.markId} bubbleTick={p.bubbleTick} />
       {stopline ? <StopRunners others={p.others} /> : null}
 
       {stopline && p.mySeatId ? (

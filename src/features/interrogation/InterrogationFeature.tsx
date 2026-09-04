@@ -73,6 +73,13 @@ export function InterrogationFeature() {
   testRef.current = test;
   const seatsRef = useRef<GameSeat[]>([]);
   const phaseRef = useRef<string>('lobby');
+  /**
+   * 머리 위 막대가 프레임마다 읽는 눈금 — 값이 아니라 **함수**로 씬에 준다 (SeatAvatar 머리말).
+   * 의심도는 자주 움직이는데 값으로 넘기면 그때마다 아바타가 memo 를 뚫고 다시 그려진다.
+   */
+  const suspicionRef = useRef<Record<string, number>>({});
+  suspicionRef.current = wire?.suspicion ?? {};
+  const getSuspicion = useCallback((id: string) => suspicionRef.current[id] ?? 0, []);
 
   const phase = wire?.phase ?? 'lobby';
   const seats = wire?.seats ?? [];
@@ -143,6 +150,8 @@ export function InterrogationFeature() {
           return;
         case 'game_isolated':
           dispatch(gameActions.isolatedReceived(msg));
+          // 격리된 몸은 그 자리에서 끌려 나간다 — 홀에서도 사라진다. 정체는 좌석판이 들고 있다
+          remotePlayers.remove(msg.id);
           return;
         case 'game_leader':
           dispatch(gameActions.leaderReceived(msg));
@@ -293,9 +302,16 @@ export function InterrogationFeature() {
 
   const inGame = phase !== 'lobby';
   const others = useMemo(
-    () => (inGame ? seats.filter((s) => s.id !== mySeatId).map((s) => ({ id: s.id })) : Object.keys(players).filter((id) => id !== selfId).map((id) => ({ id }))),
+    () =>
+      inGame
+        ? seats.filter((s) => s.id !== mySeatId && !s.isolated).map((s) => ({ id: s.id }))
+        : Object.keys(players)
+            .filter((id) => id !== selfId)
+            .map((id) => ({ id })),
     [inGame, seats, mySeatId, players, selfId],
   );
+  /** 내가 지금 겨누고 있는 좌석 — 그 몸의 이름표에 👉 가 붙는다 (좌석판의 「철회」와 같은 값) */
+  const markId = mySeatId ? (wire?.accusations[mySeatId] ?? null) : null;
   const spawn = useMemo(() => (mySeat ? seatSpot(mySeat, seats.length) : { x: 0, z: 4 }), [mySeat, seats.length]);
   const hud =
     status === 'connecting'
@@ -318,6 +334,8 @@ export function InterrogationFeature() {
         mySeatId={mySeatId}
         myLane={mySeat ? mySeat.seat - 1 : 0}
         others={others}
+        getSuspicion={getSuspicion}
+        markId={markId}
         bubbleTick={bubbleTick}
         test={phase === 'test' && test ? { game: test.game, round: test.round } : null}
         myAttempts={myAttempts}
