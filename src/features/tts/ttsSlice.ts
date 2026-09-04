@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { broadcastAnnounce, broadcastMute, broadcastSkip, broadcastVolume, type BroadcastKind } from '@/shared/broadcast';
+import { broadcastAnnounce, broadcastMute, broadcastVolume, type BroadcastKind } from '@/shared/broadcast';
 import { capForSpeech } from './cap';
 
 /**
@@ -104,14 +104,6 @@ export const ttsSlice = createSlice({
       } catch {
         /* 저장 못 해도 이번 판에서는 먹는다 */
       }
-    });
-    /*
-     * 대사 스킵 — 읽고 있던 한 줄을 끊는다 (shared/broadcast 의 broadcastSkip).
-     * 비우면 TtsPlayer 의 cleanup 이 engine.stop() 으로 소리를 끊고, 대기 중이던 다음 줄을 곧바로 꺼낸다
-     * (경보가 끼어드는 길과 같은 자리다). 큐는 안 건드린다 — 한 번 누른 것은 한 줄이다.
-     */
-    b.addCase(broadcastSkip, (s) => {
-      s.current = null;
     });
     b.addCase(broadcastMute, (s, a) => {
       // 큐를 건드리지 않는다. 끄는 것은 소리뿐이고 재생 중이던 소리를 멈추는 일은 TtsPlayer 가 한다

@@ -33,17 +33,6 @@ export const broadcastAnnounce =
 export const broadcastMute = createAction<boolean | undefined>('broadcast/mute');
 
 /**
- * **지금 읽고 있는 방송 한 줄을 끊는다** — 대사 스킵(T)이 부르는 곳 (features/world/DialogueBox).
- *
- * 자막만 넘기면 목소리는 앞 줄을 계속 읽는다. 상자는 제 클립만 끊을 수 있어서(voiceLines.stop),
- * 소리를 방송으로 내는 화면은 여기로 끊어 줘야 한다 — 그래야 「넘겼다」가 눈과 귀에서 같은 뜻이 된다.
- *
- * 끊는 것은 **읽고 있는 한 줄뿐**이다. 대기 중인 것은 그대로 남아 곧바로 이어진다 — 한 번 누른 것은 한 줄이다.
- * 음소거와 같은 이유로 여기 둔다: 방송을 보내는 화면이 tts feature 를 import 하지 않게.
- */
-export const broadcastSkip = createAction('broadcast/skip');
-
-/**
  * 방송 볼륨 (0~1). 음소거와 달리 **끄는 수단이 아니라 크기 손잡이**다 —
  * /world 의 배경음악 손잡이와 같은 자리에 같은 모양으로 선다.
  * 0 이어도 방송은 자막으로 계속 지나간다 (음소거와 같은 약속).
