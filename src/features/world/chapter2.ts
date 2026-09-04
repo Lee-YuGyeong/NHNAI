@@ -230,9 +230,8 @@ function patch(p: Partial<Chapter2State>) {
   if (p.phase) dossier.at(`중앙 시설·${p.phase}`);
   notify();
 }
-/** line 은 「이건 대사 한 줄이다」 — 앞당기기가 집는 것은 대사뿐이다 */
-function later(ms: number, fn: () => void, line = false) {
-  clock.later(ms, fn, undefined, line);
+function later(ms: number, fn: () => void) {
+  clock.later(ms, fn);
 }
 function clearTimers() {
   clock.clear();
@@ -261,7 +260,7 @@ function play(lines: readonly Line[], cues: Partial<Record<number, () => void>> 
        */
       if (line.cut && comms.dropped()) return;
       emit?.({ nickname, text: line.cut ? comms.garble(text) : text, portrait: sp.portrait, self });
-    }, true);
+    });
     t += lineDurationFor(nickname, text, self);
   });
   if (after) later(t, after);
@@ -856,17 +855,6 @@ export const chapter2 = {
     myName = name || '나';
     onLeave = leave;
     onDetain = detainTo;
-  },
-  /**
-   * **대화 스킵** — 다음 대사를 지금 부르고 뒤의 예약을 그만큼 당긴다 (schedule 의 pull). 대화창의 T 가 부른다.
-   *
-   * ★ **묻는 중에는 안 당긴다** (state.pending). 그 자리의 초읽기는 절대 시각으로 재고 있어서
-   *   (pending.until) 예약만 당기면 화면의 남은 시간과 실제 마감이 어긋난다. 무엇보다 답할 시간을
-   *   내가 스스로 깎을 이유가 없다 — 넘길 것은 남의 말이지 내 차례가 아니다.
-   */
-  skip(): boolean {
-    if (state.pending) return false;
-    return clock.pull() > 0;
   },
   /**
    * 내 앞에서 검증실로 걸어 들어간 개체들 — 마지막 무대가 이 이름을 이름표로 쓴다 (admitted 머리말).

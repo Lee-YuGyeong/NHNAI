@@ -374,7 +374,7 @@ let onArena: (() => void) | null = null;
  * 걸어 둔 일들 — **줄(line)과 연출(cue)을 갈라 둔다.** 대화를 스킵할 때 아직 안 나온 **줄만** 앞당기고,
  * 방을 옮기거나 목표를 바꾸는 연출은 제 시각에 그대로 둔다: 한 번 누른 것으로 마지막 방까지 가 버리면 안 된다.
  */
-const timers: { id: number; fn: () => void; kind: 'line' | 'cue' }[] = [];
+const timers: { id: number; fn: () => void }[] = [];
 let spreadTimer = 0;
 let roomAt = 0;
 /** 이번 방에서 이미 한 일들 — 같은 연출이 두 번 돌지 않게. 방을 옮기면 비운다 */
@@ -573,23 +573,23 @@ function patch(p: Partial<Scene2State>) {
   Object.assign(state, p);
   notify();
 }
-function later(ms: number, fn: () => void, kind: 'line' | 'cue' = 'cue') {
+function later(ms: number, fn: () => void) {
   const id = window.setTimeout(() => {
     const i = timers.findIndex((t) => t.id === id);
     if (i >= 0) timers.splice(i, 1);
     fn();
   }, ms);
-  timers.push({ id, fn, kind });
+  timers.push({ id, fn });
 }
 function clearTimers() {
   for (const t of timers) window.clearTimeout(t.id);
   timers.length = 0;
 }
 /** 조작권의 시계가 타이머를 거는 손 — ms 0 은 gate 가 그 자리에서 돌린다 */
-const runGated = (ms: number, fn: () => void, kind: 'line' | 'cue') => later(ms, fn, kind);
+const runGated = (ms: number, fn: () => void) => later(ms, fn);
 /** 조작권부터 ms 뒤에 — 손을 대기 전이면 줄을 서고, 대는 순간부터 센다. 나에게 일어나는 일은 later 가 아니라 이것으로 건다 */
-function afterControl(ms: number, fn: () => void, kind: 'line' | 'cue' = 'cue') {
-  control.after(ms, fn, performance.now(), runGated, kind);
+function afterControl(ms: number, fn: () => void) {
+  control.after(ms, fn, performance.now(), runGated);
 }
 /** 손을 댔다 — 처음이면 줄 선 시계가 전부 이 시각부터 돈다 */
 function takeControl(now: number) {
@@ -672,7 +672,6 @@ function play(lines: readonly Line[], startAt = 0, cues: Record<number, () => vo
         cue?.();
         emit?.({ nickname: name, text, portrait: s.portrait, self, thought: line.who === 'thought', bubble });
       },
-      'line',
     );
     t += lineDurationFor(name, text, self);
   });
@@ -2488,7 +2487,6 @@ function offerHint(id: string, room: Room, r: TalkResult, afterMs: number): void
       for (const l of h.lines) markLive(fill(l.text));
       play(h.lines);
     },
-    'line',
   );
 }
 
@@ -3002,23 +3000,6 @@ export const scenario2 = {
    * 이때부터 다리가 멈춘다 (본판 입력줄과 같은 규칙).
    */
   openTalk,
-
-  /**
-   * **대화 스킵** — 아직 안 나온 줄을 전부 지금 내보내고, 대화창은 한 칸 넘긴다 (Scenario2Feature 가 Space 에 건다).
-   * 방을 옮기거나 목표를 바꾸는 연출은 안 앞당긴다: 그건 이야기의 시각이지 읽는 속도가 아니다.
-   * 돌려주는 값은 「대화창도 한 칸 넘겨야 하나」다 — 넘길 줄이 아무것도 없으면 누른 값을 안 쓴다.
-   */
-  skip(): boolean {
-    const lines = timers.filter((t) => t.kind === 'line');
-    for (const t of lines) {
-      window.clearTimeout(t.id);
-      const i = timers.indexOf(t);
-      if (i >= 0) timers.splice(i, 1);
-    }
-    for (const t of lines) t.fn();
-    busyUntil = 0;
-    return true;
-  },
 
   /**
    * [E] — **겨눈 것에게 말을 건다.** 그 밖에 손으로 하는 것은 코어 출력 콘솔 하나다.

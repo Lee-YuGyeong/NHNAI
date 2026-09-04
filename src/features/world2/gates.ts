@@ -66,11 +66,11 @@ export function stirDetector(opt: { stillMs?: number; driftM?: number } = {}) {
  */
 export function controlGate() {
   let at: number | null = null;
-  const held: { ms: number; fn: () => void; kind: 'line' | 'cue' }[] = [];
-  type Run = (ms: number, fn: () => void, kind: 'line' | 'cue') => void;
-  const fire = (ms: number, fn: () => void, kind: 'line' | 'cue', run: Run) => {
+  const held: { ms: number; fn: () => void }[] = [];
+  type Run = (ms: number, fn: () => void) => void;
+  const fire = (ms: number, fn: () => void, run: Run) => {
     if (ms <= 0) fn();
-    else run(ms, fn, kind);
+    else run(ms, fn);
   };
   return {
     /** 손을 댔나 */
@@ -89,13 +89,13 @@ export function controlGate() {
     take(now: number, run: Run): boolean {
       if (at !== null) return false;
       at = now;
-      for (const h of held.splice(0)) fire(h.ms, h.fn, h.kind, run);
+      for (const h of held.splice(0)) fire(h.ms, h.fn, run);
       return true;
     },
     /** 손을 댄 시각부터 ms 뒤에 — 이미 댔으면 남은 만큼만 기다리고, 아직이면 줄을 선다 */
-    after(ms: number, fn: () => void, now: number, run: Run, kind: 'line' | 'cue' = 'cue'): void {
-      if (at === null) held.push({ ms, fn, kind });
-      else fire(ms - (now - at), fn, kind, run);
+    after(ms: number, fn: () => void, now: number, run: Run): void {
+      if (at === null) held.push({ ms, fn });
+      else fire(ms - (now - at), fn, run);
     },
     /** 줄 선 것 수 — 시험 · 확인용 */
     pending(): number {

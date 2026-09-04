@@ -72,10 +72,7 @@ let onTransit: (() => void) | null = null;
 /** 락다운이 끝나 '정체를 숨겨라'가 된 순간 — 챕터 2 가 이어받는다 (WorldFeature 가 잇는다; chapter2 를 직접 부르면 순환 참조) */
 let onHide: (() => void) | null = null;
 let myName = '나';
-/**
- * 이 대본의 시계 (schedule.ts) — 예약을 숫자가 아니라 **일**로 들고 있어서 앞당길 수 있다.
- * 그것이 T 로 대사를 넘길 때 다음 줄을 지금 부르는 길이다 (아래 skip).
- */
+/** 이 대본의 시계 (schedule.ts) — 예약을 숫자가 아니라 **일**로 들고 있어서 바구니째 걷어낼 수 있다 */
 const clock = createSchedule();
 /** 지금 흐르는 대사가 끝나는 시각(performance.now 기준) — 유도 속마음(nudge)은 그 뒤의 정적에서만 든다 */
 let busyUntil = 0;
@@ -89,9 +86,9 @@ function patch(p: Partial<ChapterState>) {
   if (p.phase) dossier.at(p.phase === 'arrive' || p.phase === 'lockdown' || p.phase === 'hide' ? '중앙 시설' : '복도');
   notify();
 }
-/** bucket 을 주면 그 배열에도 담긴다 — 나중에 그것만 걷어내 끊는다 (playHere). line 은 「이건 대사 한 줄이다」 */
-function later(ms: number, fn: () => void, bucket?: Job[], line = false) {
-  clock.later(ms, fn, bucket, line);
+/** bucket 을 주면 그 배열에도 담긴다 — 나중에 그것만 걷어내 끊는다 (playHere) */
+function later(ms: number, fn: () => void, bucket?: Job[]) {
+  clock.later(ms, fn, bucket);
 }
 function clearTimers() {
   clock.clear();
@@ -143,7 +140,6 @@ function play(lines: readonly Line[], cues: Partial<Record<number, () => void>> 
         emit?.({ nickname, text: line.cut ? comms.garble(text) : text, portrait: sp.portrait, self, thought: line.who === 'thought' });
       },
       bucket,
-      true,
     );
     // 목소리 클립이 있으면 그 길이만큼 — 대화창도 같은 길이를 기다리므로 다음 줄이 음성 도중에 끼어들지 않는다.
     // 속마음은 소리가 없으니(대화창의 silent) 글자 기준으로만 잰다 — 이름표가 내 이름이라 'me' 클립을 잘못 집지 않게
@@ -471,25 +467,6 @@ export const chapter1 = {
     if (advised.has(id)) return;
     advised.add(id);
     play(WATCH_ADVICE);
-  },
-  /**
-   * **대화 스킵** — 아직 안 나온 다음 줄을 지금 부르고, 뒤의 예약도 그만큼 당긴다 (schedule 의 pull).
-   * 대화창의 T 가 여기를 부른다 (DialogueBox 의 onSkip). 상자만 넘기면 다음 줄은 제 시각에 매달려 있어
-   * 넘긴 만큼 그대로 정적이 된다 — 시간을 같이 감아야 넘긴 것이 된다.
-   *
-   * 절대 시각으로 재는 것들도 같이 당긴다: 유도 속마음이 기다리는 정적(busyUntil·nudgeAt), 그 자리의 말이
-   * 끝나는 시각(focus.endsAt). 안 당기면 감은 시간만큼 생각이 늦게 들고, 자리를 떠도 안 끊긴 것으로 친다.
-   *
-   * 돌려주는 값은 「앞당겼나」다 — 대사가 남아 있지 않으면 아무것도 안 한다 (무대 이동은 저 혼자 안 당겨진다).
-   */
-  skip(): boolean {
-    const delta = clock.pull();
-    if (!delta) return false;
-    const now = performance.now();
-    busyUntil = Math.max(now, busyUntil - delta);
-    nudgeAt = Math.max(now, nudgeAt - delta);
-    if (focus) focus.endsAt -= delta;
-    return true;
   },
   /** 다른 이야기(chapter2)가 목표·자막 줄을 빌려 쓴다 — 화면은 한 곳만 본다 */
   hud(p: { objective?: string | null; banner?: string | null }): void {
