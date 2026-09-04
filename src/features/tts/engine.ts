@@ -403,6 +403,22 @@ function master(): AudioNode {
   return (masterGain = g);
 }
 
+/**
+ * 참가자 좌석 음성(features/voice/*)이 **같은 문맥 · 같은 마스터**를 쓰려고 여는 자리.
+ *
+ * AudioContext 를 두 벌 만들면 볼륨 손잡이가 둘이 된다 — 방송을 줄였는데 방 사람들 목소리는
+ * 그대로인 화면이 되고, 브라우저의 자동재생 자물쇠도 두 번 열어야 한다.
+ * 새 엔진은 이 둘만 있으면 붙는다 (docs/VOICE.md §10).
+ */
+export function audioContext(): AudioContext {
+  return audio();
+}
+
+/** 마스터 게인. 여기 꽂으면 setVolume 이 그대로 먹는다 */
+export function masterOut(): AudioNode {
+  return master();
+}
+
 /** 0~1. 0 이면 소리는 없지만 방송은 자막으로 계속 지나간다 (TtsPlayer 가 시간을 세어 넘긴다) */
 export function setVolume(v: number): void {
   volume = Math.min(1, Math.max(0, v));
