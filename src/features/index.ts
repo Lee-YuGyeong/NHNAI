@@ -112,11 +112,12 @@ export const FEATURES: FeatureDef[] = [
   {
     id: 'interrogation',
     title: '검문소 (인간인 척 본판)',
+    // ?code= 없이 들어가면 InterrogationFeature 가 기본 방 1234 로 붙는다 — doors 로 그 번호를 따로 적지 않는다
+    // (2026-09-04 사용자: "1234 방 키 말고 그냥 http://localhost:5173/interrogation 이걸로 연결해줘. 코드
+    // 1234로 다 되어있는데 그냥 없애줘")
     path: '/interrogation',
     owner: 'TBD',
     Component: InterrogationFeature,
-    // 방 번호 1234 고정 — 같은 번호로 탭을 더 열면 같은 판에 들어온다 (물리 미니게임의 문과 같은 규칙)
-    doors: [{ title: '검문소 (인간인 척 본판 · 방 1234)', to: '/interrogation?code=1234' }],
   },
   { id: 'game',    title: '라운드 진행',    path: '/game',    owner: 'TBD', Component: GameFeature },
   { id: 'profile', title: '프로필',        path: '/profile', owner: 'TBD', Component: ProfileFeature },
@@ -138,6 +139,7 @@ export const FEATURES: FeatureDef[] = [
     doors: [
       { title: '물리 미니게임 · 정지선 (마찰 · 관성)', to: '/trial?code=1234&game=stopline' },
       { title: '물리 미니게임 · 낙하 생존 (중력 · 공기저항)', to: '/trial?code=1234&game=fall' },
+      { title: '물리 미니게임 · 색 사냥 (빛과 색)', to: '/trial?code=1234&game=colorhunt' },
     ],
   },
 ];

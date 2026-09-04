@@ -1,8 +1,10 @@
 /**
  * 심문소 홀 — 판의 3D 무대. WorldScene 과 같은 재료(맵 정의 · 조명 · 후처리 · 원격 아바타)를 쓰고,
- * 국면에 따라 **다리와 바닥**만 바꿔 끼운다:
+ * 국면에 따라 **다리와 바닥**만 바꿔 끼운다. 전부 **3인칭**이다 (2026-09-04 사용자: "그냥 검문소 들어가면
+ * 3인칭으로 나오게 해줘") — 몸은 로봇이 아니라 서버가 배정한 군인(SelfAvatar → SoldierAvatar):
  *
- *   토론 · 낙하 생존 · 색 사냥   FreeRig (자유 보행) — 낙하 생존은 마당이 좁고 낙하물(FallObjects)이 떨어진다
+ *   토론 · 낙하 생존 · 색 사냥   FreeRig (자유 보행) — 낙하 생존은 마당(FALL_ARENA)이 좁고 낙하물(FallObjects)이
+ *                              떨어지고, 색 사냥은 마당(HUNT_ARENA)에서 구슬을 줍는다(E, PickKey)
  *   정지선                      StopRig (레일) + TrackDressing, 남의 몸은 runnerState 타임라인으로 움직인다
  *
  * 남의 몸은 전부 remotePlayers(좌석 id 로 키) → SeatBodies 가 그린다 — **머리 위에 이름표와 의심도 막대**가 붙는다
@@ -14,14 +16,19 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
 import { MAPS, type MapDef } from '@/world/map';
-import { EYE_HEIGHT, FALL_ARENA } from '@/world/mp/constants';
+import { EYE_HEIGHT, FALL_ARENA, HUNT_ARENA } from '@/world/mp/constants';
 import type { BodyId } from '@/world/mp/bodies';
 import type { AnimState, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
 import { AdaptiveFov, Exposure, MouseLook } from '@/world/scene/WorldScene';
 import { WorldCanvas } from '@/world/scene/WorldCanvas';
 import { SeatBodies } from './SeatAvatar';
+import { SelfAvatar } from './SelfAvatar';
+import { selfPose } from './selfPose';
 import { FallObjects } from './FallObjects';
+// 색 사냥의 구슬 · 견본판 · E 키는 /trial 과 같은 부품이다 — 상태(huntState)가 하나라 화면도 하나로 그린다
+import { HuntOrbs, SampleBoard } from '@/features/trial/games/color-hunt/HuntObjects';
+import { PickKey } from '@/features/trial/games/color-hunt/PickKey';
 import { FreeRig, type Teleport } from './FreeRig';
 import { StopRig } from './stopline/StopRig';
 import { TrackDressing } from './stopline/TrackDressing';
@@ -64,12 +71,15 @@ export interface HallSceneProps {
   paused: boolean;
   onAccel: () => void;
   onBrake: () => void;
+  /** 색 사냥 — E 로 구슬을 청한다. 판정은 서버 (PickKey 머리말) */
+  onPick: (objectId: number) => void;
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
 }
 
 export function HallScene(p: HallSceneProps) {
   const stopline = p.test?.game === 'stopline';
   const fall = p.test?.game === 'fall';
+  const hunt = p.test?.game === 'colorhunt';
 
   return (
     <WorldCanvas
@@ -93,6 +103,14 @@ export function HallScene(p: HallSceneProps) {
       </Suspense>
       {def.Effects ? <def.Effects /> : null}
       {fall ? <FallObjects /> : null}
+      {hunt ? (
+        <group>
+          <HuntOrbs />
+          <SampleBoard />
+          {/* 마당 위 작업등 — 링 조명이 무대에만 떨어져 마당이 어둡다. 구슬은 무광이지만 견본판 구조물·몸은 빛이 필요하다 */}
+          <pointLight position={[0, 7.5, -1.5]} color="#dfe9ff" intensity={60} distance={22} decay={2} />
+        </group>
+      ) : null}
 
       <SeatBodies seats={p.others} getSuspicion={p.getSuspicion} markId={p.markId} bubbleTick={p.bubbleTick} />
       {stopline ? <StopRunners others={p.others} /> : null}
@@ -100,8 +118,20 @@ export function HallScene(p: HallSceneProps) {
       {stopline && p.mySeatId ? (
         <StopRig myId={p.mySeatId} lane={p.myLane} myAttempts={p.myAttempts} onAccel={p.onAccel} onBrake={p.onBrake} sendMove={p.sendMove} />
       ) : (
-        <FreeRig spawn={p.spawn} body={p.myBody} teleport={p.teleport} bounds={fall ? FALL_ARENA : null} composing={p.composing} paused={p.paused} sendMove={p.sendMove} />
+        <FreeRig
+          spawn={p.spawn}
+          body={p.myBody}
+          teleport={p.teleport}
+          bounds={fall ? FALL_ARENA : hunt ? HUNT_ARENA : null}
+          composing={p.composing}
+          paused={p.paused}
+          sendMove={p.sendMove}
+        />
       )}
+      {hunt && p.mySeatId ? <PickKey getPos={() => ({ x: selfPose.x, z: selfPose.z })} onPick={p.onPick} /> : null}
+      {/* 서버 welcome 이 오기 전엔 myBody 가 잠깐 null 이다 — 그 사이엔 로봇 대신 아예 안 그린다
+          (2026-09-04 사용자: "처음에 딱 누르면 로봇이 1초 나와") */}
+      {p.myBody ? <SelfAvatar body={p.myBody} /> : null}
       <MouseLook />
     </WorldCanvas>
   );

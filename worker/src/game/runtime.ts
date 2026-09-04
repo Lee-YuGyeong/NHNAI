@@ -97,6 +97,10 @@ interface Tamper {
 
 const LOG_KEEP = 40;
 const STATE_KEY = 'game:state';
+/** 승패 화면(EndScreen)이 떠 있는 시간(ms) — 지나면 로비로 돌아가 같은 방에서 새 판을 열 수 있다 */
+const ENDED_LINGER_MS = 30_000;
+/** 판에 묶인 실제 사람이 전원 나가고 이만큼(ms) 지나면 버려진 판으로 보고 접는다 — 새로고침 유예 */
+const ABANDONED_AFTER_MS = 90_000;
 /** 봇 발화 간격(ms) — 사람 채팅과 같은 지터 (P10) */
 const BOT_TALK_MIN_MS = 5_000;
 const BOT_TALK_JITTER_MS = 9_000;
@@ -151,6 +155,10 @@ export class GameRuntime {
   private heldLines: { id: string; text: string }[] = [];
   private freshResultTurns = 0;
   private finishing = false;
+  /** 판이 끝난 시각 — ENDED_LINGER_MS 뒤 로비 복귀의 기준 (타이머를 잃어도 onSweep 이 민다) */
+  private endedAtMs: number | null = null;
+  /** 판에 묶인 사람이 전원 나간 것을 처음 본 시각 — ABANDONED_AFTER_MS 지나면 판을 접는다 */
+  private abandonedSince: number | null = null;
 
   private readonly now: () => number;
   private readonly rand: () => number;
@@ -222,10 +230,19 @@ export class GameRuntime {
     return this.bindings.get(playerId) ?? null;
   }
 
-  /** 30초 청소 알람 — 타이머를 잃었어도 마감이 지난 국면을 민다 */
+  /** 30초 청소 알람 — 타이머를 잃었어도 마감이 지난 국면을 민다. 죽은 판(끝 화면 · 버려진 판)도 여기서 접는다 */
   async onSweep(now: number): Promise<void> {
     await this.restoreIfNeeded();
+    // 승패 화면이 오래 남았다 — 로비로 (endGame 의 타이머를 잃었을 때의 안전망)
+    if (this.phase === 'ended') {
+      if (this.endedAtMs !== null && now - this.endedAtMs >= ENDED_LINGER_MS) await this.resetToLobby();
+      return;
+    }
     if (!this.active()) return;
+    // 판에 묶인 실제 사람이 전원 나가고 한참이다 — 버려진 판이 방을 영영 잡고 있으면 안 된다
+    if (this.hasBoundHuman()) this.abandonedSince = null;
+    else if (this.abandonedSince === null) this.abandonedSince = now;
+    else if (now - this.abandonedSince >= ABANDONED_AFTER_MS) return void (await this.resetToLobby());
     if (this.phaseEndsAt !== null && now >= this.phaseEndsAt + 1_000) {
       this.clearPhaseTimer();
       await this.advance();
@@ -255,9 +272,6 @@ export class GameRuntime {
       case 'game_tamper':
         this.tamper(playerId, msg.target, msg.direction);
         return;
-      case 'game_pick':
-        /* 색 사냥 — 엔진이 붙으면 여기서 넘긴다 (worker/src/trial/colorhunt). 지금은 흘린다 */
-        return;
       default:
         return;
     }
@@ -279,6 +293,10 @@ export class GameRuntime {
       case 'trial_join':
         this.engine.join(seat.id);
         return;
+      case 'trial_pick':
+        // 색 사냥 — 줍기. 거리·쿨다운·정오는 엔진이 본다 (worker/src/trial/colorhunt/engine.ts)
+        this.engine.onPick(seat.id, msg.objectId);
+        return;
       default:
         return;
     }
@@ -287,10 +305,16 @@ export class GameRuntime {
   /* ─────────────────────────────── 시작 ─────────────────────────────── */
 
   private async start(playerId: string, fillTo?: number): Promise<void> {
-    if (this.phase !== 'lobby') return this.reject(playerId, '이미 판이 열려 있다');
     const roster = this.deps.roster();
     const host = this.hostOf(roster);
     if (!host || host.id !== playerId) return this.reject(playerId, '방장만 시작할 수 있다');
+    // 끝 화면이 아직 서 있어도 새 판은 열 수 있다 — 방장의 시작이 곧 「다시 하기」다
+    if (this.phase === 'ended') await this.resetToLobby();
+    if (this.active()) {
+      // 판에 묶였던 사람이 전원 나간 「버려진 판」이면 접고 새로 연다 — 방이 죽은 판에 잡혀 있으면 안 된다
+      if (this.hasBoundHuman()) return this.reject(playerId, '이미 판이 열려 있다');
+      await this.resetToLobby();
+    }
     if (roster.length > GAME_MAX_HUMANS) return this.reject(playerId, `실제 플레이어는 ${GAME_MAX_HUMANS}명까지다`);
 
     // 실제 사람이 모자라면 대역이 채운다 (§9 "일부 참가자를 NPC 로 대체하는 폴백")
@@ -704,7 +728,51 @@ export class GameRuntime {
     this.setPhase('ended', null);
     this.leader(LINES.ended(outcome.winner, outcome.reason), outcome.winner === 'humans' ? 'readout' : 'alarm');
     this.deps.broadcast({ t: 'game_ended', outcome, roles: this.rolesMap() });
+    // 끝 화면이 잠시 선 뒤 로비로 — 같은 방에서 새 판을 열 수 있어야 한다. DO 가 잠들어 타이머를 잃으면 onSweep 이 민다
+    this.endedAtMs = this.now();
+    this.phaseTimer = setTimeout(() => void this.resetToLobby(), ENDED_LINGER_MS);
     void this.persist();
+  }
+
+  /** 판에 묶인 실제 사람이 지금 방에 하나라도 붙어 있나 — 아무도 없으면 그 판은 버려진 것이다 */
+  private hasBoundHuman(): boolean {
+    const online = new Set(this.deps.roster().map((p) => p.id));
+    for (const [pid, sid] of this.bindings) {
+      if (!online.has(pid)) continue;
+      if (this.seats.some((s) => s.id === sid && s.kind === 'real')) return true;
+    }
+    return false;
+  }
+
+  /**
+   * 판을 접고 로비로 — 승패 화면이 다 섰거나(ENDED_LINGER_MS), 판에 묶인 사람이 전원 나가 버려졌을 때.
+   * 저장된 판도 지운다 — 남겨 두면 persist() 가 lobby 를 안 쓰므로(아래) DO 가 잠들었다 깨며 죽은 판이 되살아난다.
+   */
+  private async resetToLobby(): Promise<void> {
+    this.engine?.stop();
+    this.engine = null;
+    this.currentTest = null;
+    this.stopTalk();
+    this.stopIdle();
+    this.clearPhaseTimer();
+    if (this.capTimer !== null) {
+      clearTimeout(this.capTimer);
+      this.capTimer = null;
+    }
+    this.phase = 'lobby';
+    this.phaseEndsAt = null;
+    this.seats = [];
+    this.bindings = new Map();
+    this.outcome = null;
+    this.latestResult = null;
+    this.endedAtMs = null;
+    this.abandonedSince = null;
+    try {
+      await this.deps.storage.delete(STATE_KEY);
+    } catch {
+      /* 지우기 실패해도 판은 이미 로비다 — 다음 persist 가 덮는다 */
+    }
+    this.broadcastState();
   }
 
   /* ─────────────────────────────── 주장 판정 · 조작 ─────────────────────────────── */

@@ -1,11 +1,12 @@
 /**
  * 판이 열 수 있는 물리 테스트 — worker/src/trial 의 엔진(GameEngine 계약)을 그대로 조립한다.
- * 색 사냥이 같은 계약으로 들어오면 여기 한 줄이다 (worker/src/trial/colorhunt/ — 물리 미니게임 담당).
+ * 3종이 다 찼다 (PLANNING §2) — 더 넣지 않는다.
  *
  * 화면 위 한 줄 지시문도 여기 둔다 — 조건값(마찰 · 중력 · 차단 파장)은 문장에도 없다 (P8).
  */
 
 import type { TrialGame } from '../../../src/world/mp/protocol';
+import { ColorhuntEngine } from '../trial/colorhunt/engine';
 import type { GameEngine } from '../trial/engine';
 import { FallEngine } from '../trial/fall/engine';
 import { StoplineEngine } from '../trial/stopline-engine';
@@ -13,6 +14,7 @@ import { StoplineEngine } from '../trial/stopline-engine';
 export const ENGINES: Partial<Record<TrialGame, () => GameEngine>> = {
   stopline: () => new StoplineEngine(),
   fall: () => new FallEngine(),
+  colorhunt: () => new ColorhuntEngine(),
 };
 
 export const INSTRUCTION: Record<TrialGame, string> = {

@@ -47,10 +47,15 @@ const SPEC: Record<TrialGame, Spec> = {
     dirLabel: '회피 방향 (크게 + / 딱 맞게 −)',
   },
   colorhunt: {
-    primary: { key: 'accuracy', label: '정답률', unit: '', digits: 2 },
-    rows: [],
-    curveLabel: '구간별 오답률',
-    dirLabel: '판정 방향',
+    primary: { key: 'hesitationMs', label: '조명이 바뀐 뒤 첫 선택까지', unit: 'ms', digits: 0 },
+    rows: [
+      { key: 'accuracy', label: '정답률', unit: '', digits: 2 },
+      { key: 'transitionError', label: '전환 창(3초) 오답 비율', unit: '', digits: 2 },
+      { key: 'wrongPicks', label: '오답', unit: '회', digits: 0 },
+      { key: 'picks', label: '선택', unit: '회', digits: 0 },
+    ],
+    curveLabel: '선택 간격 추이 (차단 구간, 초)',
+    dirLabel: '오답 방향 (합류색 + / 무관한 색 −)',
   },
 };
 

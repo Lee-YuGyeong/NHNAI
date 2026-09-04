@@ -269,7 +269,7 @@ export function LobbyPanel({
   wire: GameStateWire;
   players: Record<string, string>;
   selfId: string | null;
-  /** 서버가 뽑아 준 내 몸 — 1인칭이라 제 몸은 안 보이니 여기서 알려 준다 (mp/bodies.ts) */
+  /** 서버가 뽑아 준 내 몸 — 로비에선 아직 3D 화면이 없으니 여기서 미리 알려 준다 (mp/bodies.ts) */
   myBody?: BodyId | null;
   reject: string | null;
   onStart: (fillTo: number) => void;

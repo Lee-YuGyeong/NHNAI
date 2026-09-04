@@ -1,10 +1,8 @@
 /**
- * 내 몸 — 3인칭 게임(낙하 생존 · 정지선)에서만 보인다. 자세는 selfPose(가변)에서 매 프레임 읽는다.
- * WorldScene 의 RemoteAvatar 와 같은 짜임(아바타 + 바닥 그림자, 한 Suspense 안). 이름표는 없다 —
- * 내 머리 위에 내 이름을 띄울 이유가 없다.
- *
- * 몸(body)이 오면 **군인**(SoldierAvatar, mp/bodies.ts)이다 — 서버가 입장 때 방 안에서 겹치지 않게
- * 뽑아 준 그 몸 그대로 (2026-09-04 사용자: "나도 군인이여야해"). 없으면(옛 워커) 로봇 폴백.
+ * 내 몸 — 3인칭 (카메라·조작은 features/trial 의 common/SelfAvatar.tsx 짜임 그대로다, 2026-09-04 사용자:
+ * "물리게임 3인칭 … 그대로 가져다가 쓰고싶어"). 몸 자체는 로봇이 아니다 — 남의 몸(SeatAvatar)과 똑같이
+ * 서버가 배정한 군인(SoldierAvatar)을 쓴다 (2026-09-04 사용자: "로봇트 하지말라고, 사람 모양 노원상이
+ * 해준거 그대로 쓰라고"). 옛 워커라 몸이 없을 때만 로봇으로 대신한다 — SeatAvatar 와 같은 대체 규칙.
  */
 import { Suspense, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -14,7 +12,7 @@ import { SoldierAvatar } from '@/world/avatar/SoldierAvatar';
 import type { BodyId } from '@/world/mp/bodies';
 import { selfPose } from './selfPose';
 
-export function SelfAvatar({ body }: { body?: BodyId | null }) {
+export function SelfAvatar({ body }: { body: BodyId | null }) {
   const group = useRef<Group>(null);
   const shadow = useRef<Mesh>(null);
   useFrame(() => {
@@ -22,21 +20,18 @@ export function SelfAvatar({ body }: { body?: BodyId | null }) {
     if (!g) return;
     g.position.set(selfPose.x, selfPose.y, selfPose.z);
     g.rotation.y = selfPose.heading;
-    // 그림자는 늘 바닥에 — 점프가 "위로 간 것"으로 읽히게 (WorldScene 의 RemoteAvatar 와 같다)
     if (shadow.current) {
       shadow.current.position.y = 0.02 - selfPose.y;
       const k = Math.max(0.45, 1 - selfPose.y * 0.35);
       shadow.current.scale.set(k, k, 1);
     }
   });
+  const getAnim = () => selfPose.anim;
+  const getAirborne = () => selfPose.y > 0.02;
   return (
     <group ref={group}>
       <Suspense fallback={null}>
-        {body ? (
-          <SoldierAvatar body={body} getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > 0.02} />
-        ) : (
-          <RobotAvatar getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > 0.02} />
-        )}
+        {body ? <SoldierAvatar body={body} getAnim={getAnim} getAirborne={getAirborne} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
         <mesh ref={shadow} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.34, 20]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.35} />
