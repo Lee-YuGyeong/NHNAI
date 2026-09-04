@@ -228,6 +228,8 @@ export class RoomDO implements DurableObject {
         ws.serializeAttachment(snap);
 
         this.broadcast({ t: 'player_moved', id: snap.id, x: snap.x, z: snap.z, y: snap.y, heading: snap.heading, anim: snap.anim }, ws);
+        // 물리 미니게임(낙하 생존)이 사람의 자리를 아는 길 — 범위 검증을 통과한 좌표만 넘긴다
+        this.trial.onMove(snap.id, snap.x, snap.z, now);
         return;
       }
 

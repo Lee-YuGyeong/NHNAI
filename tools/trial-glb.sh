@@ -6,7 +6,7 @@
 #
 #   sh tools/trial-glb.sh <원본 폴더> [id ...]   (원본은 <폴더>/<id>.glb. id 를 주면 그것만 변환)
 #
-# ★ 삼각형 예산 = 인스턴스 수 × 삼각형. 게이트는 레인마다 하나(최대 6) 6k, 비콘은 레인마다 하나 2k.
+# ★ 삼각형 예산 = 인스턴스 수 × 삼각형. 게이트는 레인마다 하나(최대 6) 6k, 비콘은 레인마다 하나 2k, 낙하물은 동시에 ~10개 3k.
 set -eu
 SRC_DIR="${1:?원본 폴더}"
 shift
@@ -19,6 +19,7 @@ mkdir -p "$OUT_DIR"
 TABLE='
 trial_gate|6|512|1
 trial_beacon|2|512|1
+trial_pod|3|512|1
 '
 
 convert() {

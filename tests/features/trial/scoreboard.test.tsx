@@ -28,7 +28,10 @@ const RESULT: TrialResultWire = {
 describe('Scoreboard', () => {
   it('무리 평균이 참가자 줄과 같이 선다', () => {
     render(<Scoreboard result={RESULT} roster={{ 'me-1': '요원-3721' }} />);
-    expect(screen.getByText(/무리 평균/)).toHaveTextContent('1.10m');
+    // 지표마다 무리 평균 줄이 하나씩 — 맨 위(핵심 지표)가 전환 직후 오차다
+    const means = screen.getAllByText(/무리 평균/);
+    expect(means.length).toBeGreaterThanOrEqual(1);
+    expect(means[0]).toHaveTextContent('1.10m');
     expect(screen.getByText('ROUND 2')).toBeInTheDocument();
   });
 

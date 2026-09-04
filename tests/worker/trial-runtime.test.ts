@@ -221,6 +221,39 @@ describe('정지선 — 한 방 전체 흐름', () => {
     expect(host.sent.some((m) => m.t === 'trial_result')).toBe(true);
   });
 
+  it('낙하 생존 — 시간제: 20초가 지나면 스스로 닫히고, 스냅샷·결과 어디에도 중력값이 없다', async () => {
+    vi.useFakeTimers();
+    try {
+      const doo = new RoomDO(fakeCtx() as never, ENV);
+      const me = await knock(doo, '나');
+      await send(doo, me, { t: 'trial_join', game: 'fall' });
+      expect(me.sent).toContainEqual(expect.objectContaining({ t: 'trial_round_start', game: 'fall', round: 1, durationMs: 20_000 }));
+
+      // 마당 안에서 조금 걷는다 — 서버가 내 자리를 알아야 위협·피격을 잰다
+      await send(doo, me, { t: 'move', x: 0, z: 0, y: 0, heading: 0, anim: 'walk' });
+      await vi.advanceTimersByTimeAsync(3000);
+      await send(doo, me, { t: 'move', x: 1.5, z: 0.5, y: 0, heading: 0, anim: 'walk' });
+      await vi.advanceTimersByTimeAsync(18_000);
+
+      const snapshots = me.sent.filter((m) => m.t === 'trial_snapshot');
+      expect(snapshots.length).toBeGreaterThan(100); // 10Hz × 20초
+      const result = me.sent.find((m) => m.t === 'trial_result') as Extract<S2CMessage, { t: 'trial_result' }> | undefined;
+      expect(result).toBeTruthy();
+      expect(result!.result.game).toBe('fall');
+      const mine = result!.result.players.find((p) => p.id === selfIdOf(me));
+      expect(mine).toBeTruthy();
+      for (const k of ['survivalTime', 'hitCount', 'unnecessaryMoves']) expect(mine!.metrics).toHaveProperty(k);
+      expect(result!.result.players.some((p) => p.id.startsWith('SUBJECT_'))).toBe(true);
+
+      // ★ P8 — 스냅샷에도 결과에도 중력이 없다
+      expect(JSON.stringify(me.sent)).not.toMatch(/gravity/i);
+      // 라운드 2가 열렸다 (구역이 바뀐다)
+      expect(me.sent).toContainEqual(expect.objectContaining({ t: 'trial_round_start', game: 'fall', round: 2 }));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('브레이크만 오고 액셀이 없으면 조용히 버린다 — 위조된 시행이 안 생긴다', async () => {
     const doo = new RoomDO(fakeCtx() as never, ENV);
     const me = await knock(doo, '나');

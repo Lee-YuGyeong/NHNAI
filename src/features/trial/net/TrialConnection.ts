@@ -11,7 +11,7 @@
 
 import { requestWorldTicket } from '@/shared/supabase';
 import { PING_INTERVAL_MS, PROTOCOL_VERSION } from '@/world/mp/constants';
-import type { AnimState, ErrorCode, PlayerSnapshot, S2CMessage, TrialResultWire } from '@/world/mp/protocol';
+import type { AnimState, ErrorCode, PlayerSnapshot, S2CMessage, TrialGame, TrialResultWire } from '@/world/mp/protocol';
 
 export interface TrialEvents {
   onWelcome(selfId: string, players: PlayerSnapshot[]): void;
@@ -20,9 +20,12 @@ export interface TrialEvents {
   /** 남의 좌표 — 방 안에서 그 사람의 로봇을 그리는 데 쓴다 (WorldScene 의 Remotes) */
   onMoved(id: string, x: number, z: number, y: number, heading: number, anim: AnimState): void;
   onHistory(results: TrialResultWire[]): void;
-  onRoundStart(round: number, startAt: number): void;
+  onRoundStart(game: TrialGame, round: number, startAt: number, durationMs: number | undefined): void;
   onRunning(id: string, startAt: number): void;
   onWaypoints(id: string, brakeAt: number, brakePos: number, stopAt: number, stopPos: number): void;
+  /** 낙하 생존 — 서버 물리 스냅샷(~10Hz). 클라는 보간해 그릴 뿐이다 */
+  onSnapshot(msg: Extract<S2CMessage, { t: 'trial_snapshot' }>): void;
+  onHit(id: string, objectId: number): void;
   onResult(result: TrialResultWire): void;
   onError(code: ErrorCode | 'connection_failed'): void;
   onClose(): void;
@@ -41,18 +44,19 @@ export class TrialConnection {
   private failed = false;
   private gen = 0;
 
-  connect(wsBase: string, roomCode: string, nickname: string, events: TrialEvents): void {
+  /** @param game 판이 없을 때 이 게임으로 새 판을 연다 (protocol.ts 의 trial_join) */
+  connect(wsBase: string, roomCode: string, nickname: string, game: TrialGame, events: TrialEvents): void {
     this.close();
     this.failed = false;
     const gen = this.gen;
 
     void requestWorldTicket(roomCode).then((ticket) => {
       if (gen !== this.gen) return;
-      this.open(wsBase, roomCode, nickname, ticket, events);
+      this.open(wsBase, roomCode, nickname, ticket, game, events);
     });
   }
 
-  private open(wsBase: string, roomCode: string, nickname: string, ticket: string | null, events: TrialEvents): void {
+  private open(wsBase: string, roomCode: string, nickname: string, ticket: string | null, game: TrialGame, events: TrialEvents): void {
     const base = wsBase.replace(/\/$/, '');
     const url =
       `${base}/rooms/${encodeURIComponent(roomCode)}/ws` +
@@ -67,7 +71,7 @@ export class TrialConnection {
       this.pingTimer = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) ws.send('ping');
       }, PING_INTERVAL_MS);
-      this.send({ t: 'trial_join' });
+      this.send({ t: 'trial_join', game });
     };
 
     ws.onerror = () => {
@@ -107,13 +111,19 @@ export class TrialConnection {
           events.onHistory(msg.results);
           break;
         case 'trial_round_start':
-          events.onRoundStart(msg.round, msg.startAt);
+          events.onRoundStart(msg.game, msg.round, msg.startAt, msg.durationMs);
           break;
         case 'trial_running':
           events.onRunning(msg.id, msg.startAt);
           break;
         case 'trial_stopline_waypoints':
           events.onWaypoints(msg.id, msg.brakeAt, msg.brakePos, msg.stopAt, msg.stopPos);
+          break;
+        case 'trial_snapshot':
+          events.onSnapshot(msg);
+          break;
+        case 'trial_hit':
+          events.onHit(msg.id, msg.objectId);
           break;
         case 'trial_result':
           events.onResult(msg.result);

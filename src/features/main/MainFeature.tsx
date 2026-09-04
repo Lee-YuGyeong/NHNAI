@@ -49,7 +49,7 @@ export function MainFeature() {
    * /trial 은 닉네임을 URL 이 아니라 shared/guest.ts(localStorage)로 읽으므로 여기서 먼저 저장해 둔다.
    * 위의 방 코드 입력칸을 그대로 재사용한다 — 같은 코드를 두 탭에 치면 같은 방(RoomDO)에서 만난다.
    */
-  const enterTrial = () => {
+  const enterTrial = (game: 'stopline' | 'fall') => {
     const nick = nickname.trim();
     if (!nick) {
       setError('닉네임을 입력하라');
@@ -57,7 +57,7 @@ export function MainFeature() {
     }
     const code = joinCode.trim() || randomRoomCode();
     saveGuestNick(nick);
-    navigate(`/trial?code=${code}`);
+    navigate(`/trial?code=${code}&game=${game}`);
   };
 
   return (
@@ -231,16 +231,22 @@ function TrialListPanel() {
  * 물리 미니게임(worker/src/trial/) 테스트 문 — TrialListPanel(아레나 카탈로그)과는 다른 시스템이다.
  * 지금은 정지선 하나뿐이라 목록이 아니라 버튼 하나로 둔다 — 게임이 늘면 그때 목록으로 바꾼다.
  */
-function PhysicsTrialPanel({ onEnter }: { onEnter: () => void }) {
+function PhysicsTrialPanel({ onEnter }: { onEnter: (game: 'stopline' | 'fall') => void }) {
   return (
     <section style={{ display: 'grid', gap: 6 }}>
       <h3 style={{ margin: 0, fontSize: 13, color: '#999' }}>물리 미니게임 (테스트)</h3>
       <p style={{ margin: 0, color: '#666', fontSize: 12, lineHeight: 1.6 }}>
-        지금은 정지선뿐이다 — 진짜 서버 권위 멀티플레이. 위 방 코드로 여러 탭을 열면 같은 방에서 같이 뛴다.
+        진짜 서버 권위 멀티플레이 — 심문소 홀 안에서 1인칭으로. 위 방 코드로 여러 탭을 열면 같은 방에서 같이 한다.
+        정지선(마찰 · 관성) · 낙하 생존(중력). 색 사냥(빛 · 색)은 아직.
       </p>
-      <button type="button" style={{ padding: 8, justifySelf: 'start' }} onClick={onEnter}>
-        정지선 테스트
-      </button>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" style={{ padding: 8 }} onClick={() => onEnter('stopline')}>
+          정지선 테스트
+        </button>
+        <button type="button" style={{ padding: 8 }} onClick={() => onEnter('fall')}>
+          낙하 생존 테스트
+        </button>
+      </div>
     </section>
   );
 }

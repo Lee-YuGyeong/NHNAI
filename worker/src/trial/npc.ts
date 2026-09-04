@@ -24,11 +24,16 @@ const GRAVITY_ACCEL = 9.8;
 const SEARCH_STEP_MS = 20;
 const SEARCH_MAX_MS = 8000;
 
-export function makeStoplineProfile(): StoplineProfile {
+/**
+ * @param precision 0(사람 같음)~1(기계 같음). 없으면 사람 분포에서 무작위 — engine.ts 의 SeatTuning.
+ *   기계 쪽일수록 잡음이 작고, 새 마찰에 한 번에 맞춘다(adaptRate → 1).
+ */
+export function makeStoplineProfile(precision?: number): StoplineProfile {
+  const p = precision === undefined ? Math.random() * 0.4 : Math.min(1, Math.max(0, precision));
   return {
     assumedFriction: frictionForRound(1), // 다들 1라운드(기준=콘크리트)에 맞춰 시작한다
-    jitterMs: 60 + Math.random() * 140,
-    adaptRate: 0.3 + Math.random() * 0.3,
+    jitterMs: 200 - 180 * p + (precision === undefined ? Math.random() * 60 : 0),
+    adaptRate: 0.3 + 0.7 * p,
   };
 }
 

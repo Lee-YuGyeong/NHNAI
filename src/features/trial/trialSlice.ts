@@ -10,6 +10,11 @@ export interface TrialState {
   game: TrialGame | null;
   /** 0 이면 아직 라운드가 안 열렸다 */
   round: number;
+  /** 라운드 시작 서버 시각과 길이(시간제 게임만) — 남은 시간 표시용 */
+  roundStartAt: number;
+  roundDurationMs: number | null;
+  /** 낙하 생존 — 이번 라운드에 내가 맞은 횟수 (연출·HUD 용, 기록은 서버가 한다) */
+  myHitsThisRound: number;
   /** 이번 라운드에 내가 마친 시행 수(0~3) — StopLineScene 이 다음 W 를 언제 받을지 여기로 안다 */
   myAttemptsThisRound: number;
   /** 지금까지 끝난 라운드 전부(오래된 순) — 로그 탭이 이걸 그대로 보여준다 */
@@ -23,6 +28,9 @@ const initialState: TrialState = {
   roster: {},
   game: null,
   round: 0,
+  roundStartAt: 0,
+  roundDurationMs: null,
+  myHitsThisRound: 0,
   myAttemptsThisRound: 0,
   history: [],
 };
@@ -49,10 +57,17 @@ export const trialSlice = createSlice({
     historyReceived(s, a: PayloadAction<TrialResultWire[]>) {
       s.history = a.payload;
     },
-    roundStarted(s, a: PayloadAction<{ game: TrialGame; round: number }>) {
+    roundStarted(s, a: PayloadAction<{ game: TrialGame; round: number; startAt: number; durationMs: number | null }>) {
       s.game = a.payload.game;
       s.round = a.payload.round;
+      s.roundStartAt = a.payload.startAt;
+      s.roundDurationMs = a.payload.durationMs;
       s.myAttemptsThisRound = 0;
+      s.myHitsThisRound = 0;
+    },
+    /** 낙하물에 맞았다(trial_hit) — 그게 내 id일 때만 센다 */
+    hitRecorded(s, a: PayloadAction<string>) {
+      if (a.payload === s.selfId) s.myHitsThisRound += 1;
     },
     /** 시행 하나가 서버 판정을 받았다(trial_stopline_waypoints) — 그게 내 id일 때만 센다 */
     attemptRecorded(s, a: PayloadAction<string>) {
@@ -80,6 +95,9 @@ export const trialSlice = createSlice({
     selectGame: (s) => s.game,
     selectRound: (s) => s.round,
     selectMyAttempts: (s) => s.myAttemptsThisRound,
+    selectMyHits: (s) => s.myHitsThisRound,
+    selectRoundStartAt: (s) => s.roundStartAt,
+    selectRoundDurationMs: (s) => s.roundDurationMs,
     selectHistory: (s) => s.history,
     selectLatestResult: (s) => s.history.at(-1) ?? null,
   },

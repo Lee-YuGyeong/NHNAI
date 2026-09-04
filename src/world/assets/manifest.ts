@@ -101,6 +101,8 @@ export const ASSETS = {
    */
   trial_gate: { url: '/world/trial/trial_gate.glb' },
   trial_beacon: { url: '/world/trial/trial_beacon.glb' },
+  /** 낙하 생존의 낙하물 — 천장에서 떨어지는 화물 포드. 위치는 서버 스냅샷이 준다(features/trial/games/fall) */
+  trial_pod: { url: '/world/trial/trial_pod.glb' },
 } satisfies Record<string, AssetDef>;
 
 export type AssetId = keyof typeof ASSETS;
