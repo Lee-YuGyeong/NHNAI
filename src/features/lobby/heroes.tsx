@@ -16,7 +16,7 @@
  *   그대로 두면 흰 글자와 빛이 서로 싸운다.
  * ★ 개체 수는 한 줄도 안 적는다 — 그림 속 칸도 셀 수 없게 멀어진다 (Intro.tsx 머리말의 규칙).
  */
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { LEADER_NAME } from '@/lab/personas';
 import { ArrowIcon } from './console';
 import { Typed } from './live';
@@ -131,12 +131,37 @@ function Guest({ guest, className = '' }: { guest: () => void; className?: strin
  * ★ 모션을 꺼 둔 사람에게는 틀지 않는다 (RoleSlides · Typed 와 같은 규칙).
  * ★ 소리는 없다(muted) — 자동재생의 조건이기도 하고, 이 화면의 소리 규칙
  *   (소리가 하는 일은 누른 것에 대답하는 것뿐, Intro.tsx)이기도 하다.
+ * ★ INTRO_VIDEO_START_SEC 초부터 튼다 (2026-09-05 사용자: "20초부터 시작"). 끝나면 다시 거기로 —
+ *   loop 속성은 0초로 되감기 때문에 안 쓰고 ended 에서 직접 되감는다.
+ *
+ * ┌─ 파일은 **faststart** 여야 한다 (2026-09-05 확인) ────────────────────────┐
+ * │ 처음 올린 who_is_AI.mp4 는 색인(moov)이 260MB 짜리 mdat **뒤**에 있었다.    │
+ * │ 그러면 브라우저는 파일을 끝까지 다 받아야 첫 장면을 그릴 수 있어 「시작이   │
+ * │ 안 된다」. ffmpeg -c copy -movflags +faststart 로 색인을 앞으로 옮긴 것을    │
+ * │ 같은 버킷에 who_is_AI.faststart.mp4 로 올렸다 (원본은 그대로 있다).        │
+ * │ 새 영상을 올릴 때도 같은 처리를 한다 — docs/DEVELOPMENT.md 「오프닝 영상」. │
+ * └──────────────────────────────────────────────────────────────────────────┘
  */
-export const INTRO_VIDEO_SRC = 'https://pub-016e853b3b9840f9a2cca5d4125552b7.r2.dev/who_is_AI.mp4';
+export const INTRO_VIDEO_SRC = 'https://pub-016e853b3b9840f9a2cca5d4125552b7.r2.dev/who_is_AI.faststart.mp4';
+/** 이 초부터 튼다 — 앞 20초는 건너뛴다 */
+export const INTRO_VIDEO_START_SEC = 20;
 
-export function HeroVideo({ src = INTRO_VIDEO_SRC }: { src?: string }) {
+export function HeroVideo({ src = INTRO_VIDEO_SRC, startSec = INTRO_VIDEO_START_SEC }: { src?: string; startSec?: number }) {
   /** 로드가 죽었다 — 이 판에서는 다시 시도하지 않고 그림으로 내려앉는다 */
   const [dead, setDead] = useState(false);
+  /** 시작점으로 놓고 튼다 — 길이를 받아 온 순간과 끝난 순간 (되감기) */
+  const restart = useCallback(
+    (e: { currentTarget: HTMLVideoElement }) => {
+      const v = e.currentTarget;
+      if (v.currentTime < startSec || v.ended) v.currentTime = startSec;
+      try {
+        void v.play()?.catch(() => {});
+      } catch {
+        /* jsdom 이거나 이 판에서는 안 돈다 — 그림이 그대로 표지다 */
+      }
+    },
+    [startSec],
+  );
   // jsdom 에는 matchMedia 가 없다 — 없으면 움직이는 쪽으로 둔다 (Typed 와 같은 규칙)
   const still =
     typeof window !== 'undefined' &&
@@ -149,9 +174,11 @@ export function HeroVideo({ src = INTRO_VIDEO_SRC }: { src?: string }) {
       src={src}
       autoPlay
       muted
-      loop
       playsInline
+      preload="auto"
       aria-hidden
+      onLoadedMetadata={restart}
+      onEnded={restart}
       onError={() => setDead(true)}
     />
   );

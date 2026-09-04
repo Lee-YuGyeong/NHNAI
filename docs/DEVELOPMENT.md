@@ -637,6 +637,21 @@ ffmpeg -y -i "$SRC" -c:v libx264 -preset slower -b:v 600k -maxrate 1200k -bufsiz
 - **이름을 바꾸지 않는다.** 같은 자리에 덮어쓰면 코드는 고칠 것이 없다 (`shared/opening.ts`).
 - 그래도 아쉬우면 **길이를 줄이는 것이 해상도를 줄이는 것보다 낫다** — 같은 상한에서 초당 비트가 늘어난다.
 
+#### `/intro` 표지의 배경 영상 (`features/lobby/heroes.tsx` 의 `INTRO_VIDEO_SRC`)
+
+R2 의 `who_is_AI.faststart.mp4`. **20초부터** 소리 없이 돌고, 끝나면 다시 20초로 (`INTRO_VIDEO_START_SEC`).
+
+> ★ **색인(moov)이 파일 앞에 있어야 한다.** 처음 올린 `who_is_AI.mp4`(260MB) 는 색인이 mdat 뒤에 있어서
+> 브라우저가 파일을 **다 받아야** 첫 장면을 그렸다 — 「시작이 안 된다」(2026-09-05). 새 영상은 올리기 전에
+> 아래 한 줄을 거친다 (다시 인코딩하지 않는다, 몇 초 걸린다):
+>
+> ```bash
+> ffmpeg -i 원본.mp4 -c copy -movflags +faststart who_is_AI.faststart.mp4
+> npx wrangler r2 object put who-is-human/who_is_AI.faststart.mp4 --file who_is_AI.faststart.mp4 --content-type video/mp4 --remote
+> ```
+>
+> 색인 자리는 `python3 -c` 로 앞 64바이트의 atom 을 읽어 보면 안다 — `ftyp, moov, …` 여야 한다.
+
 #### 원본 화질이 필요하면 — 파일이 저장소 밖에 살아야 한다
 
 25MiB 안에서는 원본에 가까워질 수 없다. 그래서 2026-09-04 부터 **영상만 저장소 밖**에 산다 —

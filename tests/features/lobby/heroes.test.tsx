@@ -73,14 +73,29 @@ describe('표지 배경 영상 (HeroVideo)', () => {
     expect(document.querySelector('video')).toBeNull();
   });
 
-  it('주소를 주면 소리 없는 반복 재생으로 선다', () => {
+  it('주소를 주면 소리 없는 재생으로 선다', () => {
     render(<HeroVideo src="https://example.com/intro.mp4" />);
     const v = document.querySelector('video') as HTMLVideoElement;
     expect(v).not.toBeNull();
     // 자동재생의 조건이자 이 화면의 소리 규칙 — 소리는 누른 것에만 대답한다
     expect(v.muted).toBe(true);
-    expect(v).toHaveAttribute('loop');
     expect(v).toHaveAttribute('playsinline');
+  });
+
+  /** 2026-09-05 사용자: "20초부터 시작". loop 속성은 0초로 되감아서 ended 에서 직접 되감는다 */
+  it('길이를 받아 오면 20초로 놓고, 끝나면 다시 20초로 되감는다', () => {
+    render(<HeroVideo src="https://example.com/intro.mp4" />);
+    const v = document.querySelector('video') as HTMLVideoElement;
+    let t = 0;
+    let ended = false;
+    Object.defineProperty(v, 'currentTime', { get: () => t, set: (x: number) => (t = x), configurable: true });
+    Object.defineProperty(v, 'ended', { get: () => ended, configurable: true });
+    fireEvent.loadedMetadata(v);
+    expect(t).toBe(20);
+    t = 119;
+    ended = true;
+    fireEvent.ended(v);
+    expect(t).toBe(20);
   });
 
   it('로드가 죽으면 그림으로 내려앉는다 — 다시 시도하지 않는다', () => {
