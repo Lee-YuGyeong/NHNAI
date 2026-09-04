@@ -11,6 +11,7 @@ import {
   GAME_BRIEFING_MS,
   GAME_DISCUSSION_MS,
   GAME_FIRST_DISCUSSION_MS,
+  GAME_PROLOGUE_MAX_MS,
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
   GAME_TEST_ORDER,
@@ -101,6 +102,17 @@ function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain } = {}) {
   const lastState = () => [...sent].reverse().find((m): m is { t: 'game_state'; state: GameStateWire } => m.t === 'game_state')!.state;
   const roleOf = (to: string) => [...direct].reverse().find((d) => d.to === to && d.msg.t === 'game_role')?.msg as Extract<GameS2CMessage, { t: 'game_role' }> | undefined;
   return { rt, sent, direct, engine, roster, lastState, roleOf };
+}
+
+/**
+ * 브리핑을 지나 **판이 실제로 열리는 자리**까지.
+ *
+ * 첫 토론은 시계만으로 열리지 않는다 — 화면에서 검문소 프롤로그가 흐르는 동안은 아무도 말하지 않고,
+ * 붙어 있는 사람이 전부 「방송이 끝났다」고 알려 와야 그때부터 40초를 센다 (runtime 의 prologueHold).
+ */
+async function openBoard(h: ReturnType<typeof harness>): Promise<void> {
+  await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+  for (const p of h.roster) await h.rt.handle(p.id, { t: 'game_prologue_done' });
 }
 
 beforeEach(() => vi.useFakeTimers());
@@ -204,7 +216,7 @@ describe('GameRuntime — 판 한 바퀴', () => {
   it('브리핑 → 토론 → 테스트 → 결과 모달 → 토론 으로 흐른다', async () => {
     const h = harness();
     await h.rt.handle('p1', { t: 'game_start' });
-    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    await openBoard(h);
     expect(h.lastState().phase).toBe('discussion');
     // 첫 토론이 열려도 방송은 없다 — 판을 여는 말은 화면의 프롤로그가 한다 (겹쳐 나오던 것을 걷었다)
     expect(h.sent.some((m) => m.t === 'game_leader')).toBe(false);
@@ -255,7 +267,7 @@ describe('GameRuntime — 판 한 바퀴', () => {
     const liar: Brain = { mode: 'api', ask: async () => ({ verdict: 'mismatch', reason: '기록이 다르다' }) };
     const h2 = harness({ brain: liar });
     await h2.rt.handle('p1', { t: 'game_start' });
-    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    await openBoard(h2);
     const seats2 = h2.lastState().seats;
     const mine2 = new Set(['p1', 'p2', 'p3'].map((p) => h2.roleOf(p)!.seatId));
     const ai2 = seats2.find((s) => !mine2.has(s.id))!;
@@ -283,7 +295,7 @@ describe('GameRuntime — 판 한 바퀴', () => {
   it('셋이 AI 를 거듭 몰면 100 — 격리 · AI 였다 · 사람 승리로 끝나고 정체표가 공개된다', async () => {
     const h = harness();
     await h.rt.handle('p1', { t: 'game_start' });
-    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    await openBoard(h);
     const seats = h.lastState().seats;
     const mine = new Set(['p1', 'p2', 'p3'].map((p) => h.roleOf(p)!.seatId));
     const ai = seats.find((s) => !mine.has(s.id))!;
@@ -312,7 +324,7 @@ describe('GameRuntime — 판 한 바퀴', () => {
     expect(role.aiId).toBeDefined();
     expect(role.tamperLeft).toBe(1);
 
-    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    await openBoard(h);
     await h.rt.handle(designer!, { t: 'game_tamper', target: role.aiId!, direction: 'suspicious' });
     expect(h.direct.at(-1)?.msg).toMatchObject({ t: 'game_tamper_ok', left: 0 });
     await h.rt.handle(designer!, { t: 'game_tamper', target: role.aiId!, direction: 'suspicious' });
@@ -334,6 +346,89 @@ describe('GameRuntime — 판 한 바퀴', () => {
 });
 
 /**
+ * 프롤로그 방송 (2026-09-05 사용자: "프롤로그가 끝나기 전까지는 AI 참가자가 대화 못 치게").
+ *
+ * 대본은 화면에서만 나므로 서버는 그 길이를 셀 수 없다 — 화면이 「끝났다」고 알려 오는 것이 유일한 신호다.
+ * 그 사이 판은 **멎어 있어야** 한다: 대역도 AI 참가자도 조용하고, 첫 토론의 40초도 아직 안 시작한다.
+ */
+describe('GameRuntime — 프롤로그 방송이 끝나야 판이 열린다', () => {
+  /** 늘 말하는 두뇌 — 조용한 것이 폴백 때문인지 프롤로그 때문인지 갈리게 */
+  const chatty: Brain = { mode: 'api', ask: async () => ({ text: '누구 수상한데', accuse: '' }) };
+  const botLines = (h: ReturnType<typeof harness>, seatIds: Set<string>) =>
+    h.sent.filter((m): m is Extract<S2CMessage, { t: 'chat' }> => m.t === 'chat' && !seatIds.has(m.id));
+
+  it('방송이 흐르는 동안 대역·AI 참가자는 한 마디도 안 한다 — 끝났다고 알려 와야 말문이 열린다', async () => {
+    const h = harness({ brain: chatty });
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    const mine = new Set(['p1', 'p2', 'p3'].map((p) => h.roleOf(p)!.seatId));
+    expect(h.lastState().phase).toBe('discussion');
+
+    // 대본이 흐르는 40초 — 봇 차례가 여러 번 돌 시간인데도 판은 조용하다
+    await vi.advanceTimersByTimeAsync(40_000);
+    expect(botLines(h, mine)).toHaveLength(0);
+    // 토론의 40초도 아직 안 샜다 — 시험이 열리면 안 된다
+    expect(h.lastState().phase).toBe('discussion');
+
+    // 셋 중 둘만 봤다 — 아직 기다린다 (한 사람의 화면에서 방송이 도는 중이다)
+    for (const p of ['p1', 'p2']) await h.rt.handle(p, { t: 'game_prologue_done' });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(botLines(h, mine)).toHaveLength(0);
+
+    // 마지막 한 사람까지 — 여기서 말문이 열린다
+    await h.rt.handle('p3', { t: 'game_prologue_done' });
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(botLines(h, mine).length).toBeGreaterThan(0);
+  });
+
+  it('방송이 걷힌 그때부터 토론 40초를 센다 — 기다린 만큼 대화가 깎이지 않는다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    await vi.advanceTimersByTimeAsync(45_000); // 대본이 흐르는 동안
+    for (const p of ['p1', 'p2', 'p3']) await h.rt.handle(p, { t: 'game_prologue_done' });
+
+    await vi.advanceTimersByTimeAsync(GAME_FIRST_DISCUSSION_MS - 5_000);
+    expect(h.lastState().phase).toBe('discussion');
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(h.lastState().phase).toBe('test');
+  });
+
+  it('아무도 안 알려 와도 상한에서 걷는다 — 화면 하나 때문에 판이 멎지 않는다', async () => {
+    const h = harness({ brain: chatty });
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    const mine = new Set(['p1', 'p2', 'p3'].map((p) => h.roleOf(p)!.seatId));
+
+    await vi.advanceTimersByTimeAsync(GAME_PROLOGUE_MAX_MS - 5_000);
+    expect(botLines(h, mine)).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(5_100 + 3_000);
+    expect(botLines(h, mine).length).toBeGreaterThan(0);
+    // 상한에서 걷혔어도 토론은 온전한 40초다
+    expect(h.lastState().phase).toBe('discussion');
+    await vi.advanceTimersByTimeAsync(GAME_FIRST_DISCUSSION_MS);
+    expect(h.lastState().phase).toBe('test');
+  });
+
+  it('방송을 보던 사람이 나가면 남은 사람만 기다린다', async () => {
+    const h = harness({ brain: chatty });
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    const mine = new Set(['p1', 'p2', 'p3'].map((p) => h.roleOf(p)!.seatId));
+
+    for (const p of ['p1', 'p2']) await h.rt.handle(p, { t: 'game_prologue_done' });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(botLines(h, mine)).toHaveLength(0);
+
+    // p3 이 창을 닫았다 — 없는 사람의 화면을 기다릴 이유가 없다
+    h.roster.splice(2, 1);
+    h.rt.onLeave('p3');
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(botLines(h, mine).length).toBeGreaterThan(0);
+  });
+});
+
+/**
  * 차례표 (2026-09-05 사용자: "입장 · 40초 대화 · 낙하생존 30초 · 40초 대화 · 발판 30초 · 40초 대화 · 원판 30초").
  * 관리 AI 가 매번 종류를 고르던 것을 그만두었으므로, **무엇이 몇 번째로 몇 초 열리는가**가 이제 판의 규칙이다.
  */
@@ -343,7 +438,7 @@ describe('GameRuntime — 고정 차례표', () => {
   it('낙하 생존 → 발판 → 원판 을 30초씩, 사이사이 40초 대화로 연다', async () => {
     const h = harness();
     await h.rt.handle('p1', { t: 'game_start' });
-    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    await openBoard(h);
     expect(h.lastState().phase).toBe('discussion');
 
     for (const game of GAME_TEST_ORDER) {
@@ -373,7 +468,7 @@ describe('GameRuntime — 고정 차례표', () => {
   it('시험이 도는 중에도 의심도 100 은 그 자리에서 격리한다 — 격리가 목표에 닿으면 차례표가 남아도 끝난다', async () => {
     const h = harness();
     await h.rt.handle('p1', { t: 'game_start' });
-    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    await openBoard(h);
     const mine = new Set(['p1', 'p2', 'p3'].map((p) => h.roleOf(p)!.seatId));
     const ai = h.lastState().seats.find((s) => !mine.has(s.id))!;
 
@@ -395,7 +490,7 @@ describe('GameRuntime — 죽은 판이 방을 잡고 있지 않다 (2026-09-04 
   /** 셋이 AI 를 몰아 판을 끝낸다 — 위의 승패 시험과 같은 길 */
   async function playToEnd(h: ReturnType<typeof harness>): Promise<void> {
     await h.rt.handle('p1', { t: 'game_start' });
-    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    await openBoard(h);
     const mine = new Set(['p1', 'p2', 'p3'].map((p) => h.roleOf(p)!.seatId));
     const ai = h.lastState().seats.find((s) => !mine.has(s.id))!;
     for (let i = 0; i < 40 && h.lastState().phase !== 'ended'; i += 1) {
