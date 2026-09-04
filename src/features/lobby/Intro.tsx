@@ -378,10 +378,11 @@ export function LobbyIntro() {
                   「무엇을 받든, 증명할 방법은 없다.」   맞는 말이지만 **감정을 설명한다.**
                     구역은 플레이어가 어떤 기분일지 말해 주지 않는다.
 
-                지금 줄은 셋 다 피한다. **사실 하나만 적고, 위협은 읽는 쪽이 만든다** —
-                번호로 불린다는 것은 이 판에서 실제로 벌어지는 일이고(좌석 01~09 ·
-                코드명 L-00 · A-··), 그 한 문장이 「그럼 누가 누군지 어떻게 아나」 를
-                묻게 만든다. 그게 이 화면의 물음이다.
+                지금 줄은 셋 다 피한다. **사실 하나만 적고, 위협은 읽는 쪽이 만든다.**
+                2026-09-04(절충): 문장을 새 기획의 공개 사실로 바꿨다 — 「하나는 인간이
+                아니다」는 §1.1 이 공개하는 값이고(AI 존재는 공개, 좌석은 비공개), 그 한
+                문장이 「그럼 누구인가」를 묻게 만든다. 그게 이 화면의 물음이다.
+                색이 앉는 낱말은 '하나' — 셀 수 있는데 가려낼 수 없는 것.
 
               ★ 흐린 반쪽(.dim)은 두지 않는다. 다른 두 칸은 두 박자로 뒤집지만 이 줄은 한
                 문장이라, 절반을 흐리면 없던 박자가 생긴다. 대신 **낱말 하나에만 색을 준다**
@@ -390,10 +391,12 @@ export function LobbyIntro() {
                 청록이다. 이유는 live.css 의 .bl-scene__h em 에 적었다.
             */}
             <h2 className="bl-scene__h">
-              <Typed start={seen.includes('roles')} parts={['여기서는 모두가 ', { em: '번호' }, '로 불린다.']} />
+              <Typed start={seen.includes('roles')} parts={['이 안의 ', { em: '하나' }, '는 인간이 아니다.']} />
             </h2>
+            {/* 「아무도 통보받지 않는다」였다 — 새 기획에서 틀린 말이다: 설계자는 브리핑에서
+                AI 의 정체까지 통보받는다(§1.1). 그 통보도 「자기 몫」 안이다 — 남의 몫은 아무도 못 본다 */}
             <p className="bl-scene__lead bl-scene__lead--tight">
-              배정은 시작과 동시에, 무작위로. 아무도 통보받지 않는다.
+              배정은 시작과 동시에, 무작위로. 자기 몫 외에는 아무것도 통보되지 않는다.
             </p>
           </div>
           <RoleSlides live={at === 'roles'} />
@@ -413,8 +416,13 @@ export function LobbyIntro() {
         <div className="bl-scene bl-snap__in">
           <div>
             <span className="bl-label">03 // HOW TO PLAY</span>
+            {/*
+              「의심은 쌓이기만 한다」였다 — 같은 화면의 계기 줄("대화로만 풀린다")과 모순이다.
+              §1.2 는 상승·하강이 대칭이다(지목 철회 −8 · 해명 일치 −10). 진짜 규칙을 적는다:
+              움직이는 길이 말뿐이라는 것 (2026-09-04 절충).
+            */}
             <h2 className="bl-scene__h">
-              <Typed start={seen.includes('rules')} parts={['검사는 계속된다. ', { dim: '의심은 쌓이기만 한다.' }]} />
+              <Typed start={seen.includes('rules')} parts={['테스트는 계속된다. ', { dim: '의심은 말로만 움직인다.' }]} />
             </h2>
           </div>
           <ol className="bl-flow">
@@ -438,9 +446,13 @@ export function LobbyIntro() {
               <span>들키는 곳은 검사다. 기록은 그대로 공개된다 — 판정은 관리 AI가 아니라 서로가 한다.</span>
             </li>
             <li className="bl-rule">
-              <b>한 번 몰리면 잘 안 풀린다</b>
-              {/* 04번 칸이 이미 「끝까지 차면 격리」를 말한다 — 같은 말을 두 번 하지 않는다 (2026-08-30 검토) */}
-              <span>근거가 없어도 의심은 쌓인다. 시간이 지나도 저절로는 안 풀린다 — 대화로만 풀린다.</span>
+              {/*
+                「한 번 몰리면 잘 안 풀린다 · 대화로만 풀린다」 였다 — STEPS 4번 칸이 이미 같은
+                말을 한다(같은 말을 두 번 하지 않는다, 2026-08-30 검토와 같은 규칙). 대신 빠져
+                있던 판별 원리를 세운다 — README 의 핵심 긴장이자 P3(전환 구간)가 이 줄이다.
+              */}
+              <b>몸은 조건이 바뀐 직후에 들킨다</b>
+              <span>얼마나 틀리는지는 흉내 낼 수 있다. 어느 쪽으로 헤매다 나아지는지는 못 한다.</span>
             </li>
             <li className="bl-rule bl-rule--human">
               {/*
@@ -464,11 +476,14 @@ export function LobbyIntro() {
           <div className="bl-final__body">
             <span className="bl-label">FINAL BRIEFING</span>
             {/*
-              「당신은 살아남을 수 있습니까?」 였다. 2인칭 + 정중한 의문형 — 위의 넷 중 둘을
-              한 줄에 다 저지른다. 마지막 화면은 묻는 자리가 아니라 **명령이 떨어지는 자리**다.
+              마지막 화면은 묻는 자리가 아니라 **명령이 떨어지는 자리**다 (「당신은 살아남을 수
+              있습니까?」를 걷어낸 2026-08-30 검토). 옛 명령 「들키지 마라.」는 숨는 쪽이 나였던
+              판의 말이다 — 새 판에서 숨는 쪽은 AI 라, 시설이 소집된 전원에게 내리는 명령으로
+              뒤집는다(2026-09-04 절충). 부속 한 줄은 그 명령이 왜 어려운지만 말한다 —
+              전원이 같은 주장을 하기 때문이다.
             */}
-            <h2 className="bl-hero__title bl-hero__title--sm">들키지 마라.</h2>
-            <p className="bl-final__sub">여기서 나가는 길은 그것 하나뿐이다.</p>
+            <h2 className="bl-hero__title bl-hero__title--sm">가려내라.</h2>
+            <p className="bl-final__sub">전원이 인간이라고 말할 것이다. 하나는 아니다.</p>
             <button type="button" className="bl-btn bl-btn--go bl-edge" data-sfx="clank" onClick={enter}>
               입장하기 <ArrowIcon />
             </button>
