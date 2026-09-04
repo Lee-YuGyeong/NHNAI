@@ -387,11 +387,20 @@ export function InterrogationFeature() {
    * 박자를 여기서 세지 않는 이유가 이것이다: 상자가 이미 줄을 넘기는 주인이라, 두 곳에서 세면 어긋난다.
    */
   const [prologueSpeaking, setPrologueSpeaking] = useState(false);
+  /**
+   * 방송(프롤로그 대화창)이 화면에 서 있는가 — 서 있는 동안 채팅 판을 내린다 (2026-09-05 사용자:
+   * "방송할때는 채팅창 안보이게 · 방송 다 끝난다음에 채팅창 보이게"). /arena 의 commsHushed 와 같은 갈림이다.
+   * 줄을 건네는 순간 미리 세운다: 상자의 onShowing 은 첫 줄이 뜬 **다음**에야 와서, 그 한 박자에
+   * 판이 섰다 내려가면 깜빡인다. 내리는 쪽은 상자가 말한다 — 마지막 줄이 여운(LINGER_MS)까지
+   * 지나 사라질 때 onShowing(false) 로 온다. 그래야 자막이 남아 있는 동안 판이 도로 서지 않는다.
+   */
+  const [prologueUp, setPrologueUp] = useState(false);
   const startedAt = wire?.startedAt ?? null;
   const testsDone = wire?.testsDone ?? 0;
   useEffect(() => {
     if (phase === 'lobby') {
       setPrologue([]);
+      setPrologueUp(false);
       return;
     }
     if (phase !== 'discussion' || testsDone !== 0 || startedAt === null) return;
@@ -403,6 +412,7 @@ export function InterrogationFeature() {
      */
     resetPrologueVoice();
     prefetchPrologue(PROLOGUE);
+    setPrologueUp(true);
     setPrologue(prologueLines(seatsRef.current, startedAt));
   }, [phase, testsDone, startedAt]);
 
@@ -535,6 +545,7 @@ export function InterrogationFeature() {
         selfId={null}
         touch={false}
         speaking={prologueSpeaking}
+        onShowing={setPrologueUp}
         onLine={onPrologueLine}
       />
       <HallScene
@@ -595,8 +606,13 @@ export function InterrogationFeature() {
          * 시행은 몸으로 하는 판이라 손이 WASD·E 위에 있는데, 판이 서 있으면 Enter 한 번에 그 손이
          * 입력창으로 끌려간다. 쌓인 말은 안 잃는다: 로그는 gameSlice 에 그대로 남아 있어서
          * 시행이 끝나면 하던 대화가 그 자리에서 다시 뜬다.
+         *
+         * 프롤로그 방송이 서 있는 동안(prologueUp)도 같은 이유로 내린다 (2026-09-05 사용자:
+         * "방송할때는 채팅창 안보이게 · 방송 다 끝난다음에 채팅창 보이게") — 화면 아래에 방송
+         * 자막과 채팅 판이 겹쳐 서고, Enter 가 손을 입력창으로 끌고 간다. 방송이 다 지나가면
+         * (상자가 스스로 사라지면) 판이 그 자리에 다시 선다.
          */}
-        {phase !== 'test' ? (
+        {phase !== 'test' && !prologueUp ? (
           <Chat
             feed={feed}
             mySeatId={mySeatId}
