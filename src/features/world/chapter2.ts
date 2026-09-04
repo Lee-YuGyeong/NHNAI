@@ -99,7 +99,7 @@ export interface Chapter2State {
     /** 쓰러진 개체 — 순번 → 쓰러진 시각. 시체는 치워지지 않는다 */
     downed: Record<number, number>;
   } | null;
-  /** 문 위 표지 */
+  /** 문 위 표식 */
   sign: string | null;
   /** 암전 0~1 */
   blackout: number;
@@ -179,7 +179,7 @@ export const QUEUE_UNITS: readonly { name: string; fate: Fate }[] = [
 export const CHAMBER_DOOR: Spot = { x: -2.2, z: -21.2 };
 /** 줄에 닿았다고 치는 거리 */
 const QUEUE_R = 1.7;
-/** 검증실 표지 */
+/** 검증실 표식 */
 const SIGN = 'COGNITIVE VERIFICATION CHAMBER';
 
 /* ─────────────────────────────── 저장소 ─────────────────────────────── */

@@ -6,7 +6,7 @@
  *   - 줄: 같은 모델 넷(RobotAvatar)이 검증실 문 앞으로 하나씩 나가 검증받는다 — 통과하면 문 안으로 사라지고,
  *     **사살되면 그 자리에 쓰러진 채 남는다**(chapter2.QUEUE_UNITS 의 fate). 도망치는 개체는 FLEE_SPOT 으로 달린다. 앞이 비면 한 칸씩 당긴다
  *   - 사격: downed 가 늘어나면 총성(sfx.gunshot)과 총구 섬광 한 번 — 굉음(Bang)과 같은 방식
- *   - 표지: 먼 격납문 위 캔버스 글자판 — COGNITIVE VERIFICATION CHAMBER / VERIFIED
+ *   - 표식: 먼 격납문 위 캔버스 글자판 — COGNITIVE VERIFICATION CHAMBER / VERIFIED
  *   - 트리거: 프레임마다 내 자리·정면을 chapter2.track 에 준다 (hold 이동 감지 · 굉음 응시 · 줄 도착)
  * 서버에 없는 내 화면의 연출이다. 경비의 검문 걸음·재배치는 AgentRobot 이 chapter2 상태를 읽어 한다.
  */
@@ -274,7 +274,7 @@ function Queue() {
   );
 }
 
-/* ─────────────────────────────── 문 위 표지 ─────────────────────────────── */
+/* ─────────────────────────────── 문 위 표식 ─────────────────────────────── */
 
 function signTexture(text: string, alert: boolean): THREE.CanvasTexture | null {
   if (typeof document === 'undefined') return null;

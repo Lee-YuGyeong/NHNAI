@@ -21,7 +21,7 @@ function renderLobby() {
       <MemoryRouter initialEntries={['/main']}>
         <Routes>
           <Route path="/main" element={<MainFeature />} />
-          {/* 이동 확인용 표지판 — 진짜 월드는 three.js 라 여기서 띄우지 않는다 */}
+          {/* 이동 확인용 표식판 — 진짜 월드는 three.js 라 여기서 띄우지 않는다 */}
           <Route path="/world" element={<p>월드 자리</p>} />
         </Routes>
       </MemoryRouter>

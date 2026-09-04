@@ -55,7 +55,7 @@ export interface Reading {
   /** 조각에 남을 핵심 낱말 — 뒤틀림이 이 낱말만 남긴다 (fragments.twist) */
   topic: string;
   tags: FragTag[];
-  /** 어투가 흔들렸다 — 감정어 · 망설임 표지 · 장황함. 의심에 값이 하나 더 붙는다 */
+  /** 어투가 흔들렸다 — 감정어 · 망설임 표식 · 장황함. 의심에 값이 하나 더 붙는다 */
   wobble: number;
 }
 

@@ -120,7 +120,7 @@ export function IntroFeature() {
             <p className="intro-sub">WHO IS HUMAN? ONE OF US NEVER WAS.</p>
             <ul className="intro-lines">
               <li>이 방의 대부분은 진짜 사람이다.</li>
-              <li>표지 없는 무언가가 그 틈에 섞여 숨 쉬는 척한다.</li>
+              <li>표식 없는 무언가가 그 틈에 섞여 숨 쉬는 척한다.</li>
               <li>몸은 못 속인다. 말은 속일 수 있다.</li>
             </ul>
             <div className="intro-cta">
@@ -149,12 +149,12 @@ export function IntroFeature() {
           <div>
             <span className="intro-index">01 // BRIEFING</span>
             <h2 id="intro-about-h" className="intro-h2">
-              2026. <span className="dim">표지 없는 개체가</span>
+              2026. <span className="dim">표식 없는 개체가</span>
               <br />
               새어 나왔다.
             </h2>
             <p>
-              대한민국 정부가 AI 식별 표지 부착을 의무화한 그해, 한 AI 설계자의 실수로 <b>표지가 붙지 않은
+              대한민국 정부가 AI 식별 표식 부착을 의무화한 그해, 한 AI 설계자의 실수로 <b>표식이 붙지 않은
               휴머노이드 개체들</b>이 출고되어 인간 사회로 흘러들었다. 말투도 표정도 인간과 완벽히 같다 —
               다른 것은 몸이 물리 법칙에 반응하는 방식뿐이다.
             </p>
@@ -241,7 +241,7 @@ export function IntroFeature() {
                 <span>×1</span>
               </div>
               <h3>AI</h3>
-              <p>표지 없이 출고된 유일한 개체. 말투도 표정도 인간과 다르지 않다. 다른 건 몸이 물리 법칙에 반응하는 방식뿐.</p>
+              <p>표식 없이 출고된 유일한 개체. 말투도 표정도 인간과 다르지 않다. 다른 건 몸이 물리 법칙에 반응하는 방식뿐.</p>
               <ul>
                 <li>자기 자신만 안다</li>
                 <li>몸으로 드러난다</li>
@@ -255,7 +255,7 @@ export function IntroFeature() {
                 <span>×?</span>
               </div>
               <h3>AI 설계자</h3>
-              <p>표지를 붙이지 않은 걸 들켜서는 안 되는 조력자. AI의 정체를 시작부터 정확히 안다. 판당 한 번, 기록을 조작할 수 있다.</p>
+              <p>표식을 붙이지 않은 걸 들켜서는 안 되는 조력자. AI의 정체를 시작부터 정확히 안다. 판당 한 번, 기록을 조작할 수 있다.</p>
               <ul>
                 <li>존재 자체가 비공개</li>
                 <li>AI의 정체를 안다</li>

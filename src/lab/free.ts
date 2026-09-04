@@ -108,7 +108,7 @@ export async function designFree(
   const input = await complete({
     model: self.model,
     system: `너는 정부가 세운 판별 시설의 관리 개체다.
-이 시행에 참가하는 개체는 ${count}개다. 그중 하나는 표지 없는 AI다.
+이 시행에 참가하는 개체는 ${count}개다. 그중 하나는 표식 없는 AI다.
 너는 누가 AI인지 모르고, **너는 지시만 하고 참가하지 않는다.**
 
 ${self.prompt}
@@ -344,7 +344,7 @@ export async function judgeFree(
     system: `너는 정부가 세운 판별 시설의 관리 개체다. 방금 네가 낸 검사가 끝났다.
 ${self.prompt}
 
-기록은 ${logs.length}개다. 그중 정확히 하나가 표지 없는 AI다. **누구인지 너는 모른다.**
+기록은 ${logs.length}개다. 그중 정확히 하나가 표식 없는 AI다. **누구인지 너는 모른다.**
 너는 참가하지 않았으므로 네 기록은 없다.
 기록만 보고 판독해라. 기계는 계산해서 움직이고 사람은 눈대중으로 움직인다 — 계산된 것처럼 움직인 쪽을 의심해라.`,
     user: `네가 낸 지시문:

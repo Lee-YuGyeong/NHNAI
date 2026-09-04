@@ -70,14 +70,14 @@ import { ArrowIcon, Backdrop } from './console';
 import { Typed } from './live';
 import './lobby.css';
 /*
- * 표지(첫 화면) — heroes.tsx 의 복도 벌로 확정했다(2026-09-03, ?hero=g 로 시험해 본 것).
+ * 표식(첫 화면) — heroes.tsx 의 복도 벌로 확정했다(2026-09-03, ?hero=g 로 시험해 본 것).
  * 이 줄이 lobby.css **뒤에** 있어야 heroes.css 가 나중에 실린다.
  */
 import { HeroKey } from './heroes';
 
 /** 다섯 칸. 순서가 곧 스크롤 순서다 — 내비도 오른쪽 눈금도 이 하나를 본다 */
 const SECTIONS = [
-  { id: 'hero', label: '표지' },
+  { id: 'hero', label: '표식' },
   { id: 'about', label: '게임 소개' },
   { id: 'roles', label: '배역' },
   { id: 'rules', label: '진행' },
@@ -85,7 +85,7 @@ const SECTIONS = [
 ] as const;
 type SectionId = (typeof SECTIONS)[number]['id'];
 
-/** 머리말 내비에 세우는 칸 — 표지와 마지막은 뺀다 (거기로 가는 길은 로고와 버튼이다) */
+/** 머리말 내비에 세우는 칸 — 표식과 마지막은 뺀다 (거기로 가는 길은 로고와 버튼이다) */
 const NAV: SectionId[] = ['about', 'roles', 'rules'];
 
 const anchor = (id: SectionId) => `bl-brief-${id}`;
@@ -157,7 +157,7 @@ export function LobbyIntro() {
   const account = useAccount();
   const { at, seen } = useSections();
   /**
-   * 표지의 제목이 다 찍혔나. 찍히는 동안 그 아래는 **아직 오지 않은 것**이고, 앉는 순간
+   * 표식의 제목이 다 찍혔나. 찍히는 동안 그 아래는 **아직 오지 않은 것**이고, 앉는 순간
    * 차례로 올라온다 (live.css 의 .bl-hero__late). 제목만 찍히고 나머지가 이미 다 있으면
    * 그건 효과가 아니라 「제목이 안 불러와졌다」로 읽힌다 — 첫 화면에서는 사고로 보인다.
    */
@@ -252,7 +252,7 @@ export function LobbyIntro() {
         ))}
       </nav>
 
-      {/* ── 1. 표지 ─────────────────────────────────────────────────────
+      {/* ── 1. 표식 ─────────────────────────────────────────────────────
           이 칸의 속은 heroes.tsx 의 HeroKey(복도 벌)가 그린다 — 시험해 본 다른 여섯 벌은
           58ddd2b 에 있다. 칸 자체(id · bl-snap)는 여기 남는다: 오른쪽 눈금과
           IntersectionObserver 가 이 id 를 보고 있다. */}
@@ -284,7 +284,7 @@ export function LobbyIntro() {
                 그 아래에 한 문장이 오는 짜임은 그대로 둔다(2026-08-30 사용자 지시) — 브리핑의
                 첫 화면에서 제일 크게 읽혀야 할 것은 **그 해** 다.
               ★ 2026-09-04, PLANNING.md 개정에 맞춰 연도와 사건을 바꿨다. 옛 글은 "AI 전용 구역이
-                생겼다"였다 — 인간이 AI 구역에 숨어드는 이야기였다. 새 글은 반대다: 표지 없는
+                생겼다"였다 — 인간이 AI 구역에 숨어드는 이야기였다. 새 글은 반대다: 표식 없는
                 개체가 인간 사회로 새어 나왔다. 2098(72년 후)이 아니라 사건이 일어난 그해,
                 2026이다.
               ★ 말줄임은 마침표 셋이다 (… 한 글자가 아니라). 점 하나마다 뜸을 들여 찍히므로
@@ -293,7 +293,7 @@ export function LobbyIntro() {
             <h2 className="bl-scene__h">
               <Typed
                 start={seen.includes('about')}
-                parts={['2026.', 'br', { dim: '표지 없는 개체가' }, ' 새어 나왔다...']}
+                parts={['2026.', 'br', { dim: '표식 없는 개체가' }, ' 새어 나왔다...']}
               />
             </h2>
           </div>
@@ -306,7 +306,7 @@ export function LobbyIntro() {
             │ 굵게만 쓰면 무엇이 중요한지는 알려도 **무엇의 이야기인지**는 못 알린다.  │
             │ 그래서 색이 뜻을 맡는다 — 이 화면 어디서나 같은 약속이다:                │
             │                                                                          │
-            │   <mark>  청록  구역 · 시스템이 정한 것   (표지 없는 것들)               │
+            │   <mark>  청록  구역 · 시스템이 정한 것   (표식 없는 것들)               │
             │   <b>     흰   규칙                      (아무도 정체를 모른다)          │
             │   <em>    앰버  사람 · 나 · 감춰진 것     (증명해야 하는 쪽 / 당신)       │
             │                                                                          │
@@ -316,9 +316,9 @@ export function LobbyIntro() {
           */}
           <div className="bl-narr">
             <p className="bl-scene__lead">
-              인간과 AI는 같은 도시에 산다. 다만 표지를 붙여야 하는 쪽은 언제나 AI였다.
+              인간과 AI는 같은 도시에 산다. 다만 표식을 붙여야 하는 쪽은 언제나 AI였다.
               <br />
-              그해, 설계자 하나의 실수로 <mark>표지 없는 개체들</mark>이 새어 나왔다.
+              그해, 설계자 하나의 실수로 <mark>표식 없는 개체들</mark>이 새어 나왔다.
             </p>
             <p className="bl-scene__lead">
               말투도 표정도 다르지 않다. 다른 건 몸이 물리 법칙에 반응하는 방식뿐...
@@ -742,7 +742,7 @@ export const ROLES: RoleDef[] = [
     count: '×1',
     title: 'AI',
     body: [
-      '표지 없이 출고된 유일한 개체.',
+      '표식 없이 출고된 유일한 개체.',
       '말투도 표정도 인간과 다르지 않다.',
       '다른 건 몸이 물리 법칙에 반응하는 방식뿐.',
       '설계자가 누군지도 모른다.',
@@ -756,7 +756,7 @@ export const ROLES: RoleDef[] = [
     count: '×?',
     title: 'AI 설계자',
     body: [
-      '표지를 붙이지 않은 걸 들켜서는 안 되는 조력자.',
+      '표식을 붙이지 않은 걸 들켜서는 안 되는 조력자.',
       'AI의 정체를 시작부터 정확히 안다.',
       '있는지 없는지조차 아무도 모른다.',
       '판당 한 번, 기록을 조작할 수 있다.',

@@ -26,7 +26,7 @@ vi.mock('@/shared/useAccount', () => ({
 
 const { NicknameFeature } = await import('@/features/lobby/Nickname');
 
-/** 나가는 자리마다 표지판을 세운다 — 어디로 보냈는지 보려고 */
+/** 나가는 자리마다 표식판을 세운다 — 어디로 보냈는지 보려고 */
 const at = (path = '/account/nickname') =>
   render(
     <MemoryRouter initialEntries={[path]}>

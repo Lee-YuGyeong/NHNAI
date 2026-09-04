@@ -83,7 +83,7 @@ export function Launcher() {
           }}
         >
           <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '0.02em', color: '#ffd9d1' }}>인트로 시작</span>
-          <span style={{ fontSize: 11, color: '#c98a7d' }}>표지 → 브리핑 → 배역 → 진행 → 입장</span>
+          <span style={{ fontSize: 11, color: '#c98a7d' }}>표식 → 브리핑 → 배역 → 진행 → 입장</span>
         </button>
       </Link>
 
