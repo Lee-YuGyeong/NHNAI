@@ -459,7 +459,16 @@ export class GameRuntime {
   private async advance(): Promise<void> {
     switch (this.phase) {
       case 'briefing':
-        this.leader(LINES.opening, 'announce');
+        /*
+         * 판을 여는 말은 **프롤로그가 맡는다** — 여기서 방송을 내보내지 않는다
+         * (2026-09-05 사용자: 「프롤로그 나올 때 방송이랑 겹친다」).
+         *
+         * 첫 토론이 열리는 순간 화면에서 검문소 프롤로그가 흐르고(features/interrogation/prologue.ts),
+         * 그 대본의 정부 통제실이 이미 같은 말을 한다 — 「식별 표지가 없는 휴머노이드가 여러분 사이에 숨어 있습니다」.
+         * 그런데 둘은 관로가 다르다: 프롤로그는 제 채널(prologueVoice), 방송은 큐(ttsSlice→TtsPlayer)라 서로를 모른다.
+         * 여기서 쏘면 openDiscussion 의 상태 방송과 **같은 틱**에 나가고, 서버 방송은 ts 가 붙어 경보 대접으로
+         * 큐 앞에 끼어들어(ttsSlice) 곧바로 재생된다 — 같은 관리 AI 목소리가 같은 시설 음색으로 같은 말을 겹쳐 냈다.
+         */
         this.openDiscussion(GAME_FIRST_DISCUSSION_MS, true);
         return;
       case 'discussion':
