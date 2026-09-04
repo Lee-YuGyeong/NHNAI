@@ -424,16 +424,6 @@
   letter-spacing: 0.04em;
   color: rgba(111, 211, 255, 0.55);
 }
-/* 대화 스킵 — 대사가 흐르는 동안만, 오른쪽 아래에 아주 작게 */
-.s2-skip {
-  right: 18px;
-  bottom: 168px;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  color: rgba(143, 180, 212, 0.45);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
-}
 
 /* ── 조각 기록 (디버그) ── */
 /*

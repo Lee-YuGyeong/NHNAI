@@ -23,7 +23,7 @@ import {
   type EmoteState,
 } from '@/arena3d';
 import { MAPS } from '@/world';
-import { broadcastAnnounce, broadcastSkip, selectBroadcastNow, selectBroadcastSpeaking } from '@/shared/broadcast';
+import { broadcastAnnounce, selectBroadcastNow, selectBroadcastSpeaking } from '@/shared/broadcast';
 import { Bgm } from '@/features/world/Bgm';
 import { DialogueBox, lineDuration } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
@@ -2659,15 +2659,6 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
   useEffect(() => {
     speakingRef.current = speaking;
   }, [speaking]);
-  /**
-   * **대사 스킵**(T)이 부르는 곳 — 이 화면은 소리를 제가 내므로(방송) 끊는 것도 여기서 한다.
-   * 읽던 한 줄만 끊는다: 대기 중이던 다음 방송은 곧바로 이어지고, 자막 상자도 그 줄로 넘어간다.
-   * 이걸 주는 것이 곧 대화창에 「넘겨도 된다」고 알리는 것이다 (DialogueBox 의 canSkip).
-   */
-  const skipBroadcast = useCallback(() => {
-    dispatch(broadcastSkip());
-  }, [dispatch]);
-
   /*
    * ── 죽는 길은 **이것 하나다: 개인 의심도 100.** ──
    * 시행에서 쌓았든, 방이 물어서(몰이) 탔든, ⚡판에서 한 번에 채웠든 같은 눈금이다.
@@ -3633,7 +3624,7 @@ export function ArenaFeature({ autoStart = false }: { autoStart?: boolean } = {}
         {/* 리더의 말 — /world 와 같은 대화창. selfId 는 없다: 이 상자에 오르는 것은 리더의 방송뿐이다 */}
         {/* speaking 을 준다 — 리더 목소리는 그 자리에서 합성돼 길이를 미리 알 수 없어서,
             상자가 "다 읽었는가"로만 넘어갈 수 있다. 안 주면 자막이 소리보다 먼저 사라진다 */}
-        <DialogueBox messages={lines} selfId={null} touch={false} speaking={speaking} onSkip={skipBroadcast} onShowing={setLeaderLineUp} />
+        <DialogueBox messages={lines} selfId={null} touch={false} speaking={speaking} onShowing={setLeaderLineUp} />
 
         {/*
           ── 방의 대화 · 통신 패널 (2026-09-02 사용자: 후보 05) ──
@@ -4247,10 +4238,6 @@ const CSS = `
 /* 대화창(/world DialogueBox)은 리더가 혼자 말하는 자리다 — 눌러서 넘기지 않는다.
    상자가 클릭을 먹으면 그 자리에서 시야 잠금(click-to-lock)이 안 걸리고, 이 화면에서 그건 곧 조작 불능이다 */
 .arena .stage .dlg__box { pointer-events: none; }
-/* 넘기기 단추 하나만 되살린다 — 그건 「여기 누르면 잠긴다」가 아니라 제 일이 있는 자리다.
-   단추의 클릭은 제자리에서 멎으므로(DialogueBox 의 stopPropagation) 잠금을 뺏지도 않는다.
-   자판(T)이 본길이고 이건 그 이름표를 눌러도 되게 하는 것뿐이다 */
-.arena .stage .dlg__skip { pointer-events: auto; }
 /* ── 방의 대화 · 통신 패널 (2026-09-02 사용자: 후보 05) ────────────────────────
    머리띠 · 로그 · 입력줄이 한 판으로 선다. 테두리 하나, 윗변에서 사라지는 빛 한 줄
    (.ask·.soundpanel 과 같은 ::before — 이 화면의 패널은 다 같은 얼굴이다),

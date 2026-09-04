@@ -40,8 +40,9 @@ describe('표지 (HeroKey · 복도)', () => {
     put();
     const title = screen.getByRole('heading', { level: 1 }).textContent ?? '';
     expect(title.replace(/\s+/g, '')).toContain('누가인간인가?');
-    expect(screen.getByText(/이 구역에 인간은 없다/)).toBeInTheDocument();
-    expect(screen.getByText(/없어야 한다/)).toBeInTheDocument();
+    // 방송은 새 기획(인간인 척)의 것이다 — 전원이 인간이라 진술했고, 하나는 거짓이다 (heroes.tsx 머리말)
+    expect(screen.getByText(/전원이 인간이라고 진술했다/)).toBeInTheDocument();
+    expect(screen.getByText(/하나는 거짓이다/)).toBeInTheDocument();
   });
 
   it('문 셋이 다 있고 각자 제 곳으로 간다', () => {

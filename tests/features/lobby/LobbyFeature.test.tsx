@@ -355,7 +355,7 @@ describe('브리핑 — 이 줄의 첫 칸 (/intro)', () => {
     // jsdom 에는 IntersectionObserver 가 없다 = 「이 칸을 보고 있다」가 성립하지 않는다.
     // 그때도 글은 처음부터 다 나와 있어야 한다 (한 글자씩 찍는 것은 보고 있을 때만의 연출이다)
     renderLobby('/intro');
-    expect(screen.getByText('관리 권한을 가진 존재.')).toBeInTheDocument();
+    expect(screen.getByText('LLM 개체.')).toBeInTheDocument();
   });
 
   it('입장하기를 누르면 **곧장 구글로** 간다 — 읽을 화면을 한 장 더 세우지 않는다', () => {
