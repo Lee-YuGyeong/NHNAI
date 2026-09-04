@@ -215,6 +215,21 @@ export function createClipBudget(limit: number = CLIP_BUDGET_CHARS): ClipBudget 
 
 /* ─────────────────────────── 엔드포인트 ─────────────────────────── */
 
+/**
+ * 개발용 경로를 열었나 (SEAT_VOICE_DEV).
+ *
+ * `=== '1'` 로 못박아 뒀더니 실제로 걸렸다 (2026-09-04): 켠 줄 알았는데 안 켜져서 화면에는
+ * 「워커가 떠 있는지 확인한다」만 뜨고, 워커는 멀쩡히 떠 있었다. 켜는 값이 한 글자만
+ * 달라도(true · yes · 따옴표) 같은 증상이라, **원인이 값에 있다는 걸 화면으로는 알 수가 없다.**
+ *
+ * 이건 로컬 개발 스위치지 보안 경계가 아니다 — 배포에 안 넣는 것이 경계다. 그러니 느슨하게
+ * 받고, 대신 **끄는 쪽을 명시적으로** 둔다(빈 값 · 0 · false 는 꺼짐).
+ */
+function devOpen(raw: string | undefined): boolean {
+  const v = (raw ?? '').trim().replace(/^["']|["']$/g, '').toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+}
+
 function splitIds(raw: string | undefined): string[] {
   return (raw ?? '')
     .split(',')
@@ -318,7 +333,7 @@ export async function handleSeatClip(
  * 방이 통째로 조용해진다. 그 사실이 화면에 보여야 고칠 수 있다.
  */
 export async function handleSeatRoster(request: Request, env: SeatVoiceEnv): Promise<Response> {
-  if (env.SEAT_VOICE_DEV !== '1') return fail('없는 경로다', 404);
+  if (!devOpen(env.SEAT_VOICE_DEV)) return fail('없는 경로다 — SEAT_VOICE_DEV 가 꺼져 있다', 404);
   if (request.method !== 'GET') return fail('GET 만 받는다', 405);
 
   const ids = seatVoiceIds(env);
@@ -352,7 +367,7 @@ export async function handleSeatRoster(request: Request, env: SeatVoiceEnv): Pro
  * SEAT_VOICE_DEV 가 '1' 이 아니면 404 다. 있는 줄도 모르게 두는 편이 맞다.
  */
 export async function handleSeatClipMint(request: Request, env: SeatVoiceEnv): Promise<Response> {
-  if (env.SEAT_VOICE_DEV !== '1') return fail('없는 경로다', 404);
+  if (!devOpen(env.SEAT_VOICE_DEV)) return fail('없는 경로다 — SEAT_VOICE_DEV 가 꺼져 있다', 404);
   if (request.method !== 'POST') return fail('POST 만 받는다', 405);
 
   const secret = secretOf(env);
@@ -396,7 +411,7 @@ export async function handleSeatAudition(
   env: SeatVoiceEnv,
   ctx: { waitUntil(p: Promise<unknown>): void },
 ): Promise<Response> {
-  if (env.SEAT_VOICE_DEV !== '1') return fail('없는 경로다', 404);
+  if (!devOpen(env.SEAT_VOICE_DEV)) return fail('없는 경로다 — SEAT_VOICE_DEV 가 꺼져 있다', 404);
   if (request.method !== 'POST') return fail('POST 만 받는다', 405);
   if (!env.ELEVENLABS_API_KEY) return fail('ELEVENLABS_API_KEY 가 없다', 503);
 
@@ -445,7 +460,7 @@ export async function handleSeatAudition(
  * 아홉 번 반복할 일이라 화면에서 누르게 한다.
  */
 export async function handleLibraryAdd(request: Request, env: SeatVoiceEnv): Promise<Response> {
-  if (env.SEAT_VOICE_DEV !== '1') return fail('없는 경로다', 404);
+  if (!devOpen(env.SEAT_VOICE_DEV)) return fail('없는 경로다 — SEAT_VOICE_DEV 가 꺼져 있다', 404);
   if (request.method !== 'POST') return fail('POST 만 받는다', 405);
   if (!env.ELEVENLABS_API_KEY) return fail('ELEVENLABS_API_KEY 가 없다', 503);
 
