@@ -419,6 +419,20 @@ export function masterOut(): AudioNode {
   return master();
 }
 
+/**
+ * 시설 방송(PA) 체인의 입구 — 확성기 대역 + 큰 홀 잔향.
+ *
+ * 방송 큐(TtsPlayer)를 **안 타면서** 같은 소리로 내야 하는 자리가 있어서 연다:
+ * 검문소 프롤로그의 정부 통제실이 그렇다 (features/interrogation/prologueVoice.ts).
+ * 그 대본은 화면에서만 나고 큐에 넣지 않는데(서버도 관리 AI 도 모르는 줄이다),
+ * 천장 스피커에서 나오는 소리라 **음색은 시설 방송이어야 한다.**
+ *
+ * 여기 꽂은 소리도 마스터를 지나므로 볼륨 손잡이가 그대로 먹는다.
+ */
+export function paOut(): AudioNode {
+  return paChain();
+}
+
 /** 0~1. 0 이면 소리는 없지만 방송은 자막으로 계속 지나간다 (TtsPlayer 가 시간을 세어 넘긴다) */
 export function setVolume(v: number): void {
   volume = Math.min(1, Math.max(0, v));

@@ -24,7 +24,8 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { prologueEntries } from './prologue';
+import { PROLOGUE, prologueEntries } from './prologue';
+import { prefetchPrologue, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { BigClock, Board, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TopBar } from './hud/Panels';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
@@ -368,14 +369,27 @@ export function InterrogationFeature() {
     if (phase !== 'discussion' || testsDone !== 0 || startedAt === null) return;
     if (prologuePlayed.current === startedAt) return;
     prologuePlayed.current = startedAt;
-    for (const { at, entry } of prologueEntries(seatsRef.current, startedAt)) {
-      prologueTimers.current.push(window.setTimeout(() => dispatch(gameActions.chatReceived(entry)), at));
-    }
+    /*
+     * 소리는 미리 받아 둔다 — 합성 왕복이 300~800ms 라, 차례에 받기 시작하면 자막이 먼저 뜨고
+     * 소리가 뒤늦게 붙는다. 대본은 박자가 곧 연출이라 그 어긋남이 그대로 보인다 (prologueVoice).
+     */
+    resetPrologueVoice();
+    prefetchPrologue(PROLOGUE);
+    prologueEntries(seatsRef.current, startedAt).forEach(({ at, entry }, i) => {
+      prologueTimers.current.push(
+        window.setTimeout(() => {
+          dispatch(gameActions.chatReceived(entry));
+          // 자막과 **같은 시각**에 낸다. 소리가 안 나와도 대본은 그대로 흐른다 — 자막이 본체다
+          void speakPrologueLine(PROLOGUE[i]);
+        }, at),
+      );
+    });
   }, [phase, testsDone, startedAt, dispatch]);
   useEffect(
     () => () => {
       for (const t of prologueTimers.current) window.clearTimeout(t);
       prologueTimers.current = [];
+      stopPrologue(); // 화면을 떠나는데 통제실이 계속 말하고 있으면 안 된다
     },
     [],
   );
