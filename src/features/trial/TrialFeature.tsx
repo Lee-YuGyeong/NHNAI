@@ -12,7 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 import { BackToRoot } from '@/shared/BackToRoot';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { STOPLINE_ATTEMPTS_PER_ROUND } from '@/world/mp/constants';
+import { FALL_ROUNDS, STOPLINE_ATTEMPTS_PER_ROUND, STOPLINE_ROUNDS } from '@/world/mp/constants';
 import type { AnimState, PlayerSnapshot, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
 import { FallScene } from './games/fall/FallScene';
@@ -46,9 +46,8 @@ export function TrialFeature() {
   const latestResult = useAppSelector(trialSelectors.selectLatestResult);
 
   const [tab, setTab] = useState<'live' | 'log'>('live');
-  /** 전광판 — 결과가 오면 잠깐 펼쳤다 접는다(플레이 화면을 가리지 않게). 고정하면 계속 연다 */
-  const [boardOpen, setBoardOpen] = useState(false);
-  const [boardPinned, setBoardPinned] = useState(false);
+  /** 최종 전광판 — 라운드마다가 아니라 **판(3라운드)이 다 끝났을 때** 한 번 펼친다 (2026-09-04 사용자). 닫으면 기록 탭에 남는다 */
+  const [finalOpen, setFinalOpen] = useState(false);
   const [aiIds, setAiIds] = useState<string[]>([]);
   const [locked, setLocked] = useState(false);
   /** 피격 연출 — 화면 가장자리가 붉게 번쩍인다 */
@@ -132,13 +131,14 @@ export function TrialFeature() {
     return () => conn.close();
   }, [dispatch, roomCode, nickname, wantGame, seeParticipant]);
 
-  // 새 결과가 오면 전광판을 펼쳤다가 6초 뒤 접는다 — 판이 계속 도는 동안 오른쪽을 가리면 피할 수가 없다 (2026-09-04 사용자)
+  // 마지막 라운드의 결과가 오면 판이 끝난 것 — 그때 전광판을 펼친다. 도중엔 아무것도 안 가린다
+  const totalRounds = (g: TrialGame) => (g === 'fall' ? FALL_ROUNDS : STOPLINE_ROUNDS);
+  const seriesDone = latestResult !== null && latestResult.round >= totalRounds(latestResult.game);
   useEffect(() => {
-    if (!latestResult) return;
-    setBoardOpen(true);
-    const id = window.setTimeout(() => setBoardOpen(false), 6000);
-    return () => window.clearTimeout(id);
-  }, [latestResult]);
+    if (seriesDone) setFinalOpen(true);
+  }, [seriesDone, latestResult]);
+  /** 이번 판의 라운드들 — 기록 끝에서 라운드 수만큼 */
+  const series = useMemo(() => (latestResult ? history.slice(-totalRounds(latestResult.game)) : []), [history, latestResult]);
 
   // 시간제 라운드의 남은 시간 — 1초마다
   useEffect(() => {
@@ -230,9 +230,6 @@ export function TrialFeature() {
         <button type="button" onClick={() => setTab('log')} aria-pressed={tab === 'log'}>
           기록 ({history.length})
         </button>
-        <button type="button" onClick={() => setBoardPinned((v) => !v)} aria-pressed={boardPinned} title="결과 전광판을 계속 열어 둔다">
-          전광판 {boardPinned ? '고정' : ''}
-        </button>
       </nav>
 
       {/* 발밑 안내 — 잠금 전에는 클릭을 청한다 */}
@@ -255,25 +252,45 @@ export function TrialFeature() {
         {!locked && status === 'connected' ? <span style={{ display: 'block', color: 'var(--dust)', fontSize: 12, marginTop: 4 }}>화면을 클릭하면 마우스로 둘러볼 수 있다</span> : null}
       </p>
 
-      {/* 전광판 — 방 위에 얹힌다. 참가자 강조·등급 라벨 없음. 결과 직후 잠깐만 펼치고, 고정하거나 기록 탭이면 계속 */}
-      {tab === 'log' || boardPinned || boardOpen ? (
+      {/* 기록 탭 — 지난 판까지 전부. 참가자 강조·등급 라벨 없음 */}
+      {tab === 'log' ? (
         <div
           onClick={(e) => e.stopPropagation()}
           style={{ position: 'absolute', top: 56, right: 12, width: 380, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', opacity: 0.92 }}
         >
-          {tab === 'live' ? (latestResult ? <Scoreboard result={latestResult} roster={roster} /> : null) : <ScoreboardLog history={history} roster={roster} />}
+          <ScoreboardLog history={history} roster={roster} />
         </div>
-      ) : latestResult ? (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setBoardPinned(true);
+      ) : null}
+
+      {/* 최종 전광판 — 판(3라운드)이 끝났을 때만. 가운데에 크게, 라운드 셋을 나란히 */}
+      {tab === 'live' && finalOpen && series.length > 0 ? (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'grid',
+            placeItems: 'center',
+            background: 'rgba(8, 6, 4, 0.72)',
           }}
-          style={{ position: 'absolute', top: 56, right: 12, fontFamily: 'var(--font-mono)', fontSize: 12, padding: '6px 10px', opacity: 0.85 }}
         >
-          ROUND {latestResult.round} 결과 ▸
-        </button>
+          <div style={{ display: 'grid', gap: 12, maxWidth: 'min(1240px, 96vw)', maxHeight: '92vh', overflow: 'auto', padding: 12 }}>
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, fontFamily: 'var(--font-mono)', color: 'var(--linen)' }}>
+              <span style={{ fontSize: 14, letterSpacing: '0.12em' }}>{title} — 판 종료 · 기록 공개</span>
+              <button type="button" onClick={() => setFinalOpen(false)}>
+                닫기
+              </button>
+            </header>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {series.map((r, i) => (
+                <Scoreboard key={`${r.game}-${r.round}-${i}`} result={r} roster={roster} />
+              ))}
+            </div>
+            <p style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--dust)', textAlign: 'center' }}>
+              시스템은 판정하지 않는다 — 숫자를 보고 누가 이상한지는 토론에서 가린다. 닫아도 「기록」 탭에 남는다.
+            </p>
+          </div>
+        </div>
       ) : null}
     </div>
   );
