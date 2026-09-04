@@ -51,14 +51,23 @@
   letter-spacing: 0.1em;
 }
 
-/* ── 미니 게임의 남은 초 (위 가운데, 큰 숫자 · 시험 국면에만) ──
-   /trial 의 시계와 같은 얼굴이다 (44px 모노 · 마지막 10초는 붉게). 위 가운데 기둥은 이렇게 쌓인다:
-   이 시계(50) → 지시문(104) → 목표색(142). 하나가 움직이면 아래가 같이 움직여야 한다 */
-.ig-clock {
+/* ── 위 가운데 기둥 (시험 국면에만) — 시계 · 안내판 · 목표색이 이 안에 쌓인다 ──
+   예전엔 셋이 저마다 top(50 · 104 · 142)으로 서서, 하나가 커지면 아래와 겹쳤다. 이제 기둥 하나다 */
+.ig-testcol {
   position: absolute;
-  top: 50px;
+  top: 44px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+/* ── 미니 게임의 남은 초 (기둥 맨 위, 큰 숫자) ──
+   /trial 의 시계와 같은 얼굴이다 (44px 모노 · 마지막 10초는 붉게) */
+.ig-clock {
   font-family: var(--font-mono);
   font-size: 44px;
   font-weight: 700;
@@ -66,7 +75,6 @@
   letter-spacing: 0.04em;
   color: var(--linen);
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
-  pointer-events: none;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -79,19 +87,59 @@
   color: var(--signal);
 }
 
-/* ── 지시문 (테스트 중 화면 위) — 시계 아래 ── */
+/* ── 시험 안내판 (시계 아래) — 이름 · 목표 한 줄 · 키캡 (TestOrder) ──────────
+   예전의 비상등 빨강 배너(긴 서버 지시문 한 줄)는 걷었다 — 빨강은 이 화면에서 경보의 색인데
+   지시문은 경보가 아니고, 문장이 길어 30초 시험 중에 안 읽혔다. 판의 값은 통신판의 그것이다.
+   읽을 시간(8초)이 지나면 흐려진다 — 경기장을 가리는 판은 읽힌 뒤 물러난다 */
 .ig-order {
-  position: absolute;
-  top: 104px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 6px 14px;
-  background: rgba(255, 51, 32, 0.12);
-  border: 1px solid rgba(255, 51, 32, 0.5);
-  color: var(--flare);
-  font-size: 14px;
-  letter-spacing: 0.02em;
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  padding: 8px 20px 10px;
+  clip-path: var(--ig-chamfer-sm);
+  background: rgba(8, 6, 4, 0.8);
+  border-left: 1px solid var(--ig-edge);
+  text-align: center;
   white-space: nowrap;
+  animation: ig-orderdim 0.7s ease 8s forwards;
+}
+.ig-order .ttl {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--dust);
+}
+.ig-order .goal {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--flare);
+}
+.ig-order .keys {
+  margin: 2px 0 0;
+  display: flex;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dust);
+}
+.ig-order kbd {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px 2px;
+  border: 1px solid rgba(232, 221, 205, 0.35);
+  border-bottom-width: 2px;
+  background: rgba(232, 221, 205, 0.08);
+  color: var(--linen);
+}
+@keyframes ig-orderdim {
+  to {
+    opacity: 0.35;
+  }
 }
 
 /* ── 채팅 「구역 통신」 (오른쪽 아래) ────────────────────────────────────────
@@ -355,27 +403,68 @@
   cursor: default;
 }
 
-/* ── 기록 요약 (오른쪽 위) ── */
+/* ── 기록 요약 (오른쪽 위) — 통신판과 같은 모따기 판: 머리띠 · 표 ── */
 .ig-record {
   position: absolute;
   right: 12px;
   top: 48px;
   width: 360px;
-  max-height: 44vh;
-  overflow-y: auto;
-  background: rgba(8, 6, 4, 0.74);
-  border: 1px solid rgba(232, 221, 205, 0.18);
-  padding: 8px 10px;
+  display: grid;
+  clip-path: var(--ig-chamfer);
   font-family: var(--font-mono);
   font-size: 11px;
 }
-.ig-record h3,
-.ig-result h3 {
-  margin: 0 0 6px;
-  font-size: 11px;
-  letter-spacing: 0.14em;
+.ig-record::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background: var(--ig-scan);
+  background-size: 100% 3px;
+}
+.ig-record .hd {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px 7px 12px;
+  background: rgba(8, 6, 4, 0.84);
+  border-left: 1px solid var(--ig-edge);
+  border-bottom: 1px solid var(--ig-line-soft);
+}
+.ig-record .hd::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--amber), transparent);
+  opacity: 0.55;
+}
+.ig-record .live {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber);
+}
+.ig-record .ttl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   color: var(--dust);
-  font-weight: 600;
+}
+.ig-record .bd {
+  max-height: 38vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 221, 205, 0.22) transparent;
+  padding: 6px 10px 8px;
+  background: rgba(8, 6, 4, 0.76);
+  border-left: 1px solid var(--ig-edge);
 }
 .ig-table {
   width: 100%;
@@ -400,6 +489,10 @@
 .ig-table tr.mean td {
   color: var(--amber);
 }
+/* 내 줄 — 이름만 물들이던 것에 옅은 바탕을 더했다: 7초짜리 판에서 내 기록부터 찾게 된다 */
+.ig-table tr.me td {
+  background: rgba(255, 202, 142, 0.06);
+}
 .ig-table tr.me td:first-child {
   color: var(--amber);
 }
@@ -410,52 +503,159 @@
   letter-spacing: 0.12em;
 }
 
-/* ── 결과 모달 ── */
+/* ── 결과 모달 「기록 공개」 — 끝 화면과 같은 모따기 판: 머리띠 · 표 · 발치 ──
+   예전의 민짜 시트(테두리 상자 + 석 줄 설명문)는 걷었다 — 7초짜리 판에서 눈이 갈 곳은 표 하나다.
+   판의 색은 조명색(--amber) 고정: 기록은 경보도 승리도 아니고, 이 방의 장치가 켜진 것뿐이다 */
 .ig-result {
   position: absolute;
   inset: 0;
   z-index: 40;
   display: grid;
   place-items: center;
+  padding: 16px;
   background: rgba(4, 3, 2, 0.86);
   animation: ig-fade 0.35s ease;
 }
 .ig-result .ig-sheet {
+  --rc: var(--amber);
+  position: relative;
   width: min(780px, 94vw);
   max-height: 88vh;
-  overflow-y: auto;
-  padding: 22px 26px;
-  border: 1px solid rgba(255, 217, 172, 0.35);
-  background: rgba(8, 6, 4, 0.92);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  clip-path: var(--ig-chamfer);
   font-family: var(--font-mono);
   font-size: 13px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  animation: ig-on 0.42s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
-.ig-result .ig-eyebrow {
+.ig-result .ig-sheet::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background: var(--ig-scan);
+  background-size: 100% 3px;
+}
+.ig-result .hd {
+  position: relative;
   display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  background: rgba(8, 6, 4, 0.92);
+  border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
+  border-bottom: 1px solid var(--ig-line-soft);
+}
+.ig-result .hd::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--rc), transparent);
+  opacity: 0.7;
+}
+.ig-result .live {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rc);
+  box-shadow: 0 0 8px var(--rc);
+  animation: ig-commslive 2.6s ease-in-out infinite;
+}
+.ig-result .hd .ttl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   color: var(--dust);
-  margin: 0 0 8px;
+}
+.ig-result .hd .clock {
+  margin-left: auto;
+  padding: 2px 9px;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  clip-path: var(--ig-chamfer-sm);
+  border: 1px solid color-mix(in srgb, var(--rc) 50%, transparent);
+  background: color-mix(in srgb, var(--rc) 14%, transparent);
+  color: var(--rc);
+}
+.ig-result .bd {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 221, 205, 0.22) transparent;
+  padding: 16px 20px 14px;
+  background: rgba(8, 6, 4, 0.92);
+  border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
 }
 .ig-result .ig-title {
-  font-size: 22px;
+  margin: 0 0 12px;
+  font-family: var(--font-sans);
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
   color: var(--flare);
-  margin: 0 0 14px;
-  letter-spacing: 0.06em;
 }
+.ig-result .ig-title span {
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--dust);
+}
+/* 범례 — 표를 읽는 데 필요한 두 마디만. 항 이름(.k)이 색으로 표의 그 자리를 가리킨다 */
 .ig-result .ig-note {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   font-size: 11px;
   color: var(--dust);
   line-height: 1.6;
 }
-.ig-result .ig-lock {
-  margin-top: 10px;
-  font-size: 11px;
+.ig-result .ig-note .k {
+  margin: 0 6px 0 16px;
+  font-weight: 700;
+  color: var(--bone);
+}
+.ig-result .ig-note .k:first-child {
+  margin-left: 0;
+}
+.ig-result .ig-note .k.hi {
   color: var(--signal);
-  letter-spacing: 0.1em;
+}
+.ig-result .ft {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 9px 12px;
+  background: rgba(8, 6, 4, 0.95);
+  border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
+  border-top: 1px solid var(--ig-line-soft);
+}
+.ig-result .ftx {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--grime);
+}
+/* 걷히기까지 — 판 바닥의 한 줄. 머리띠의 숫자와 같은 --show 를 본다 (EndScreen 의 .prog 와 같은 장치) */
+.ig-result .prog {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(232, 221, 205, 0.1);
+}
+.ig-result .prog i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: var(--rc);
+  box-shadow: 0 0 10px var(--rc);
+  animation: ig-drain var(--show) linear both;
 }
 @keyframes ig-fade {
   from {
@@ -676,16 +876,10 @@
   border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
   text-align: center;
 }
-.ig-endpanel .kicker {
-  margin: 0;
-  font-size: 10px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--grime);
-}
-/* 판정 — 도장이 찍히듯 한 번 내려앉는다 (조금 크게 시작해 제자리로) */
+/* 판정 — 도장이 찍히듯 한 번 내려앉는다 (조금 크게 시작해 제자리로).
+   위의 「판정」 kicker 는 뺐다 — 머리띠의 「판정 종료」와 같은 낱말이 두 번 서던 자리다 */
 .ig-endpanel .name {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-family: var(--font-sans);
   font-size: 2.4rem;
   font-weight: 900;
@@ -715,7 +909,8 @@
   font-weight: 700;
 }
 
-/* 내 결과 — 판이 진영의 것이라면 이 줄만이 나의 것이다. 칩은 내 결과대로 따로 물든다 (--mc) */
+/* 내 결과 — 판이 진영의 것이라면 이 줄만이 나의 것이다. 칩은 내 결과대로 따로 물든다 (--mc).
+   판에서 눈이 두 번째로 가야 할 자리라(첫째는 판정), 테두리도 내 색으로 살짝 켜 둔다 */
 .ig-endpanel .mine {
   display: flex;
   flex-wrap: wrap;
@@ -723,12 +918,12 @@
   justify-content: center;
   gap: 6px 10px;
   margin: 16px auto 0;
-  padding: 9px 14px;
+  padding: 10px 16px;
   width: fit-content;
   max-width: 100%;
-  border: 1px solid var(--ig-line-soft);
-  background: rgba(0, 0, 0, 0.32);
-  font-size: 12.5px;
+  border: 1px solid color-mix(in srgb, var(--mc) 32%, transparent);
+  background: color-mix(in srgb, var(--mc) 6%, rgba(0, 0, 0, 0.32));
+  font-size: 13px;
   color: var(--bone);
 }
 .ig-endpanel .mine.won {
@@ -742,8 +937,8 @@
   font-weight: 700;
 }
 .ig-endpanel .mine .chip {
-  padding: 2px 10px;
-  font-size: 11px;
+  padding: 3px 12px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.24em;
   clip-path: var(--ig-chamfer-sm);
@@ -957,11 +1152,15 @@
     font-size: 2rem;
   }
 }
-/* 켜짐 · 빛 · 도장 · 깜빡임은 걷는다. 남은 시간 막대는 정보라서 남긴다 */
+/* 켜짐 · 빛 · 도장 · 깜빡임은 걷는다. 남은 시간 막대는 정보라서 남기고,
+   안내판의 흐려짐(ig-orderdim)도 남긴다 — 움직임이 아니라 물러남이다 */
 @media (prefers-reduced-motion: reduce) {
   .ig-endpanel,
   .ig-endpanel .name,
-  .ig-endpanel .live {
+  .ig-endpanel .live,
+  .ig-result .ig-sheet,
+  .ig-result .live,
+  .ig-record .live {
     animation: none;
   }
   .ig-endpanel .shine {
@@ -1000,12 +1199,8 @@
   mix-blend-mode: multiply;
   transition: background 0.5s ease;
 }
-/* 목표색 알림 — 지시문(.ig-order) 바로 아래 (기둥의 순서는 .ig-clock 머리말) */
+/* 목표색 알림 — 위 가운데 기둥(.ig-testcol)의 셋째 자리, 안내판 바로 아래 */
 .ig-hunttarget {
-  position: absolute;
-  top: 142px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1053,4 +1248,13 @@
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
   pointer-events: none;
   white-space: nowrap;
+}
+/* 시험 중의 발치 줄 — 안내 문장이 아니라 내 수치판이다 (InterrogationFeature 의 hud 머리말).
+   숫자가 매초 바뀌는 줄이라 조금 크고 밝게, 자릿수가 바뀌어도 안 떨게 */
+.ig-foot.stat {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
 }

@@ -201,38 +201,102 @@ export function Chat({
   );
 }
 
+/* ─────────────────────────────── 시험 안내판 ─────────────────────────────── */
+
+/**
+ * 시험마다 화면이 그리는 요약 — **목표 한 문장과 키뿐이다** (2026-09-05 사용자: "정말 필요한 정보만
+ * 플레이어가 보기 쉽게"). 서버의 긴 지시문(currentTest.instruction)은 관리 AI 의 방송으로 채팅 로그에
+ * 이미 흐르고, 미니 게임 중 화면에 문장을 두 벌 세우면 어느 쪽도 안 읽힌다. 조작키는 여기 키캡으로만
+ * 선다 — 발치 줄(.ig-foot)은 내 수치만 센다 (InterrogationFeature 의 hud).
+ */
+const TEST_GUIDE: Record<string, { goal: string; keys: [string, string][] }> = {
+  stopline: { goal: '붉은 정지선에 정확히 멈춰 서라 — 3회', keys: [['W', '달리기'], ['S', '브레이크']] },
+  fall: { goal: '머리 위 낙하물을 피하라', keys: [['WASD', '이동']] },
+  colorhunt: { goal: '목표색 구슬만 주워라 — 조명이 색을 속인다', keys: [['E', '줍기'], ['WASD', '이동']] },
+  platform: { goal: '발판을 건너 도착까지 — 떨어지면 출발로', keys: [['W', '전진'], ['Space', '점프']] },
+  disc: { goal: '도는 원판 위에서 밀려나지 말고 버텨라', keys: [['WASD', '걷기'], ['Shift', '달리기']] },
+};
+
+/**
+ * 시험 안내판 — 큰 시계 바로 아래. 이름 · 목표 · 키캡 세 줄로 서고, 읽을 시간이 지나면 흐려진다
+ * (CSS 의 ig-orderdim — 경기장을 가리는 판은 읽힌 뒤 물러난다). 모르는 게임이 오면 서버 지시문을
+ * 그대로 편다 — 안내가 없는 것보단 길다.
+ */
+export function TestOrder({ game, round, fallback }: { game: string; round: number; fallback: string }) {
+  const guide = TEST_GUIDE[game];
+  return (
+    <div className="ig-order">
+      <p className="ttl">
+        {TEST_TITLE[game] ?? game} · {round}회차
+      </p>
+      <p className="goal">{guide?.goal ?? fallback}</p>
+      {guide ? (
+        <p className="keys">
+          {guide.keys.map(([k, label]) => (
+            <span key={k}>
+              <kbd>{k}</kbd> {label}
+            </span>
+          ))}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 /* ─────────────────────────────── 기록 요약 · 결과 모달 ─────────────────────────────── */
 
 export function RecordPanel({ result, nameOf, mySeatId }: { result: TrialResultWire; nameOf: (id: string) => string; mySeatId: string | null }) {
   return (
     <div className="ig-record">
-      <h3>
-        RECORD · {TEST_TITLE[result.game]} {result.round}회차
-      </h3>
-      <ResultTable result={result} nameOf={nameOf} mySeatId={mySeatId} />
+      <div className="hd">
+        <i aria-hidden className="live" />
+        <span className="ttl">
+          RECORD · {TEST_TITLE[result.game]} {result.round}회차
+        </span>
+      </div>
+      <div className="bd">
+        <ResultTable result={result} nameOf={nameOf} mySeatId={mySeatId} />
+      </div>
     </div>
   );
 }
 
+/**
+ * 기록 공개 모달 — 끝 화면(.ig-endpanel)과 같은 모따기 판이다: 머리띠 · 표 · 발치.
+ * 표가 곧 내용이고, 글은 **범례 한 줄**뿐이다 (2026-09-05 사용자: "정말 필요한 정보만") — 예전의
+ * 석 줄 설명(전환 직후 오차 · 오차 방향 · 적응 곡선의 정의)은 7초 안에 표를 읽어야 할 눈을 뺏었다.
+ * 판정 낱말이 없는 것은 그대로다 (ResultTable 머리말 — 시스템은 판정하지 않는다).
+ */
 export function ResultModal({ result, nameOf, mySeatId, endsAt }: { result: TrialResultWire; nameOf: (id: string) => string; mySeatId: string | null; endsAt: number | null }) {
   const left = useCountdown(endsAt);
+  // 발치의 막대는 켜지는 순간 남은 시간만큼 한 번에 빠진다 — 머리띠의 숫자와 같은 endsAt (EndScreen 과 같은 버릇)
+  const [showMs] = useState(() => (endsAt === null ? 0 : Math.max(0, endsAt - Date.now())));
   return (
     <div className="ig-result" role="dialog" aria-label="기록 공개">
-      <div className="ig-sheet">
-        <p className="ig-eyebrow">
-          <span>COGNITION DIVISION · RECORD</span>
-          <span>{left !== null ? `${left}s` : ''}</span>
-        </p>
-        <p className="ig-title">
-          {TEST_TITLE[result.game]} · {result.round}회차 기록
-        </p>
-        <ResultTable result={result} nameOf={nameOf} mySeatId={mySeatId} />
-        <p className="ig-note">
-          무리 평균 대비 편차만 있다. 시스템은 판정하지 않는다 — 붉은 값은 평균에서 표준편차 1.5배 넘게 먼 것을 표시했을 뿐이다.
-          <br />
-          전환 직후 오차: 조건이 바뀐 직후의 오차. 오차 방향: 시행마다 초과(+)·미달(−). 적응 곡선: 시행별 |오차| — 사람은 내려간다.
-        </p>
-        <p className="ig-lock">전원 입력 잠금 — 같은 순간, 같은 기록.</p>
+      <div className="ig-sheet" style={{ ['--show' as string]: `${showMs}ms` }}>
+        <div className="hd">
+          <i aria-hidden className="live" />
+          <span className="ttl">기록 공개 · RECORD</span>
+          {left !== null ? <span className="clock">{left}초</span> : null}
+        </div>
+        <div className="bd">
+          <p className="ig-title">
+            {TEST_TITLE[result.game]} <span>{result.round}회차</span>
+          </p>
+          <ResultTable result={result} nameOf={nameOf} mySeatId={mySeatId} />
+          <p className="ig-note">
+            <span className="k hi">붉은 값</span>무리 평균에서 크게 벗어난 기록
+            <span className="k">적응 곡선</span>시행별 오차 — 사람은 회를 거듭할수록 줄어든다
+          </p>
+        </div>
+        <div className="ft">
+          <span className="ftx">전원 입력 잠금 — 같은 순간, 같은 기록</span>
+          {endsAt !== null ? (
+            <span aria-hidden className="prog">
+              <i />
+            </span>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -412,7 +476,7 @@ export function EndScreen({
         </div>
 
         <div className="bd">
-          <p className="kicker">판정</p>
+          {/* 「판정」 kicker 는 뺐다 — 머리띠가 이미 「판정 종료」다. 같은 낱말이 두 번 서면 어느 쪽도 안 읽힌다 */}
           <p className="name">{humansWon ? '사람 진영 승리' : 'AI 승리'}</p>
           <p className="tagline">{outcome.reason}</p>
           <p className="reveal">
