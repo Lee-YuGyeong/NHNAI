@@ -4,6 +4,10 @@
  *
  *   · **React 를 거치지 않고** 프레임마다 style 을 직접 고친다 — 의심도는 자주 움직이고, 값으로 넘기면
  *     눈금이 바뀔 때마다 아바타가 memo 를 뚫고 다시 그려진다. 그래서 값이 아니라 `getValue` 함수를 받는다.
+ *   · 프레임은 useFrame 이 아니라 **rAF** 로 돈다 — 이 부품은 drei <Html> 안에서 사는데, Html 은 아이들을
+ *     **별도 React 루트**(Canvas 밖)에 그린다. 거기서 useFrame 을 부르면 "R3F: Hooks can only be used
+ *     within the Canvas component!" 가 터지고, 막대만이 아니라 **같은 Html 에 든 이름표까지 통째로** 안
+ *     그려진다 (2026-09-05 사용자: "머리위에 보이던 이름이랑 의심도가 없어졌어").
  *   · 값이 바뀐 프레임에만 DOM 을 만진다.
  *   · **0 이어도 눈금(빈 막대)은 남긴다** — 값이 있을 때만 띄우면 판이 서기 전까지 아무것도 안 보여
  *     막대가 어디서 차오르는지를 알 수가 없다 (susbar.ts 머리말).
@@ -14,8 +18,7 @@
  *
  * 파일 이름이 susbar.ts(색 결정)와 대소문자만 달라서는 안 된다 — 맥의 파일계가 둘을 못 가른다(tsc TS1261).
  */
-import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
 
 import { SUS_LOOK, SUS_TRACK, susLevel } from './susbar';
 
@@ -25,17 +28,26 @@ export function SuspicionBar({ getValue, width = 60, height = 7 }: { getValue: (
   const last = useRef(-1);
   const radius = Math.round(height * 0.43);
 
-  useFrame(() => {
-    const el = fill.current;
-    if (!el) return;
-    const sus = Math.max(0, Math.min(100, Math.round(getValue())));
-    if (sus === last.current) return;
-    last.current = sus;
-    el.style.width = `${sus}%`;
-    const look = SUS_LOOK[susLevel(sus)];
-    el.style.background = look.fill;
-    el.style.boxShadow = look.glow;
-  });
+  // getValue 는 부모가 렌더마다 새 화살표로 줄 수 있다 — ref 로 최신 것만 보고, 루프는 한 번만 건다
+  const get = useRef(getValue);
+  get.current = getValue;
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const el = fill.current;
+      if (!el) return;
+      const sus = Math.max(0, Math.min(100, Math.round(get.current())));
+      if (sus === last.current) return;
+      last.current = sus;
+      el.style.width = `${sus}%`;
+      const look = SUS_LOOK[susLevel(sus)];
+      el.style.background = look.fill;
+      el.style.boxShadow = look.glow;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   return (
     <div
