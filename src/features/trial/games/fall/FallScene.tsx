@@ -7,8 +7,9 @@ import { Suspense } from 'react';
 import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
 import { MAPS } from '@/world/map';
+import { GlbInstances, type Fit, type InstanceItem } from '@/world/map/corridor/part';
 import type { BodyId } from '@/world/mp/bodies';
-import { EYE_HEIGHT, FALL_ARENA } from '@/world/mp/constants';
+import { EYE_HEIGHT, FALL_ARENA, FALL_SPAWN_Y } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { AdaptiveFov, Exposure, MouseLook, Remotes } from '@/world/scene/WorldScene';
 import { SelfAvatar } from '../common/SelfAvatar';
@@ -23,6 +24,25 @@ const ARENA_D = FALL_ARENA.maxZ - FALL_ARENA.minZ;
 const ARENA_CX = (FALL_ARENA.minX + FALL_ARENA.maxX) / 2;
 const ARENA_CZ = (FALL_ARENA.minZ + FALL_ARENA.maxZ) / 2;
 const EDGE_MAT = new THREE.MeshBasicMaterial({ color: '#ffca8e', transparent: true, opacity: 0.55 });
+
+/**
+ * 천장 배출 호퍼 — 공이 y=11.5 허공에서 갑자기 나타나는 게 별로라(2026-09-04 사용자) 마당 전체를
+ * 4×6 호퍼 격자로 덮는다(tools/trial-hopper-glb.py, 정점색 단일 프리미티브라 GlbInstances 드로우콜 하나).
+ * 배출구(모델 바닥 y=0)가 스폰 높이보다 0.2m 아래라 공 중심이 **호퍼 안**에서 생겨나 입으로 나온다 —
+ * 격자 사이 틈에 걸린 공은 FallingBalls 의 스폰 확대(grow)가 마저 가린다. 지붕 경사(처마 9 · 용마루 13)에
+ * 윗부분이 파묻히는 열이 있는데, 천장을 뚫고 설치된 기계로 읽히므로 그대로 둔다.
+ */
+const HOPPER_FIT: Fit = { x: 2.9, y: 1.15, z: 3.05 };
+const HOPPER_MOUTH_Y = FALL_SPAWN_Y - 0.2;
+const HOPPER_COLS = 4;
+const HOPPER_ROWS = 6;
+const HOPPERS: InstanceItem[] = Array.from({ length: HOPPER_COLS * HOPPER_ROWS }, (_, n) => {
+  const i = n % HOPPER_COLS;
+  const j = Math.floor(n / HOPPER_COLS);
+  return {
+    position: [FALL_ARENA.minX + ((i + 0.5) * ARENA_W) / HOPPER_COLS, HOPPER_MOUTH_Y, FALL_ARENA.minZ + ((j + 0.5) * ARENA_D) / HOPPER_ROWS],
+  };
+});
 
 /** 마당 경계 — 바닥에 얇은 앰버 테. 여기 안에만 떨어진다는 걸 몸으로 알게 */
 function ArenaEdge() {
@@ -80,6 +100,7 @@ export function FallScene({ myBody, roster, aiIds, sendMove }: FallSceneProps) {
       </Suspense>
       {/* 공은 홀과 따로 기다린다 — 홀(부품 여럿)이 늦게 와도 떨어지는 것부터 보여야 피한다 */}
       <Suspense fallback={null}>
+        <GlbInstances id="trial_hopper" fit={HOPPER_FIT} items={HOPPERS} />
         <FallingBalls />
       </Suspense>
       {def.Effects ? <def.Effects /> : null}

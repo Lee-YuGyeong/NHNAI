@@ -12,6 +12,10 @@
     "prompt": "sci-fi heavy cargo pod hazard object: a compact rounded cube-shaped dark gunmetal metal canister with chamfered edges, yellow-black hazard stripe band around the middle, small rivets and vents, industrial brushed metal, clean simple silhouette, game asset, isolated object, no ground plane"
   },
   {
+    "id": "trial_hopper",
+    "prompt": "sci-fi ceiling ball dispenser hopper: an inverted truncated square pyramid chute made of dark gunmetal steel plates, wide open square outlet mouth facing straight down with a dark hollow interior, thin amber LED light strip around the outlet rim, riveted panel seams, yellow-black hazard stripe band near the mouth, flat square mounting flange on top, industrial brushed metal, clean simple silhouette, game asset, isolated object, no ground plane"
+  },
+  {
     "id": "ball_basketball",
     "prompt": "orange basketball, classic pebbled leather texture with black seam lines, sports ball, game asset, isolated object, clean simple sphere, no ground plane"
   },

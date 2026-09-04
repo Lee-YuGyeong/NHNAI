@@ -29,7 +29,8 @@ import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnec
 import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
 import type { BodyId } from '@/world/mp/bodies';
-import { fallState } from './scene/fallState';
+// 낙하 생존의 낙하물 상태도 /trial 과 같은 모듈 하나 — 화면은 달라도 게임은 하나다 (FallStage 머리말)
+import { fallState } from '@/features/trial/games/fall/fallState';
 import { EXECUTION_MS, executioner } from './scene/executionerStore';
 import { platformState } from './scene/platformState';
 import { PAD_START_Z } from '@/world/mp/platform';
@@ -234,7 +235,7 @@ export function InterrogationFeature() {
           dispatch(gameActions.attemptRecorded(msg.id));
           return;
         case 'trial_snapshot': {
-          fallState.snapshot(msg.at, msg.objects);
+          fallState.push(msg);
           const at = now();
           for (const a of msg.ai) {
             const p = remotePlayers.get(a.id);
