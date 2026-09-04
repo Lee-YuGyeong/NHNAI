@@ -9,7 +9,8 @@
  *
  * 남의 몸은 전부 remotePlayers(좌석 id 로 키) → SeatBodies 가 그린다 — **머리 위에 이름표와 의심도 막대**가 붙는다
  * (옛 시행판이 하던 그대로, SeatAvatar.tsx). 실제 사람이든 대역이든 AI 든 같은 길이다 — 어느 좌석이 사람인지
- * 이 파일은 모른다 (game-protocol.ts 머리말).
+ * 이 파일은 모른다 (game-protocol.ts 머리말). **내 머리 위에도 의심도 막대**가 붙는다 — 이름표 없이 막대만
+ * (SelfAvatar.tsx 머리말).
  */
 import { Suspense, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -145,7 +146,8 @@ export function HallScene(p: HallSceneProps) {
       {hunt && p.mySeatId ? <PickKey getPos={() => ({ x: selfPose.x, z: selfPose.z })} onPick={p.onPick} /> : null}
       {/* 서버 welcome 이 오기 전엔 myBody 가 잠깐 null 이다 — 그 사이엔 로봇 대신 아예 안 그린다
           (2026-09-04 사용자: "처음에 딱 누르면 로봇이 1초 나와") */}
-      {p.myBody ? <SelfAvatar body={p.myBody} /> : null}
+      {/* 내 머리 위에도 의심도 막대 — 좌석이 없으면(로비) 남들과 같이 빈 막대 */}
+      {p.myBody ? <SelfAvatar body={p.myBody} getSuspicion={() => (p.mySeatId ? p.getSuspicion(p.mySeatId) : 0)} /> : null}
       <MouseLook />
     </WorldCanvas>
   );

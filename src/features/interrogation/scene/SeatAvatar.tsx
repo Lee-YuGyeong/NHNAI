@@ -5,8 +5,8 @@
  * "의심도 디자인 이런건 원래 로봇 머리위에 보여주게 했잖아? 그런건 그대로 하고싶어"). 그 파일의 결정을
  * 여기로 옮겼고, 옮긴 이유가 있는 것들은 주석도 같이 왔다:
  *
- *   · 막대는 **React 를 거치지 않고** 프레임마다 style 을 직접 고친다 — 의심도는 자주 움직이고,
- *     값으로 넘기면 눈금이 바뀔 때마다 아바타가 memo 를 뚫고 다시 그려진다.
+ *   · 막대(SuspicionBar.tsx — 내 몸과 같은 부품)는 **React 를 거치지 않고** 프레임마다 style 을 직접 고친다 —
+ *     의심도는 자주 움직이고, 값으로 넘기면 눈금이 바뀔 때마다 아바타가 memo 를 뚫고 다시 그려진다.
  *   · 이름표·막대는 **말풍선이 떠도 제자리다** — 말풍선을 흐름에서 빼(absolute) 줄의 크기를 고정한다.
  *     안 그러면 <Html center> 가 줄의 한가운데를 머리 위 한 점에 맞추느라, 말할 때마다 이름표가
  *     가슴팍으로 내려간다 (2026-09-01 사용자 지적).
@@ -28,7 +28,7 @@ import { sampleAt, type Pose } from '@/world/mp/interp';
 import type { AnimState } from '@/world/mp/protocol';
 import { remotePlayers, type RemotePlayer } from '@/world/net/remote-players';
 import { platformState } from './platformState';
-import { SUS_LOOK, SUS_TRACK, susLevel } from './susbar';
+import { SuspicionBar } from './SuspicionBar';
 
 export interface SeatBodiesProps {
   /** 그릴 좌석들 (나 제외). 격리된 몸은 목록에서 빠진다 — 그 자리에서 끌려 나갔다 */
@@ -65,10 +65,6 @@ const SeatAvatar = memo(function SeatAvatar({
 }) {
   const group = useRef<THREE.Group>(null);
   const shadow = useRef<THREE.Mesh>(null);
-  /** 의심도 막대 — React 를 거치지 않고 프레임마다 직접 고친다 */
-  const susBar = useRef<HTMLElement>(null);
-  /** 마지막으로 쓴 값. 안 바뀌면 DOM 을 안 건드린다 */
-  const susLast = useRef(-1);
   const pose = useRef<Pose>({ x: player.pose.x, z: player.pose.z, y: player.pose.y, heading: player.pose.heading });
 
   // ★ 값이 아니라 함수로 준다. player 는 Map 안에서 제자리 변형되므로 값을 넘기면 입장 시점의 'idle' 이 굳는다
@@ -128,21 +124,6 @@ const SeatAvatar = memo(function SeatAvatar({
       shadow.current.position.y = 0.02 - y;
       const s = Math.max(0.45, 1 - y * 0.35);
       shadow.current.scale.set(s, s, 1);
-    }
-
-    // 의심도 막대 — 값이 바뀐 프레임에만 DOM 을 만진다.
-    // ★ 0 이어도 **눈금(빈 막대)은 남긴다** — 값이 있을 때만 띄우면 판이 서기 전까지 아무것도 안 보여
-    //   막대가 어디서 차오르는지를 알 수가 없다 (susbar.ts 머리말).
-    if (susBar.current) {
-      const sus = Math.max(0, Math.min(100, Math.round(getSuspicion(player.id))));
-      if (sus !== susLast.current) {
-        susLast.current = sus;
-        susBar.current.style.width = `${sus}%`;
-        // 길이만이 아니라 **색이 눈금을 말한다** — 어느 칸인지는 susbar.ts 한 곳이 정한다
-        const look = SUS_LOOK[susLevel(sus)];
-        susBar.current.style.background = look.fill;
-        susBar.current.style.boxShadow = look.glow;
-      }
     }
   });
 
@@ -217,18 +198,7 @@ const SeatAvatar = memo(function SeatAvatar({
           </div>
 
           {/* 의심도 — 이름표 바로 아래. 쳐다보는 그 자리에서 눈금이 읽히라고 몸에 붙인다 */}
-          <div
-            style={{
-              width: 60,
-              height: 7,
-              borderRadius: 3,
-              background: SUS_TRACK,
-              overflow: 'hidden',
-              boxShadow: '0 0 0 1px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(255,255,255,0.16)',
-            }}
-          >
-            <i ref={susBar} style={{ display: 'block', width: '0%', height: '100%', borderRadius: 3, background: SUS_LOOK.calm.fill }} />
-          </div>
+          <SuspicionBar getValue={() => getSuspicion(player.id)} />
         </div>
       </Html>
     </group>
