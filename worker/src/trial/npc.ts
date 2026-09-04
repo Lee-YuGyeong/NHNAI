@@ -50,7 +50,9 @@ export function nextStoplineElapsedMs(profile: StoplineProfile, phase: number): 
   const decel = Math.max(0.01, profile.assumedFriction * GRAVITY_ACCEL);
   let elapsed = 0;
   while (elapsed < SEARCH_MAX_MS) {
-    const predictedStop = runDistance(elapsed) + runSpeed(elapsed) ** 2 / (2 * decel);
+    // 가속도도 **가정한** 마찰에서 나온다 — 미끄러운 바닥을 콘크리트로 착각하면 브레이크 지점만이 아니라
+    // "지금쯤 얼마나 나 있겠지"까지 함께 틀린다. 판정(stopline.ts)은 진짜 마찰로 다시 푼다.
+    const predictedStop = runDistance(elapsed, profile.assumedFriction) + runSpeed(elapsed, profile.assumedFriction) ** 2 / (2 * decel);
     if (predictedStop >= STOPLINE_TARGET) break;
     elapsed += SEARCH_STEP_MS;
   }

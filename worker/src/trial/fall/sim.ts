@@ -39,6 +39,8 @@ export interface FallObject {
   z: number;
   y: number;
   vy: number;
+  /** 직전 틱의 y — 한 틱에 1.5m 씩 내려오는 볼링공이 몸을 **건너뛰지** 못하게, 겹침을 이 구간으로 본다 */
+  prevY: number;
   spawnedAt: number;
   /** 첫 바닥 접촉 시각. null 이면 아직 공중 */
   landedAt: number | null;
@@ -72,6 +74,7 @@ export function spawnObject(id: number, now: number, rand: () => number = Math.r
     z,
     y: FALL_SPAWN_Y,
     vy: 0,
+    prevY: FALL_SPAWN_Y,
     spawnedAt: now,
     landedAt: null,
     bounced: false,
@@ -81,6 +84,7 @@ export function spawnObject(id: number, now: number, rand: () => number = Math.r
 /** 한 틱 적분. dtSec 는 초. 첫 바닥 접촉이면 landedAt 을 찍고 그 공의 반발계수로 한 번 튄다 */
 export function stepObject(o: FallObject, gravity: number, dtSec: number, now: number): void {
   if (o.landedAt !== null && o.bounced && Math.abs(o.vy) < 0.05 && o.y <= o.r + 0.001) return; // 바닥에 누웠다
+  o.prevY = o.y;
 
   // 공기저항은 속도 제곱에 비례하고 운동 반대 방향 — 가벼운 공일수록 금방 종단속도에 닿는다
   const k = BALL_DRAG[o.kind] ?? BALL_DRAG[0];
@@ -118,9 +122,20 @@ export function horizontalDist(ax: number, az: number, bx: number, bz: number): 
   return Math.hypot(ax - bx, az - bz);
 }
 
-/** 공이 사람 몸에 닿는가 — 아랫면이 키 아래로 내려왔고 수평으로 겹친다 (그 공의 반지름으로) */
-export function overlapsBody(o: FallObject, px: number, pz: number): boolean {
-  return o.y - o.r <= BODY_H && horizontalDist(o.x, o.z, px, pz) < o.r + FALL_BODY_R;
+/**
+ * 공이 사람 몸에 닿는가 — 수평으로 겹치고, **이번 틱 동안 지나간 세로 구간**이 몸(발 높이 py 부터 py+키)과 만난다.
+ *
+ * 둘이 달라졌다:
+ *   ① 점 판정이 아니라 **쓸고 지나간 구간**(prevY~y)으로 본다 — 틱이 밀리면 볼링공(15 m/s)이 한 틱에 1.5m 를
+ *      내려와 몸을 건너뛸 수 있었다.
+ *   ② 사람의 **발 높이 py** 를 본다. 예전에는 y 를 아예 안 봐서 점프가 판정에 아무 영향이 없었다(= 장식). 이제
+ *      뛰면 몸이 위로 올라가 공을 **더 일찍** 만난다 — 중력이 바뀐 걸 모르고 뛰면 오래 떠 있다가 맞는다.
+ */
+export function overlapsBody(o: FallObject, px: number, pz: number, py = 0): boolean {
+  if (horizontalDist(o.x, o.z, px, pz) >= o.r + FALL_BODY_R) return false;
+  const lo = Math.min(o.prevY, o.y) - o.r;
+  const hi = Math.max(o.prevY, o.y) + o.r;
+  return lo <= py + BODY_H && hi >= py;
 }
 
 export function clampToArena(x: number, z: number): { x: number; z: number } {

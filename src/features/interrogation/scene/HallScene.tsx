@@ -84,6 +84,8 @@ export interface HallSceneProps {
   onPick: (objectId: number) => void;
   /** 회전 원판 — 걷기 명령(월드 기준 m/s). 자리는 안 보낸다 (GameConnection.sendWalk 머리말) */
   onWalk: (x: number, z: number) => void;
+  /** 낙하 생존 — Space. 몸의 높이는 서버가 그 구간의 숨은 중력으로 적분한다 (FreeRig sendJump) */
+  onJump: () => void;
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
 }
 
@@ -159,6 +161,7 @@ export function HallScene(p: HallSceneProps) {
           composing={p.composing}
           paused={p.paused}
           sendMove={p.sendMove}
+          sendJump={fall ? p.onJump : undefined}
         />
       )}
       {hunt && p.mySeatId ? <PickKey getPos={() => ({ x: selfPose.x, z: selfPose.z })} onPick={p.onPick} /> : null}

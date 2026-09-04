@@ -9,6 +9,8 @@ export interface TrialCondition {
   grip?: readonly number[];
   /** 움직이는 플랫폼 — 구간별 발판 배속. 눈에 보이는 값이라 비밀은 아니지만 기록으로 남긴다 */
   platformPace?: readonly number[];
+  /** 움직이는 플랫폼 — 구간별 발판 윗면 마찰계수 (PLATFORM_GRIP). 이쪽이 그 게임의 **숨은** 값이다 */
+  platformGrip?: readonly number[];
 }
 
 /**

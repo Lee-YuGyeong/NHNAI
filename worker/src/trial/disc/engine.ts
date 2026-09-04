@@ -37,6 +37,12 @@ export class DiscEngine implements GameEngine {
   private profiles = new Map<string, DiscProfile>();
   /** 지난 틱에 몸마다 필요했던 마찰 — 봇이 읽는다 */
   private need = new Map<string, number>();
+  /**
+   * 스냅샷에 실을 미끄러짐(원판 좌표) = **실제 속도 u − 클라가 아는 걷기 명령 w**.
+   * 클라는 `w + s` 로 다음 스냅샷까지를 예측하므로(DiscRig), 미끄러지는 동안 걷기가 덜 먹은 몫까지 여기 담아야
+   * 클라의 예측과 서버의 적분이 같은 자리를 가리킨다. 마찰계수는 여전히 안 나간다(P8) — 결과만 나간다
+   */
+  private slip = new Map<string, { x: number; z: number }>();
   private readonly rand: () => number;
 
   constructor(rand: () => number = Math.random) {
@@ -59,6 +65,7 @@ export class DiscEngine implements GameEngine {
     this.bodies = new Map();
     this.stats = new Map();
     this.need = new Map();
+    this.slip = new Map();
 
     // 전원이 기둥 둘레 고리(DISC_RESPAWN_R)에 같은 간격으로 선다 — 출발 자리로 유불리가 없게
     const all = [...realIds, ...aiIds];
@@ -199,6 +206,7 @@ export class DiscEngine implements GameEngine {
       }
       const out = stepBody(b, wDisc, omega, alpha, mu * gripOf(ctx.bodyOf?.(b.id)), dt, now);
       this.need.set(b.id, out.need);
+      this.slip.set(b.id, { x: out.ux - wDisc.x, z: out.uz - wDisc.z });
       if (out.fell) {
         // 떨어진 자리 = 원판 가장자리 바로 바깥의 월드 자리
         const w = rot(theta, { x: b.px, z: b.pz });
@@ -226,7 +234,7 @@ export class DiscEngine implements GameEngine {
           const t = rot(theta, { x: b.pz * omega, z: -b.px * omega });
           const h = moving ? Math.atan2(b.wx, b.wz) : Math.abs(omega) > 0.05 ? Math.atan2(t.x, t.z) : 0;
           // 미끄러짐은 월드 좌표로 — 클라의 예측이 월드에서 돈다
-          const s = rot(theta, { x: b.sx, z: b.sz });
+          const s = rot(theta, this.slip.get(b.id) ?? { x: b.sx, z: b.sz });
           return { id: b.id, x: round2(p.x), z: round2(p.z), y: round2(p.y), h: round2(h), m: moving ? (b.running ? 2 : 1) : 0, f: b.on ? 0 : 1, sx: round2(s.x), sz: round2(s.z) };
         }),
       });

@@ -56,6 +56,54 @@ function jumpInto(s: JumpStats, k: number, dx: number, t0: number, startedAt: nu
   return t;
 }
 
+describe('착지 시각은 보간한다 — 샘플 시각으로 재면 발판이 그 사이 지나간다', () => {
+  it('진짜 포물선을 100ms 로 샘플해도 발이 윗면을 가른 순간을 되찾는다 — 가장 빠른 발판에서도 중앙이 중앙으로 찍힌다', () => {
+    const start = 9_000_000;
+    const air = (2 * JUMP_SPEED) / GRAVITY; // 0.7467초
+    // 발판 4 — 주기 2.9초 · 진폭 2.2m 라 초당 4.7m 까지 옆으로 달린다. 가장 빠른 순간에 내리게 잡는다
+    const k = 4;
+    let landAt = 1000;
+    for (let t = 800; t < 3600; t += 5) if (Math.abs(padAt(k, t, 1).vx) > Math.abs(padAt(k, landAt, 1).vx)) landAt = t;
+    const t0 = start + landAt - air * 1000; // 이 시각에 뛰면 landAt 에 정확히 윗면을 가른다
+    const target = padAt(k, landAt, 1); // 그 순간의 발판 중심 — 여기에 정확히 내린다
+    const from = padAt(k - 1, t0 - start, 1);
+
+    const s = new JumpStats(start, 1);
+    s.sample(from.x, from.z, PAD_TOP, t0 - 100);
+    for (let ms = 0; ms <= air * 1000 + 100; ms += 100) {
+      const tt = Math.min(ms, air * 1000) / 1000;
+      const f = tt / air;
+      const y = ms >= air * 1000 ? PAD_TOP : PAD_TOP + JUMP_SPEED * tt - 0.5 * GRAVITY * tt * tt; // 클라는 착지 순간 바닥 높이로 맞춰 보낸다
+      s.sample(from.x + (target.x - from.x) * f, from.z + (target.z - from.z) * f, y, t0 + ms);
+    }
+    const r = s.result('h', [start]);
+    expect(r.metrics.jumps).toBe(1);
+    // 샘플 시각(최대 100ms 늦음)으로 재면 발판이 그만큼 지나가 있다 — 「중앙」의 반경이 0.25m 인데 그보다 크다
+    const naive = Math.abs(padAt(k, landAt + 100, 1).x - target.x);
+    expect(naive).toBeGreaterThan(PAD_CENTER_R);
+    expect(r.metrics.meanOffset).toBeLessThan(PAD_CENTER_R);
+    expect(r.metrics.centerRate).toBe(1);
+  });
+
+  it('착지하면 발이 밀린다 — 미끄러운 바닥일수록 멀리 (숨은 조건이 여기로 나온다)', () => {
+    const start = 9_100_000;
+    const land = (mu: number) => {
+      const events: { slip: { vx: number; vz: number; ms: number } | null }[] = [];
+      const s = new JumpStats(start, 1, () => mu);
+      jumpInto(s, 1, 0, start + 500, start, 1, (e) => events.push(e));
+      return { slip: events.find((e) => e.slip)?.slip ?? null, r: s.result('h', [start]) };
+    };
+    const grippy = land(1.15); // 고무 깔개
+    const wet = land(0.3); // 젖은 강판
+    expect(wet.slip).not.toBeNull();
+    expect(wet.r.metrics.slipM).toBeGreaterThan(grippy.r.metrics.slipM || 0);
+    // 바닥이 아주 잘 잡으면 다리가 다 받아 낸다 — 값이 0 이거나 아주 작다
+    expect(grippy.r.metrics.slipM || 0).toBeLessThan(0.1);
+    // 마찰계수 자체는 이벤트에 없다 — 속도와 시간이라는 결과만 (P8)
+    expect(JSON.stringify(wet.slip)).not.toMatch(/mu|grip|friction/);
+  });
+});
+
 describe('JumpStats — 착지·중앙·실패·균형 회복을 샘플에서 읽는다', () => {
   it('열 번 뛰어 열 번 정중앙이면 centerRate 1 · landingRate 1 · misses 0', () => {
     const start = 1_000_000;
@@ -207,7 +255,8 @@ describe('돌아가기 · 완주 (2026-09-05 사용자: 떨어지면 출발로, 
       const snaps = sent.filter((m): m is Extract<S2CMessage, { t: 'trial_snapshot' }> => m.t === 'trial_snapshot');
       const last = snaps[snaps.length - 1];
       const ai = last.ai.find((a) => a.id === 'SUBJECT_01')!;
-      expect(ai.z).toBeCloseTo(PADS[PADS.length - 1].z, 1);
+      // 발판 안이면 된다 — 착지 미끄러짐(숨은 마찰)이 몇 cm 씩 밀어 놓는다 (worker/src/trial/condition.ts PLATFORM_GRIP)
+      expect(Math.abs(ai.z - PADS[PADS.length - 1].z)).toBeLessThan(PAD_R);
       expect(ai.y).toBeCloseTo(PAD_TOP, 1);
       // 바닥(y 0)에 연속으로 오래 있는 봇은 없다 — 넘어진 뒤 곧 출발 발판(0.5)으로 돌아간다
       let floorRun = 0;

@@ -68,6 +68,14 @@ export function massOf(body: BodyId | undefined | null): number {
   return body ? BODIES[body].mass : 1;
 }
 
+/**
+ * 점프 초기 속도(m/s) — 몸을 모르면 기준. 낙하 생존은 **서버가** 이 값으로 몸을 띄운다
+ * (worker/src/trial/fall/engine.ts): 그 구간의 중력이 숨은 값이라 클라가 스스로 포물선을 그릴 수 없다
+ */
+export function jumpOf(body: BodyId | undefined | null, fallback: number): number {
+  return body ? BODIES[body].jump : fallback;
+}
+
 /** 몸의 달리기 상한(m/s) — cap 보다 빠른 몸은 cap. 회전 원판이 걷기 명령을 자르는 데 쓴다 */
 export function runCapOf(body: BodyId | undefined | null, cap: number): number {
   return body ? Math.min(cap, BODIES[body].run) : cap;

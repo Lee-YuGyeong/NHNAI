@@ -18,6 +18,11 @@ interface PlatformRound {
   finished: boolean;
   /** 바닥에 떨어진 시각 — PLATFORM_RESPAWN_MS 뒤 home 으로 */
   fellAt: number | null;
+  /**
+   * 착지 미끄러짐 — 서버가 `trial_slip` 으로 준 것(발판에 **대한** 속도 m/s 와 0 까지 잦아드는 시각).
+   * 발판 윗면의 마찰계수는 여기 없다(P8) — 곱셈이 끝난 결과만 온다
+   */
+  slip: { vx: number; vz: number; at: number; until: number } | null;
 }
 
 let round: PlatformRound | null = null;
@@ -74,7 +79,22 @@ export const platformState = {
     return round?.pace ?? 1;
   },
   start(startAt: number, pace: number | undefined, home: { x: number; z: number } = { x: 0, z: PAD_START_Z }): void {
-    round = { startAt, pace: pace ?? 1, home, finished: false, fellAt: null };
+    round = { startAt, pace: pace ?? 1, home, finished: false, fellAt: null, slip: null };
+  },
+  /** 서버가 준 착지 미끄러짐을 건다 (trial_slip). 내 것만 여기 온다 */
+  pushSlip(vx: number, vz: number, ms: number, now = Date.now()): void {
+    if (round) round.slip = ms > 0 ? { vx, vz, at: now, until: now + ms } : null;
+  },
+  /** 지금 프레임에 몸을 밀 속도(m/s). 선형으로 잦아든다 — 다 끝나면 null */
+  slipAt(now = Date.now()): { x: number; z: number } | null {
+    const s = round?.slip;
+    if (!s) return null;
+    if (now >= s.until) {
+      round!.slip = null;
+      return null;
+    }
+    const left = 1 - (now - s.at) / (s.until - s.at);
+    return { x: s.vx * left, z: s.vz * left };
   },
   get home(): { x: number; z: number } {
     return round?.home ?? { x: 0, z: PAD_START_Z };
@@ -93,7 +113,10 @@ export const platformState = {
     return round?.fellAt ?? null;
   },
   fell(now: number): void {
-    if (round && round.fellAt === null) round.fellAt = now;
+    if (round && round.fellAt === null) {
+      round.fellAt = now;
+      round.slip = null; // 바닥에 떨어졌으면 미끄러질 발판이 없다
+    }
   },
   /** 돌아갔다 — 넘어짐 시각을 지운다 */
   respawned(): void {

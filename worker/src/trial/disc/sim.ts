@@ -9,7 +9,10 @@
  *     - 가만히 서 있으면(w=0) F = −ω²p → |F| = ω²r. 그래서 **가운데 가까이가 안정**하고, 가장자리는 각속도가 조금만 올라도 미끄러진다
  *     - 회전 반대 방향으로 원판 속도(ωr)로 달리면(w = −Ω×p) 코리올리가 원심을 정확히 지워 F = 0 — 월드에서 보면 제자리에 서 있는 것과
  *       같으니 마찰이 필요 없다. 그 절반 속도면 |F| 도 절반이다 (사용자 스펙: "반대 방향으로 뛰면서 버팀")
- *   |F| ≤ μg 면 발이 잡는다(정지 마찰). 넘으면 넘친 만큼 미끄러짐 속도 s 가 자란다. 이미 미끄러지는 중이면 운동 마찰 μg 가 s 반대로 걸린다.
+ *   |F| ≤ μg 면 발이 잡는다(정지 마찰). 넘으면 넘친 만큼 미끄러짐 속도 s 가 자란다. 이미 미끄러지는 중이면 운동 마찰 μg 가
+ *   **바닥 대비 실제 미끄럼 u = w + s** 의 반대로 걸린다 — s 반대가 아니다. 마찰 예산은 하나뿐이라, 미끄러지는
+ *   동안에는 걷기 견인력이 따로 남지 않는다: 발을 굴러도 마찰은 실제로 움직이는 방향을 되돌리는 데 다 쓰인다.
+ *   (예전에는 s 반대로만 걸어서, 미끄러지면서도 걷기가 100% 그대로 먹었다 — 빙판 구간이 하나도 안 무서웠다.)
  *
  * 숨은 값은 **μ 하나**(condition.ts 의 DISC_GRIP, 20초 구간마다 바뀐다). 각속도 스케줄은 눈에 보이는 것이라 비밀이 아니고 (스냅샷에
  * θ·ω 가 그대로 실린다), 사람의 자리도 서버가 적분해 내려 보낸다 — 클라는 걷기 명령(월드 기준 속도)만 올린다. 미끄러짐은 μ 없이는
@@ -99,9 +102,12 @@ export function clampWalk(x: number, z: number, cap = DISC_RUN_SPEED): Vec2 {
 }
 
 export interface StepOut {
-  /** 이번 틱의 걷기(원판 좌표, m/s) — 기록(이동거리)에 쓴다 */
+  /** 이번 틱에 **실제로 먹은** 걷기(원판 좌표, m/s) — 미끄러지는 동안은 명령보다 작다. 기록(이동거리)에 쓴다 */
   wx: number;
   wz: number;
+  /** 이번 틱의 실제 원판 기준 속도 u = 먹은 걷기 + 미끄러짐 — 스냅샷의 s 를 여기서 만든다 (engine.ts) */
+  ux: number;
+  uz: number;
   /** 이번 틱에 필요했던 마찰 가속도 |F| (m/s²) — 봇이 「얼마나 아슬아슬한가」를 읽는다 */
   need: number;
   /** 이번 틱에 떨어졌나 */
@@ -114,7 +120,7 @@ export interface StepOut {
  */
 export function stepBody(b: DiscBody, wDisc: Vec2, omega: number, alpha: number, mu: number, dtSec: number, now: number): StepOut {
   if (!b.on) {
-    return { wx: 0, wz: 0, need: 0, fell: false };
+    return { wx: 0, wz: 0, ux: 0, uz: 0, need: 0, fell: false };
   }
   const p: Vec2 = { x: b.px, z: b.pz };
   const w = wDisc;
@@ -144,15 +150,17 @@ export function stepBody(b: DiscBody, wDisc: Vec2, omega: number, alpha: number,
       b.sz = 0;
     }
   } else {
-    // 이미 미끄러지는 중 — 운동 마찰이 s 의 반대로 μg 만큼 건다
-    const ux = b.sx / slide;
-    const uz = b.sz / slide;
-    const nsx = b.sx + (-fx - grip * ux) * dtSec;
-    const nsz = b.sz + (-fz - grip * uz) * dtSec;
-    // 마찰이 s 를 지나쳐 뒤집으면 멈춘 것이다
-    if (nsx * b.sx + nsz * b.sz < 0) {
-      b.sx = 0;
-      b.sz = 0;
+    // 이미 미끄러지는 중 — 운동 마찰은 **바닥 대비 실제 미끄럼 u = w + s** 의 반대로 μg 만큼 건다.
+    // 예전에는 s 반대로만 걸어서, 미끄러지는 사람이 걷기 견인력을 공짜로 다 갖고 있었다
+    const su = Math.hypot(u.x, u.z);
+    const ex = su > 1e-6 ? u.x / su : 0;
+    const ez = su > 1e-6 ? u.z / su : 0;
+    const nsx = b.sx + (-fx - grip * ex) * dtSec;
+    const nsz = b.sz + (-fz - grip * ez) * dtSec;
+    // 마찰이 u 를 지나쳐 뒤집으면 원판에 대해 멈춘 것이다 — 그 순간 발이 다시 잡는다
+    if ((nsx + w.x) * u.x + (nsz + w.z) * u.z < 0) {
+      b.sx = -w.x;
+      b.sz = -w.z;
     } else {
       b.sx = nsx;
       b.sz = nsz;
@@ -210,7 +218,7 @@ export function stepBody(b: DiscBody, wDisc: Vec2, omega: number, alpha: number,
     b.sx = 0;
     b.sz = 0;
   }
-  return { wx: w.x, wz: w.z, need, fell };
+  return { wx: w.x, wz: w.z, ux: w.x + b.sx, uz: w.z + b.sz, need, fell };
 }
 
 /** 떨어진 몸을 기둥 둘레 가까이 다시 세운다 — 떨어진 각도 그대로 */

@@ -21,6 +21,8 @@ export interface DodgeProfile {
   wrongWayP: number;
   /** 목표 거리의 흔들림(m) */
   jitter: number;
+  /** 놀라서 뛸 확률(초당) — 사람 쪽일수록 크다. 「한 번도 안 뛰는 좌석」이 그 자체로 표식이 되지 않게 한다(P9) */
+  jumpPerSec: number;
 }
 
 /**
@@ -36,6 +38,7 @@ export function makeDodgeProfile(index: number, precision?: number): DodgeProfil
     flinchPerSec: (1 - p) * (0.05 + r() * 0.12),
     wrongWayP: (1 - p) * (0.15 + r() * 0.25),
     jitter: 0.5 - 0.47 * p,
+    jumpPerSec: (1 - p) * (0.06 + r() * 0.1),
   };
 }
 

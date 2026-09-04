@@ -67,6 +67,10 @@ export class TrialRuntime {
         // 회전 원판 — 걷기 명령. 크기는 엔진이 자른다 (worker/src/trial/disc/engine.ts onWalk)
         if (this.active() && this.isConnected(snap.id)) this.engine?.onWalk?.(snap.id, msg.x, msg.z, Date.now());
         return;
+      case 'trial_jump':
+        // 낙하 생존 — 눌린 시각은 서버가 찍는다. 체공은 그 구간의 숨은 중력이 정한다 (fall/engine.ts onJump)
+        if (this.active() && this.isConnected(snap.id)) this.engine?.onJump?.(snap.id, Date.now());
+        return;
       default:
         return;
     }

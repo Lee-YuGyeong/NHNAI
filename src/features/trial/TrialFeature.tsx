@@ -105,6 +105,7 @@ export function TrialFeature() {
           if (p.id !== id) remotePlayers.add(p, now);
         }
         setMyBody(players.find((p) => p.id === id)?.body ?? null);
+        fallState.setSelf(id); // 낙하 생존 — 서버가 적분한 내 높이를 스냅샷에서 골라낸다
         dispatch(trialActions.welcomed({ selfId: id, players: players.map((p) => ({ id: p.id, nickname: p.nickname })) }));
       },
       onJoined: (p) => {
@@ -164,6 +165,10 @@ export function TrialFeature() {
         discState.push(msg);
         dispatch(trialActions.discSynced(msg.omega));
       },
+      onSlip: (id, vx, vz, ms) => {
+        // 움직이는 플랫폼 — 내 발이 밀린 것만 내 몸에 건다. 남의 미끄러짐은 그 사람 화면이 그린다
+        if (id === selfIdRef.current) platformState.pushSlip(vx, vz, ms);
+      },
       onFell: (id) => {
         dispatch(trialActions.fellRecorded(id));
         if (id === selfIdRef.current) setFlash(Date.now());
@@ -218,6 +223,8 @@ export function TrialFeature() {
   const onAccel = useCallback(() => connRef.current?.sendAccel(), []);
   const onBrake = useCallback(() => connRef.current?.sendBrake(), []);
   const onPick = useCallback((objectId: number) => connRef.current?.sendPick(objectId), []);
+  /** 낙하 생존 — Space. 몸의 높이는 서버가 그 구간의 숨은 중력으로 적분한다 (DodgeRig) */
+  const onJump = useCallback(() => connRef.current?.sendJump(), []);
   const sendMove = useCallback((x: number, z: number, y: number, heading: number, anim: AnimState) => connRef.current?.sendMove(x, z, y, heading, anim), []);
 
   const others = useMemo(() => Object.keys(roster).filter((id) => id !== selfId).map((id) => ({ id })), [roster, selfId]);
@@ -259,7 +266,7 @@ export function TrialFeature() {
   return (
     <div ref={rootRef} onClick={lock} style={{ position: 'fixed', inset: 0, background: '#101d31', overflow: 'hidden' }}>
       {shownGame === 'fall' ? (
-        <FallScene myBody={myBody} roster={others} aiIds={aiIds} sendMove={sendMove} />
+        <FallScene myBody={myBody} roster={others} aiIds={aiIds} sendMove={sendMove} sendJump={onJump} />
       ) : shownGame === 'colorhunt' ? (
         <ColorHuntScene myBody={myBody} roster={others} aiIds={aiIds} sendMove={sendMove} onPick={onPick} />
       ) : shownGame === 'platform' ? (

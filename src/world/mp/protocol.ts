@@ -102,7 +102,13 @@ export type C2SMessage =
    * 자리는 싣지 않는다 — 원판이 사람을 실어 나르고 미끄러뜨리는 것은 서버가 적분한다(worker/src/trial/disc/engine.ts).
    * 크기는 서버가 DISC_RUN_SPEED 로 자른다 (규칙 4: 위조돼도 「빨리 걷기」 이상이 안 된다).
    */
-  | { t: 'trial_walk'; x: number; z: number };
+  | { t: 'trial_walk'; x: number; z: number }
+  /**
+   * 낙하 생존: Space 를 눌렀다. **자기 몸의 높이는 서버가 적분한다** — 그 구간의 중력이 숨은 값이라(P8) 클라가
+   * 스스로 포물선을 그리려면 중력을 알아야 하기 때문이다. 클라는 「눌렀다」만 올리고 y 는 스냅샷으로 돌려받는다
+   * (회전 원판이 걷기 명령만 올리는 것과 같은 수법). 시각은 서버가 수신 시점으로 찍는다
+   */
+  | { t: 'trial_jump' };
 
 /**
  * 접속이 끊기는 이유.
@@ -187,12 +193,28 @@ export type S2CMessage =
    * 낙하 생존 — 서버가 돌리는 물리의 스냅샷(~10Hz). 클라는 이걸 보간해 그릴 뿐 물체를 스스로 떨어뜨리지 않는다.
    * 중력값은 없다 — 위치만 온다(P8). 실제 사람의 좌표는 player_moved 로 따로 오고, 여기 ai 는 서버가 움직이는 좌석뿐이다.
    */
-  | { t: 'trial_snapshot'; at: number; objects: { id: number; k: number; x: number; y: number; z: number }[]; ai: { id: string; x: number; z: number; y?: number }[] }
+  | {
+      t: 'trial_snapshot';
+      at: number;
+      objects: { id: number; k: number; x: number; y: number; z: number }[];
+      ai: { id: string; x: number; z: number; y?: number }[];
+      /**
+       * 낙하 생존 — **공중에 뜬 몸의 발 높이**(사람 · AI 좌석 모두). 서버가 그 구간의 중력으로 적분한 값이다.
+       * 땅에 있는 사람은 안 실린다(= 0). 중력값은 여전히 안 나간다 — 결과(높이)만 나간다(P8)
+       */
+      air?: { id: string; y: number }[];
+    }
   /**
    * 움직이는 플랫폼 — 누가 착지했다(또는 놓쳤다). 화면의 「정중앙!」 같은 피드백용이고 판정은 서버가 이미 했다.
    * center 는 발판 중앙(PAD_CENTER_R) 안, missed 는 발판을 놓쳐 바닥에 떨어진 것. 오차 거리는 안 실린다 — 기록(trial_result)에만
    */
   | { t: 'trial_landed'; id: string; pad: number; center: boolean; missed: boolean }
+  /**
+   * 움직이는 플랫폼 — 착지한 발이 밀렸다. `vx`·`vz` 는 **발판에 대한** 미끄러짐 속도(m/s), `ms` 는 0 까지
+   * 선형으로 잦아드는 시간. 발판 윗면의 마찰계수는 안 실린다(P8) — 서버가 곱셈을 끝낸 결과만 온다
+   * (색 사냥이 반사율 대신 표시색만 내려보내는 것과 같다). 클라는 제 몸을 그만큼 민다(FreeRig)
+   */
+  | { t: 'trial_slip'; id: string; vx: number; vz: number; ms: number }
   /** 낙하물에 맞았다 — 맞은 사람 화면의 연출용. 기록은 서버가 이미 했다 */
   | { t: 'trial_hit'; id: string; objectId: number }
   /**

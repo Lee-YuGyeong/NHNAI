@@ -11,8 +11,15 @@
  * 놓치면 바닥에 떨어져 잠깐 넘어져 있다가 **출발 발판의 제자리로 돌아간다** — 사람과 같은 규칙(FreeRig). 도착 발판에 내리면
  * 완주: 남은 시간은 거기 서서 기다린다 (2026-09-05 사용자).
  */
-import { JUMP_SPEED, GRAVITY } from '../../../../src/world/mp/constants';
-import { JUMP_AIR_S, PAD_FINISH, PAD_TOP, PLATFORM_RESPAWN_MS, padAt, padUnder } from '../../../../src/world/mp/platform';
+import { JUMP_SPEED, GRAVITY, WALK_SPEED } from '../../../../src/world/mp/constants';
+import { JUMP_AIR_S, PAD_FINISH, PAD_R, PAD_TOP, PLATFORM_RESPAWN_MS, padAt, padUnder } from '../../../../src/world/mp/platform';
+
+/**
+ * 봇이 공중에서 낼 수 있는 수평 속도의 상한(m/s) — **사람과 같은 몸이어야 한다**(P9).
+ * 사람은 이륙 속도를 공중에서 유지할 뿐 더 빨라지지 않는다(FreeRig): 달려 뛰면 몸의 달리기 속도, 걸어 뛰면 걷기 속도다.
+ * 봇은 몸이 없으니 걷기의 두 배 — 비만 몸(3.9)보다 조금 빠른 정도로 잡아 「사람이 못 내는 속도로 건너는 좌석」을 막는다
+ */
+const AIR_SPEED_CAP = WALK_SPEED * 2;
 
 export interface JumpProfile {
   /** 뛰는 시각의 흔들림(초, 표준편차) */
@@ -70,6 +77,11 @@ export interface Jumper {
   /** 휘청·바닥 대기·다음 결정 시각 */
   until: number;
   wobbleSeed: number;
+  /** 착지 미끄러짐 — 발판에 **대한** 속도(m/s)와 끝나는 시각. 숨은 마찰이 낮을수록 길고 멀리 민다 (engine.ts slipJumper) */
+  slipVx: number;
+  slipVz: number;
+  slipAt: number;
+  slipUntil: number;
 }
 
 export function makeJumper(id: string, x: number, z: number, profile: JumpProfile, now: number): Jumper {
@@ -91,7 +103,36 @@ export function makeJumper(id: string, x: number, z: number, profile: JumpProfil
     from: { x, z, y: PAD_TOP, at: now },
     until: 0,
     wobbleSeed: Math.random() * 100,
+    slipVx: 0,
+    slipVz: 0,
+    slipAt: 0,
+    slipUntil: 0,
   };
+}
+
+/**
+ * 착지 미끄러짐을 몸에 물린다 — 사람이 `trial_slip` 으로 받는 것과 **같은 값**이다(engine.ts).
+ * 봇만 안 미끄러지면 「안 미끄러지는 좌석」이 그대로 정답표가 된다(P9).
+ */
+export function slipJumper(j: Jumper, vx: number, vz: number, ms: number, now: number): void {
+  j.slipVx = vx;
+  j.slipVz = vz;
+  j.slipAt = now;
+  j.slipUntil = now + ms;
+}
+
+/** 미끄러지는 중이면 발판 위 상대 자리를 그만큼 민다. 발판 밖으로 밀려 나가면 true(떨어진다) */
+function applySlip(j: Jumper, now: number, dt: number): boolean {
+  if (now >= j.slipUntil || j.slipUntil <= j.slipAt) return false;
+  // 선형 감속 — 남은 몫만큼만 민다 (서버가 사람에게 보낸 것과 같은 감쇠)
+  const left = 1 - (now - j.slipAt) / (j.slipUntil - j.slipAt);
+  j.relX += j.slipVx * left * dt;
+  j.relZ += j.slipVz * left * dt;
+  if (Math.hypot(j.relX, j.relZ) > PAD_R) {
+    j.slipUntil = 0;
+    return true;
+  }
+  return false;
 }
 
 /** 정규 난수 (Box–Muller) */
@@ -149,6 +190,7 @@ function respawn(j: Jumper, now: number): void {
   j.target = 1;
   j.mode = 'stand';
   j.jumpAt = now + j.profile.thinkMs;
+  j.slipUntil = 0;
 }
 
 /** 한 틱. elapsed 는 라운드 시작 뒤 흐른 ms */
@@ -157,6 +199,14 @@ export function stepJumper(j: Jumper, now: number, _dt: number, startedAt: numbe
   const p = j.profile;
   switch (j.mode) {
     case 'stand': {
+      if (j.pad >= 0 && applySlip(j, now, _dt)) {
+        // 미끄러져 발판 밖으로 나갔다 — 바닥이다
+        j.y = 0;
+        j.pad = -1;
+        j.mode = 'floor';
+        j.until = now + PLATFORM_RESPAWN_MS + p.wobbleMs * 0.5;
+        return;
+      }
       const pad = padAt(j.pad, elapsed, pace);
       j.x = pad.x + j.relX;
       j.z = pad.z + j.relZ;
@@ -168,6 +218,13 @@ export function stepJumper(j: Jumper, now: number, _dt: number, startedAt: numbe
         j.from = { x: j.x, z: j.z, y: PAD_TOP, at: now };
         j.errX = land.x + j.errX - j.x; // 이제 errX/errZ 는 「이륙점에서 착지점까지」로 바꿔 둔다
         j.errZ = land.z + j.errZ - j.z;
+        // 사람과 같은 몸이어야 한다(P9) — 공중 수평 속도가 사람의 상한을 넘으면 넘는 만큼 못 간다(=놓친다)
+        const reach = Math.hypot(j.errX, j.errZ) / JUMP_AIR_S;
+        if (reach > AIR_SPEED_CAP) {
+          const k = AIR_SPEED_CAP / reach;
+          j.errX *= k;
+          j.errZ *= k;
+        }
         j.mode = 'air';
       }
       return;
@@ -200,6 +257,13 @@ export function stepJumper(j: Jumper, now: number, _dt: number, startedAt: numbe
       return;
     }
     case 'wobble': {
+      if (applySlip(j, now, _dt)) {
+        j.y = 0;
+        j.pad = -1;
+        j.mode = 'floor';
+        j.until = now + PLATFORM_RESPAWN_MS + p.wobbleMs * 0.5;
+        return;
+      }
       const pad = padAt(j.pad, elapsed, pace);
       const left = Math.max(0, (j.until - now) / p.wobbleMs);
       const a = p.wobbleAmp * left;

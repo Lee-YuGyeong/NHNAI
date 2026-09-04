@@ -37,6 +37,8 @@ export interface TrialEvents {
   onDisc(msg: Extract<S2CMessage, { t: 'trial_disc' }>): void;
   /** 회전 원판 — 누가 떨어졌다 */
   onFell(id: string): void;
+  /** 움직이는 플랫폼 — 착지한 발이 밀렸다. 마찰계수가 아니라 곱셈이 끝난 미끄러짐만 온다(P8) */
+  onSlip(id: string, vx: number, vz: number, ms: number): void;
   onResult(result: TrialResultWire): void;
   onError(code: ErrorCode | 'connection_failed'): void;
   onClose(): void;
@@ -151,6 +153,9 @@ export class TrialConnection {
         case 'trial_fell':
           events.onFell(msg.id);
           break;
+        case 'trial_slip':
+          events.onSlip(msg.id, msg.vx, msg.vz, msg.ms);
+          break;
         case 'trial_result':
           events.onResult(msg.result);
           break;
@@ -190,6 +195,11 @@ export class TrialConnection {
   /** 회전 원판 — 걷기 명령(월드 기준 속도). 자리는 안 보낸다, 서버가 적분한다 (DiscRig 머리말) */
   sendWalk(x: number, z: number): boolean {
     return this.send({ t: 'trial_walk', x, z });
+  }
+
+  /** 낙하 생존 — Space. 높이는 안 보낸다, 서버가 그 구간의 숨은 중력으로 적분한다 (DodgeRig 머리말) */
+  sendJump(): boolean {
+    return this.send({ t: 'trial_jump' });
   }
 
   private send(msg: { t: string } & Record<string, unknown>): boolean {

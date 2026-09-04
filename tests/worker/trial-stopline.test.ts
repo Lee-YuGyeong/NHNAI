@@ -5,10 +5,13 @@
  *
  * 트랙 상수(src/world/mp/constants.ts): STOPLINE_ACCEL=4, STOPLINE_TOP_SPEED=6,
  * STOPLINE_TARGET=16, STOPLINE_TRACK_LENGTH=24. 마찰(worker/src/trial/condition.ts):
- * [0.6, 0.05, 0.9]. 감속에 쓰는 중력가속도는 stopline.ts 안의 9.8 상수.
+ * [0.6, 0.15, 0.9]. 감속에 쓰는 중력가속도는 stopline.ts 안의 9.8 상수.
+ *
+ * **가속도도 바닥이 정한다**: a = min(STOPLINE_ACCEL, μg). 기준 바닥(0.6)은 μg=5.88 > 4 라 예전과 같은 4 지만,
+ * 젖은 타일(0.15)은 μg=1.47 이라 애초에 빨리 못 나간다 — 발이 미는 힘도 마찰이 낸다.
  */
 import { describe, expect, it } from 'vitest';
-import { frictionForPhase, judgeStoplineAttempt, runDistance, runSpeed, summarizeStoplinePlayer } from '../../worker/src/trial/stopline';
+import { accelFor, frictionForPhase, judgeStoplineAttempt, runDistance, runSpeed, summarizeStoplinePlayer } from '../../worker/src/trial/stopline';
 
 describe('runDistance/runSpeed — 가속 구간의 운동방정식', () => {
   it('탑스피드 전(t=1s)에는 등가속도 공식대로다', () => {
@@ -23,9 +26,9 @@ describe('runDistance/runSpeed — 가속 구간의 운동방정식', () => {
 });
 
 describe('frictionForPhase', () => {
-  it('구간 1~3이 콘크리트→빙판→고무다', () => {
+  it('구간 1~3이 콘크리트→젖은 타일→고무다', () => {
     expect(frictionForPhase(1)).toBeCloseTo(0.6, 10);
-    expect(frictionForPhase(2)).toBeCloseTo(0.05, 10);
+    expect(frictionForPhase(2)).toBeCloseTo(0.15, 10);
     expect(frictionForPhase(3)).toBeCloseTo(0.9, 10);
   });
 });
@@ -40,11 +43,23 @@ describe('judgeStoplineAttempt', () => {
     expect(a.brakeTiming).toBeCloseTo(8.5, 10);
   });
 
-  it('구간 2(빙판) — 거의 안 멈춰서 트랙 끝(24)에서 캡된다', () => {
+  it('구간 2(젖은 타일) — 발이 미는 힘도 마찰이라 애초에 느리게 나간다: 도달 속도부터 다르다', () => {
     const a = judgeStoplineAttempt(0, 2000, 2);
-    expect(a.stopPos).toBeCloseTo(24, 10); // Math.min(..., STOPLINE_TRACK_LENGTH)
-    expect(a.stopError).toBeCloseTo(8, 10);
-    expect(a.stopError).toBeGreaterThan(0); // 초과 — 부호가 양수
+    const accel = 0.15 * 9.8; // 1.47 — STOPLINE_ACCEL(4) 보다 작아 이쪽이 상한이다
+    expect(a.reachedSpeed).toBeCloseTo(accel * 2, 6); // 탑스피드(6)에 못 닿는다
+    expect(a.brakePos).toBeCloseTo(0.5 * accel * 4, 6);
+    expect(a.stopPos).toBeCloseTo(a.brakePos + a.reachedSpeed ** 2 / (2 * accel), 6);
+    expect(a.stopPos).toBeLessThan(24); // 트랙 끝 클램프에 안 붙는다 — 예전(μ=0.05)에는 전원이 +8 로 똑같이 찍혔다
+    expect(a.stopError).toBeLessThan(0);
+  });
+
+  it('accelFor — 잘 잡는 바닥에서는 몸의 상한(4), 미끄러운 바닥에서는 μg 가 상한이다', () => {
+    expect(accelFor(0.6)).toBeCloseTo(4, 10); // μg 5.88 > 4
+    expect(accelFor(0.9)).toBeCloseTo(4, 10); // μg 8.82 > 4
+    expect(accelFor(0.15)).toBeCloseTo(1.47, 10);
+    // 기준 바닥의 가속 구간은 예전과 완전히 같다 — 판이 이미 맞춰 둔 감각을 안 흔든다
+    expect(runDistance(1000, 0.6)).toBeCloseTo(runDistance(1000), 10);
+    expect(runSpeed(1000, 0.15)).toBeCloseTo(1.47, 10);
   });
 
   it('구간 3(고무) — 급감속이라 구간 1보다도 더 못 미친다', () => {

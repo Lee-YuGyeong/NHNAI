@@ -134,6 +134,14 @@ export class GameConnection {
     return this.send({ t: 'trial_walk', x, z });
   }
 
+  /**
+   * 낙하 생존 — Space. 「눌렀다」만 올린다: 얼마나 오래 뜨는지는 그 구간의 **숨은 중력**이 정하므로(P8) 서버가
+   * 포물선을 적분해 스냅샷의 air 로 돌려준다 (worker/src/trial/fall/engine.ts 머리말).
+   */
+  sendJump(): boolean {
+    return this.send({ t: 'trial_jump' });
+  }
+
   game(msg: GameC2SMessage): boolean {
     return this.send(msg);
   }

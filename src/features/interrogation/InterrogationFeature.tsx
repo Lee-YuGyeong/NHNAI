@@ -110,6 +110,10 @@ export function InterrogationFeature() {
   /** 내 몸 — 달리기 속도·점프 높이가 여기서 갈린다 (mp/bodies.ts, FreeRig) */
   const myBody: BodyId | null = mySeat?.body ?? lobbyBody;
   const nameOf = useCallback((id: string) => (id === 'LEADER' ? '관리 AI' : (seats.find((s) => s.id === id)?.name ?? id)), [seats]);
+  // 낙하 생존 — 스냅샷의 air 에서 **내 좌석**의 높이를 골라낸다. 판 안의 id 는 좌석 id 다 (SUBJECT_nn)
+  useEffect(() => {
+    fallState.setSelf(mySeatId);
+  }, [mySeatId]);
 
   /* ─────────────────────────────── 연결 ─────────────────────────────── */
 
@@ -229,6 +233,10 @@ export function InterrogationFeature() {
         }
         case 'trial_landed':
           dispatch(gameActions.landingRecorded({ id: msg.id, pad: msg.pad, center: msg.center, missed: msg.missed }));
+          return;
+        case 'trial_slip':
+          // 움직이는 플랫폼 — 착지한 내 발이 밀렸다. 발판 마찰은 숨은 값이고 결과만 온다(P8)
+          if (msg.id === meRef.current?.seatId) platformState.pushSlip(msg.vx, msg.vz, msg.ms);
           return;
         case 'trial_running':
           // 내 것은 W 를 누른 순간 이미 로컬로 달리기 시작했다 (StopRig)
@@ -401,6 +409,8 @@ export function InterrogationFeature() {
   const onBrake = useCallback(() => conn.sendBrake(), [conn]);
   const onPick = useCallback((objectId: number) => conn.sendPick(objectId), [conn]);
   const onWalk = useCallback((x: number, z: number) => conn.sendWalk(x, z), [conn]);
+  /** 낙하 생존 — Space. 몸의 높이는 서버가 그 구간의 숨은 중력으로 적분한다 (FreeRig sendJump) */
+  const onJump = useCallback(() => conn.sendJump(), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
   const onStart = useCallback(
     (fillTo: number) => {
@@ -479,6 +489,7 @@ export function InterrogationFeature() {
         onBrake={onBrake}
         onPick={onPick}
         onWalk={onWalk}
+        onJump={onJump}
         sendMove={sendMove}
       />
 

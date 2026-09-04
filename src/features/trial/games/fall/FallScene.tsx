@@ -70,9 +70,11 @@ export interface FallSceneProps {
   roster: readonly { id: string }[];
   aiIds: readonly string[];
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
+  /** Space — 높이는 서버가 적분한다 (DodgeRig 머리말) */
+  sendJump: () => void;
 }
 
-export function FallScene({ myBody, roster, aiIds, sendMove }: FallSceneProps) {
+export function FallScene({ myBody, roster, aiIds, sendMove, sendJump }: FallSceneProps) {
   return (
     <WorldCanvas
       quality="high"
@@ -110,7 +112,7 @@ export function FallScene({ myBody, roster, aiIds, sendMove }: FallSceneProps) {
         <DodgerAvatar key={id} id={id} />
       ))}
 
-      <DodgeRig body={myBody} sendMove={sendMove} />
+      <DodgeRig body={myBody} sendMove={sendMove} sendJump={sendJump} />
       <SelfAvatar body={myBody} />
       <MouseLook />
     </WorldCanvas>

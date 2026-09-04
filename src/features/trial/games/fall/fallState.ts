@@ -21,6 +21,8 @@ const DELAY_MS = FALL_SNAPSHOT_MS + 30;
 
 let prev: Snapshot | null = null;
 let next: Snapshot | null = null;
+/** 내 좌석 id — 스냅샷의 air 에서 내 높이를 골라내는 데 쓴다 */
+let selfId: string | null = null;
 /** 서버 시각 - 내 시각. 첫 스냅샷에서 잰다 — 시계가 어긋나도 보간 창이 맞게 */
 let clockOffset = 0;
 
@@ -43,6 +45,25 @@ export const fallState = {
   clear(): void {
     prev = null;
     next = null;
+  },
+  /** 내 좌석 id — 서버가 적분한 내 높이를 골라낸다 */
+  setSelf(id: string | null): void {
+    selfId = id;
+  },
+  /**
+   * 내 발 높이(m) — **서버가 그 구간의 숨은 중력으로 적분한 값**이다. 클라는 중력을 모르므로 스스로 포물선을
+   * 그릴 수 없다(P8). 물체와 달리 여기서는 지연을 두지 않고 마지막 두 표본으로 외삽한다 — 내 몸이 100ms 늦게
+   * 뜨면 손이 그걸 바로 느낀다. 땅에 있으면 스냅샷에 안 실리므로 0 이다
+   */
+  selfY(nowLocal: number): number {
+    if (!next || !selfId) return 0;
+    const b = next.air?.find((a) => a.id === selfId);
+    if (!b) return 0;
+    const a = prev?.air?.find((x) => x.id === selfId);
+    if (!a || !prev) return b.y;
+    const span = Math.max(1, next.at - prev.at);
+    const u = Math.min(2, (nowLocal + clockOffset - prev.at) / span);
+    return Math.max(0, a.y + (b.y - a.y) * u);
   },
   /** 지금 그릴 낙하물들 */
   podsAt(nowLocal: number): PodFrame[] {

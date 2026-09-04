@@ -6,9 +6,11 @@
  *   ③ 불필요한 이동 = 나를 향해 떨어지는 게 없을 때 움직이기 시작한 것
  *   ④ 위협이었던 물체가 착지하면 그 순간 얼마나 벗어나 있었는지 잰다 — "딱 20cm" 가 여기 남는다
  */
-import { describe, expect, it } from 'vitest';
-import { FALL_BALLS, FALL_SPAWN_Y } from '../../src/world/mp/constants';
-import { BALL_DRAG, HIT_R, gravityForPhase, overlapsBody, spawnObject, stepObject, timeToGround } from '../../worker/src/trial/fall/sim';
+import { describe, expect, it, vi } from 'vitest';
+import { FALL_BALLS, FALL_SPAWN_Y, FALL_TICK_MS } from '../../src/world/mp/constants';
+import type { S2CMessage } from '../../src/world/mp/protocol';
+import { BALL_DRAG, BODY_H, HIT_R, gravityForPhase, overlapsBody, spawnObject, stepObject, timeToGround } from '../../worker/src/trial/fall/sim';
+import { FallEngine } from '../../worker/src/trial/fall/engine';
 import { DodgeStats } from '../../worker/src/trial/fall/stats';
 
 const BOWLING = FALL_BALLS.findIndex((b) => b.id === 'bowling');
@@ -62,6 +64,80 @@ describe('sim — 낙하', () => {
     o.y = 1.0;
     expect(overlapsBody(o, o.x, o.z)).toBe(true);
     expect(overlapsBody(o, o.x + o.r + 0.35 + 0.01, o.z)).toBe(false); // 그 공의 맞는 거리 밖
+  });
+});
+
+describe('sim — 몸의 높이가 판정에 든다 (점프가 장식이 아니다)', () => {
+  it('뛰어서 몸이 올라가면 아직 키 위에 있는 공에도 닿는다 — 뜬 만큼 더 일찍 만난다', () => {
+    const o = spawnObject(1, 0, () => 0.5);
+    o.x = 0;
+    o.z = 0;
+    // 공 아랫면이 키(1.8)보다 위 — 땅에 선 사람은 안 맞는다
+    o.y = BODY_H + o.r + 0.5;
+    o.prevY = o.y;
+    expect(overlapsBody(o, 0, 0, 0)).toBe(false);
+    // 1m 뛴 몸은 같은 순간에 맞는다
+    expect(overlapsBody(o, 0, 0, 1.0)).toBe(true);
+  });
+
+  it('한 틱에 몸을 통째로 건너뛴 공도 잡는다 — 점이 아니라 쓸고 지나간 구간으로 본다', () => {
+    const o = spawnObject(2, 0, () => 0.5);
+    o.x = 0;
+    o.z = 0;
+    // 뛰어서 발이 1m 에 있는 몸(1.0~2.8) 위를 한 틱에 지나쳤다: 직전 3m → 지금 0.5m
+    o.prevY = 3;
+    o.y = 0.5;
+    const feet = 1.0;
+    expect(o.y + o.r).toBeLessThan(feet); // 「지금」만 보면 몸 아래라 안 맞은 것처럼 보인다
+    expect(overlapsBody(o, 0, 0, feet)).toBe(true); // 쓸고 지나간 구간으로 보면 맞았다
+  });
+});
+
+describe('FallEngine — 점프는 서버 것이다 (숨은 중력이 체공을 정한다)', () => {
+  function harness() {
+    const sent: S2CMessage[] = [];
+    const engine = new FallEngine();
+    engine.start(1, ['p1'], [], { broadcast: (m) => sent.push(m), finish: () => undefined });
+    return { engine, sent };
+  }
+
+  it('trial_jump 를 받으면 스냅샷의 air 에 내 높이가 실리고, 다 내려오면 사라진다', () => {
+    vi.useFakeTimers();
+    try {
+      const { engine, sent } = harness();
+      engine.onMove('p1', 0, 0, Date.now());
+      engine.onJump('p1', Date.now());
+      vi.advanceTimersByTime(FALL_TICK_MS * 6); // 0.3초 — 아직 공중
+      const snaps = () => sent.filter((m): m is Extract<S2CMessage, { t: 'trial_snapshot' }> => m.t === 'trial_snapshot');
+      const up = snaps().at(-1)!.air?.find((a) => a.id === 'p1');
+      expect(up).toBeDefined();
+      expect(up!.y).toBeGreaterThan(0.5);
+      // 기준 중력(9.8)의 체공은 2·5.6/9.8 ≈ 1.14초 — 2초면 확실히 땅이다
+      vi.advanceTimersByTime(2000);
+      expect(snaps().at(-1)!.air ?? []).toHaveLength(0);
+      expect(engine.results()[0].metrics.jumps).toBe(1);
+      // 체공은 그 구간의 중력이 정한다 — 클라가 쓰던 복도 중력(15, 0.75초)이 아니다
+      expect(engine.results()[0].metrics.meanAirMs).toBeGreaterThan(1000);
+      engine.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('와이어 어디에도 중력이 없다 (P8) — 높이라는 결과만 나간다', () => {
+    vi.useFakeTimers();
+    try {
+      const { engine, sent } = harness();
+      engine.onMove('p1', 0, 0, Date.now());
+      engine.onJump('p1', Date.now());
+      vi.advanceTimersByTime(500);
+      engine.stop();
+      const wire = JSON.stringify(sent);
+      expect(wire).not.toMatch(/"(gravity|g|condition)"/);
+      expect(wire).toContain('"air"');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

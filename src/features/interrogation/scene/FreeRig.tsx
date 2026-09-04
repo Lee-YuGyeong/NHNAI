@@ -11,6 +11,13 @@
  * 달리기와 점프는 **몸(body)에 따라 다르다** (mp/bodies.ts, 2026-09-04 사용자): 비만인 둘은 달리기가 느리고 점프가 낮다.
  * 걷기는 넷이 같다. 달리기는 앞(W)으로 갈 때만 — 옆·뒤로는 Shift 를 눌러도 걷는다.
  *
+ * **공중에서는 이륙 속도를 넘지 못한다.** 발이 땅에 없으면 밀 것이 없다 — 그래서 뛰던 속도는 그대로 유지되고(관성),
+ * 손을 떼면 줄일 수만 있다. 예전에는 이륙하는 순간 달리기가 끊겨 누구든 공중에서 걷기 속도(2.6)가 됐다: 점프 거리가
+ * 1.94m(fit)·1.53m(비만)로 발판 간격 2m 에 못 미쳐, **몸이 곧 기록 편향**이었다 (mp/platform.ts 머리말).
+ *
+ * 움직이는 플랫폼에서는 **착지한 발이 밀린다** — 발판 윗면의 마찰은 숨은 조건이라(P8) 서버가 착지마다 곱셈을 끝낸
+ * 미끄러짐만 `trial_slip` 으로 보내고, 여기서는 그 속도를 발판에 **대한** 이동분으로 더해 준다 (platformState.slipAt).
+ *
  * 움직이는 플랫폼(platformState.active)에서는 셋이 더 있다 (2026-09-05 사용자): 발판은 **통과 못 하는** 기둥이라 옆에서 부딪히면
  * 테두리 밖으로 밀리고, 바닥에 떨어지면 잠깐 뒤 출발 발판의 내 자리로 돌아가며, 도착 발판에 내리면 완주 — 남은 시간은 거기서
  * 입력 없이 기다린다.
@@ -29,6 +36,7 @@ import { PAD_R, PAD_TOP, PLATFORM_RESPAWN_MS } from '@/world/mp/platform';
 import type { AnimState } from '@/world/mp/protocol';
 import { CHAR_BODY_R, remotePlayers } from '@/world/net/remote-players';
 import { PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, forwardOf, placeChaseCamera } from './chase';
+import { fallState } from '@/features/trial/games/fall/fallState';
 import { platformState } from './platformState';
 import { selfPose } from './selfPose';
 
@@ -50,6 +58,7 @@ export function FreeRig({
   composing,
   paused,
   sendMove,
+  sendJump,
 }: {
   spawn: { x: number; z: number };
   /** 내 몸 — 없으면(옛 워커) 기본 물리 */
@@ -59,11 +68,20 @@ export function FreeRig({
   composing: boolean;
   paused: boolean;
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
+  /**
+   * 낙하 생존 — 이게 오면 **높이는 서버 것**이다. Space 는 「눌렀다」만 올리고(이 함수), 발 높이는 스냅샷의 air 에서
+   * 온다(fallState.selfY). 그 구간의 중력이 숨은 값이라 클라가 스스로 포물선을 그릴 수 없기 때문이다(P8)
+   */
+  sendJump?: () => void;
 }) {
   const { camera } = useThree();
   const pos = useRef(new THREE.Vector3(spawn.x, 0, spawn.z));
   const vy = useRef(0);
   const grounded = useRef(true);
+  /** 이륙할 때의 수평 속도(m/s) — 공중에서는 이걸 넘지 못한다 (관성. 발이 없으면 더 못 민다) */
+  const airSpeed = useRef(0);
+  /** Space 의 눌린 **순간**만 잡는다 — 낙하 생존에서 trial_jump 를 한 번만 보내려고 */
+  const jumpHeld = useRef(false);
   /** 카메라가 몸을 도는 각 — 마우스로 돈다 */
   const yaw = useRef(0);
   const pitch = useRef(PITCH_DEFAULT);
@@ -131,11 +149,13 @@ export function FreeRig({
     const az = active && !held ? input.moveZ : 0;
 
     const spec = body ? BODIES[body] : null;
+    // Shift + 앞(W) 이면 달린다 — 속도는 몸이 정한다
+    const running = active && input.run && az > 0;
+    const want = running ? (spec?.run ?? WALK_SPEED * 2) : WALK_SPEED;
     let anim: AnimState = 'idle';
     if (ax !== 0 || az !== 0) {
-      // Shift + 앞(W) 이면 달린다 — 속도는 몸이 정한다. 공중에서는 달리기로 안 바뀐다 (뛰던 속도 유지가 아니라 그냥 걷는 속도)
-      const running = active && input.run && az > 0 && grounded.current;
-      const speed = (running ? (spec?.run ?? WALK_SPEED * 2) : WALK_SPEED) * Math.min(delta, 0.1);
+      // 공중에서는 이륙 속도가 상한이다 — 더 빨라질 수는 없고(밀 바닥이 없다) 손을 떼 줄일 수만 있다
+      const speed = (grounded.current ? want : Math.min(want, airSpeed.current)) * Math.min(delta, 0.1);
       const len = Math.hypot(ax, az);
       const fit = len > 1 ? 1 / len : 1;
       const mx = (f.x * az + rx * ax) * fit;
@@ -143,16 +163,22 @@ export function FreeRig({
       pos.current.x += mx * speed;
       pos.current.z += mz * speed;
       // 몸은 가는 쪽을 본다 — 급히 돌리면 튀어 보여서 한 프레임에 조금씩(≈ 0.15초에 다 돈다)
-      const want = Math.atan2(mx, mz);
-      let d = want - heading.current;
+      const wantH = Math.atan2(mx, mz);
+      let d = wantH - heading.current;
       d = Math.atan2(Math.sin(d), Math.cos(d));
       heading.current += d * Math.min(1, delta / 0.15);
-      anim = running ? 'run' : 'walk';
+      anim = grounded.current && running ? 'run' : 'walk';
     }
-    if (active && !held && input.jump && grounded.current) {
-      vy.current = spec?.jump ?? JUMP_SPEED;
-      grounded.current = false;
+    if (active && !held && input.jump && !jumpHeld.current && (grounded.current || sendJump)) {
+      // 이륙 속도를 잠근다 — 달려 뛰면 그 속도로 날고, 서서 뛰면 공중에서 걷기만큼 몸을 뒤척일 수 있다
+      if (grounded.current) airSpeed.current = ax !== 0 || az !== 0 ? Math.max(WALK_SPEED, want) : WALK_SPEED;
+      if (sendJump) sendJump();
+      else if (grounded.current) {
+        vy.current = spec?.jump ?? JUMP_SPEED;
+        grounded.current = false;
+      }
     }
+    jumpHeld.current = input.jump;
 
     /*
      * 움직이는 플랫폼 — 발판 위에 서 있으면 발판이 나를 실어 나른다 (platformState.carryX). 맵의 충돌 상자는 정지해 있어
@@ -162,6 +188,12 @@ export function FreeRig({
     if (platformState.active && grounded.current) {
       const pad = platformState.padUnder(pos.current.x, pos.current.z, nowMs);
       if (pad && pos.current.y >= platformState.PAD_TOP - 0.02) pos.current.x += platformState.carryX(pad.k, nowMs, Math.min(delta, 0.1) * 1000);
+      // 착지하고 발이 밀린다 — 서버가 준 미끄러짐(속도·지속 시간)만큼. 마찰계수는 여기 없다(P8)
+      const slip = platformState.slipAt(nowMs);
+      if (slip) {
+        pos.current.x += slip.x * Math.min(delta, 0.1);
+        pos.current.z += slip.z * Math.min(delta, 0.1);
+      }
     }
 
     map.resolveColliders(pos.current, pos.current.y);
@@ -185,8 +217,15 @@ export function FreeRig({
     pos.current.z = Math.min(Math.max(pos.current.z, b.minZ + 0.4), b.maxZ - 0.4);
 
     const ground = Math.max(map.groundHeightAt(pos.current.x, pos.current.z, pos.current.y), platformState.groundAt(pos.current.x, pos.current.z, pos.current.y, nowMs));
-    if (grounded.current && pos.current.y > ground + 0.02) grounded.current = false;
-    if (grounded.current) pos.current.y = ground;
+    if (sendJump) {
+      // 낙하 생존 — 뜨는 것도 내려오는 것도 서버가 그 구간의 숨은 중력으로 적분한다. 마당은 평평해 바닥이 0 이다
+      pos.current.y = Math.max(ground, fallState.selfY(nowMs));
+      vy.current = 0;
+      grounded.current = pos.current.y <= ground + 0.001;
+    } else if (grounded.current && pos.current.y > ground + 0.02) grounded.current = false;
+    if (sendJump) {
+      /* 위에서 이미 정했다 */
+    } else if (grounded.current) pos.current.y = ground;
     else {
       vy.current -= GRAVITY * Math.min(delta, 0.1);
       pos.current.y += vy.current * Math.min(delta, 0.1);
