@@ -73,6 +73,12 @@ const SeatAvatar = memo(function SeatAvatar({
   // ★ 값이 아니라 함수로 준다. player 는 Map 안에서 제자리 변형되므로 값을 넘기면 입장 시점의 'idle' 이 굳는다
   const getAnim = useCallback((): AnimState => player.anim, [player]);
   const getAirborne = useCallback(() => player.pose.y > 0.02, [player]);
+  /**
+   * 화면에서 실제로 움직이는 속도(m/s, 지수 평활) — 군인 몸은 이 값으로 걸음 클립의 빠르기를 맞추고,
+   * 서 있는데 anim 이 walk 로 남아 있으면 걷지 않는다 (2026-09-04 사용자: "제자리에 멈춰서 걷는거").
+   */
+  const speed = useRef({ v: 0, x: player.pose.x, z: player.pose.z, at: 0 });
+  const getSpeed = useCallback(() => speed.current.v, []);
 
   const bubble = player.bubbleUntil > performance.now() ? player.bubbleText : '';
   void bubbleTick;
@@ -103,6 +109,17 @@ const SeatAvatar = memo(function SeatAvatar({
     const y = player.pose.y;
     g.position.set(player.pose.x, y, player.pose.z);
     g.rotation.y = player.pose.heading;
+
+    // 실제 이동 속도 — 프레임 사이 변위 / 시간, 0.15초 시정수로 평활
+    const sp = speed.current;
+    if (sp.at > 0) {
+      const dt = Math.min(0.1, Math.max(1e-3, (now - sp.at) / 1000));
+      const v = Math.hypot(player.pose.x - sp.x, player.pose.z - sp.z) / dt;
+      sp.v += (v - sp.v) * Math.min(1, dt / 0.15);
+    }
+    sp.at = now;
+    sp.x = player.pose.x;
+    sp.z = player.pose.z;
 
     // 그림자는 늘 바닥에 붙어 있고 멀어질수록 작아진다 — 점프가 "위로 간 것"으로 읽히게
     if (shadow.current) {
@@ -135,7 +152,7 @@ const SeatAvatar = memo(function SeatAvatar({
        */}
       <Suspense fallback={null}>
         {/* 몸은 서버가 준 군인(mp/bodies.ts) — 옛 워커라 몸이 없으면 로봇 */}
-        {player.body ? <SoldierAvatar body={player.body} getAnim={getAnim} getAirborne={getAirborne} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
+        {player.body ? <SoldierAvatar body={player.body} getAnim={getAnim} getAirborne={getAirborne} getSpeed={getSpeed} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
         <mesh ref={shadow} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.34, 20]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.35} />

@@ -108,7 +108,12 @@ const CLAIM_GAP_MS = 12_000;
 /** 같은 사람의 지목 발언 사이의 최소 간격(ms) — 단추 연타로 눈금을 미는 것은 발언이 아니다 */
 const ACCUSE_GAP_MS = 5_000;
 /** 토론 중 봇 배회 — 스냅샷 간격(ms) · 제 자리에서 벗어나는 반경(m) · 걷는 속도(사람 걷기의 비율) */
-const IDLE_TICK_MS = 1_000;
+/**
+ * 대역이 움직이는 박자. 1초였을 때는 클라가 1초에 한 번 자리를 받아 **순간이동한 뒤 제자리에서 걷는** 것으로 보였다
+ * (2026-09-04 사용자: "제자리에 멈춰서 걷는거"). 사람의 송신(MOVE_THROTTLE_MS 100)과 같은 10Hz 로 — 보간이 같은 길을 탄다.
+ * 속도는 step 이 tick 에 비례하므로 그대로다.
+ */
+const IDLE_TICK_MS = 100;
 const IDLE_RADIUS = 2.2;
 const IDLE_SPEED = WALK_SPEED * 0.45;
 

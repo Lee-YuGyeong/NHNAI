@@ -6,10 +6,25 @@
  * 여덟만 넣고 붙여 넣으면 그 방은 통째로 조용해지는데(설계대로다), 화면이 말해 주지 않으면
  * 그걸 고장으로 보고 「되는 좌석만이라도」 고치려 들게 된다 — P11 이 무너지는 흔한 경로다.
  */
-import { fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SeatCasting, type AccountVoice } from '@/features/voice/SeatCasting';
 import { ROSTER_SIZE } from '@/features/voice/roster';
+
+/**
+ * 화면이 뜨자마자 GET /api/tts/seats 를 물어본다. 기본은 「못 읽었다」로 둔다 —
+ * 명부를 짜는 시험들은 워커가 없는 상태를 재현하는 게 맞다.
+ */
+function stubSeats(body?: { seats: unknown[] }) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+      body
+        ? Promise.resolve({ ok: true, json: () => Promise.resolve(body) } as Response)
+        : Promise.reject(new Error('no worker')),
+    ),
+  );
+}
 
 const VOICES: AccountVoice[] = Array.from({ length: 12 }, (_, i) => ({
   id: `v${i}`,
@@ -19,6 +34,7 @@ const VOICES: AccountVoice[] = Array.from({ length: 12 }, (_, i) => ({
 
 /** 명부는 localStorage 에 남는다 — 시험끼리 새어 나가지 않게 치운다 */
 beforeEach(() => {
+  stubSeats();
   try {
     localStorage.removeItem('voice.seatRoster');
   } catch {
@@ -26,6 +42,7 @@ beforeEach(() => {
   }
 });
 afterEach(() => {
+  vi.unstubAllGlobals();
   try {
     localStorage.removeItem('voice.seatRoster');
   } catch {
@@ -48,7 +65,7 @@ describe('좌석 명부 캐스팅', () => {
   it('넣으면 명부 수가 올라간다', () => {
     render(<SeatCasting voices={VOICES} />);
     put('v0');
-    expect(screen.getByText(`명부 1/${ROSTER_SIZE}`)).toBeInTheDocument();
+    expect(screen.getByText(`짜는 중 1/${ROSTER_SIZE}`, { exact: false })).toBeInTheDocument();
     expect(screen.getByText('목소리 0')).toBeInTheDocument();
   });
 
@@ -62,7 +79,7 @@ describe('좌석 명부 캐스팅', () => {
   it(`아홉을 넘게 넣을 수 없다`, () => {
     render(<SeatCasting voices={VOICES} />);
     for (let i = 0; i < ROSTER_SIZE; i++) put(`v${i}`);
-    expect(screen.getByText(`명부 ${ROSTER_SIZE}/${ROSTER_SIZE}`)).toBeInTheDocument();
+    expect(screen.getByText(`짜는 중 ${ROSTER_SIZE}/${ROSTER_SIZE}`, { exact: false })).toBeInTheDocument();
     fireEvent.change(screen.getByRole('combobox'), { target: { value: `v${ROSTER_SIZE}` } });
     expect(screen.getByRole('button', { name: '명부에 넣기' })).toBeDisabled();
   });
@@ -81,11 +98,76 @@ describe('좌석 명부 캐스팅', () => {
     expect(screen.getByText('ELEVENLABS_SEAT_VOICE_IDS=v2,v0')).toBeInTheDocument();
   });
 
+  it('워커를 못 읽으면 개발 스위치를 확인하라고 적는다', async () => {
+    render(<SeatCasting voices={VOICES} />);
+    expect(await screen.findByText(/SEAT_VOICE_DEV/)).toBeInTheDocument();
+  });
+
   it('빼면 줄에서도 빠진다', () => {
     render(<SeatCasting voices={VOICES} />);
     put('v2');
     put('v0');
     fireEvent.click(screen.getAllByRole('button', { name: '빼기' })[0]);
     expect(screen.getByText('ELEVENLABS_SEAT_VOICE_IDS=v0')).toBeInTheDocument();
+  });
+});
+
+/**
+ * 워커에 이미 들어간 명부를 비추는 칸. 여기서 재는 것은 **모자라거나 틀어졌을 때 화면이
+ * 말해 주는가**다 — 둘 다 「방 전체 무음」으로 끝나는데, 화면이 조용하면 원인을 못 찾는다.
+ */
+describe('지금 워커에 들어간 명부', () => {
+  const seat = (index: number, known = true) => ({
+    index,
+    id: `sv${index}`,
+    name: `내 목소리 ${index}`,
+    known,
+  });
+
+  it('아홉이 다 차면 「다 찼다」로 적는다', async () => {
+    stubSeats({ seats: Array.from({ length: ROSTER_SIZE }, (_, i) => seat(i)) });
+    render(<SeatCasting voices={VOICES} />);
+    expect(await screen.findByText(/다 찼다/)).toBeInTheDocument();
+  });
+
+  /** ★ 아홉이 **저마다 단추**여야 한다 (2026-09-04 사용자). 이름 옆의 「듣기」가 아니라 이름이 곧 표적이다 */
+  it('남1~남5 · 여1~여4 가 저마다 단추다', async () => {
+    stubSeats({ seats: Array.from({ length: ROSTER_SIZE }, (_, i) => seat(i)) });
+    render(<SeatCasting voices={VOICES} />);
+    await screen.findByRole('button', { name: /남1/ });
+    for (const label of ['남1', '남2', '남3', '남4', '남5', '여1', '여2', '여3', '여4']) {
+      expect(screen.getByRole('button', { name: new RegExp(label) })).toBeInTheDocument();
+    }
+  });
+
+  it('그 단추에 계정 이름도 같이 적는다 — 어느 목소리인지 알아야 고친다', async () => {
+    stubSeats({ seats: Array.from({ length: ROSTER_SIZE }, (_, i) => seat(i)) });
+    render(<SeatCasting voices={VOICES} />);
+    const first = await screen.findByRole('button', { name: /남1/ });
+    expect(first).toHaveTextContent('내 목소리 0');
+  });
+
+  it('아홉을 순서대로 듣는 단추가 따로 있다', async () => {
+    stubSeats({ seats: Array.from({ length: ROSTER_SIZE }, (_, i) => seat(i)) });
+    render(<SeatCasting voices={VOICES} />);
+    await screen.findByRole('button', { name: /남1/ });
+    expect(screen.getByRole('button', { name: /아홉 전부 순서대로/ })).toBeInTheDocument();
+  });
+
+  it('모자라면 방 전체가 무음이라고 적는다', async () => {
+    stubSeats({ seats: [seat(0), seat(1)] });
+    render(<SeatCasting voices={VOICES} />);
+    expect(await screen.findByText(/모자라면 방 전체가 무음/)).toBeInTheDocument();
+  });
+
+  it('계정에 없는 id 는 눈에 띄게 적는다 — 그 좌석 하나가 방을 조용하게 만든다', async () => {
+    stubSeats({ seats: [seat(0), seat(1, false)] });
+    render(<SeatCasting voices={VOICES} />);
+    // 그 단추에 이름 대신 「계정에 없는 id」를 적고, 아래에 왜 위험한지도 적는다 —
+    // 둘 다 있어야 고칠 수 있다 (무엇이 틀렸나 + 그래서 무슨 일이 나나)
+    const bad = await screen.findByRole('button', { name: /남2/ });
+    expect(bad).toHaveTextContent('계정에 없는 id');
+    expect(bad).toHaveAttribute('title', expect.stringContaining('sv1'));
+    expect(screen.getByText(/그 좌석은 합성에서 503/)).toBeInTheDocument();
   });
 });

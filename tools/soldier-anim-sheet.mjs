@@ -6,12 +6,19 @@ import { createRequire } from 'node:module';
 const sharp = createRequire('/Users/nowonsang/Who-is-human/package.json')('sharp');
 const ids = process.argv.slice(2);
 const IDS = ids.length > 0 ? ids : ['sol_heavy_m', 'sol_heavy_f', 'sol_fit_f', 'sol_fit_m'];
-const SHOTS = [['walk', 0.3], ['walk', 0.9], ['run', 0.4], ['jump', 0.9], ['agree', 1.5], ['angry', 1.0]];
+const FACE = process.env.FACE === '1';
+// NONORMAL=1 이면 노멀맵을 떼고 본다 — 눈이 뭉개지는 것이 노멀맵 탓인지 가려낼 때
+const NONORMAL = process.env.NONORMAL === '1';
+// BLINK=1 이면 눈 깜빡임 모프(src/world/avatar/blink.ts)를 만들어 감은 눈(영향 1)을 찍고 눈 중심에 빨간 점을 찍는다
+const BLINK = process.env.BLINK === '1';
+// FACE=1 이면 얼굴 클로즈업 — 눈·입이 경량화에서 살아남았는지 본다 (2026-09-04 사용자: "눈이 깨져서 나오는데")
+const SHOTS = FACE ? (BLINK ? [['agree', 0]] : [['agree', 0], ['walk', 0.3]]) : [['walk', 0.3], ['walk', 0.9], ['run', 0.4], ['jump', 0.9], ['agree', 1.5], ['angry', 1.0]];
 const W = 360, H = 480;
 const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--use-angle=metal', '--headless=new'] });
 const page = await browser.newPage({ viewportSize: { width: W, height: H } });
 await page.goto('http://localhost:5173/');
-const out = await page.evaluate(async ([ids, SHOTS, W, H]) => {
+const out = await page.evaluate(async ([ids, SHOTS, W, H, FACE, NONORMAL, BLINK]) => {
+  const blinkMod = BLINK ? await import('/src/world/avatar/blink.ts') : null;
   const THREE = await import('/node_modules/three/build/three.module.js');
   const { GLTFLoader } = await import('/node_modules/three/examples/jsm/loaders/GLTFLoader.js');
   const { MeshoptDecoder } = await import('/node_modules/three/examples/jsm/libs/meshopt_decoder.module.js');
@@ -24,6 +31,8 @@ const out = await page.evaluate(async ([ids, SHOTS, W, H]) => {
     const scene = new THREE.Scene();
     scene.add(new THREE.HemisphereLight('#fff', '#446', 2.2));
     const d = new THREE.DirectionalLight('#fff', 2); d.position.set(2, 3, 4); scene.add(d);
+    if (BLINK) g.scene.traverse((o) => { if (!o.isSkinnedMesh) return; const pa = o.geometry.getAttribute('position'); const n = pa.count; const flat = new Float32Array(n * 3); for (let i = 0; i < n; i++) { flat[i * 3] = pa.getX(i); flat[i * 3 + 1] = pa.getY(i); flat[i * 3 + 2] = pa.getZ(i); } const m = blinkMod.buildBlinkMorph(flat, n, blinkMod.EYES[id] ?? []); o.geometry.morphTargetsRelative = true; o.geometry.morphAttributes.position = [new THREE.BufferAttribute(m.delta, 3)]; o.updateMorphTargets(); o.morphTargetInfluences[0] = 1; for (const e of m.eyes) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.004, 8, 8), new THREE.MeshBasicMaterial({ color: '#ff2020' })); s.position.set(e[0], e[1], e[2] + 0.02); g.scene.add(s); } console.log(JSON.stringify(m.eyes)); });
+    if (NONORMAL) g.scene.traverse((o) => { if (o.material) { o.material.normalMap = null; o.material.needsUpdate = true; } });
     scene.add(g.scene);
     g.scene.updateMatrixWorld(true);
     const box = new THREE.Box3(); let skinned = false;
@@ -32,7 +41,7 @@ const out = await page.evaluate(async ([ids, SHOTS, W, H]) => {
     const h = box.max.y - box.min.y; const s = 1.72 / h;
     g.scene.scale.setScalar(s); g.scene.position.y = -box.min.y * s;
     scene.add(new THREE.GridHelper(4, 8, '#8899bb', '#55607a'));
-    const cam = new THREE.PerspectiveCamera(30, W / H, 0.01, 100); cam.position.set(2.6, 1.5, 3.2); cam.lookAt(0, 0.85, 0);
+    const cam = new THREE.PerspectiveCamera(30, W / H, 0.01, 100); if (FACE) { cam.position.set(0.25, 1.62, 0.75); cam.lookAt(0, 1.58, 0); } else { cam.position.set(2.6, 1.5, 3.2); cam.lookAt(0, 0.85, 0); }
     res[id] = { views: [], anims: g.animations.map((a) => a.name), h, min: box.min.y, size: [box.max.x - box.min.x, h, box.max.z - box.min.z] };
     for (const [name, t] of SHOTS) {
       const clip = g.animations.find((c) => c.name.includes(`:${name}`));
@@ -45,7 +54,7 @@ const out = await page.evaluate(async ([ids, SHOTS, W, H]) => {
     scene.clear();
   }
   return res;
-}, [IDS, SHOTS, W, H]);
+}, [IDS, SHOTS, W, H, FACE, NONORMAL, BLINK]);
 const rows = [];
 for (const id of IDS) {
   const v = out[id];
@@ -53,6 +62,6 @@ for (const id of IDS) {
   const cols = await Promise.all(v.views.map((u) => sharp(Buffer.from(u.split(',')[1], 'base64')).toBuffer()));
   rows.push(await sharp({ create: { width: W * SHOTS.length, height: H, channels: 3, background: '#2b3040' } }).composite(cols.map((b, i) => ({ input: b, left: i * W, top: 0 }))).jpeg().toBuffer());
 }
-await sharp({ create: { width: W * SHOTS.length, height: H * rows.length, channels: 3, background: '#2b3040' } }).composite(rows.map((b, i) => ({ input: b, left: 0, top: i * H }))).jpeg({ quality: 80 }).toFile('soldier-anim.jpg');
-console.log('saved soldier-anim.jpg');
+await sharp({ create: { width: W * SHOTS.length, height: H * rows.length, channels: 3, background: '#2b3040' } }).composite(rows.map((b, i) => ({ input: b, left: 0, top: i * H }))).jpeg({ quality: 80 }).toFile(FACE ? 'soldier-face.jpg' : 'soldier-anim.jpg');
+console.log('saved', FACE ? 'soldier-face.jpg' : 'soldier-anim.jpg');
 await browser.close();
