@@ -490,7 +490,10 @@ ${records}`,
 
 /** 관리 AI 의 정해진 문장들 — LLM 없이 나가는 방송 */
 export const LINES = {
-  opening: '소집에 응한 전원, 확인했다. 이 안에 표식 없는 AI 가 하나 있다. 시설은 판정하지 않는다 — 기록만 보여 준다. 찾아내는 것은 너희 몫이다.',
+  /*
+   * 오프닝 문장은 없다 — 판을 여는 말은 화면의 검문소 프롤로그가 한다
+   * (features/interrogation/prologue.ts, runtime 의 advance/'briefing').
+   */
   /** 차례표의 몇 번째인지를 앞에 붙인다 — 「세 번의 시험」이라는 판의 모양이 첫 방송부터 보이게 (GAME_TEST_ORDER) */
   testOpen: (game: TrialGame, round: number, instruction: string, step?: number, total?: number) =>
     `${step && total ? `[시험 ${step}/${total}] ` : ''}${TEST_NAME[game]} 테스트 ${round}회차를 연다. ${instruction}`,

@@ -206,11 +206,14 @@ describe('GameRuntime — 판 한 바퀴', () => {
     await h.rt.handle('p1', { t: 'game_start' });
     await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
     expect(h.lastState().phase).toBe('discussion');
-    expect(h.sent.some((m) => m.t === 'game_leader')).toBe(true);
+    // 첫 토론이 열려도 방송은 없다 — 판을 여는 말은 화면의 프롤로그가 한다 (겹쳐 나오던 것을 걷었다)
+    expect(h.sent.some((m) => m.t === 'game_leader')).toBe(false);
 
     await vi.advanceTimersByTimeAsync(GAME_FIRST_DISCUSSION_MS + 10);
     expect(h.lastState().phase).toBe('test');
     expect(h.sent.some((m) => m.t === 'trial_round_start')).toBe(true);
+    // 관리 AI 의 첫 방송은 여기다 — 시험을 여는 말 (LINES.testOpen)
+    expect(h.sent.some((m) => m.t === 'game_leader')).toBe(true);
     // 엔진에는 좌석 id 가 간다 — 사람 3 + AI 1. AI 좌석에는 전략(tuning)이 붙는다
     expect(h.engine.ids).toHaveLength(4);
     expect(Object.keys(h.engine.tuning ?? {})).toHaveLength(1);
