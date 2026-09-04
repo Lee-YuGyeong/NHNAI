@@ -12,6 +12,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   OPENING_SOURCES,
+  OPENING_START_SEC,
+  WHO_IS_AI_SRC,
   forgetOpeningSeen,
   markOpeningSeen,
   openingSeen,
@@ -77,6 +79,16 @@ describe('영상 자리', () => {
       expect(s.src).not.toMatch(/youtube|youtu\.be|\/preview|\/embed\//i);
       expect(s.src).not.toMatch(/drive\.google\.com|drive\.usercontent/i);
     }
+  });
+
+  /*
+   * 첫 줄은 /intro 표지와 같은 who_is_AI 다 (2026-09-05 사용자: "intro 에서 나오는 who_is_ai.mp4 로").
+   * faststart 판이어야 한다 — 색인이 뒤에 있는 원본은 다 받아야 첫 장면이 뜬다 (heroes.tsx 에서 겪었다).
+   */
+  it('첫 줄은 who_is_AI 의 faststart 판이고, 0초부터 튼다', () => {
+    expect(remote.src).toBe(WHO_IS_AI_SRC);
+    expect(remote.src).toMatch(/who_is_AI\.faststart\.mp4$/);
+    expect(OPENING_START_SEC).toBe(0);
   });
 
   it('세 줄이다 — 바깥의 원본 → 저장소 AV1 → 저장소 H.264', () => {

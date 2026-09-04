@@ -597,13 +597,17 @@ WASD 이동 · 마우스 시야 · Space 점프 · Enter 말풍선. 폰은 조�
 
 | 자리 | 파일 | 어디에 | 누가 보나 |
 | --- | --- | --- | --- |
-| 1 | `opening-1440p.mp4` (H.264 1440p·8.3Mbps) | R2 | 보통은 전부. 진짜 화질이 여기 있다 |
+| 1 | `who_is_AI.faststart.mp4` (`/intro` 표지와 같은 파일, `WHO_IS_AI_SRC`) | R2 | 보통은 전부. **0초부터** (2026-09-05 사용자) |
 | 2 | `opening.av1.mp4` (AV1 720p·24.4MiB) | `public/` | R2 가 안 될 때. 크롬·파이어폭스 |
 | 3 | `opening.mp4` (H.264 720p·24.1MiB) | `public/` | AV1 도 못 푸는 사파리·구형 기기 |
 
 - **떨어지는 것은 「열리지 않을 때」다.** 느린 것은 실패가 아니라서, R2 가 굼뜬 날은 떨어지지 않고
   버퍼링한다 — 그때 화면 아래에 「불러오는 중…」이 뜬다 (`.ov-wait`).
 - 아래 둘은 예비지만 **지우지 않는다.** 바깥이 죽은 날 오프닝이 아예 안 뜨는 것보다 낫다.
+  단 둘은 **예전 오프닝**(`opening-1440p` 를 줄인 것)이라 who_is_AI 와 다른 영상이다 — who_is_AI 는
+  260MB 라 25MiB 안에 예비를 못 만들었다. R2 가 죽은 날에만 보인다.
+- 2026-09-05 까지의 첫 줄은 R2 의 `opening-1440p.mp4`(15초부터)였다. 그 객체는 그대로 있다 —
+  되돌리려면 `OPENING_SOURCES` 첫 줄과 `OPENING_START_SEC` 만 고친다.
 
 > ★ **정적 파일 한 개 상한이 25MiB 다** (Cloudflare 워커 assets). 넘으면 배포가 거절되고,
 > main push 가 곧 배포라 그 자리에서 막힌다. 편집기에서 내보낸 원본은 대개 이 상한의
@@ -639,7 +643,17 @@ ffmpeg -y -i "$SRC" -c:v libx264 -preset slower -b:v 600k -maxrate 1200k -bufsiz
 
 #### `/intro` 표지의 배경 영상 (`features/lobby/heroes.tsx` 의 `INTRO_VIDEO_SRC`)
 
-R2 의 `who_is_AI.faststart.mp4`. **22초부터** 소리 없이 돌고, 끝나면 다시 22초로 (`INTRO_VIDEO_START_SEC`).
+R2 의 `who_is_AI.faststart.mp4` — 주소는 `shared/opening.ts` 의 `WHO_IS_AI_SRC` 하나다 (로비 오프닝과 같은 파일).
+표지에서는 **22초부터** 소리 없이 돌고, 끝나면 다시 22초로 (`INTRO_VIDEO_START_SEC`). 오프닝에서는 0초부터 소리와 함께.
+
+영상이 오기 전(260MB 라 몇 초 빈다)과 안 도는 판에는 **22초의 프레임**(`public/intro/who_is_ai-22s.jpg`,
+`INTRO_VIDEO_POSTER`)이 선다 — `<img>` 와 `<video poster>` 둘 다 이 한 장이라 영상이 켜지는 순간 화면이 안 튄다
+(2026-09-05 사용자: "영상 첫 시작부분에 이미지를 따서"). 시작점을 옮기면 프레임도 다시 딴다:
+
+```bash
+ffmpeg -ss 22 -i https://pub-016e853b3b9840f9a2cca5d4125552b7.r2.dev/who_is_AI.faststart.mp4 \
+  -frames:v 1 -vf scale=1920:-2 -q:v 3 public/intro/who_is_ai-22s.jpg
+```
 
 > ★ **색인(moov)이 파일 앞에 있어야 한다.** 처음 올린 `who_is_AI.mp4`(260MB) 는 색인이 mdat 뒤에 있어서
 > 브라우저가 파일을 **다 받아야** 첫 장면을 그렸다 — 「시작이 안 된다」(2026-09-05). 새 영상은 올리기 전에
@@ -657,9 +671,9 @@ R2 의 `who_is_AI.faststart.mp4`. **22초부터** 소리 없이 돌고, 끝나�
 25MiB 안에서는 원본에 가까워질 수 없다. 그래서 2026-09-04 부터 **영상만 저장소 밖**에 산다 —
 같은 Cloudflare 계정의 **R2** 다 (객체 크기 상한이 사실상 없고, 전송 요금이 없고, CDN 을 탄다).
 
-지금 올라가 있는 것: 버킷 `who-is-human`, 객체 `opening-1440p.mp4`
-(2560×1440 · 8.3Mbps · 290MiB — 4K 마스터 `0825(8).mp4` 에서 뽑았다).
-공개 주소는 `shared/opening.ts` 의 `OPENING_SOURCES` 첫 줄에 그대로 적혀 있다.
+지금 올라가 있는 것: 버킷 `who-is-human`, 객체 `who_is_AI.faststart.mp4`(오프닝·표지가 쓴다) 와
+`opening-1440p.mp4`(2560×1440 · 8.3Mbps · 290MiB — 4K 마스터 `0825(8).mp4` 에서 뽑은 예전 오프닝, 지금은 안 쓴다).
+공개 주소는 `shared/opening.ts` 의 `WHO_IS_AI_SRC` 에 그대로 적혀 있다.
 
 갈아 끼울 때:
 

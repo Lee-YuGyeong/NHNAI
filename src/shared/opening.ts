@@ -40,9 +40,14 @@
  * 영상 자리는 **셋이다.** 앞에서부터 걸고, 못 열거나 코덱을 못 풀면 뒤로 떨어진다
  * (OpeningVideo 의 <source> 세 줄 — 브라우저가 순서대로 시도한다).
  *
- *   1) R2   1440p·8.3Mbps — 진짜 화질. 저장소 밖(Cloudflare R2)에 산다
+ *   1) R2   who_is_AI.faststart.mp4 — /intro 표지 배경과 **같은 파일** (WHO_IS_AI_SRC).
+ *           2026-09-05 사용자: "처음 접속했을 때 시작영상 … intro 에서 나오는 who_is_ai.mp4 로"
  *   2) AV1  720p·24.4MiB  — R2 가 안 될 때. 크롬·파이어폭스는 하드웨어 없이도 푼다
  *   3) H.264 720p·24.1MiB — AV1 도 못 푸는 브라우저(일부 사파리)의 마지막 자리
+ *
+ * ★ 2) 3) 은 **예전 오프닝(opening-1440p 를 줄인 것)** 이다 — who_is_AI 가 아니다. 그래도 남긴다:
+ *   R2 가 죽은 날 다른 영상이라도 뜨는 쪽이 검은 화면보다 낫다. who_is_AI 는 260MB 라
+ *   25MiB 상한(아래) 안에 예비를 만들 수 없었다.
  *
  * ┌─ 왜 저장소 밖에 두나: 파일 한 개 상한이 25MiB 다 ────────────────────────┐
  * │ 워커 assets 의 상한이고, main push 가 곧 배포라 넘으면 그 자리에서 막힌다. │
@@ -87,20 +92,34 @@ export interface OpeningSource {
 }
 
 /** 위에서부터 시도한다 (파일 머리말의 표 그대로) */
+/**
+ * who_is_AI — R2 의 faststart 판. 로비 오프닝(여기)과 /intro 표지 배경(features/lobby/heroes.tsx)이
+ * **같은 주소**를 본다. 갈아 끼울 때는 이 한 줄만 고친다.
+ *
+ * ┌─ 파일은 **faststart** 여야 한다 (2026-09-05 확인) ────────────────────────┐
+ * │ 처음 올린 who_is_AI.mp4 는 색인(moov)이 260MB 짜리 mdat **뒤**에 있었다.    │
+ * │ 그러면 브라우저는 파일을 끝까지 다 받아야 첫 장면을 그릴 수 있어 「시작이   │
+ * │ 안 된다」. ffmpeg -c copy -movflags +faststart 로 색인을 앞으로 옮긴 것을    │
+ * │ 같은 버킷에 who_is_AI.faststart.mp4 로 올렸다 (원본은 그대로 있다).        │
+ * │ 새 영상을 올릴 때도 같은 처리를 한다 — docs/DEVELOPMENT.md 「오프닝 영상」. │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ */
+export const WHO_IS_AI_SRC = 'https://pub-016e853b3b9840f9a2cca5d4125552b7.r2.dev/who_is_AI.faststart.mp4';
+
 export const OPENING_SOURCES: OpeningSource[] = [
-  {
-    src: 'https://pub-016e853b3b9840f9a2cca5d4125552b7.r2.dev/opening-1440p.mp4',
-    type: 'video/mp4',
-  },
+  { src: WHO_IS_AI_SRC, type: 'video/mp4' },
   { src: '/opening/opening.av1.mp4', type: 'video/mp4; codecs="av01.0.08M.08"' },
   { src: '/opening/opening.mp4', type: 'video/mp4' },
 ];
 
 /**
- * 영상을 **이 초부터** 튼다 (2026-09-05 사용자: "시작구간 15초에서 시작되게"). 앞 15초는 건너뛴다 —
- * OpeningVideo 가 길이를 받아 온 순간(loadedmetadata) currentTime 을 여기로 놓는다. ← 로 그 앞으로 되돌아갈 수는 있다.
+ * 영상을 **이 초부터** 튼다. OpeningVideo 가 길이를 받아 온 순간(loadedmetadata) currentTime 을 여기로 놓는다.
+ *
+ * 예전 오프닝은 15 였다 (2026-09-05 사용자: "시작구간 15초에서 시작되게" — 앞이 검은 장면이었다).
+ * who_is_AI 로 바꾸면서 **0** 으로 (같은 날 사용자: "0초부터 시작"). /intro 표지가 22초부터 도는 것과는
+ * 별개다 — 거기는 소리 없는 배경이고, 여기는 처음부터 끝까지 보는 자리다.
  */
-export const OPENING_START_SEC = 15;
+export const OPENING_START_SEC = 0;
 
 const SEEN_KEY = 'wih:opening-seen';
 

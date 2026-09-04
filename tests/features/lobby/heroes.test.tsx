@@ -12,8 +12,8 @@
  * 종류의 사고다.
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
-import { HeroKey, HeroVideo } from '@/features/lobby/heroes';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { HeroKey, HeroVideo, INTRO_VIDEO_POSTER, INTRO_VIDEO_START_SEC } from '@/features/lobby/heroes';
 
 describe('표식 (HeroKey · 복도)', () => {
   afterEach(cleanup);
@@ -59,6 +59,20 @@ describe('표식 (HeroKey · 복도)', () => {
     fireEvent.click(screen.getByRole('button', { name: /SCROLL/ }));
     expect(hit).toEqual(['next']);
   });
+
+  /*
+   * 2026-09-05 사용자: "영상 나오기 전에 외부 이상한 이미지가 나오는데 영상 바로 나오게 해줘.
+   * 로드까지 시간이 걸린다면 영상 첫 시작부분에 이미지를 따서 보여주면 자연스러울 것 같아."
+   * 밑의 그림과 영상의 poster 가 **같은 장면**이어야 영상이 켜지는 순간 화면이 안 튄다.
+   */
+  it('영상이 오기 전의 그림은 영상의 첫 장면과 같다', () => {
+    put();
+    const img = document.querySelector('.hero-key__art img') as HTMLImageElement;
+    const v = document.querySelector('video') as HTMLVideoElement;
+    expect(img.getAttribute('src')).toBe(INTRO_VIDEO_POSTER);
+    expect(v.getAttribute('poster')).toBe(INTRO_VIDEO_POSTER);
+    expect(INTRO_VIDEO_POSTER).toMatch(new RegExp(`${INTRO_VIDEO_START_SEC}s\\.jpg$`));
+  });
 });
 
 /**
@@ -96,6 +110,51 @@ describe('표지 배경 영상 (HeroVideo)', () => {
     ended = true;
     fireEvent.ended(v);
     expect(t).toBe(22);
+  });
+
+  /*
+   * 2026-09-05 사용자: "22초에서 시작되어야 하는데 다시 돌아왔는데". 같은 파일을 받아 둔 브라우저는
+   * metadata 가 React 가 요소를 문서에 붙이기 전에 오고, 그 이벤트는 버려진다 — 그러면 0초부터 돈다.
+   * 마운트 직후 이미 길이를 알면(readyState ≥ 1) 이벤트 없이도 22초로 놓아야 한다 (heroes.tsx 「두 길」).
+   */
+  it('길이를 이미 알고 마운트되면 loadedmetadata 없이도 22초로 놓는다', () => {
+    const ready = vi.spyOn(HTMLMediaElement.prototype, 'readyState', 'get').mockReturnValue(1);
+    const set: number[] = [];
+    const ct = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime')!;
+    Object.defineProperty(HTMLMediaElement.prototype, 'currentTime', {
+      configurable: true,
+      get: () => (set.length ? set[set.length - 1] : 0),
+      set: (x: number) => {
+        set.push(x);
+      },
+    });
+    try {
+      render(<HeroVideo src="https://example.com/intro.mp4" />);
+      expect(set).toEqual([22]);
+    } finally {
+      ready.mockRestore();
+      Object.defineProperty(HTMLMediaElement.prototype, 'currentTime', ct);
+    }
+  });
+
+  it('아직 길이를 모르고 마운트되면 손대지 않는다 — loadedmetadata 가 놓는다', () => {
+    const set: number[] = [];
+    const ct = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime')!;
+    Object.defineProperty(HTMLMediaElement.prototype, 'currentTime', {
+      configurable: true,
+      get: () => 0,
+      set: (x: number) => {
+        set.push(x);
+      },
+    });
+    try {
+      render(<HeroVideo src="https://example.com/intro.mp4" />);
+      expect(set).toEqual([]);
+      fireEvent.loadedMetadata(document.querySelector('video') as HTMLVideoElement);
+      expect(set).toEqual([22]);
+    } finally {
+      Object.defineProperty(HTMLMediaElement.prototype, 'currentTime', ct);
+    }
   });
 
   it('로드가 죽으면 그림으로 내려앉는다 — 다시 시도하지 않는다', () => {
