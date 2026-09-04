@@ -35,6 +35,8 @@ const FORMAT = 'mp3_44100_64';
 
 /** 받아 둔 소리. 열쇠는 문장이다 — 대본이 고정이라 이걸로 충분하다 */
 const clips = new Map<string, Promise<AudioBuffer | null>>();
+/** 받아 둔 소리의 길이(초) — 자막 속도를 여기 맞춘다 (prologueClipMs) */
+const seconds = new Map<string, number>();
 
 let playing: AudioBufferSourceNode | null = null;
 /** 이 판에서 몇 번 잇달아 실패했나 — 세 번이면 그만 부른다 (키가 없는 판) */
@@ -73,6 +75,11 @@ function fetchClip(line: PrologueLine, voiceId: string | undefined): Promise<Aud
   })
     .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
     .then((b) => audioContext().decodeAudioData(b))
+    .then((buf) => {
+      // 자막이 이 길이에 맞춰 찍힌다 (prologueClipMs) — 소리를 받아 봐야 아는 값이다
+      seconds.set(key, buf.duration);
+      return buf;
+    })
     .catch(() => {
       // 실패한 약속을 들고 있으면 그 줄이 영영 무음이다 — 차례가 오면 한 번 더 해 본다
       clips.delete(key);
@@ -92,6 +99,21 @@ export function prefetchPrologue(lines: readonly PrologueLine[]): void {
     const v = voiceOf(line);
     if (v) void fetchClip(line, v.voiceId);
   }
+}
+
+/**
+ * 그 줄의 소리가 몇 ms 인가 — **받아 둔 것만** 안다 (아직 안 왔거나 실패했으면 null).
+ *
+ * 자막 속도를 여기 맞춘다 (DialogueBox 의 voiceMsOf). 안 맞추면 자막은 글자 속도(글자당 31ms)로
+ * 찍혀 먼저 끝나고, 안내 방송 속도(글자당 182ms)인 통제실의 긴 줄에서는 다 찍힌 글을 보며 소리만
+ * 기다리는 침묵이 몇 초씩 붙는다 — 클립을 트는 화면에서 이미 겪고 고친 것이다 (DialogueBox 의 paceFor).
+ *
+ * 미리 받아 두므로(prefetchPrologue) 첫 줄을 뺀 나머지는 차례가 올 때 이미 알고 있다. 첫 줄은 글자
+ * 기준으로 찍히는데, 그래도 붙잡기(speaking)가 소리 끝까지 잡아 주므로 잘리지는 않는다.
+ */
+export function prologueClipMs(line: PrologueLine): number | null {
+  const sec = seconds.get(line.text);
+  return sec === undefined ? null : sec * 1000;
 }
 
 /** 울고 있는 줄을 끊는다 — 화면을 떠날 때 */

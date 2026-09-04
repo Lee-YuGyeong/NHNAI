@@ -92,6 +92,15 @@ export function faceOf(seat: GameSeat | undefined): string {
 }
 
 /**
+ * 열쇠로 대본을 되찾는다 — 상자는 줄의 **열쇠만** 돌려주기 때문이다 (DialogueBox 의 onLine).
+ * 열쇠를 만드는 곳(바로 아래 prologueLines)과 읽는 곳이 갈려 있으면 형식이 어긋나는 날이 온다.
+ */
+export function prologueLineOf(key: string): PrologueLine | undefined {
+  const i = Number(key.slice(key.lastIndexOf('-') + 1));
+  return Number.isInteger(i) ? PROLOGUE[i] : undefined;
+}
+
+/**
  * 대본을 대화창 줄(ChatLine)로 — DialogueBox 가 순서대로 한 줄씩 찍고 머문다 (타자 · 머무름은 상자의 것).
  * key 는 씨앗과 번호로 — 같은 판에서 다시 만들어도 같은 줄이라 상자가 두 번 찍지 않는다.
  */

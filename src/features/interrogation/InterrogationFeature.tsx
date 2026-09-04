@@ -24,8 +24,8 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { PROLOGUE, prologueLines } from './prologue';
-import { prefetchPrologue, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
+import { PROLOGUE, prologueLineOf, prologueLines } from './prologue';
+import { prefetchPrologue, prologueClipMs, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal } from './hud/Panels';
@@ -419,15 +419,22 @@ export function InterrogationFeature() {
   /**
    * 상자가 한 줄을 띄웠다 — 그 줄을 읽는다.
    *
-   * 줄의 key 가 `prologue-<씨앗>-<번호>` 라(prologue.ts 의 prologueLines) 번호로 대본을 되찾는다.
    * 상자가 넘기는 주인이고 여기는 소리만 얹는다 — 읽는 동안 speaking 을 세워 두면 상자가 기다린다.
    */
   const onPrologueLine = useCallback((key: string) => {
-    const i = Number(key.slice(key.lastIndexOf('-') + 1));
-    const line = Number.isInteger(i) ? PROLOGUE[i] : undefined;
+    const line = prologueLineOf(key);
     if (!line) return;
     setPrologueSpeaking(true);
     void speakPrologueLine(line).finally(() => setPrologueSpeaking(false));
+  }, []);
+
+  /**
+   * 그 줄의 소리가 몇 ms 인가 — 상자가 **타자 속도를 여기 맞춘다** (DialogueBox 의 voiceMsOf).
+   * 미리 받아 둔 것만 안다: 아직이면 null 이고, 그 줄은 글자 기준으로 찍힌다.
+   */
+  const prologueVoiceMs = useCallback((key: string) => {
+    const line = prologueLineOf(key);
+    return line ? prologueClipMs(line) : null;
   }, []);
 
   // 화면을 떠나는데 통제실이 계속 말하고 있으면 안 된다
@@ -547,6 +554,7 @@ export function InterrogationFeature() {
         speaking={prologueSpeaking}
         onShowing={setPrologueUp}
         onLine={onPrologueLine}
+        voiceMsOf={prologueVoiceMs}
       />
       <HallScene
         mySeatId={mySeatId}

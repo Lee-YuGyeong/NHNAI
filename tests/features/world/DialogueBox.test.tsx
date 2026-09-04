@@ -172,6 +172,78 @@ describe('/interrogation — 소리가 끝날 때까지 붙잡는다', () => {
 });
 
 /*
+ * 검문소 프롤로그 — 바로 위와 **반대쪽**이다.
+ *
+ * 저기(검증실 리더 방송)는 소리가 주인이라 상자가 "지금 읽는 문장"만 받아 쫓아간다. 여기는 상자가
+ * 주인이다: 대본 열세 줄을 한꺼번에 받아 두고(InterrogationFeature 의 setPrologue) 한 줄씩 띄우며
+ * onLine 으로 알리면, 바깥이 그 줄을 읽고 speaking 으로 답한다. 그러니 뒤에 줄이 서 있어도
+ * 지금 나는 소리는 **이 줄**이고, 줄 길이를 보고 넘어가면 안 된다.
+ *
+ * 한 번 이걸로 깨졌다 (2026-09-05 사용자: 「말이 긴 경우에는 끊고 다음 말이 들어와」) — 붙잡는 조건이
+ * 「줄이 비었을 때만」이라 프롤로그는 첫 줄부터 큐가 차 있어 한 번도 안 붙잡혔다.
+ */
+describe('/interrogation 프롤로그 — 상자가 주인이면 줄이 서 있어도 붙잡는다', () => {
+  function paced(speaking: boolean, voiceMs?: number) {
+    const onLine = vi.fn();
+    const props = (messages: ChatLine[], nowSpeaking: boolean) => ({
+      messages,
+      selfId: null,
+      touch: false,
+      speaking: nowSpeaking,
+      onLine,
+      voiceMsOf: voiceMs === undefined ? undefined : () => voiceMs,
+    });
+    const view = render(<DialogueBox {...props([], speaking)} />);
+    const show = (msgs: ChatLine[], nowSpeaking = speaking) =>
+      act(() => { view.rerender(<DialogueBox {...props(msgs, nowSpeaking)} />); });
+    const wait = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
+    const typeOut = (text: string) => { for (let i = 0; i < text.length; i += 1) wait(PER_CHAR); };
+    const onScreen = (text: string) => screen.queryByText(text) !== null;
+    return { show, wait, typeOut, onScreen, onLine };
+  }
+
+  /** 프롤로그가 건네는 모양 — 대본 전체가 한 번에 온다 */
+  const SCRIPT = [line(SHORT), line('다음 줄이다.', 1), line('그 다음 줄이다.', 2)];
+
+  it('뒤에 줄이 서 있어도 다 읽을 때까지 안 넘어간다 — 긴 줄이 잘리던 것', () => {
+    const { show, wait, typeOut, onScreen } = paced(true);
+    show(SCRIPT);
+    typeOut(SHORT);
+    wait(HOLD_MIN * 4); // 글자로 잰 머무름은 진작 지났다 — 그래도 소리가 아직이다
+    expect(onScreen(SHORT)).toBe(true);
+    expect(onScreen('다음 줄이다.')).toBe(false);
+  });
+
+  it('다 읽으면 그때 넘어간다 — 붙잡기만 하면 대본이 영영 멈춘다', () => {
+    const { show, wait, typeOut, onScreen } = paced(true);
+    show(SCRIPT);
+    typeOut(SHORT);
+    wait(HOLD_MIN * 4);
+    show(SCRIPT, false); // 소리가 멎었다
+    wait(TAIL + 100);
+    typeOut('다음 줄이다.');
+    expect(onScreen(SHORT)).toBe(false);
+    expect(onScreen('다음 줄이다.')).toBe(true);
+  });
+
+  it('뜬 줄의 열쇠를 알린다 — 바깥은 이걸로 어느 줄을 읽을지 안다', () => {
+    const { show, onLine } = paced(true);
+    show(SCRIPT);
+    // 붙잡혀 있으니 첫 줄 하나뿐이다 — 한꺼번에 받았다고 세 줄을 다 읽어 버리면 대사가 겹친다
+    expect(onLine.mock.calls.map((c) => c[0])).toEqual(['k0']);
+  });
+
+  it('소리 길이를 알면 그 길이에 맞춰 찍고 머문다 — 다 찍힌 글을 보며 소리만 기다리지 않게', () => {
+    // 글자로만 재면 이 줄은 머무름(2.6초)+여운(1.8초)이면 사라진다. 소리가 8초라고 알려 주면 안 사라진다
+    const { show, wait, typeOut, onScreen } = paced(false, 8_000);
+    show([line(SHORT)]);
+    typeOut(SHORT);
+    wait(HOLD_MIN + LINGER + 200);
+    expect(onScreen(SHORT)).toBe(true);
+  });
+});
+
+/*
  * 넘기는 손은 **상자를 누르는 것 하나다.** 찍는 중이면 그 문장을 끝까지 보여주고,
  * 다 찍혔으면 다음 줄로 간다 — 비주얼 노벨이 늘 하던 그것이다.
  *

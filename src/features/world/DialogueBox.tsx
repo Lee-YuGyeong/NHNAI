@@ -91,7 +91,10 @@ const VOICE_TAIL_MS = 450;
  * 그 길이의 VOICE_TYPE 만큼에 걸쳐 **말과 함께** 찍는다. 한 줄의 전체 길이(lineDurationFor)는 그대로라
  * 대본의 연출 타이밍은 건드리지 않는다 — 타자와 머무름의 몫만 바뀐다.
  *
- * 클립이 없는 줄(플레이어 채팅, LLM 이 지은 대답, 심문소의 실시간 방송)은 예전 그대로 고정 간격이다.
+ * 길이를 어디서 아는지는 부르는 쪽의 몫이다 — 클립을 트는 화면은 명부에서(voiceLines.durationOf),
+ * 소리를 **바깥에서** 내는 화면은 바깥이 알려 준다(voiceMsOf). 여기는 ms 만 받는다.
+ *
+ * 길이를 모르는 줄(플레이어 채팅, LLM 이 지은 대답, 아직 안 받아 온 소리)은 0 을 주면 예전 그대로 고정 간격이다.
  */
 const VOICE_TYPE = 0.92;
 /** 늘임의 한계 — 짧은 감탄사에 클립이 길다고 글자 하나에 1초를 쓰지는 않는다 / 반대로 너무 몰아치지도 않는다 */
@@ -108,10 +111,9 @@ interface Pace {
   hold: number;
 }
 
-function paceFor(nickname: string, text: string, isSelf: boolean): Pace {
+function paceFor(text: string, voiceMs: number): Pace {
   const type = typingTime(text);
   const hold = charHold(text);
-  const voiceMs = (voiceLines.durationOf(nickname, text, isSelf) ?? 0) * 1000;
   if (!voiceMs) return { scale: 1, hold };
   // 줄의 전체 길이는 lineDurationFor 과 같은 값이어야 한다 — 대본이 그걸로 다음 줄을 잡는다
   const total = Math.max(type + hold, voiceMs + VOICE_TAIL_MS);
@@ -184,9 +186,19 @@ export interface DialogueBoxProps {
    * 안 주면 아무 일도 안 한다 — /world · /world2 · /lab 의 호출부는 그대로다.
    */
   onLine?: (key: string) => void;
+  /**
+   * 그 줄을 읽을 **바깥 목소리의 길이(ms)** — 알면 타자를 그 길이에 맞춰 늘인다 (paceFor).
+   *
+   * `speaking` 만으로도 잘리지는 않는다 — 다 읽을 때까지 붙잡으니까. 다만 자막은 글자 속도로 찍혀
+   * 먼저 끝나고, 소리가 느린 안내 방송일수록 다 찍힌 글을 보며 기다리는 침묵이 길어진다.
+   *
+   * 모르면 null 을 주면 된다 (아직 안 받아 온 소리) — 그때는 글자 기준으로 찍고 붙잡기가 끝을 지킨다.
+   * 안 주면 아무 일도 안 한다 — /world · /world2 · /lab 의 호출부는 그대로다.
+   */
+  voiceMsOf?: (key: string) => number | null;
 }
 
-export function DialogueBox({ messages, selfId, touch, speaking, lifted = false, onShowing, onLine }: DialogueBoxProps) {
+export function DialogueBox({ messages, selfId, touch, speaking, lifted = false, onShowing, onLine, voiceMsOf }: DialogueBoxProps) {
   const queue = useRef<Line[]>([]);
   /** 마지막으로 줄 세운 메시지의 열쇠. undefined = 아직 기준선을 안 잡았다, '' = 마운트 때 기록이 비어 있었다 */
   const seen = useRef<string | undefined>(undefined);
@@ -225,6 +237,9 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
   /** onLine 을 ref 로 — advance 의 의존성을 늘리지 않으려고 (바로 위 ownVoice 와 같은 이유) */
   const onLineRef = useRef(onLine);
   onLineRef.current = onLine;
+  /** voiceMsOf 도 같은 이유로 ref */
+  const voiceMsOfRef = useRef(voiceMsOf);
+  voiceMsOfRef.current = voiceMsOf;
 
   const clearTimer = () => {
     if (timer.current !== null) {
@@ -257,7 +272,17 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
        * "속마음은 TTS 없애도 된다"). 생각은 소리가 안 난다. 그때는 글자 간격도 예전 그대로다.
        */
       const silent = ownVoice.current || next.thought === true;
-      pace.current = silent ? { scale: 1, hold: charHold(next.text) } : paceFor(next.nickname, next.text, next.isSelf);
+      /*
+       * 이 줄에 붙을 소리의 길이 — 클립을 트는 화면은 명부에서, 소리를 바깥에서 내는 화면은
+       * 바깥이 알려 준다(voiceMsOf). 속마음은 소리가 없다. 모르면 0 이고 그러면 글자 기준 그대로다.
+       */
+      const voiceMs =
+        next.thought === true
+          ? 0
+          : ownVoice.current
+            ? (voiceMsOfRef.current?.(next.key) ?? 0)
+            : (voiceLines.durationOf(next.nickname, next.text, next.isSelf) ?? 0) * 1000;
+      pace.current = paceFor(next.text, voiceMs);
       voice.current = silent ? Promise.resolve(null) : voiceLines.play(next.nickname, next.text, next.isSelf);
       // 바깥이 이 줄을 읽을 수 있게 알린다 (onLine 머리말). 클립을 트는 화면에서는 대개 안 준다
       onLineRef.current?.(next.key);
@@ -330,10 +355,21 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
      * 속도(글자당 182ms)라 소리가 2배 넘게 길다. 머무름에 천장(9초)까지 있어서 지시문이
      * 길수록 벌어지기만 한다 — 상한선인 165자 방송이면 자막이 13.6초 먼저 사라진다.
      *
-     * **줄이 비었을 때만** 붙잡는다. 다음 줄이 서 있다는 것은 소리도 이미 그리로 넘어갔다는
-     * 뜻이라(상자는 "지금 읽고 있는 문장"만 받는다), 거기서 붙잡으면 자막이 소리를 못 따라간다.
+     * 줄이 서 있어도 붙잡는가는 **누가 줄을 넘기는 주인인가**로 갈린다 (onLine 머리말):
+     *
+     *   onLine 을 준다 = **상자가 주인이다.** 바깥은 상자가 알려 준 줄을 읽으므로, 뒤에 몇 줄이
+     *                    서 있든 지금 나는 소리는 **이 줄**이다 → 줄 길이와 상관없이 붙잡는다.
+     *   onLine 이 없다 = **소리가 주인이다** (검증실의 리더 방송). 상자는 "지금 읽고 있는 문장"만
+     *                    받으므로 다음 줄이 섰다는 건 소리도 그리로 넘어갔다는 뜻 → 안 붙잡는다.
+     *                    거기서 붙잡으면 자막이 소리를 못 따라간다.
+     *
+     * 프롤로그가 여기 걸렸다 (2026-09-05 사용자: 「말이 긴 경우에는 끊고 다음 말이 들어와」).
+     * 대본 열세 줄을 **한꺼번에** 건네받는 화면이라(InterrogationFeature 의 setPrologue) 첫 줄부터
+     * 큐에 열두 줄이 서 있어서, 줄 길이만 보던 옛 조건은 한 번도 참이 안 됐다 — 붙잡지 못한 채
+     * 글자로 잰 머무름(charHold, 최대 8.2초)으로 넘어가니 36자 방송처럼 긴 줄은 자막 3.5초 · 소리
+     * 6.5초로 벌어져 다음 줄이 앞 소리를 끊었다.
      */
-    if (speaking && queue.current.length === 0) {
+    if (speaking && (onLineRef.current !== undefined || queue.current.length === 0)) {
       wasHeld.current = true;
       return clearTimer;
     }
