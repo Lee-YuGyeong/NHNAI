@@ -34,6 +34,8 @@ interface Tone {
   known: boolean;
   /** 갈래 전용을 따로 넣었나 — false 면 기본 하나를 같이 쓴다 */
   own: boolean;
+  /** 어디서 온 목소리인가 — 갈래 전용 · 기본 환경 변수 · 소스에 적힌 것 */
+  source?: 'kind' | 'env' | 'default';
   settings: Record<string, number>;
   envVar: string;
 }
@@ -168,7 +170,11 @@ export function LeaderTones({ voices }: { voices: AccountVoice[] | null }) {
                 ) : (
                   <>
                     <strong>{t.known ? t.name : `${t.id.slice(0, 10)}… (계정에 없는 id)`}</strong>
-                    {t.own ? ' — 이 갈래 전용' : ' — 기본을 같이 쓴다'}
+                    {t.source === 'kind'
+                      ? ' — 이 갈래 전용'
+                      : t.source === 'default'
+                        ? ' — 소스의 기본값 (openingSpeakers 와 같은 이유로 여기 적혀 있다)'
+                        : ' — 기본 환경 변수를 같이 쓴다'}
                   </>
                 )}
               </div>

@@ -137,16 +137,38 @@ function firstId(raw: string | undefined): string | undefined {
 }
 
 /**
- * 이 갈래가 쓸 목소리. 갈래 전용이 있으면 그것, 없으면 기본 하나.
+ * 관리 AI 목소리 — **Ethan - Deep** (2026-09-05 사용자).
+ *
+ * ┌─ 왜 환경 변수가 아니라 여기 적나 ─────────────────────────────────────────┐
+ * │ 관리 AI 의 목소리는 **작품의 내용**이지 배포 설정이 아니다. 시설이 말하는   │
+ * │ 소리는 누가 띄운 판이든 같아야 한다 — 환경 변수에만 두면 넣은 사람과 안 넣은 │
+ * │ 사람이 다른 게임을 하게 되고, 실제로 그 자리를 여러 번 밟았다 (2026-09-04~05:│
+ * │ 좌석 아홉이 이 자리에 들어가 관리 AI 가 남의 클론 목소리로 말했다).         │
+ * │                                                                            │
+ * │ 오프닝 화자 셋(features/tts/openingSpeakers.ts)을 소스에 적은 것과 같은 이유고,│
+ * │ 대본 배역(tools/voice-cast.json)이 예전부터 그렇게 해 온 방식이다.          │
+ * │ 목소리 id 는 비밀이 아니다 — 계정 안의 이름표다. 비밀은 키뿐이다.           │
+ * └────────────────────────────────────────────────────────────────────────────┘
+ *
+ * 환경 변수가 있으면 **그쪽이 이긴다** — 다른 계정으로 돌리거나 잠깐 갈아 볼 때를 위해
+ * 문은 열어 둔다. 여는 것은 선택이고, 안 열면 이 목소리다.
+ *
+ * Ethan 은 이 저장소에서 「낮고 진중한 남성」으로 이미 한 번 골린 목소리다
+ * (voice-cast.json 의 과학자 — 2026-08-30 사용자가 /tts 후보 찾기에서 직접 고른 것).
+ */
+const LEADER_VOICE = 'K349x43DIDecCYoQWw7U';
+
+/**
+ * 이 갈래가 쓸 목소리. 갈래 전용 → 기본 환경 변수 → 위의 Ethan 순으로 떨어진다.
  * (위 머리말의 쉼표 방어가 여기 그대로 걸린다 — 어느 자리든 목록이 들어오면 첫 번째만 쓴다)
  */
-export function broadcastVoiceId(env: TtsEnv, kind: BroadcastKind): string | undefined {
+export function broadcastVoiceId(env: TtsEnv, kind: BroadcastKind): string {
   const perKind = {
     announce: env.ELEVENLABS_VOICE_ID_ANNOUNCE,
     readout: env.ELEVENLABS_VOICE_ID_READOUT,
     alarm: env.ELEVENLABS_VOICE_ID_ALARM,
   }[kind];
-  return firstId(perKind) ?? firstId(env.ELEVENLABS_VOICE_ID);
+  return firstId(perKind) ?? firstId(env.ELEVENLABS_VOICE_ID) ?? LEADER_VOICE;
 }
 
 export async function handleTts(request: Request, env: TtsEnv): Promise<Response> {
@@ -171,10 +193,8 @@ export async function handleTts(request: Request, env: TtsEnv): Promise<Response
   // 모르는 종류는 거절하지 않고 일반 방송으로 읽는다 — 소리가 안 나는 것보다 낫다
   const tone = kind && BROADCAST_KINDS.includes(kind) ? kind : 'announce';
 
+  // 「보이스가 없다」 503 은 없앴다 — 목소리가 소스에 있어서(LEADER_VOICE) 빌 수가 없다
   const voice = voiceId ?? broadcastVoiceId(env, tone);
-  if (!voice) {
-    return fail('보이스가 없다 — ElevenLabs 대시보드 Voices 에서 목소리 하나를 고르고 그 ID 를 ELEVENLABS_VOICE_ID 에 넣는다', 503);
-  }
 
   const upstream = await fetch(`${API}/${encodeURIComponent(voice)}?output_format=${format && FORMATS.includes(format) ? format : FORMAT}`, {
     method: 'POST',
@@ -232,14 +252,20 @@ export async function handleTtsLeader(request: Request, env: TtsEnv): Promise<Re
         kind
       ],
     );
-    const id = broadcastVoiceId(env, kind) ?? '';
+    const id = broadcastVoiceId(env, kind);
     return {
       kind,
       id,
       name: names[id] ?? '',
-      known: id !== '' && id in names,
+      known: id in names,
       /** 갈래 전용을 따로 넣었나, 기본 하나를 같이 쓰나 — 「골랐는데 안 바뀐다」가 여기서 갈린다 */
       own: Boolean(own),
+      /**
+       * 어디서 온 목소리인가 — 'kind'(갈래 전용) · 'env'(기본 환경 변수) · 'default'(소스).
+       * 「환경 변수를 넣었는데 왜 그대로지」와 「아무것도 안 넣었는데 왜 소리가 나지」가
+       * 여기서 갈린다. 둘 다 화면만 보면 알 수 없는 자리다.
+       */
+      source: own ? 'kind' : firstId(env.ELEVENLABS_VOICE_ID) ? 'env' : 'default',
       settings: VOICE_SETTINGS[kind],
       envVar: KIND_VOICE_VAR[kind],
     };

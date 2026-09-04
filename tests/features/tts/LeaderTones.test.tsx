@@ -83,13 +83,16 @@ describe('관리 AI 세 톤', () => {
     expect(screen.getByText(/안정 0.7 · 연기 0.3 · 속도 1.1/)).toBeInTheDocument();
   });
 
-  it('기본을 같이 쓰는지, 갈래 전용인지 적는다', async () => {
+  it('셋이 같은 목소리를 쓰면 그렇게 적는다', async () => {
+    stubLeader({ tones: ['announce', 'readout', 'alarm'].map((k) => tone(k, { source: 'env' })) });
     view();
-    expect(await screen.findAllByText(/기본을 같이 쓴다/)).toHaveLength(3);
+    expect(await screen.findAllByText(/기본 환경 변수를 같이 쓴다/)).toHaveLength(3);
   });
 
   it('갈래 전용을 넣었으면 그렇게 적는다', async () => {
-    stubLeader({ tones: [tone('announce', { own: true }), tone('readout'), tone('alarm')] });
+    stubLeader({
+      tones: [tone('announce', { own: true, source: 'kind' }), tone('readout'), tone('alarm')],
+    });
     view();
     expect(await screen.findByText(/이 갈래 전용/)).toBeInTheDocument();
   });
@@ -114,5 +117,29 @@ describe('관리 AI 세 톤', () => {
     fireEvent.change(selects[2], { target: { value: 'v-b' } });
     expect(screen.getByText('ELEVENLABS_VOICE_ID_ALARM=v-b')).toBeInTheDocument();
     expect(screen.queryByText(/ELEVENLABS_VOICE_ID_ANNOUNCE/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * 목소리가 **어디서 왔는지** — 「환경 변수를 넣었는데 왜 그대로지」와 「아무것도 안 넣었는데
+ * 왜 소리가 나지」가 여기서 갈린다. 둘 다 화면만 보면 알 수 없는 자리라 워커가 알려준다.
+ */
+describe('관리 AI 세 톤 — 목소리 출처', () => {
+  it('소스의 기본값이면 그렇게 적는다 (환경 변수가 비었다)', async () => {
+    stubLeader({ tones: [tone('announce', { source: 'default' }), tone('readout'), tone('alarm')] });
+    view();
+    expect(await screen.findByText(/소스의 기본값/)).toBeInTheDocument();
+  });
+
+  it('갈래 전용이면 그렇게 적는다', async () => {
+    stubLeader({ tones: [tone('announce', { source: 'kind', own: true }), tone('readout'), tone('alarm')] });
+    view();
+    expect(await screen.findByText(/이 갈래 전용/)).toBeInTheDocument();
+  });
+
+  it('기본 환경 변수를 같이 쓰면 그렇게 적는다', async () => {
+    stubLeader({ tones: [tone('announce', { source: 'env' }), tone('readout'), tone('alarm')] });
+    view();
+    expect(await screen.findAllByText(/기본 환경 변수를 같이 쓴다/)).not.toHaveLength(0);
   });
 });
