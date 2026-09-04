@@ -99,11 +99,12 @@ const UPPER_Y0 = MEZZ.y + MEZZ.slabH;
 const UPPER_Y1 = CEILING_Y - 0.6;
 export const ROOMS: readonly RoomSpec[] = [
   // 2층 — 무대 쪽 (참고 이미지의 왼쪽 위 중앙 통제실 · 오른쪽 위 연구구역)
-  { label: '중앙 통제실', side: -1, z0: -19.4, z1: -8.6, y0: UPPER_Y0, y1: UPPER_Y1, depth: 4.5, interior: 'control', props: 'desks' },
+  // 간판 표기는 사용자 지정 (2026-09-04): 왼쪽 중앙통제실 · 서버실, 오른쪽 연구구역 · AI분석실 — 띄어쓰기 없이
+  { label: '중앙통제실', side: -1, z0: -19.4, z1: -8.6, y0: UPPER_Y0, y1: UPPER_Y1, depth: 4.5, interior: 'control', props: 'desks' },
   { label: '연구구역', side: 1, z0: -19.4, z1: -8.6, y0: UPPER_Y0, y1: UPPER_Y1, depth: 4.5, interior: 'research', props: 'desks' },
-  // 1층 — 등 뒤 쪽 (왼쪽 서버실 · 오른쪽 AI 분석실). 앞의 콘솔(충돌)은 유리 앞 카운터가 된다
+  // 1층 — 등 뒤 쪽 (왼쪽 서버실 · 오른쪽 AI분석실). 앞의 콘솔(충돌)은 유리 앞 카운터가 된다
   { label: '서버실', side: -1, z0: 0.6, z1: 11.4, y0: 0, y1: MEZZ.y - 0.05, depth: 4.5, interior: 'server', props: 'racks' },
-  { label: 'AI 분석실', side: 1, z0: 0.6, z1: 11.4, y0: 0, y1: MEZZ.y - 0.05, depth: 4.5, interior: 'analysis', props: 'desks' },
+  { label: 'AI분석실', side: 1, z0: 0.6, z1: 11.4, y0: 0, y1: MEZZ.y - 0.05, depth: 4.5, interior: 'analysis', props: 'desks' },
 ];
 /** 간판 — 방 위쪽 유리 위 검정 띠에 흰 글씨 */
 export const SIGN = { h: 0.7, textH: 0.44 } as const;

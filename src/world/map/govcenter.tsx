@@ -493,16 +493,21 @@ function canvasTexture(w: number, h: number, draw: (ctx: CanvasRenderingContext2
   return t;
 }
 
-/** 방 간판 — 검정 띠에 흰 글씨 */
-function signTexture(text: string): THREE.CanvasTexture | null {
-  return canvasTexture(1024, 128, (ctx) => {
+/**
+ * 방 간판 — 검정 띠에 흰 글씨. **캔버스 비율을 띠 비율(aspect = 폭/높이)에 맞춘다** — 처음엔 8:1 캔버스를 15:1 띠에 붙여
+ * 글자가 가로로 1.9배 늘어나 밀려 보였다 (2026-09-04 사용자: "왼쪽 오른쪽 텍스트가 밀려있어").
+ */
+function signTexture(text: string, aspect: number): THREE.CanvasTexture | null {
+  const H = 128;
+  const W = Math.round(H * aspect);
+  return canvasTexture(W, H, (ctx) => {
     ctx.fillStyle = '#0a0c10';
-    ctx.fillRect(0, 0, 1024, 128);
+    ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#e9eef6';
-    ctx.font = `600 78px ${KO_FONT}`;
+    ctx.font = `700 84px ${KO_FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, 512, 68);
+    ctx.fillText(text, W / 2, H / 2 + 4);
   });
 }
 
@@ -572,7 +577,7 @@ export function Govcenter(_props: GovcenterProps) {
     };
     const signs = new Map<string, THREE.MeshBasicMaterial>();
     for (const r of ROOMS) {
-      const t = signTexture(r.label);
+      const t = signTexture(r.label, (r.z1 - r.z0) / SIGN.h);
       signs.set(r.label, t ? new THREE.MeshBasicMaterial({ map: t, color: hdr('#ffffff', 0.9), toneMapped: false }) : new THREE.MeshBasicMaterial({ color: '#0a0c10' }));
     }
     const title = titleTexture();
