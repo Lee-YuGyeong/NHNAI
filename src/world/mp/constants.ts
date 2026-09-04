@@ -156,8 +156,8 @@ export const STOPLINE_MAX_ATTEMPTS = 9;
  * 무대(z < -14)와 옆벽 선반을 피한 빈 바닥이다. 서버가 이 범위 안에 물체를 떨어뜨리고, 클라는 이 범위로 발을 막는다.
  */
 export const FALL_ARENA = { minX: -6, maxX: 6, minZ: -11, maxZ: 8 } as const;
-/** 공 스폰 간격(ms). 처음 스펙은 1.5초였는데 마당이 넓어 성겨 보였다 — 0.7초, 1분에 85개쯤 (2026-09-04 사용자: "공도 좀 더 많이") */
-export const FALL_SPAWN_MS = 700;
+/** 공 스폰 간격(ms). 처음 스펙은 1.5초였는데 마당이 넓어 성겨 보였다 — 0.4초, 1분에 150개쯤 (2026-09-04 사용자: "공 더 많이") */
+export const FALL_SPAWN_MS = 400;
 /** 낙하물이 놓이는 높이(m). 처마(9)보다 살짝 아래 */
 export const FALL_SPAWN_Y = 8.5;
 /** 사람 몸 반지름(m) — 공 반지름과 더한 것이 맞는 거리다 */

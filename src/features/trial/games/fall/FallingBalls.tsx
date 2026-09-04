@@ -10,8 +10,8 @@ import { fitScale, usePartSource, type PartId } from '@/world/map/corridor/part'
 import { FALL_BALLS, FALL_SPAWN_Y } from '@/world/mp/constants';
 import { fallState, type PodFrame } from './fallState';
 
-/** 한 종류가 동시에 공중·바닥에 있을 수 있는 최대 수 — 1.5초 간격 스폰 · 착지 후 1초 잔류면 넉넉하다 */
-const MAX_PER_KIND = 12;
+/** 한 종류가 동시에 공중·바닥에 있을 수 있는 최대 수 — 0.4초 간격 스폰 · 낙하 ~2초 · 착지 후 1초 잔류 = 동시 ~8개, 다섯 종류로 나뉜다 */
+const MAX_PER_KIND = 16;
 const _m = new THREE.Matrix4();
 const _p = new THREE.Vector3();
 const _q = new THREE.Quaternion();
