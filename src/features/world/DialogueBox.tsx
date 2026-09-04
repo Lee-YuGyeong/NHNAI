@@ -136,6 +136,8 @@ interface Line {
   text: string;
   isSelf: boolean;
   portrait?: PortraitKind;
+  /** 초상 경로 — 있으면 portrait 종류표보다 먼저 (worldSlice.ChatLine.portraitSrc) */
+  portraitSrc?: string;
   /** 소리 내지 않은 속마음 — 글자 색만 물러난 회색으로 그린다 (dialogue.css 의 dlg--thought) */
   thought?: boolean;
 }
@@ -278,7 +280,7 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
     for (const m of fresh) {
       const isSelf = m.id === selfId;
       if (isSelf && !m.portrait) continue;
-      queue.current.push({ key: m.key, nickname: m.nickname, text: m.text, isSelf, portrait: m.portrait, thought: m.thought });
+      queue.current.push({ key: m.key, nickname: m.nickname, text: m.text, isSelf, portrait: m.portrait, portraitSrc: m.portraitSrc, thought: m.thought });
     }
     /*
      * 붙잡혀 있는데(wasHeld) 다음 줄이 왔다 = 소리도 그리로 넘어갔다는 뜻이니 곧장 넘어간다.
@@ -366,7 +368,7 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
     showingCb.current?.(visible);
   }, [visible]);
 
-  const portrait = useMemo(() => (current ? portraitFor(current.portrait, current.isSelf) : ''), [current]);
+  const portrait = useMemo(() => (current ? (current.portraitSrc ?? portraitFor(current.portrait, current.isSelf)) : ''), [current]);
   if (!current && !visible) return null;
 
   const done = current ? shown >= current.text.length : true;

@@ -1,16 +1,16 @@
 /**
- * 검문소 프롤로그 (features/interrogation/prologue.ts) — 첫 토론에 구역 통신으로 흐르는 대본.
+ * 검문소 프롤로그 (features/interrogation/prologue.ts) — 첫 토론에 비주얼 노벨식 대화창으로 흐르는 대본.
  *
  *   · 피실험자 01·02·03 은 좌석에서 무작위로, 그러나 **같은 씨앗이면 네 화면이 같은 사람**을 본다
- *   · 정부 통제실은 control 결, 무대 지문은 system 결, 피실험자는 보통 chat 줄 — 이름표에 번호와 좌석 이름이 같이 붙는다
- *   · 서버에 가는 것은 없다 — 이 파일은 ChatEntry 만 만든다
+ *   · 피실험자의 초상은 그 좌석의 몸(군인) 얼굴, 정부 통제실은 처형자 얼굴, 지문은 이름표 없이 흐린 글씨
+ *   · 서버에 가는 것도, 구역 통신에 찍히는 것도 없다 — 이 파일은 대화창 줄(ChatLine)만 만든다
  */
 import { describe, expect, it } from 'vitest';
 import type { GameSeat } from '@/world/mp/game-protocol';
-import { CONTROL_NAME, PROLOGUE, PROLOGUE_MS, castSubjects, prologueEntries } from '@/features/interrogation/prologue';
+import { CONTROL_FACE, CONTROL_NAME, FALLBACK_FACE, PROLOGUE, castSubjects, faceOf, prologueLines } from '@/features/interrogation/prologue';
 
-const seat = (id: string, n: number, isolated = false): GameSeat => ({ id, name: `N${n}`, seat: n, isolated });
-const SEATS = [seat('a', 1), seat('b', 2), seat('c', 3), seat('d', 4)];
+const seat = (id: string, n: number, isolated = false, body?: GameSeat['body']): GameSeat => ({ id, name: `N${n}`, seat: n, isolated, ...(body ? { body } : {}) });
+const SEATS = [seat('a', 1, false, 'sol_fit_m'), seat('b', 2, false, 'sol_heavy_f'), seat('c', 3, false, 'sol_fit_f'), seat('d', 4, false, 'sol_heavy_m')];
 
 describe('castSubjects — 피실험자 셋을 뽑는다', () => {
   it('같은 씨앗이면 같은 셋, 좌석 배열 순서가 달라도 같다', () => {
@@ -36,35 +36,37 @@ describe('castSubjects — 피실험자 셋을 뽑는다', () => {
   });
 });
 
-describe('prologueEntries — 대본을 채팅 줄로', () => {
-  const entries = prologueEntries(SEATS, 42);
+describe('prologueLines — 대본을 대화창 줄로', () => {
+  const lines = prologueLines(SEATS, 42);
 
-  it('대본과 같은 수 · 같은 순서 · 누적 시각이 늘어난다', () => {
-    expect(entries).toHaveLength(PROLOGUE.length);
-    for (let i = 1; i < entries.length; i++) expect(entries[i].at).toBeGreaterThan(entries[i - 1].at);
-    expect(entries[entries.length - 1].at).toBe(PROLOGUE_MS);
+  it('대본과 같은 수 · 같은 순서 · 열쇠는 씨앗과 번호로 고유하다', () => {
+    expect(lines).toHaveLength(PROLOGUE.length);
+    expect(new Set(lines.map((l) => l.key)).size).toBe(PROLOGUE.length);
+    expect(prologueLines(SEATS, 42).map((l) => l.key)).toEqual(lines.map((l) => l.key));
+    expect(lines[lines.length - 1].text).toBe('판별을 시작합니다.');
   });
 
-  it('정부 통제실은 control, 지문은 system, 피실험자는 chat 이고 이름표에 번호와 좌석 이름이 붙는다', () => {
-    const control = entries.filter((e) => e.entry.kind === 'control');
-    expect(control.length).toBe(5);
-    expect(control.every((e) => e.entry.name === CONTROL_NAME)).toBe(true);
-    expect(control[control.length - 1].entry.text).toBe('판별을 시작합니다.');
-    const stage = entries.filter((e) => e.entry.kind === 'system').map((e) => e.entry.text);
-    expect(stage).toEqual(['천장 스피커가 켜진다.', '잠시 정적.']);
-    const first = entries[0].entry;
-    expect(first.kind).toBe('chat');
-    expect(first.name).toMatch(/^피실험자 01 · N\d$/);
-    expect(SEATS.some((s) => s.id === first.id)).toBe(true);
+  it('정부 통제실은 처형자 얼굴, 피실험자는 제 몸의 얼굴, 지문은 이름표 없이 흐린 글씨', () => {
+    const control = lines.filter((l) => l.nickname === CONTROL_NAME);
+    expect(control).toHaveLength(5);
+    expect(control.every((l) => l.portraitSrc === CONTROL_FACE)).toBe(true);
+    const stage = lines.filter((l) => l.thought);
+    expect(stage.map((l) => l.text)).toEqual(['천장 스피커가 켜진다.', '잠시 정적.']);
+    expect(stage.every((l) => l.nickname.trim() === '')).toBe(true);
+    const first = lines[0];
+    expect(first.nickname).toMatch(/^피실험자 01 · N\d$/);
+    const who = SEATS.find((s) => s.id === first.id)!;
+    expect(first.portraitSrc).toBe(`/interrogation/face-${who.body}.jpg`);
   });
 
   it('같은 번호는 같은 좌석이 말한다 — 01 이 두 번 말하면 둘 다 같은 id', () => {
-    const ones = entries.filter((e) => e.entry.name.startsWith('피실험자 01'));
+    const ones = lines.filter((l) => l.nickname.startsWith('피실험자 01'));
     expect(ones).toHaveLength(2);
-    expect(ones[0].entry.id).toBe(ones[1].entry.id);
+    expect(ones[0].id).toBe(ones[1].id);
   });
 
-  it('대본 전체가 첫 토론 안에 흐른다 — 40초 안', () => {
-    expect(PROLOGUE_MS).toBeLessThan(40_000);
+  it('몸을 모르는 좌석은 기본 얼굴', () => {
+    expect(faceOf(seat('x', 9))).toBe(FALLBACK_FACE);
+    expect(faceOf(undefined)).toBe(FALLBACK_FACE);
   });
 });

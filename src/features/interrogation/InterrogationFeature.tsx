@@ -24,7 +24,9 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { prologueEntries } from './prologue';
+import { prologueLines } from './prologue';
+import { DialogueBox } from '@/features/world/DialogueBox';
+import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal } from './hud/Panels';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
@@ -356,29 +358,25 @@ export function InterrogationFeature() {
   /* ─────────────────────────────── 프롤로그 ─────────────────────────────── */
 
   /*
-   * 판이 열리고 첫 토론이 시작되면 대본(prologue.ts)이 구역 통신에 한 줄씩 흐른다 — 피실험자 셋의 웅성거림과
-   * 정부 통제실의 방송. **화면에서만** 난다: 서버 · 관리 AI · 의심도 어느 것도 이 줄을 모른다.
-   * 같은 판(startedAt)에서는 한 번만. 국면이 먼저 넘어가도 남은 줄은 그대로 흘러 로그에 남고, 화면을 떠날 때만 걷는다.
+   * 판이 열리고 첫 토론이 시작되면 대본(prologue.ts)이 화면 아래 비주얼 노벨식 대화창(DialogueBox)으로 한 줄씩 흐른다 —
+   * 피실험자 셋의 웅성거림과 정부 통제실의 방송, 얼굴은 그 좌석의 군인 클로즈업. 구역 통신(채팅)은 따로 그대로다.
+   * **화면에서만** 난다: 서버 · 관리 AI · 의심도 어느 것도 이 줄을 모른다. 같은 판(startedAt)에서는 한 번만.
+   * 줄을 한꺼번에 건네면 상자가 제 박자(타자 · 머무름)로 차례로 찍는다 — 클릭하면 넘어간다. 로비로 돌아오면 비운다.
    */
+  const [prologue, setPrologue] = useState<ChatLine[]>([]);
   const prologuePlayed = useRef<number | null>(null);
-  const prologueTimers = useRef<number[]>([]);
   const startedAt = wire?.startedAt ?? null;
   const testsDone = wire?.testsDone ?? 0;
   useEffect(() => {
+    if (phase === 'lobby') {
+      setPrologue([]);
+      return;
+    }
     if (phase !== 'discussion' || testsDone !== 0 || startedAt === null) return;
     if (prologuePlayed.current === startedAt) return;
     prologuePlayed.current = startedAt;
-    for (const { at, entry } of prologueEntries(seatsRef.current, startedAt)) {
-      prologueTimers.current.push(window.setTimeout(() => dispatch(gameActions.chatReceived(entry)), at));
-    }
-  }, [phase, testsDone, startedAt, dispatch]);
-  useEffect(
-    () => () => {
-      for (const t of prologueTimers.current) window.clearTimeout(t);
-      prologueTimers.current = [];
-    },
-    [],
-  );
+    setPrologue(prologueLines(seatsRef.current, startedAt));
+  }, [phase, testsDone, startedAt]);
 
   // 판이 떠 있는 동안은 잠금을 푼다 — 결과 모달 · 끝 화면 · 역할 카드 · 대기
   const modalUp = phase === 'result' || phase === 'ended' || phase === 'lobby' || showRole;
@@ -461,6 +459,8 @@ export function InterrogationFeature() {
 
   return (
     <div ref={rootRef} className="ig-root" onClick={lock}>
+      {/* 프롤로그 대화창 — 화면 아래 가운데, 채팅 판과 별개 (prologue.ts). 줄이 다 지나면 상자가 스스로 사라진다 */}
+      <DialogueBox messages={prologue} selfId={null} touch={false} />
       <HallScene
         mySeatId={mySeatId}
         myBody={myBody}

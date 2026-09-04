@@ -37,6 +37,11 @@ export interface ChatLine {
   /** 대화창 초상 — 없으면 내 말은 연구원, 남의 말은 로봇. 챕터 대본(과학자·정부요원·시스템)이 지정한다 */
   portrait?: PortraitKind;
   /**
+   * 초상을 **경로로 직접** — 종류표(PortraitKind)에 없는 얼굴. 검문소 프롤로그가 그 좌석의 군인 얼굴 클로즈업
+   * (public/interrogation/face-*.jpg)을 단다 (2026-09-05). 있으면 portrait 보다 먼저다. 추가만 하는 필드.
+   */
+  portraitSrc?: string;
+  /**
    * 이건 **소리 내어 한 말이 아니라 속마음**이다 (2026-08-30 사용자: 정비 단말이 읽어 주는 대신 내가 속으로 읽는다).
    * 대화창이 다르게 그린다 — 이름표가 「속마음」, 글씨는 기울고 흐리다 (DialogueBox 의 dlg--thought)
    */
