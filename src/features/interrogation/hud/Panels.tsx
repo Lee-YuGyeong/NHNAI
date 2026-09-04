@@ -237,12 +237,14 @@ export function Chat({
            * 말하는 쪽은 색이 가른다 (/arena 통신판과 같은 규칙).
            */
           const toned = kind !== 'chat';
+          // 정부 통제실(프롤로그)은 결이 있어도 이름을 붙인다 — 누가 말하는지가 곧 장면이다
+          const named = kind === 'chat' || kind === 'control';
           const mine = l.id === mySeatId;
           return (
             <p key={`${l.ts}-${i}`} className={`ig-line ${kind}${mine ? ' me' : ''}${l.id === markId ? ' marked' : ''}`}>
               <i aria-hidden className="pip" />
               <span>
-                {toned ? (
+                {toned && !named ? (
                   l.text
                 ) : (
                   <>
