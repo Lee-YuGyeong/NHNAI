@@ -21,7 +21,7 @@ import { handleConfig, handleProfile, handleWorldTicket } from './auth';
 import { handleLabAct, handleLabCast, handleLabFree, handleLabTalk, handleWorldBackstep, handleWorldDirect, handleWorldInterrogate, handleWorld2Say } from './lab';
 import { LobbyDO, handleRooms } from './lobby-do';
 import { RoomDO } from './room-do';
-import { handleTts, handleTtsLibrary, handleTtsVoices } from './tts';
+import { handleTts, handleTtsLeader, handleTtsLibrary, handleTtsVoices } from './tts';
 import {
   handleLibraryAdd,
   handleSeatAudition,
@@ -47,6 +47,13 @@ export interface Env {
   ELEVENLABS_API_KEY?: string;
   /** 기본 목소리 ID. 대시보드 Voices 에서 고른 값 */
   ELEVENLABS_VOICE_ID?: string;
+  /**
+   * 관리 AI 갈래별 목소리 — 비우면 위의 기본을 쓴다 (worker/src/tts.ts).
+   * 셋을 다 다르게 두면 한 시설에서 세 시스템이 말하는 것처럼 들린다 — 알고 하는 선택이어야 한다.
+   */
+  ELEVENLABS_VOICE_ID_ANNOUNCE?: string;
+  ELEVENLABS_VOICE_ID_READOUT?: string;
+  ELEVENLABS_VOICE_ID_ALARM?: string;
   /**
    * 참가자 좌석 목소리 명부 — voice id 를 쉼표로 나열한다. 순서가 곧 명부 번호다.
    * 아홉을 채우는 것이 기본이고, 비거나 모자라면 **그 방은 통째로 조용해진다** —
@@ -113,6 +120,8 @@ export default {
     if (url.pathname === '/api/tts') return handleTts(request, env);
     if (url.pathname === '/api/tts/voices') return handleTtsVoices(request, env);
     if (url.pathname === '/api/tts/library') return handleTtsLibrary(request, env);
+    // 갈래(announce·readout·alarm)마다 워커가 실제로 쓰는 목소리 — /tts 의 「관리 AI 세 톤」이 묻는다
+    if (url.pathname === '/api/tts/leader') return handleTtsLeader(request, env);
 
     /*
      * 참가자 좌석 음성 (worker/src/seat-voice.ts). 위의 /api/tts 와 **다른 관로다** —

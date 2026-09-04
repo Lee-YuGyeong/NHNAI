@@ -88,7 +88,29 @@ export interface TtsEnv {
   ELEVENLABS_API_KEY?: string;
   /** 기본 목소리. 요청의 voiceId 가 있으면 그쪽이 이긴다 (/tts 화면에서 목소리를 갈아 보려고) */
   ELEVENLABS_VOICE_ID?: string;
+  /**
+   * 갈래별 목소리 — 비우면 위의 기본을 쓴다 (PLANNING §4.1 의 세 가지 일).
+   *
+   * 관리 AI 는 **한 존재**지만 하는 일이 셋이다: 시험을 열고(announce), 기록을 읽고(readout),
+   * 격리를 알린다(alarm). 여태 셋은 발성값(stability · style · speed)만 달랐다 — 같은 성대로
+   * 톤만 바꾼 것이라, 경보가 「급하게 읽는 안내 방송」에 머물렀다.
+   *
+   * ★ **비워 두는 것이 기본이고, 그게 대개 맞다.** 셋을 다른 목소리로 두면 한 시설에서
+   *   세 시스템이 말하는 것처럼 들린다. 갈아 끼우는 건 그 대가를 알고 하는 선택이다 —
+   *   특히 alarm 만 따로 세우는 쪽이 값이 싸다(격리는 판에 몇 번 없고, 그때 톤이 바뀌는 것은
+   *   「다른 계통이 끼어들었다」로 읽혀 오히려 산다).
+   */
+  ELEVENLABS_VOICE_ID_ANNOUNCE?: string;
+  ELEVENLABS_VOICE_ID_READOUT?: string;
+  ELEVENLABS_VOICE_ID_ALARM?: string;
 }
+
+/** 갈래별 목소리를 담은 환경 변수 이름 — 화면과 워커가 같은 표를 본다 */
+export const KIND_VOICE_VAR: Record<BroadcastKind, string> = {
+  announce: 'ELEVENLABS_VOICE_ID_ANNOUNCE',
+  readout: 'ELEVENLABS_VOICE_ID_READOUT',
+  alarm: 'ELEVENLABS_VOICE_ID_ALARM',
+};
 
 interface TtsBody {
   text?: string;
@@ -110,9 +132,21 @@ interface TtsBody {
  * 가서 방송이 통째로 400 이 된다 — **좌석을 채우려다 방송을 죽이는** 모양이다.
  * 쉼표가 있으면 첫 번째만 쓴다. 명부 쪽은 seat-voice.ts 의 seatVoiceIds 가 같은 값을 읽는다.
  */
-function broadcastVoiceId(env: TtsEnv): string | undefined {
-  const first = (env.ELEVENLABS_VOICE_ID ?? '').split(',')[0]?.trim();
-  return first || undefined;
+function firstId(raw: string | undefined): string | undefined {
+  return (raw ?? '').split(',')[0]?.trim() || undefined;
+}
+
+/**
+ * 이 갈래가 쓸 목소리. 갈래 전용이 있으면 그것, 없으면 기본 하나.
+ * (위 머리말의 쉼표 방어가 여기 그대로 걸린다 — 어느 자리든 목록이 들어오면 첫 번째만 쓴다)
+ */
+export function broadcastVoiceId(env: TtsEnv, kind: BroadcastKind): string | undefined {
+  const perKind = {
+    announce: env.ELEVENLABS_VOICE_ID_ANNOUNCE,
+    readout: env.ELEVENLABS_VOICE_ID_READOUT,
+    alarm: env.ELEVENLABS_VOICE_ID_ALARM,
+  }[kind];
+  return firstId(perKind) ?? firstId(env.ELEVENLABS_VOICE_ID);
 }
 
 export async function handleTts(request: Request, env: TtsEnv): Promise<Response> {
@@ -137,7 +171,7 @@ export async function handleTts(request: Request, env: TtsEnv): Promise<Response
   // 모르는 종류는 거절하지 않고 일반 방송으로 읽는다 — 소리가 안 나는 것보다 낫다
   const tone = kind && BROADCAST_KINDS.includes(kind) ? kind : 'announce';
 
-  const voice = voiceId ?? broadcastVoiceId(env);
+  const voice = voiceId ?? broadcastVoiceId(env, tone);
   if (!voice) {
     return fail('보이스가 없다 — ElevenLabs 대시보드 Voices 에서 목소리 하나를 고르고 그 ID 를 ELEVENLABS_VOICE_ID 에 넣는다', 503);
   }
@@ -164,6 +198,55 @@ export async function handleTts(request: Request, env: TtsEnv): Promise<Response
       // 같은 문장은 같은 소리다. 브라우저가 다시 받지 않게 해서 크레딧을 아낀다
       'cache-control': 'public, max-age=86400',
     },
+  });
+}
+
+/**
+ * 지금 워커가 갈래마다 쓰는 목소리 — /tts 의 「관리 AI 세 톤」 칸.
+ *
+ * 화면이 제 손에 든 값을 그리면 **워커가 실제로 쓰는 것과 어긋나도 모른다.** 환경 변수를
+ * 넣고 재시작을 안 했거나, 갈래 전용을 비워 둬서 기본으로 떨어지는 경우가 그렇다 —
+ * 둘 다 「분명히 골랐는데 소리가 그대로」로 나타나고, 화면만 보면 원인을 알 수 없다.
+ * 그래서 **워커에게 직접 묻는다.**
+ *
+ * 목소리 id 는 비밀이 아니라(계정 안의 이름표다) 개발 스위치 뒤에 두지 않는다 —
+ * 좌석 명부(seat-voice.ts)와 다른 점이다. 저쪽은 판마다 섞는 배정표라 안 내려보낸다.
+ */
+export async function handleTtsLeader(request: Request, env: TtsEnv): Promise<Response> {
+  if (request.method !== 'GET') return fail('GET 만 받는다', 405);
+
+  const names: Record<string, string> = {};
+  if (env.ELEVENLABS_API_KEY) {
+    const up = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: { 'xi-api-key': env.ELEVENLABS_API_KEY },
+    });
+    if (up.ok) {
+      const data = (await up.json()) as { voices?: { voice_id: string; name: string }[] };
+      for (const v of data.voices ?? []) names[v.voice_id] = v.name;
+    }
+  }
+
+  const tones = BROADCAST_KINDS.map((kind) => {
+    const own = firstId(
+      { announce: env.ELEVENLABS_VOICE_ID_ANNOUNCE, readout: env.ELEVENLABS_VOICE_ID_READOUT, alarm: env.ELEVENLABS_VOICE_ID_ALARM }[
+        kind
+      ],
+    );
+    const id = broadcastVoiceId(env, kind) ?? '';
+    return {
+      kind,
+      id,
+      name: names[id] ?? '',
+      known: id !== '' && id in names,
+      /** 갈래 전용을 따로 넣었나, 기본 하나를 같이 쓰나 — 「골랐는데 안 바뀐다」가 여기서 갈린다 */
+      own: Boolean(own),
+      settings: VOICE_SETTINGS[kind],
+      envVar: KIND_VOICE_VAR[kind],
+    };
+  });
+
+  return new Response(JSON.stringify({ tones }), {
+    headers: { 'content-type': 'application/json; charset=utf-8' },
   });
 }
 

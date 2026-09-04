@@ -23,6 +23,7 @@ import { ttsActions, ttsSelectors } from './ttsSlice';
  * 두 쪽의 조리법도 폴백 원칙도 정면으로 다르다. 화면에만 여기 얹는다.
  */
 import { SeatCasting } from '@/features/voice/SeatCasting';
+import { LeaderTones } from './LeaderTones';
 
 /**
  * 방송 파이프라인 테스트 화면 — 여기서 보낸 방송도 실제 게임과 같은 경로를 탄다:
@@ -261,7 +262,9 @@ export function TtsFeature() {
         {spoken.by === 'fallback' && `⚠ Web Speech 로 읽었다 (ElevenLabs 실패: ${spoken.reason})`}
       </div>
 
-      <h3 style={{ marginBottom: 4 }}>🔊 관리 AI 방송 — 시설 방송 하나</h3>
+      <LeaderTones voices={voices} />
+
+      <h3 style={{ marginBottom: 4 }}>🔊 관리 AI 방송 — 손으로 보내 보기</h3>
       <p style={{ opacity: 0.6, fontSize: 13, marginTop: 0 }}>
         보낸 방송은 전역 큐에 쌓여 순서대로 재생되고, 경보는 재생 중인 방송을 끊고 맨 앞에 선다.
         기본 음색은 <strong>시설 방송</strong>이다 — 관리 AI 는 시스템임을 모두가 알고 시작하므로
@@ -451,7 +454,17 @@ export function TtsFeature() {
           </span>
         </div>
       ))}
-      <SeatCasting voices={voices} />
+      {/*
+        참가자 좌석 아홉은 **지금 쓰지 않는다** (2026-09-04 사용자: 「참여자 목소리는 안 넣어도 돼」).
+        지우지 않고 접어 둔다 — 규칙(P11)과 관로는 docs/VOICE.md 에 그대로 살아 있고,
+        되살릴 일이 생기면 여기 한 줄을 펴면 된다.
+      */}
+      <details style={{ marginTop: 24, opacity: 0.75 }}>
+        <summary style={{ cursor: 'pointer', fontSize: 14 }}>
+          참가자 좌석 아홉 — <strong>지금은 안 쓴다</strong> (docs/VOICE.md)
+        </summary>
+        <SeatCasting voices={voices} />
+      </details>
       <h3>상태</h3>
       <div>재생 중: {current ? `[${KIND_LABEL[current.kind]}] ${current.text}` : '—'}</div>
       <div>
