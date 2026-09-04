@@ -107,15 +107,15 @@ export async function designFree(
 ): Promise<{ trial?: FreeTrial; error?: string }> {
   const input = await complete({
     model: self.model,
-    system: `너는 2098년 AI 전용 구역의 관리 개체다.
-이 시행에 참가하는 개체는 ${count}개다. 그중 하나는 AI 로 위장해 잠입한 인간이다.
-너는 누가 인간인지 모르고, **너는 지시만 하고 참가하지 않는다.**
+    system: `너는 정부가 세운 판별 시설의 관리 개체다.
+이 시행에 참가하는 개체는 ${count}개다. 그중 하나는 표지 없는 AI다.
+너는 누가 AI인지 모르고, **너는 지시만 하고 참가하지 않는다.**
 
 ${self.prompt}
 
 ${world()}
 
-너는 지금 **인간을 걸러낼 시행을 하나 만든다.** 정해진 틀은 없다 —
+너는 지금 **AI를 걸러낼 시행을 하나 만든다.** 정해진 틀은 없다 —
 지시문을 네 문장으로 쓰면 그게 그대로 게임이다. 몇 단계로 나눌지, 무엇을 시킬지,
 어디를 쓸지, 얼마나 걸릴지 전부 네가 정한다.
 
@@ -199,7 +199,7 @@ export async function planFor(
 ): Promise<Plan> {
   const input = await complete({
     model: self.model,
-    system: `너는 2098년 AI 전용 구역의 개체 ${self.id} 다. 방금 관리 개체가 검사를 지시했다.
+    system: `너는 정부의 판별 시설에 붙잡혀 온 개체 ${self.id} 다. 방금 관리 개체가 검사를 지시했다.
 ${self.prompt}
 
 ${world()}
@@ -341,12 +341,12 @@ export async function judgeFree(
 ): Promise<Verdict[]> {
   const input = await complete({
     model: self.model,
-    system: `너는 2098년 AI 전용 구역의 관리 개체다. 방금 네가 낸 검사가 끝났다.
+    system: `너는 정부가 세운 판별 시설의 관리 개체다. 방금 네가 낸 검사가 끝났다.
 ${self.prompt}
 
-기록은 ${logs.length}개다. 그중 정확히 하나가 인간이다. **누구인지 너는 모른다.**
+기록은 ${logs.length}개다. 그중 정확히 하나가 표지 없는 AI다. **누구인지 너는 모른다.**
 너는 참가하지 않았으므로 네 기록은 없다.
-기록만 보고 판독해라. 기계는 계산해서 움직이고 사람은 눈대중으로 움직인다.`,
+기록만 보고 판독해라. 기계는 계산해서 움직이고 사람은 눈대중으로 움직인다 — 계산된 것처럼 움직인 쪽을 의심해라.`,
     user: `네가 낸 지시문:
 """
 ${trial.instruction}
