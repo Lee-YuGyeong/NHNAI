@@ -326,7 +326,7 @@ describe('게임 로비 — 목록에서 방으로', () => {
     await roomRow(/초보 환영/);
     // 개발용 문 목록(/)으로 가는 길이었다. 브리핑으로 돌아가는 길은 왼쪽 로고가 들고 있다
     expect(screen.queryByRole('link', { name: /처음/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Who is human' })).toHaveAttribute('href', '/intro');
+    expect(screen.getByRole('link', { name: '특수인공지능대응센터' })).toHaveAttribute('href', '/intro');
   });
 
   it('**카드에서는 이름을 고칠 수 없다** — 정하는 길만 있고, 정하고 나면 손잡이가 사라진다', async () => {
@@ -363,7 +363,7 @@ describe('브리핑 — 이 줄의 첫 칸 (/intro)', () => {
     account = { status: 'out' };
     signInWithGoogle.mockClear();
     renderLobby('/intro');
-    expect(screen.getByRole('heading', { name: /누가 인간/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /특수\s*인공지능\s*대응센터/ })).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: /입장하기/ })[0]);
     // 돌아올 자리를 들고 간다. 화면은 그대로 있다 — 이 페이지는 구글로 떠나는 중이다
     expect(signInWithGoogle).toHaveBeenCalledWith('/lobby');
@@ -399,7 +399,7 @@ describe('브리핑 — 이 줄의 첫 칸 (/intro)', () => {
   it('/lobby 는 이제 방 목록이다 — 브리핑이 아니다', () => {
     renderLobby('/lobby');
     expect(screen.getByLabelText('방 제목 검색')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /누가 인간/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /특수\s*인공지능\s*대응센터/ })).not.toBeInTheDocument();
   });
 
   it('옛 ?step=rooms 링크도 그대로 목록으로 열린다', () => {

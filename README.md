@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🕳️ Who is human
+# 🕳️ 특수인공지능대응센터
 
-### 인간인 척
+### 대한민국 정부 · Special AI Response Center
 
 **2026년, AI 식별 표지 의무화가 시행된다. 표지 없는 휴머노이드 개체들이 통제를 벗어나 인간 사회로 숨어든다.**
 
@@ -21,7 +21,7 @@
 
 <br>
 
-<img src="public/intro/hero.jpg" alt="Who is human" width="760">
+<img src="public/intro/hero.jpg" alt="특수인공지능대응센터" width="760">
 
 </div>
 
