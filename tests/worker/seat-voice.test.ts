@@ -15,6 +15,7 @@ import {
   createClipBudget,
   mintClip,
   readClip,
+  rosterSource,
   seatVoiceIds,
 } from '../../worker/src/seat-voice';
 
@@ -139,5 +140,32 @@ describe('명부 읽기', () => {
   it('비어 있으면 빈 명부다 — 부르는 쪽이 방을 조용하게 만든다', () => {
     expect(seatVoiceIds({})).toEqual([]);
     expect(seatVoiceIds({ ELEVENLABS_SEAT_VOICE_IDS: '  ' })).toEqual([]);
+  });
+});
+
+/**
+ * 방송용 자리(ELEVENLABS_VOICE_ID)에 아홉을 이어 넣는 오해가 실제로 났다 (2026-09-04 사용자).
+ * 이름이 「보이스 아이디」라 자연스러운 오해다 — 못 읽은 척하고 방을 조용하게 두는 것보다
+ * 읽어 주고 화면에서 옮기라고 말하는 편이 낫다.
+ */
+describe('명부 읽기 — 방송용 자리에 넣어 둔 경우', () => {
+  it('쉼표로 여럿이면 명부로 읽는다', () => {
+    expect(seatVoiceIds({ ELEVENLABS_VOICE_ID: 'a,b,c' })).toEqual(['a', 'b', 'c']);
+    expect(rosterSource({ ELEVENLABS_VOICE_ID: 'a,b,c' })).toBe('voice-id');
+  });
+
+  it('하나뿐이면 명부가 아니다 — 그건 원래 용도(방송 목소리 하나)다', () => {
+    expect(seatVoiceIds({ ELEVENLABS_VOICE_ID: 'only-one' })).toEqual([]);
+    expect(rosterSource({ ELEVENLABS_VOICE_ID: 'only-one' })).toBe('none');
+  });
+
+  it('제 자리에 든 명부가 있으면 그쪽이 이긴다', () => {
+    const env = { ELEVENLABS_SEAT_VOICE_IDS: 'x,y', ELEVENLABS_VOICE_ID: 'a,b,c' };
+    expect(seatVoiceIds(env)).toEqual(['x', 'y']);
+    expect(rosterSource(env)).toBe('seat-ids');
+  });
+
+  it('어느 쪽도 없으면 none', () => {
+    expect(rosterSource({})).toBe('none');
   });
 });
