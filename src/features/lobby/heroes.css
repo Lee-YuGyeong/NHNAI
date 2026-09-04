@@ -82,6 +82,14 @@
   height: 100%;
   object-fit: cover;
 }
+/* 표지 배경 영상 — 그림 위 한 겹. 안 틀면(주소 없음 · 실패 · 모션 줄임) 이 층 자체가 없다 (heroes.tsx 의 HeroVideo) */
+.hero-key__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 /*
  * 소실점의 문. 제목이 앉는 자리가 바로 그 앞이라 그대로 두면 흰 글자와 빛이 싸운다.
  * 지우지는 않는다 — 복도 끝이 캄캄하면 복도가 아니라 막다른 벽이 된다. 한 겹만 눌러 둔다.

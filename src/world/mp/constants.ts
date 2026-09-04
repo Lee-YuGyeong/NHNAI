@@ -187,3 +187,29 @@ export const FALL_DRAG_GAIN = 7;
 /** 서버 물리 틱과 스냅샷 주기(ms). 틱은 판정용, 스냅샷은 그리기용 */
 export const FALL_TICK_MS = 50;
 export const FALL_SNAPSHOT_MS = 100;
+
+/* ───────────────────────────── 물리 미니게임 — 색 사냥 ───────────────────────────── */
+
+/**
+ * 색 사냥의 **공개** 상수 — 숨는 것은 차단 파장(worker/src/trial/condition.ts)과 구슬의 진짜
+ * 색(반사율 표 — worker/src/trial/colorhunt/palette.ts)뿐이다. 클라이언트에는 서버가 곱셈을 끝낸
+ * 표시색만 온다(`trial_colorhunt`). 상세 기획은 docs/COLORHUNT.md.
+ */
+/** 마당 — 낙하 생존과 같은 빈 바닥을 그대로 쓴다 (PLANNING §7 "같은 맵, 상수만 교체") */
+export const HUNT_ARENA = FALL_ARENA;
+/** 구슬 분포 — 7색(목표 가능 6 + 검정 미끼) × 10개. 색 이름은 견본판이 공개한다 */
+export const HUNT_HUE_COUNT = 7;
+export const HUNT_ORBS_PER_HUE = 10;
+/** 구슬 반지름 · 놓이는 높이(m) — 무릎께에 떠 있다 */
+export const HUNT_ORB_R = 0.18;
+export const HUNT_ORB_Y = 0.35;
+/** 주울 수 있는 거리(m). 서버 검증은 move 가 10Hz 라 약간의 슬랙을 더 본다(엔진) */
+export const HUNT_PICK_R = 1.2;
+export const HUNT_PICK_COOLDOWN_MS = 800;
+/** 주워진 구슬은 이 뒤에, 그 자리 ±이 범위에 같은 색으로 다시 돋는다 — 위치 기억이 유효하게 근처다 */
+export const HUNT_RESPAWN_MS = 2000;
+export const HUNT_RESPAWN_JITTER = 1.5;
+/** 견본판이 선 자리 — 클라가 그리는 곳이자 서버 NPC 가 「확인하러」 걸어가는 곳 (마당 안, 출발 쪽) */
+export const HUNT_BOARD = { x: 0, z: 7.4 } as const;
+/** 조명 전환 램프(ms) — 클라 연출용. 판정과 무관하다 */
+export const HUNT_LIGHT_RAMP_MS = 500;

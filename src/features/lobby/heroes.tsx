@@ -16,6 +16,7 @@
  *   그대로 두면 흰 글자와 빛이 서로 싸운다.
  * ★ 개체 수는 한 줄도 안 적는다 — 그림 속 칸도 셀 수 없게 멀어진다 (Intro.tsx 머리말의 규칙).
  */
+import { useState } from 'react';
 import { LEADER_NAME } from '@/lab/personas';
 import { ArrowIcon } from './console';
 import { Typed } from './live';
@@ -118,6 +119,44 @@ function Guest({ guest, className = '' }: { guest: () => void; className?: strin
   );
 }
 
+/*
+ * ── 표지 배경 영상 (2026-09-04 사용자: "위쪽에는 영상 넣을 수 있게 · cloudflare 에 올려서 받아온다") ──
+ *
+ * 영상을 올린 뒤 아래 상수에 주소를 적으면 켜진다 — R2 공개 버킷의 mp4/webm URL 이든,
+ * Cloudflare Stream 의 「MP4 다운로드」 URL 이든 <video> 가 먹는 주소면 된다.
+ * (Stream 의 기본 HLS(.m3u8) 주소는 사파리 밖에서 안 돈다 — Stream 을 쓰면 MP4 쪽을 적는다.)
+ *
+ * ★ 비워 두면 복도 그림만 선다. 영상이 죽어도(404 · 코덱) 그림으로 내려앉는다 —
+ *   첫 화면은 어떤 경우에도 성립해야 한다.
+ * ★ 모션을 꺼 둔 사람에게는 틀지 않는다 (RoleSlides · Typed 와 같은 규칙).
+ * ★ 소리는 없다(muted) — 자동재생의 조건이기도 하고, 이 화면의 소리 규칙
+ *   (소리가 하는 일은 누른 것에 대답하는 것뿐, Intro.tsx)이기도 하다.
+ */
+export const INTRO_VIDEO_SRC = 'https://pub-016e853b3b9840f9a2cca5d4125552b7.r2.dev/who_is_AI.mp4';
+
+export function HeroVideo({ src = INTRO_VIDEO_SRC }: { src?: string }) {
+  /** 로드가 죽었다 — 이 판에서는 다시 시도하지 않고 그림으로 내려앉는다 */
+  const [dead, setDead] = useState(false);
+  // jsdom 에는 matchMedia 가 없다 — 없으면 움직이는 쪽으로 둔다 (Typed 와 같은 규칙)
+  const still =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!src || dead || still) return null;
+  return (
+    <video
+      className="hero-key__video"
+      src={src}
+      autoPlay
+      muted
+      loop
+      playsInline
+      aria-hidden
+      onError={() => setDead(true)}
+    />
+  );
+}
+
 /** 아래에 더 있다는 표시 — 한 번에 한 칸이라 이게 없으면 여기서 끝인 줄 안다 */
 function Cue({ next, className = '' }: { next: () => void; className?: string }) {
   return (
@@ -138,6 +177,7 @@ export function HeroKey({ titled, onTitled, enter, guest, rules, next }: HeroPro
     <>
       <span className="hero-key__art" aria-hidden>
         <img src="/intro/corridor.jpg" alt="" />
+        <HeroVideo />
       </span>
       <span className="hero-key__far" aria-hidden />
       <span className="hero-key__glow" aria-hidden />

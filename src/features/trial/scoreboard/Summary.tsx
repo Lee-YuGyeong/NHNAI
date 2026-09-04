@@ -24,7 +24,11 @@ const COLS: Record<TrialGame, Col[]> = {
     { key: 'unnecessaryMoves', label: '헛움직임', unit: '회', digits: 0 },
     { key: 'hitCount', label: '충돌', unit: '회', digits: 0 },
   ],
-  colorhunt: [{ key: 'accuracy', label: '정답률', unit: '', digits: 2 }],
+  colorhunt: [
+    { key: 'accuracy', label: '정답률', unit: '', digits: 2 },
+    { key: 'hesitationMs', label: '빛 바뀐 직후', unit: 'ms', digits: 0 },
+    { key: 'wrongPicks', label: '오답', unit: '회', digits: 0 },
+  ],
 };
 
 function fmt(v: unknown, unit: string, digits: number): string {

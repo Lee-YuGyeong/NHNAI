@@ -13,7 +13,8 @@
  *   - 좌석 목록(GameSeat)에는 「사람인가 AI 인가」가 **없다.** 실제 사람 · 대역(NPC) · AI 좌석이 와이어에서
  *     같은 모양이다. 정체는 격리된 뒤(game_isolated)와 판이 끝난 뒤(game_ended)에만 실린다.
  *   - 배역(game_role)은 **그 소켓 하나에만** 간다. AI 설계자에게만 AI 의 좌석이 딸려 온다 (§1.1).
- *   - 물리 조건값은 어디에도 없다 (P8). 색 사냥이 내려주는 것은 **겉보기 색**뿐이다.
+ *   - 물리 조건값은 어디에도 없다 (P8). 색 사냥의 이벤트(줍기 · 조명 전환)도 `protocol.ts` 의
+ *     `trial_*` 다 — 내려가는 것은 서버가 곱셈을 끝낸 **겉보기 색**뿐이다.
  */
 
 import type { BodyId, TrialGame, TrialResultWire } from './protocol';
@@ -95,15 +96,6 @@ export interface GameStateWire {
   startedAt: number | null;
 }
 
-/** 색 사냥 — 오브 하나의 **겉보기**. 진짜 색과 정답 여부는 서버에만 있다 */
-export interface ColorOrbWire {
-  id: number;
-  x: number;
-  z: number;
-  /** 지금 조명 아래서 보이는 색 (#rrggbb) */
-  shown: string;
-}
-
 /** 관리 AI 방송의 결 — 화면 배너·TTS 가 같은 값을 본다 (shared/broadcast-kind 의 부분집합) */
 export type LeaderKind = 'announce' | 'readout' | 'alarm';
 
@@ -123,9 +115,7 @@ export type GameC2SMessage =
   /** 기록에 대한 해명·주장 — 관리 AI 가 공개된 기록과 대조해 판정한다 (P5 · P6) */
   | { t: 'game_claim'; text: string }
   /** AI 설계자의 기록 조작 — 판당 1회 · 대상 1명 (P7). 다음 결과의 공개본이 바뀐다 */
-  | { t: 'game_tamper'; target: string; direction: 'suspicious' | 'normal' }
-  /** 색 사냥 — 오브를 주웠다(E). 서버가 정답표와 대조한다 */
-  | { t: 'game_pick'; objectId: number };
+  | { t: 'game_tamper'; target: string; direction: 'suspicious' | 'normal' };
 
 /** 서버 → 클라이언트 */
 export type GameS2CMessage =
@@ -149,10 +139,6 @@ export type GameS2CMessage =
   | { t: 'game_leader'; text: string; kind: LeaderKind; ts: number }
   /** 주장 판정이 났다 — 전원 공개 */
   | { t: 'game_verdict'; by: string; verdict: ClaimVerdict; text: string; delta: number }
-  /** 색 사냥 — 판이 열렸거나 조명이 바뀌었다. 오브의 겉보기 색만 온다 */
-  | { t: 'game_colorhunt'; orbs: ColorOrbWire[]; targetName: string; instruction: string }
-  /** 색 사냥 — 누군가 오브를 주웠다 (몸이 그쪽으로 간 것을 그리는 연출용. 맞았는지는 안 온다) */
-  | { t: 'game_picked'; id: string; objectId: number }
   /** 설계자의 조작이 접수됐다 — 그 소켓에만 */
   | { t: 'game_tamper_ok'; left: number }
   /** 판이 끝났다 — 정체표 전부 공개 */
@@ -197,10 +183,7 @@ export const SUSPICION = {
 /** 주장 한 줄의 길이 상한 — 서버가 자른다 */
 export const CLAIM_MAX_LEN = 140;
 
-/** 색 사냥 — 오브 수 · 정답 수 · 조명이 바뀌는 시각(ms, 테스트 시작 기준) · 테스트 길이(ms) */
-export const COLORHUNT_ORBS = 12;
-export const COLORHUNT_TARGETS = 4;
-export const COLORHUNT_SWITCH_MS = 10_000;
-export const COLORHUNT_MS = 30_000;
-/** 오브를 주울 수 있는 거리(m) */
-export const COLORHUNT_PICK_R = 1.4;
+/*
+ * 색 사냥의 와이어는 여기 없다 — 다른 두 테스트처럼 `protocol.ts` 의 `trial_*`
+ * (trial_pick · trial_colorhunt · trial_picked · trial_orb)를 그대로 쓴다. 상수는 mp/constants 의 HUNT_*.
+ */

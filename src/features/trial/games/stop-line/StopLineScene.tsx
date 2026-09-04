@@ -10,6 +10,7 @@ import { Suspense } from 'react';
 import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
 import { MAPS } from '@/world/map';
+import type { BodyId } from '@/world/mp/bodies';
 import { EYE_HEIGHT } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { AdaptiveFov, Exposure, MouseLook, Remotes } from '@/world/scene/WorldScene';
@@ -24,6 +25,8 @@ const def = MAPS.interrogation;
 
 export interface StopLineSceneProps {
   myId: string | null;
+  /** 내 몸 — 3인칭이라 보인다. 있으면 군인(mp/bodies.ts), 없으면 로봇 폴백 */
+  myBody?: BodyId | null;
   /** 방에 있는 실제 사람들(나 제외) — Remotes 가 remotePlayers 에서 좌표를 찾는다 */
   roster: readonly { id: string }[];
   /** 서버가 시뮬레이션하는 AI 좌석 id 들 */
@@ -38,7 +41,7 @@ export interface StopLineSceneProps {
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
 }
 
-export function StopLineScene({ myId, roster, aiIds, phase, gameKey, myAttempts, onAccel, onBrake, sendMove }: StopLineSceneProps) {
+export function StopLineScene({ myId, myBody, roster, aiIds, phase, gameKey, myAttempts, onAccel, onBrake, sendMove }: StopLineSceneProps) {
   return (
     <WorldCanvas
       quality="high"
@@ -68,7 +71,7 @@ export function StopLineScene({ myId, roster, aiIds, phase, gameKey, myAttempts,
       ))}
 
       <TrialRig myId={myId} gameKey={gameKey} myAttempts={myAttempts} onAccel={onAccel} onBrake={onBrake} sendMove={sendMove} />
-      <SelfAvatar />
+      <SelfAvatar body={myBody} />
       <MouseLook />
     </WorldCanvas>
   );

@@ -35,6 +35,10 @@ export interface GameState {
   myAttempts: number;
   /** 낙하 생존 — 이번 테스트에 내가 맞은 횟수 */
   myHits: number;
+  /** 색 사냥 — 이번 테스트에 내가 주운 횟수. 정오는 여기 없다 — 전원이 결과 모달에서 처음 본다 */
+  myPicks: number;
+  /** 색 사냥 — 지금 조명과 목표색 (trial_colorhunt). HUD 스와치(원색)와 조명 오버레이가 그린다 */
+  hunt: { light: string; target: string; targetHex: string } | null;
   /** 결과 모달이 그릴 것 — 서버 trial_result. 모달이 닫힌 뒤에도 HUD 요약으로 남는다 */
   latestResult: TrialResultWire | null;
   history: TrialResultWire[];
@@ -60,6 +64,8 @@ const initialState: GameState = {
   test: null,
   myAttempts: 0,
   myHits: 0,
+  myPicks: 0,
+  hunt: null,
   latestResult: null,
   history: [],
   leader: null,
@@ -112,7 +118,10 @@ export const interrogationSlice = createSlice({
         s.verdict = null;
         s.test = null;
       }
-      if (a.payload.phase !== 'test') s.test = null;
+      if (a.payload.phase !== 'test') {
+        s.test = null;
+        s.hunt = null;
+      }
     },
     roleReceived(s, a: PayloadAction<{ seatId: string; role: GameRole; aiId?: string; tamperLeft: number }>) {
       s.me = { seatId: a.payload.seatId, role: a.payload.role, aiId: a.payload.aiId ?? null, tamperLeft: a.payload.tamperLeft };
@@ -173,6 +182,16 @@ export const interrogationSlice = createSlice({
       s.test = a.payload;
       s.myAttempts = 0;
       s.myHits = 0;
+      s.myPicks = 0;
+      s.hunt = null;
+    },
+    /** 색 사냥 — 테스트가 열렸거나 조명이 바뀌었다(trial_colorhunt). 구슬은 huntState(가변)가 든다 */
+    colorhuntSynced(s, a: PayloadAction<{ light: string; target: string; targetHex: string }>) {
+      s.hunt = a.payload;
+    },
+    /** 색 사냥 — 누가 주웠다(trial_picked). 내 좌석일 때만 센다 */
+    pickRecorded(s, a: PayloadAction<string>) {
+      if (s.me && a.payload === s.me.seatId) s.myPicks += 1;
     },
     attemptRecorded(s, a: PayloadAction<string>) {
       if (s.me && a.payload === s.me.seatId) s.myAttempts += 1;
@@ -184,6 +203,7 @@ export const interrogationSlice = createSlice({
       s.latestResult = a.payload;
       s.history.push(a.payload);
       s.test = null;
+      s.hunt = null;
     },
     errorOccurred(s, a: PayloadAction<string>) {
       s.status = 'error';
@@ -209,6 +229,8 @@ export const gameSelectors = {
   selectTest: (r: Root) => r.interrogation.test,
   selectMyAttempts: (r: Root) => r.interrogation.myAttempts,
   selectMyHits: (r: Root) => r.interrogation.myHits,
+  selectMyPicks: (r: Root) => r.interrogation.myPicks,
+  selectHunt: (r: Root) => r.interrogation.hunt,
   selectLatestResult: (r: Root) => r.interrogation.latestResult,
   selectHistory: (r: Root) => r.interrogation.history,
   selectLeader: (r: Root) => r.interrogation.leader,

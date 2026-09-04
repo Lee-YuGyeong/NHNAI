@@ -1,14 +1,17 @@
 /**
- * 정지선 동안의 내 몸 — **레일 위를 달리는 1인칭** (features/trial 의 TrialRig 과 같은 다리). W 로 출발, S 로 브레이크.
- * 위치는 runnerState 가 공개 가속 모델(runModel)과 서버가 준 정지 지점으로 정한다. 시야는 MouseLook → input.look.
+ * 정지선 동안의 내 몸 — **레일 위를 달리는 3인칭** (features/trial 의 TrialRig 그대로 가져왔다 — chase.ts
+ * 머리말, 2026-09-04 사용자: "그냥 검문소 들어가면 3인칭으로 나오게 해줘"). W 로 출발, S 로 브레이크.
+ * 위치는 runnerState 가 공개 가속 모델(runModel)과 서버가 준 정지 지점으로 정한다. 카메라는 몸 뒤·위에서
+ * 따라오고 마우스는 그 각(yaw·pitch)만 돈다.
  * 내 좌표는 FreeRig 과 같은 규칙으로 방에 보낸다(바뀌었을 때만 10Hz) — 남의 화면에 내 몸이 서게 하는 것뿐, 판정과 무관하다.
  */
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
-import { LOOK_SENSITIVITY, MAX_PITCH, input } from '@/world/input/input';
-import { EYE_HEIGHT, MOVE_THROTTLE_MS } from '@/world/mp/constants';
+import { LOOK_SENSITIVITY, input } from '@/world/input/input';
+import { MOVE_THROTTLE_MS } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
+import { PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, placeChaseCamera } from '../chase';
+import { selfPose } from '../selfPose';
 import { runnerState } from './runnerState';
 import { MAX_ATTEMPTS, START_Z, laneX, zAt } from './track';
 
@@ -30,15 +33,21 @@ export function StopRig({
   const { camera } = useThree();
   const phase = useRef<'idle' | 'running' | 'waiting'>('idle');
   const lastAttempts = useRef(myAttempts);
-  const forward = useRef(new THREE.Vector3());
+  const yaw = useRef(0);
+  const pitch = useRef(PITCH_DEFAULT);
   const lastSent = useRef({ at: 0, x: NaN, z: NaN, heading: NaN, anim: 'idle' as AnimState });
 
-  // 내 레인의 출발선에서 무대(-z)를 보고 선다
+  // 내 레인의 출발선에서 무대(-z)를 보고 선다. 카메라는 뒤에서 어깨 너머를 본다
   useEffect(() => {
     runnerState.setLane(myId, lane);
-    camera.rotation.order = 'YXZ';
-    camera.rotation.set(0, 0, 0);
-    camera.position.set(laneX(lane), EYE_HEIGHT, START_Z);
+    yaw.current = 0;
+    pitch.current = PITCH_DEFAULT;
+    selfPose.x = laneX(lane);
+    selfPose.y = 0;
+    selfPose.z = START_Z;
+    selfPose.heading = Math.PI; // 아바타 앞면(+z)을 -z 로
+    selfPose.anim = 'idle';
+    placeChaseCamera(camera, laneX(lane), 0, START_Z, 0, PITCH_DEFAULT);
     phase.current = 'idle';
   }, [camera, myId, lane]);
 
@@ -69,8 +78,8 @@ export function StopRig({
   useFrame(() => {
     if (input.lookX !== 0 || input.lookY !== 0) {
       if (document.pointerLockElement !== null) {
-        camera.rotation.y -= input.lookX * LOOK_SENSITIVITY;
-        camera.rotation.x = Math.min(MAX_PITCH, Math.max(-MAX_PITCH, camera.rotation.x - input.lookY * LOOK_SENSITIVITY));
+        yaw.current -= input.lookX * LOOK_SENSITIVITY;
+        pitch.current = Math.min(PITCH_MAX, Math.max(PITCH_MIN, pitch.current + input.lookY * LOOK_SENSITIVITY));
       }
       input.lookX = 0;
       input.lookY = 0;
@@ -78,12 +87,12 @@ export function StopRig({
     const { x: dist, anim } = runnerState.frameAt(myId, Date.now());
     const x = laneX(lane);
     const z = zAt(dist);
-    camera.position.set(x, EYE_HEIGHT, z);
-
-    camera.getWorldDirection(forward.current);
-    forward.current.y = 0;
-    forward.current.normalize();
-    const heading = Math.atan2(forward.current.x, forward.current.z);
+    const heading = Math.PI; // 몸은 늘 무대 쪽(-z)을 본다 — 레일 위다
+    selfPose.x = x;
+    selfPose.z = z;
+    selfPose.heading = heading;
+    selfPose.anim = anim;
+    placeChaseCamera(camera, x, 0, z, yaw.current, pitch.current);
 
     const now = performance.now();
     const s = lastSent.current;
