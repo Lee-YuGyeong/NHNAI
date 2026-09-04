@@ -72,6 +72,11 @@ export interface SeatVoiceEnv {
    */
   ELEVENLABS_SEAT_VOICE_IDS?: string;
   /**
+   * 관리 AI 방송 목소리 **하나**(worker/src/tts.ts). 여기 쉼표로 여럿이 들어 있으면
+   * 명부로도 읽어 준다 (seatVoiceIds 머리말) — 흔한 오해라 막지 않고 받아 준다.
+   */
+  ELEVENLABS_VOICE_ID?: string;
+  /**
    * 클립 토큰 서명 열쇠. 없으면 ELEVENLABS_API_KEY 에서 파생한다 —
    * 키가 있어야 합성이 되니, 이렇게 두면 **새 실패 지점이 생기지 않는다.**
    * 따로 돌리고 싶을 때만 채운다.
@@ -210,12 +215,37 @@ export function createClipBudget(limit: number = CLIP_BUDGET_CHARS): ClipBudget 
 
 /* ─────────────────────────── 엔드포인트 ─────────────────────────── */
 
-/** 명부 — 순서가 곧 번호다 */
-export function seatVoiceIds(env: SeatVoiceEnv): string[] {
-  return (env.ELEVENLABS_SEAT_VOICE_IDS ?? '')
+function splitIds(raw: string | undefined): string[] {
+  return (raw ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/** 명부를 어디서 읽었나 — 화면이 「옮기는 게 낫다」를 말해 주려고 (handleSeatRoster) */
+export type RosterSource = 'seat-ids' | 'voice-id' | 'none';
+
+/**
+ * 명부 — 순서가 곧 번호다.
+ *
+ * ★ `ELEVENLABS_VOICE_ID` 에 쉼표로 여럿을 넣어 둔 경우도 명부로 읽는다 (2026-09-04 사용자).
+ *   그 변수는 원래 **관리 AI 방송 목소리 하나**를 담는 자리다. 거기에 아홉을 넣는 것은
+ *   자연스러운 오해다 — 이름이 「보이스 아이디」니까. 못 읽은 척하고 방을 조용하게 두는 것보다
+ *   읽어 주고 **화면에서 옮기라고 말하는** 편이 낫다.
+ *
+ *   하나만 있으면 명부로 치지 않는다. 그건 원래 용도(방송 목소리 하나) 그대로다.
+ */
+export function seatVoiceIds(env: SeatVoiceEnv): string[] {
+  const own = splitIds(env.ELEVENLABS_SEAT_VOICE_IDS);
+  if (own.length > 0) return own;
+  const shared = splitIds(env.ELEVENLABS_VOICE_ID);
+  return shared.length > 1 ? shared : [];
+}
+
+export function rosterSource(env: SeatVoiceEnv): RosterSource {
+  if (splitIds(env.ELEVENLABS_SEAT_VOICE_IDS).length > 0) return 'seat-ids';
+  if (splitIds(env.ELEVENLABS_VOICE_ID).length > 1) return 'voice-id';
+  return 'none';
 }
 
 export async function handleSeatClip(
@@ -305,6 +335,7 @@ export async function handleSeatRoster(request: Request, env: SeatVoiceEnv): Pro
 
   return new Response(
     JSON.stringify({
+      source: rosterSource(env),
       seats: ids.map((id, index) => ({ index, id, name: names[id] ?? '', known: id in names })),
     }),
     { headers: { 'content-type': 'application/json; charset=utf-8' } },

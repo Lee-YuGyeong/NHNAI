@@ -42,6 +42,24 @@ export function genderOf(index: VoiceIndex): string {
 }
 
 /**
+ * 명부 자리를 부르는 이름 — **남1 … 남5 · 여1 … 여4** (2026-09-04 사용자).
+ *
+ * 계정에 저장된 이름(「내 목소리 3」 같은)으로는 아홉을 훑을 때 무엇이 무엇인지 안 잡힌다.
+ * 성별 안에서 몇 번째인지가 붙어야 「남3 이 남2 랑 너무 비슷하다」처럼 **비교를 말로 할 수**
+ * 있고, 명부를 고치는 일이 곧 그 비교다.
+ *
+ * 이것도 표시일 뿐이다 — 배정(assignVoices)은 이 이름을 모른다. 게임 화면에는 좌석 번호
+ * (SUBJECT 01…)만 뜨고, 이 이름은 캐스팅 화면 밖으로 안 나간다.
+ */
+export function seatLabel(index: VoiceIndex): string {
+  const gender = SEAT_GENDERS[index];
+  if (!gender) return `#${index}`;
+  let nth = 0;
+  for (let i = 0; i <= index; i++) if (SEAT_GENDERS[i] === gender) nth += 1;
+  return `${gender}${nth}`;
+}
+
+/**
  * 좌석마다 목소리를 하나씩 배정한다 — **판마다 다시 섞인다.**
  *
  * `seats` 에는 **그 판의 좌석을 전부** 넘긴다 (AI 좌석 포함). 빠뜨린 좌석은 목소리가 없고,

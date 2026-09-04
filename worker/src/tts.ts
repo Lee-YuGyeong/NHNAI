@@ -102,6 +102,19 @@ interface TtsBody {
   format?: string;
 }
 
+/**
+ * 방송이 쓸 목소리 하나.
+ *
+ * ELEVENLABS_VOICE_ID 는 **하나**를 담는 자리인데, 좌석 명부 아홉을 여기에 쉼표로 이어 넣는
+ * 오해가 실제로 났다 (2026-09-04 사용자). 그대로 상류에 넘기면 "id1,id2,…" 가 보이스 id 로
+ * 가서 방송이 통째로 400 이 된다 — **좌석을 채우려다 방송을 죽이는** 모양이다.
+ * 쉼표가 있으면 첫 번째만 쓴다. 명부 쪽은 seat-voice.ts 의 seatVoiceIds 가 같은 값을 읽는다.
+ */
+function broadcastVoiceId(env: TtsEnv): string | undefined {
+  const first = (env.ELEVENLABS_VOICE_ID ?? '').split(',')[0]?.trim();
+  return first || undefined;
+}
+
 export async function handleTts(request: Request, env: TtsEnv): Promise<Response> {
   if (request.method !== 'POST') return fail('POST 만 받는다', 405);
   if (!env.ELEVENLABS_API_KEY) {
@@ -124,7 +137,7 @@ export async function handleTts(request: Request, env: TtsEnv): Promise<Response
   // 모르는 종류는 거절하지 않고 일반 방송으로 읽는다 — 소리가 안 나는 것보다 낫다
   const tone = kind && BROADCAST_KINDS.includes(kind) ? kind : 'announce';
 
-  const voice = voiceId ?? env.ELEVENLABS_VOICE_ID;
+  const voice = voiceId ?? broadcastVoiceId(env);
   if (!voice) {
     return fail('보이스가 없다 — ElevenLabs 대시보드 Voices 에서 목소리 하나를 고르고 그 ID 를 ELEVENLABS_VOICE_ID 에 넣는다', 503);
   }

@@ -130,12 +130,21 @@ describe('지금 워커에 들어간 명부', () => {
     expect(await screen.findByText(/다 찼다/)).toBeInTheDocument();
   });
 
-  it('앞 다섯은 남, 뒤 넷은 여로 적는다 (SEAT_GENDERS)', async () => {
+  it('앞 다섯은 남1~남5, 뒤 넷은 여1~여4 로 부른다', async () => {
     stubSeats({ seats: Array.from({ length: ROSTER_SIZE }, (_, i) => seat(i)) });
     render(<SeatCasting voices={VOICES} />);
-    await screen.findByText('내 목소리 0');
-    expect(screen.getAllByText('남')).toHaveLength(5);
-    expect(screen.getAllByText('여')).toHaveLength(4);
+    await screen.findByText('남1');
+    for (const label of ['남1', '남2', '남3', '남4', '남5', '여1', '여2', '여3', '여4']) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+  });
+
+  it('자리마다 듣기가 있고, 아홉을 순서대로 듣는 단추도 있다', async () => {
+    stubSeats({ seats: Array.from({ length: ROSTER_SIZE }, (_, i) => seat(i)) });
+    render(<SeatCasting voices={VOICES} />);
+    await screen.findByText('남1');
+    expect(screen.getAllByRole('button', { name: '듣기' })).toHaveLength(ROSTER_SIZE);
+    expect(screen.getByRole('button', { name: /아홉 전부 순서대로/ })).toBeInTheDocument();
   });
 
   it('모자라면 방 전체가 무음이라고 적는다', async () => {

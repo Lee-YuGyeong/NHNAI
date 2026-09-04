@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { audioContext, masterOut } from '@/features/tts/engine';
 import { DISCUSSION_LINES } from './lines';
-import { ROSTER_SIZE, SEAT_GENDERS, genderOf } from './roster';
+import { ROSTER_SIZE, SEAT_GENDERS, seatLabel } from './roster';
 
 export interface AccountVoice {
   id: string;
@@ -41,7 +41,12 @@ function load(): AccountVoice[] {
 
 let source: AudioBufferSourceNode | null = null;
 
-/** 시청 한 줄 — 게임과 같은 관로. 폴백은 **일부러 없다**(다른 목소리를 듣고 고르게 된다) */
+/**
+ * 시청 한 줄 — 게임과 같은 관로. 폴백은 **일부러 없다**(다른 목소리를 듣고 고르게 된다).
+ *
+ * **소리가 끝날 때 resolve 한다.** 시작할 때 끝내면 「아홉 전부 듣기」가 아홉을 동시에 틀어
+ * 버려서 아무것도 안 들린다 — 순서대로 듣는 것이 명부를 고치는 실제 작업이다.
+ */
 async function auditionSeat(voiceId: string, text: string): Promise<void> {
   const res = await fetch('/api/tts/seat-audition', {
     method: 'POST',
@@ -54,6 +59,7 @@ async function auditionSeat(voiceId: string, text: string): Promise<void> {
   }
   const ctx = audioContext();
   const buf = await ctx.decodeAudioData(await res.arrayBuffer());
+  // 사용자 제스처 안에서 열어 둔다 — 안 열면 브라우저가 소리를 조용히 삼킨다
   if (ctx.state === 'suspended') await ctx.resume().catch(() => undefined);
   try {
     source?.stop();
@@ -64,7 +70,13 @@ async function auditionSeat(voiceId: string, text: string): Promise<void> {
   src.buffer = buf;
   src.connect(masterOut()); // 좌석 음성은 필터가 없다 — 마스터로 곧장 간다 (webAudio.ts 와 같다)
   source = src;
-  src.start();
+  await new Promise<void>((resolve) => {
+    src.onended = () => {
+      src.disconnect();
+      resolve();
+    };
+    src.start();
+  });
 }
 
 /** 워커에 실제로 들어간 명부 한 자리 (GET /api/tts/seats) */
@@ -83,17 +95,23 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
   const [said, setSaid] = useState<{ state: 'idle' | 'loading' | 'ok' | 'fail'; why?: string }>({ state: 'idle' });
   const [copied, setCopied] = useState(false);
   const seq = useRef(0);
+  /** 지금 소리 나는 자리 — 아홉을 연달아 들을 때 어느 것이 울고 있는지 눈으로 따라가려고 */
+  const [nowPlaying, setNowPlaying] = useState<number | null>(null);
   /** 지금 워커가 쓰고 있는 명부 — null 은 아직 안 물어봤거나 개발 스위치가 꺼진 것 */
-  const [live, setLive] = useState<{ state: 'loading' | 'off' | 'done'; seats: LiveSeat[] }>({
-    state: 'loading',
-    seats: [],
-  });
+  const [live, setLive] = useState<{
+    state: 'loading' | 'off' | 'done';
+    seats: LiveSeat[];
+    /** 어느 변수에서 읽었나 — 'voice-id' 면 방송용 자리에 넣어 둔 것이다 */
+    source?: 'seat-ids' | 'voice-id' | 'none';
+  }>({ state: 'loading', seats: [] });
 
   const reloadLive = useCallback(() => {
     setLive((p) => ({ ...p, state: 'loading' }));
     void fetch('/api/tts/seats')
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: { seats: LiveSeat[] }) => setLive({ state: 'done', seats: d.seats }))
+      .then((d: { seats: LiveSeat[]; source?: 'seat-ids' | 'voice-id' | 'none' }) =>
+        setLive({ state: 'done', seats: d.seats, source: d.source }),
+      )
       .catch(() => setLive({ state: 'off', seats: [] }));
   }, []);
 
@@ -118,6 +136,34 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
         .catch((e: unknown) =>
           seq.current === my && setSaid({ state: 'fail', why: e instanceof Error ? e.message : String(e) }),
         );
+    },
+    [line],
+  );
+
+  /**
+   * 아홉을 순서대로 한 번씩 — 명부를 고치는 실제 작업이 이거다.
+   * 하나씩 눌러 들으면 앞엣것이 기억에서 흐려져서 「서로 구별되나」를 판단할 수가 없다.
+   * 같은 줄로 연달아 들어야 비슷한 둘이 드러난다.
+   */
+  const hearAll = useCallback(
+    async (seats: { index: number; id: string }[]) => {
+      const my = ++seq.current;
+      for (const s of seats) {
+        if (seq.current !== my) return; // 도중에 다른 걸 눌렀다
+        setNowPlaying(s.index);
+        setSaid({ state: 'loading' });
+        try {
+          await auditionSeat(s.id, line);
+        } catch (e: unknown) {
+          if (seq.current !== my) return;
+          setNowPlaying(null);
+          setSaid({ state: 'fail', why: e instanceof Error ? e.message : String(e) });
+          return; // 하나가 막히면 나머지도 대개 막힌다 — 아홉 번 실패를 보여 줄 이유가 없다
+        }
+      }
+      if (seq.current !== my) return;
+      setNowPlaying(null);
+      setSaid({ state: 'ok' });
     },
     [line],
   );
@@ -157,6 +203,11 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
           <button onClick={reloadLive} style={{ fontSize: 12 }}>
             다시 읽기
           </button>
+          {live.state === 'done' && live.seats.length > 0 && (
+            <button onClick={() => void hearAll(live.seats)} style={{ fontSize: 12 }}>
+              ▶ 아홉 전부 순서대로
+            </button>
+          )}
           {live.state === 'done' && (
             <span style={{ opacity: 0.65, fontSize: 13 }}>
               {live.seats.length}/{ROSTER_SIZE}
@@ -176,15 +227,39 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
             <code>ELEVENLABS_SEAT_VOICE_IDS</code> 가 비어 있다. 아래에서 아홉을 짜서 넣는다.
           </div>
         )}
+        {/*
+          방송용 자리(ELEVENLABS_VOICE_ID)에 아홉을 이어 넣은 경우. 읽어는 주지만(seat-voice.ts),
+          그 자리는 원래 관리 AI 목소리 **하나**라 놔두면 헷갈린다 — 방송은 첫 번째만 쓰게 된다.
+        */}
+        {live.source === 'voice-id' && (
+          <div style={{ fontSize: 13, color: '#d9b06a', margin: '2px 0 6px' }}>
+            ⚠ <code>ELEVENLABS_VOICE_ID</code> 에서 읽었다. 거기는 원래 <strong>관리 AI 방송 목소리
+            하나</strong>를 넣는 자리다 — 지금 방송은 그중 <strong>첫 번째만</strong> 쓴다.
+            아홉은 <code>ELEVENLABS_SEAT_VOICE_IDS</code> 로 옮기고, 저기엔 방송용 하나만 남기는 게 맞다.
+          </div>
+        )}
         {live.seats.map((s) => (
-          <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '2px 0', fontSize: 14 }}>
-            <span style={{ width: 22, opacity: 0.5 }}>{s.index}</span>
-            {/* 성별은 표시일 뿐이다 — 배정은 이 값을 안 본다 (roster.ts 의 SEAT_GENDERS) */}
-            <span style={{ width: 22, opacity: 0.6 }}>{genderOf(s.index)}</span>
-            <span style={{ flex: 1, color: s.known ? undefined : '#e08a6a' }}>
+          <div
+            key={s.id}
+            style={{
+              display: 'flex',
+              gap: 8,
+              alignItems: 'center',
+              margin: '1px 0',
+              padding: '3px 6px',
+              borderRadius: 4,
+              fontSize: 14,
+              // 연달아 들을 때 지금 어느 것이 우는지 — 아홉이 지나가는 동안 눈으로 따라간다
+              background: nowPlaying === s.index ? '#1d4a2b' : undefined,
+            }}
+          >
+            {/* 남1 … 남5 · 여1 … 여4 — 계정 이름으로는 아홉을 훑을 때 무엇이 무엇인지 안 잡힌다 */}
+            <strong style={{ width: 34 }}>{seatLabel(s.index)}</strong>
+            <span style={{ width: 20, opacity: 0.4, fontSize: 12 }}>{s.index}</span>
+            <span style={{ flex: 1, opacity: s.known ? 0.7 : 1, color: s.known ? undefined : '#e08a6a' }}>
               {s.known ? s.name : `${s.id.slice(0, 10)}… — 계정에 없는 id`}
             </span>
-            <button onClick={() => hear(s.id)}>듣기</button>
+            <button onClick={() => { setNowPlaying(s.index); hear(s.id); }}>듣기</button>
           </div>
         ))}
         {live.state === 'done' && live.seats.length > 0 && (
@@ -250,10 +325,10 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
       )}
       {roster.map((v, i) => (
         <div key={v.id} style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '2px 0', fontSize: 14 }}>
-          <span style={{ width: 22, opacity: 0.5 }}>{i}</span>
-          {/* 이 자리에 넣기로 한 성별 — 넣는 순서가 SEAT_GENDERS 와 맞는지 보면서 채운다 */}
-          <span style={{ width: 22, opacity: 0.6 }}>{genderOf(i)}</span>
-          <span style={{ flex: 1 }}>{v.name}</span>
+          {/* 이 자리에 넣기로 한 이름 — 넣는 순서가 SEAT_GENDERS 와 맞는지 보면서 채운다 */}
+          <strong style={{ width: 34 }}>{seatLabel(i)}</strong>
+          <span style={{ width: 20, opacity: 0.4, fontSize: 12 }}>{i}</span>
+          <span style={{ flex: 1, opacity: 0.7 }}>{v.name}</span>
           <button onClick={() => hear(v.id)}>듣기</button>
           <button onClick={() => setRoster((r) => r.filter((x) => x.id !== v.id))}>빼기</button>
         </div>

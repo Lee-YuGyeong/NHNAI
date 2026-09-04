@@ -9,7 +9,7 @@
  *   역할이 들어갈 자리가 없다. 런타임 테스트로는 잴 수 없어서 여기 적어 둔다.
  */
 import { describe, expect, it } from 'vitest';
-import { ROSTER_SIZE, assignVoices } from '@/features/voice/roster';
+import { ROSTER_SIZE, SEAT_GENDERS, assignVoices, seatLabel } from '@/features/voice/roster';
 
 /** 씨앗을 심은 난수 (mulberry32) — 통계 검사가 판마다 흔들리면 검사가 아니다 */
 function seeded(seed: number): () => number {
@@ -101,6 +101,35 @@ describe('assignVoices — 판마다 다시 섞인다', () => {
     const a = assignVoices(ALL_SEATS, seeded(42));
     const b = assignVoices(ALL_SEATS, seeded(42));
     expect([...a.entries()]).toEqual([...b.entries()]);
+  });
+});
+
+/**
+ * 명부 자리 이름 — 남1 … 남5 · 여1 … 여4 (2026-09-04 사용자).
+ * 캐스팅 화면에서만 쓰는 이름이라 게임에는 안 나가지만, 아홉을 귀로 비교하는 동안
+ * 「남3 이 남2 랑 비슷하다」를 말로 할 수 있게 하는 것이 이 이름의 일이다.
+ */
+describe('seatLabel — 명부 자리 이름', () => {
+  it('앞 다섯은 남1~남5, 뒤 넷은 여1~여4 다', () => {
+    const names = Array.from({ length: ROSTER_SIZE }, (_, i) => seatLabel(i));
+    expect(names).toEqual(['남1', '남2', '남3', '남4', '남5', '여1', '여2', '여3', '여4']);
+  });
+
+  it('성별 안에서 1부터 다시 센다 — 여1 은 명부 번호로는 5다', () => {
+    expect(seatLabel(5)).toBe('여1');
+  });
+
+  it('이름이 겹치지 않는다 — 겹치면 귀로 비교한 것을 말로 옮길 수 없다', () => {
+    const names = Array.from({ length: ROSTER_SIZE }, (_, i) => seatLabel(i));
+    expect(new Set(names).size).toBe(ROSTER_SIZE);
+  });
+
+  it('명부 밖 번호는 이름을 지어내지 않는다', () => {
+    expect(seatLabel(ROSTER_SIZE)).toBe(`#${ROSTER_SIZE}`);
+  });
+
+  it('성별 표는 명부와 길이가 같다 — 어긋나면 화면이 거짓말을 한다', () => {
+    expect(SEAT_GENDERS).toHaveLength(ROSTER_SIZE);
   });
 });
 
