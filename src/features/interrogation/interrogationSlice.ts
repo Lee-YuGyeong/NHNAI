@@ -60,6 +60,8 @@ export interface GameState {
   /** 판이 끝났을 때 공개된 정체표 */
   roles: Record<string, GameRole> | null;
   outcome: GameOutcome | null;
+  /** game_ended 를 받은 내 시각 — 끝 화면의 시계가 여기에 GAME_ENDED_MS 를 더해 로비 복귀를 센다. 재접속이면 없다 */
+  endedAt: number | null;
   /** 서버가 거절한 마지막 사유 */
   reject: string | null;
 }
@@ -89,6 +91,7 @@ const initialState: GameState = {
   verdict: null,
   roles: null,
   outcome: null,
+  endedAt: null,
   reject: null,
 };
 
@@ -132,6 +135,7 @@ export const interrogationSlice = createSlice({
         s.latestResult = null;
         s.roles = null;
         s.outcome = null;
+        s.endedAt = null;
         s.verdict = null;
         s.test = null;
       }
@@ -184,6 +188,7 @@ export const interrogationSlice = createSlice({
     endedReceived(s, a: PayloadAction<{ outcome: GameOutcome; roles: Record<string, GameRole> }>) {
       s.outcome = a.payload.outcome;
       s.roles = a.payload.roles;
+      s.endedAt = Date.now();
       if (s.wire) s.wire.phase = 'ended';
     },
     rejected(s, a: PayloadAction<string>) {
@@ -281,5 +286,6 @@ export const gameSelectors = {
   selectVerdict: (r: Root) => r.interrogation.verdict,
   selectRoles: (r: Root) => r.interrogation.roles,
   selectOutcome: (r: Root) => r.interrogation.outcome,
+  selectEndedAt: (r: Root) => r.interrogation.endedAt,
   selectReject: (r: Root) => r.interrogation.reject,
 };

@@ -711,70 +711,399 @@
   cursor: default;
 }
 
-/* ── 끝 화면 ── */
+/* ── 끝 화면 「판정 종료」 ─────────────────────────────────────────────────
+   역할 카드(role-card.module.css, 「배정 통보」)와 **같은 판이 하나 더 켜지는 것**이다 — 머리띠 · 본문 · 발치가
+   한 장의 모따기 판으로 서고, 스캔라인 한 겹이 그 위를 덮는다. 값의 출처는 위의 .ig-chat 한 벌이다.
+   판의 색(--rc)은 컴포넌트가 꽂는다: 사람 진영 승리 = --amber(조명색) · AI 승리 = --signal(비상등).
+   남은 시간(--show)도 컴포넌트가 꽂는다 — 발치의 막대와 머리띠의 숫자가 같은 값을 봐야 어긋나지 않는다 */
 .ig-end {
   position: absolute;
   inset: 0;
   z-index: 50;
+  display: flex;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  background: radial-gradient(ellipse at center, rgba(4, 6, 10, 0.62), rgba(2, 3, 6, 0.92));
+  animation: ig-fade 0.5s ease both;
+}
+.ig-endpanel {
+  position: relative;
+  margin: auto;
+  width: min(560px, 100%);
   display: grid;
-  place-items: center;
-  background: rgba(4, 3, 2, 0.88);
-  animation: ig-fade 0.5s ease;
-}
-.ig-end .ig-sheet {
-  width: min(640px, 92vw);
-  padding: 26px 30px;
-  border: 1px solid var(--tone, var(--amber));
-  background: rgba(8, 6, 4, 0.94);
+  clip-path: var(--ig-chamfer);
   font-family: var(--font-mono);
+  animation: ig-on 0.42s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
-.ig-end .ig-eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.16em;
+/* 스캔라인은 판 전체를 덮는다 — 머리띠와 본문이 따로 켜진 장치로 보이지 않게 */
+.ig-endpanel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background: var(--ig-scan);
+  background-size: 100% 3px;
+}
+/* 켜지는 순간 한 번 지나가는 빛 */
+.ig-endpanel .shine {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 42%, rgba(255, 255, 255, 0.1) 50%, transparent 58%);
+  transform: translateX(-130%);
+  animation: ig-shine 0.85s ease 0.35s 1 forwards;
+}
+
+/* ── 머리띠 ── */
+.ig-endpanel .hd {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  background: rgba(8, 6, 4, 0.9);
+  border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
+  border-bottom: 1px solid var(--ig-line-soft);
+}
+.ig-endpanel .hd::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--rc), transparent);
+  opacity: 0.7;
+}
+.ig-endpanel .live {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rc);
+  box-shadow: 0 0 8px var(--rc);
+  animation: ig-commslive 2.6s ease-in-out infinite;
+}
+.ig-endpanel .ttl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   color: var(--dust);
-  margin: 0 0 8px;
 }
-.ig-end .ig-title {
-  font-size: 30px;
-  color: var(--tone, var(--amber));
-  margin: 0 0 10px;
-  letter-spacing: 0.06em;
+/* 로비 복귀까지 — 발치의 막대와 같은 것을 세고 있다 */
+.ig-endpanel .clock {
+  margin-left: auto;
+  padding: 2px 9px;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  clip-path: var(--ig-chamfer-sm);
+  border: 1px solid color-mix(in srgb, var(--rc) 50%, transparent);
+  background: color-mix(in srgb, var(--rc) 14%, transparent);
+  color: var(--rc);
 }
-.ig-end p {
-  margin: 6px 0;
-  font-size: 13px;
+
+/* ── 본문 ── */
+.ig-endpanel .bd {
+  padding: 22px 22px 16px;
+  background: rgba(8, 6, 4, 0.9);
+  border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
+  text-align: center;
+}
+.ig-endpanel .kicker {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--grime);
+}
+/* 판정 — 도장이 찍히듯 한 번 내려앉는다 (조금 크게 시작해 제자리로) */
+.ig-endpanel .name {
+  margin: 6px 0 0;
+  font-family: var(--font-sans);
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--rc);
+  text-shadow: 0 0 28px color-mix(in srgb, var(--rc) 45%, transparent);
+  animation: ig-stamp 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) 0.25s both;
+}
+.ig-endpanel .tagline {
+  margin: 6px 0 0;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 700;
   line-height: 1.6;
   color: var(--bone);
 }
-.ig-end ul {
-  margin: 12px 0;
+/* 정체 공개 — 역할 카드가 설계자에게만 주던 줄이 이제 전원에게 온다 */
+.ig-endpanel .reveal {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--dust);
+}
+.ig-endpanel .reveal b {
+  color: var(--signal);
+  font-weight: 700;
+}
+
+/* 내 결과 — 판이 진영의 것이라면 이 줄만이 나의 것이다. 칩은 내 결과대로 따로 물든다 (--mc) */
+.ig-endpanel .mine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  margin: 16px auto 0;
+  padding: 9px 14px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--ig-line-soft);
+  background: rgba(0, 0, 0, 0.32);
+  font-size: 12.5px;
+  color: var(--bone);
+}
+.ig-endpanel .mine.won {
+  --mc: var(--amber);
+}
+.ig-endpanel .mine.lost {
+  --mc: var(--signal);
+}
+.ig-endpanel .mine .who b {
+  color: var(--linen);
+  font-weight: 700;
+}
+.ig-endpanel .mine .chip {
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  clip-path: var(--ig-chamfer-sm);
+  border: 1px solid color-mix(in srgb, var(--mc) 60%, transparent);
+  background: color-mix(in srgb, var(--mc) 16%, transparent);
+  color: var(--mc);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--mc) 50%, transparent);
+}
+.ig-endpanel .mine small {
+  flex-basis: 100%;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--dust);
+}
+
+/* ── ▪ ── 장식 구분선 (역할 카드와 같은 것) */
+.ig-endpanel .rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 2px 0;
+  font-size: 8px;
+  color: color-mix(in srgb, var(--rc) 65%, transparent);
+}
+.ig-endpanel .rule::before,
+.ig-endpanel .rule::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+}
+.ig-endpanel .rule::before {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--rc) 45%, transparent));
+}
+.ig-endpanel .rule::after {
+  background: linear-gradient(270deg, transparent, color-mix(in srgb, var(--rc) 45%, transparent));
+}
+
+/* ── 정체표 ── 좌석판(.ig-seat)과 같은 줄 짜임: 이름 · 정체 · 표. 정체의 색도 좌석판의 규칙 그대로다 —
+   AI 는 비상등, 설계자는 조명색, 사람은 리넨. 격리된 줄은 좌석판처럼 물러난다 */
+.ig-endpanel .roster {
+  margin: 12px 0 0;
   padding: 0;
   list-style: none;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
+  gap: 0 18px;
+  text-align: left;
   font-size: 12px;
 }
-.ig-end li b {
-  color: var(--dust);
+.ig-endpanel .roster li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0 6px 12px;
+  position: relative;
+  border-top: 1px solid rgba(232, 221, 205, 0.08);
+  color: var(--bone);
+}
+/* 왼쪽 눈금 — 기록판의 한 줄처럼. 정체의 색으로 켜진다 */
+.ig-endpanel .roster li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 6px;
+  height: 1px;
+  background: var(--lc, rgba(232, 221, 205, 0.35));
+}
+.ig-endpanel .roster li b {
   font-weight: 500;
-  margin-right: 8px;
+  letter-spacing: 0.04em;
+  color: var(--dust);
 }
-.ig-end .ig-role-ai {
-  color: var(--signal);
-}
-.ig-end .ig-role-designer {
+.ig-endpanel .roster li.me b {
   color: var(--amber);
 }
-.ig-end button {
+.ig-endpanel .roster .role {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--lc, var(--dust));
+}
+.ig-endpanel .roster li.is-ai {
+  --lc: var(--signal);
+}
+.ig-endpanel .roster li.is-ai .role {
+  text-shadow: 0 0 10px rgba(255, 51, 32, 0.45);
+}
+.ig-endpanel .roster li.is-designer {
+  --lc: var(--amber);
+}
+.ig-endpanel .roster li.is-human {
+  --lc: var(--linen);
+}
+.ig-endpanel .roster li.isolated {
+  opacity: 0.55;
+}
+.ig-endpanel .roster .tags {
+  display: flex;
+  gap: 4px;
+  min-width: 34px;
+  justify-content: flex-end;
+}
+.ig-endpanel .roster .tags:empty {
+  min-width: 0;
+}
+.ig-endpanel .roster em {
+  font-style: normal;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  padding: 1px 5px;
+  border: 1px solid rgba(232, 221, 205, 0.3);
+  color: var(--dust);
+}
+.ig-endpanel .roster em.me {
+  border-color: rgba(255, 202, 142, 0.6);
+  color: var(--amber);
+}
+
+/* ── 발치 ── 이 판이 잠시 뒤 스스로 걷힌다는 것을 말하는 줄 */
+.ig-endpanel .ft {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(8, 6, 4, 0.94);
+  border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
+  border-top: 1px solid var(--ig-line-soft);
+}
+.ig-endpanel .ftx {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--grime);
+}
+.ig-endpanel .again {
+  margin-left: auto;
+  padding: 4px 12px;
   font: inherit;
-  font-size: 13px;
-  padding: 8px 18px;
-  border: 1px solid var(--tone, var(--amber));
-  background: transparent;
-  color: var(--flare);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  clip-path: var(--ig-chamfer-sm);
+  border: 1px solid color-mix(in srgb, var(--rc) 50%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--rc) 14%, transparent);
+  box-shadow: none;
+  color: var(--rc);
   cursor: pointer;
-  margin-top: 10px;
+  white-space: nowrap;
+}
+.ig-endpanel .again:hover:not(:disabled) {
+  transform: none;
+  border-color: color-mix(in srgb, var(--rc) 75%, transparent);
+  background: color-mix(in srgb, var(--rc) 24%, transparent);
+  box-shadow: none;
+}
+/* 로비 복귀까지 — 판 바닥에 붙은 한 줄. --show 를 그대로 쓰므로 머리띠의 숫자와 어긋날 수 없다 */
+.ig-endpanel .prog {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(232, 221, 205, 0.1);
+}
+.ig-endpanel .prog i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: var(--rc);
+  box-shadow: 0 0 10px var(--rc);
+  animation: ig-drain var(--show) linear both;
+}
+
+@keyframes ig-on {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scaleY(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+@keyframes ig-shine {
+  to {
+    transform: translateX(130%);
+  }
+}
+@keyframes ig-stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes ig-drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+@media (max-width: 480px) {
+  .ig-endpanel .name {
+    font-size: 2rem;
+  }
+}
+/* 켜짐 · 빛 · 도장 · 깜빡임은 걷는다. 남은 시간 막대는 정보라서 남긴다 */
+@media (prefers-reduced-motion: reduce) {
+  .ig-endpanel,
+  .ig-endpanel .name,
+  .ig-endpanel .live {
+    animation: none;
+  }
+  .ig-endpanel .shine {
+    display: none;
+  }
 }
 
 /* ── 배너(관리 AI) ── */
