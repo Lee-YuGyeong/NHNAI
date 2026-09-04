@@ -24,6 +24,7 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
+import { prologueEntries } from './prologue';
 import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal } from './hud/Panels';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
@@ -352,6 +353,33 @@ export function InterrogationFeature() {
       /* 거절됐다 — 시야만 못 돌릴 뿐 키는 된다 */
     }
   };
+  /* ─────────────────────────────── 프롤로그 ─────────────────────────────── */
+
+  /*
+   * 판이 열리고 첫 토론이 시작되면 대본(prologue.ts)이 구역 통신에 한 줄씩 흐른다 — 피실험자 셋의 웅성거림과
+   * 정부 통제실의 방송. **화면에서만** 난다: 서버 · 관리 AI · 의심도 어느 것도 이 줄을 모른다.
+   * 같은 판(startedAt)에서는 한 번만. 국면이 먼저 넘어가도 남은 줄은 그대로 흘러 로그에 남고, 화면을 떠날 때만 걷는다.
+   */
+  const prologuePlayed = useRef<number | null>(null);
+  const prologueTimers = useRef<number[]>([]);
+  const startedAt = wire?.startedAt ?? null;
+  const testsDone = wire?.testsDone ?? 0;
+  useEffect(() => {
+    if (phase !== 'discussion' || testsDone !== 0 || startedAt === null) return;
+    if (prologuePlayed.current === startedAt) return;
+    prologuePlayed.current = startedAt;
+    for (const { at, entry } of prologueEntries(seatsRef.current, startedAt)) {
+      prologueTimers.current.push(window.setTimeout(() => dispatch(gameActions.chatReceived(entry)), at));
+    }
+  }, [phase, testsDone, startedAt, dispatch]);
+  useEffect(
+    () => () => {
+      for (const t of prologueTimers.current) window.clearTimeout(t);
+      prologueTimers.current = [];
+    },
+    [],
+  );
+
   // 판이 떠 있는 동안은 잠금을 푼다 — 결과 모달 · 끝 화면 · 역할 카드 · 대기
   const modalUp = phase === 'result' || phase === 'ended' || phase === 'lobby' || showRole;
   useEffect(() => {

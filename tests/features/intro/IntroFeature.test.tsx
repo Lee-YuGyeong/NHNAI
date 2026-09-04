@@ -27,7 +27,7 @@ function renderIntro() {
   return store;
 }
 
-describe('인트로 — 누가 인간인가?', () => {
+describe('인트로 — 특수인공지능대응센터', () => {
   // jsdom 에는 scrollIntoView 가 없다 — 어디로 스크롤하려 했는지만 본다
   const scrolled: string[] = [];
   beforeEach(() => {
@@ -39,7 +39,7 @@ describe('인트로 — 누가 인간인가?', () => {
 
   it('타이틀이 있고, 히어로의 입장하기는 로비(/main)로 간다', () => {
     renderIntro();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('누가인간인가?');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('특수인공지능대응센터');
     fireEvent.click(screen.getAllByRole('button', { name: /입장하기/ })[0]);
     expect(screen.getByText('로비 자리')).toBeInTheDocument();
   });
@@ -76,8 +76,8 @@ describe('인트로 — 누가 인간인가?', () => {
 
   it('찾는 것은 숨은 AI다 — 인간을 찾으라는 문구는 남아 있지 않다', () => {
     renderIntro();
-    // 히어로 — 몸은 못 속인다는 새 전제 (section 4 의 규칙 카드도 같은 낱말로 시작하니 전체 줄로 특정한다)
-    expect(screen.getByText(/몸은 못 속인다\. 말은 속일 수 있다/)).toBeInTheDocument();
+    // 히어로 — 센터는 기록만 내놓는다는 전제 (P1). 「몸은 못 속인다」 줄이 있던 자리다
+    expect(screen.getByText(/센터는 기록만 내놓는다/)).toBeInTheDocument();
     // 마지막 CTA — 옆 사람이 진짜인지를 묻는다
     expect(screen.getByText(/정말 사람입니까/)).toBeInTheDocument();
     // 「인간을 찾으면 이긴다」류의 옛 문구는 남아 있지 않다

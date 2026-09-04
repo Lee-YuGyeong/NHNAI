@@ -112,7 +112,7 @@ export function NicknameFeature() {
 
       <header className="bl-top">
         <Link to="/" className="bl-logo" style={{ textDecoration: 'none' }}>
-          Who is human
+          특수인공지능대응센터
         </Link>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="bl-dot" aria-hidden />
