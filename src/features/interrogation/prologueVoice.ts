@@ -210,6 +210,33 @@ export function resetPrologueVoice(): void {
   fails = 0;
 }
 
+/* ───────────────────────────── 늦는 자리를 가르는 눈금 (개발용) ───────────────────────────── */
+
+/**
+ * 통제실을 시설 방송 체인(paOut)에 태울까 — 개발 중에만 끌 수 있다.
+ *
+ *   window.__prologuePA = false   // 콘솔에서 끄고 판을 다시 연다
+ *
+ * 2026-09-05 사용자: 「정부 통제실에서 말하는 게 tts 가 시작이 더 늦어」. 앞머리 무음을 재
+ * 봤더니 통제실이 오히려 **더 짧았고**(통제실 53~129ms · 피실험자 0~150ms), 자막 길이도 잰
+ * 말 길이로 다시 계산하니 둘 다 0.92 로 같았다 — **JS 가 아는 한 둘은 똑같이 맞는다.**
+ *
+ * 그렇다면 남는 차이는 통제실만 지나는 그 길뿐이다: 400Hz 하이패스(말의 저역을 걷어 첫소리를
+ * 여리게 만든다) · 0.9초 잔향(어택을 뭉갠다) · 20:1 압축기(2ms 만에 봉우리를 눌러 앉힌다).
+ * 셋 다 **소리를 늦추지는 않지만 늦게 들리게 할 수는 있다** — 그건 계산으로 못 가르고 귀로만
+ * 갈린다. 그래서 스위치를 둔다: 꺼서 맞으면 길의 문제고, 꺼도 늦으면 다른 데 있다.
+ */
+function paWanted(): boolean {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return true;
+  return (window as unknown as { __prologuePA?: boolean }).__prologuePA !== false;
+}
+
+// 콘솔에서 `__prologuePA` 를 쳐 보면 스위치가 있다는 걸 알 수 있다 (world/probe.ts 와 같은 방식)
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  const w = window as unknown as { __prologuePA?: boolean };
+  w.__prologuePA ??= true;
+}
+
 /**
  * 그 줄을 읽고, **다 읽을 때까지 기다린다** (2026-09-05 사용자: 「한 대사 끝나면 그 다음 대사」).
  *
@@ -223,6 +250,13 @@ export function resetPrologueVoice(): void {
 export async function speakPrologueLine(line: PrologueLine): Promise<void> {
   const v = voiceOf(line);
   if (!v || fails >= GIVE_UP) return;
+
+  /*
+   * 줄이 뜬 순간이다 — 상자가 자막을 찍기 시작하는 바로 그때 이 함수가 불린다 (DialogueBox 의 onLine).
+   * 여기서 소리가 실제로 나가기까지 몇 ms 가 뜨는지가 「소리가 늦다」의 첫 갈림이다: 0 에 가까우면
+   * 늦는 자리는 JS 가 아니라 그 뒤(음향 체인 · 귀)다.
+   */
+  const shownAt = performance.now();
 
   const buf = await fetchClip(line, v.voiceId);
   if (!buf) {
@@ -238,7 +272,7 @@ export async function speakPrologueLine(line: PrologueLine): Promise<void> {
   await new Promise<void>((resolve) => {
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    src.connect(v.pa ? paOut() : masterOut());
+    src.connect(v.pa && paWanted() ? paOut() : masterOut());
     src.onended = () => {
       if (playing === src) playing = null;
       src.disconnect();
@@ -247,5 +281,12 @@ export async function speakPrologueLine(line: PrologueLine): Promise<void> {
     playing = src;
     // 앞머리 무음을 건너뛰고 **말이 시작되는 자리**부터 — 자막이 재는 길이도 그 자리부터다 (leadingSilenceSec)
     src.start(0, leads.get(line.text) ?? 0);
+    if (import.meta.env.DEV) {
+      // 체인이 붙는 지연(baseLatency)까지 같이 적는다 — 통제실만 다른 길을 타므로 여기서 갈릴 수 있다
+      const chain = v.pa && paWanted() ? 'PA' : '원음';
+      console.info(
+        `[prologue] ${line.who}/${chain} 줄→소리 ${Math.round(performance.now() - shownAt)}ms · 출력지연 ${Math.round((ctx.baseLatency ?? 0) * 1000)}ms — ${line.text.slice(0, 12)}`,
+      );
+    }
   });
 }
