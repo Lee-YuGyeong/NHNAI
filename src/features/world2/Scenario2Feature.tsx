@@ -166,7 +166,7 @@ export function Scenario2Feature() {
        * 글 치는 칸에서 온 키는 이 창구의 것이 아니다 — 본판(WorldFeature)·검증실(ArenaFeature)의
        * 창구들이 처음부터 걸어 두는 잣대인데 여기만 없었다. 말 걸기 입력줄은 st.talking 으로
        * 가려져 있어 여태 티가 안 났지만, 오른쪽 수첩(shared/NotePad)처럼 **talking 밖에서 열리는
-       * 칸**이 생기면 그 칸에 치는 space 가 대사 넘기기가 되고 e 가 개체 뒤로 서기가 된다.
+       * 칸**이 생기면 그 칸에 치는 e 가 개체에게 말 걸기가 된다.
        * 수첩 쪽에서도 막지만(stopPropagation), 막는 자리는 양쪽에 있어야 한다.
        */
       const el = ev.target as HTMLElement | null;
@@ -270,9 +270,7 @@ export function Scenario2Feature() {
             <br />
             WASD 이동 · 마우스 시야 · 개체를 <b>겨누고 [E]</b> 로 말을 건다 — 걸어다니는 것도 붙잡힌다
             <br />
-            곁에 서 있으면 <b>Enter</b> 로도 열린다 · 치고 Enter 로 보낸다
-            <br />
-            <b>Space</b> 로 대사를 넘긴다 · ESC 로 물러난다
+            곁에 서 있으면 <b>Enter</b> 로도 열린다 · 치고 Enter 로 보낸다 · ESC 로 물러난다
           </p>
           <button type="button" onClick={begin} style={{ marginTop: 22, padding: '10px 18px', fontSize: 14 }}>
             들어간다

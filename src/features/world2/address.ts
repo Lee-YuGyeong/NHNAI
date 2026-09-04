@@ -382,7 +382,7 @@ function openWindow(a: Address, now: number): void {
   a.prevObjective = host.objective();
   host.setObjective(OBJ_TALK);
   a.hinted = true;
-  // 창은 **줄이 끝난 시각**부터 — 프레임이 늦게 와도 그만큼 길어지지 않는다. 스킵으로 앞당겨졌으면 지금부터
+  // 창은 **줄이 끝난 시각**부터 — 프레임이 늦게 와도 그만큼 길어지지 않는다. 이미 지났으면 지금부터
   const from = Math.min(now, a.lineEnd);
   // 줄이 흐르는 동안 이미 Enter 를 눌렀다(치는 중) — 창은 열리자마자 멈춘 채다. 치는 사이에 창이 닫히면 안 된다
   if (a.holdWanted || host.talking()) {
@@ -446,7 +446,7 @@ function step(a: Address, now: number): void {
     return;
   }
   if (a.phase === 'speaking') {
-    // 스킵(Space)은 줄을 앞당긴다 — busyUntil 이 0 이 되면 줄은 끝난 것이다
+    // busyUntil 이 0 이면 줄은 끝난 것이다
     if (now < a.lineEnd && host.busyUntil() > now) return;
     if (a.opts.answerMs > 0) openWindow(a, now);
     else finish(a);

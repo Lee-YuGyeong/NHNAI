@@ -370,10 +370,7 @@ let emit: Emit | null = null;
 let onRoom: ((room: Room) => void) | null = null;
 let onArena: (() => void) | null = null;
 
-/**
- * 걸어 둔 일들 — **줄(line)과 연출(cue)을 갈라 둔다.** 대화를 스킵할 때 아직 안 나온 **줄만** 앞당기고,
- * 방을 옮기거나 목표를 바꾸는 연출은 제 시각에 그대로 둔다: 한 번 누른 것으로 마지막 방까지 가 버리면 안 된다.
- */
+/** 걸어 둔 일들 — 방을 옮기거나 판을 되감을 때 통째로 걷어낸다 (clearTimers) */
 const timers: { id: number; fn: () => void }[] = [];
 let spreadTimer = 0;
 let roomAt = 0;
@@ -400,8 +397,8 @@ let lastSayAtMs = 0;
  * 과학자 · SYSTEM · 속마음은 답이 아니라 상자 그대로다
  */
 /**
- * 인트로가 **실제로** 끝났나 — 마지막 줄이 나갔고(큐 · 스킵이 당긴다) **대화창이 비었다**(Scenario2Feature 의 onShowing → boxShowing).
- * 타이머로 재면 스킵을 못 보고, 마지막 줄의 큐만 보면 대화창이 아직 그 줄을 치고 있는데 저쪽이 걸어온다 (2026-09-03 사용자: 「스킵 버튼도 고려해서, 설명이 마무리되면」)
+ * 인트로가 **실제로** 끝났나 — 마지막 줄이 나갔고 **대화창이 비었다**(Scenario2Feature 의 onShowing → boxShowing).
+ * 마지막 줄의 큐만 보면 대화창이 아직 그 줄을 치고 있는데 저쪽이 걸어온다. 상자를 눌러 넘긴 판에서는 그만큼 일찍 빈다 (2026-09-03 사용자: 「설명이 마무리되면」)
  */
 let introLastShown = false;
 let introDoneFired = false;
@@ -925,7 +922,7 @@ function enterRoom(room: Room) {
     const t = play(WINDOW_ARRIVE, 1600);
     // 밖을 본 것이 먼저 와 있다 — 창을 찾은 것이 그것이다. 리더는 창을 보고 있다 (대본 v8)
     const seerAt = 1600 + t + 3000;
-    // 연출(cue) 뒤에 둔다 — 스킵이 도착 대사를 넘겨도 이 말은 제 시각에 나온다
+    // 도착 대사 뒤에 둔다 — 이 말은 제 시각에 나온다
     later(seerAt, () => play(WINDOW_SEER));
     // 30 초짜리 정적 — **조작권부터**. 여기서는 아무 일도 안 일어난다 — 다음 방에서 그 리더가 나를 지목하기 때문에 값을 한다.
     // 다만 밖을 본 것의 말이 아직 흐르면 그 말이 끝난 뒤에 — 음성이 붙어 줄이 길어지면 소집이 말 위에 얹힌다
