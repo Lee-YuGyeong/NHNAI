@@ -158,8 +158,8 @@ export const STOPLINE_MAX_ATTEMPTS = 9;
 export const FALL_ARENA = { minX: -6, maxX: 6, minZ: -11, maxZ: 8 } as const;
 /** 공 스폰 간격(ms). 처음 스펙은 1.5초였는데 마당이 넓어 성겨 보였다 — 0.4초, 1분에 150개쯤 (2026-09-04 사용자: "공 더 많이") */
 export const FALL_SPAWN_MS = 400;
-/** 낙하물이 놓이는 높이(m). 처마(9)보다 살짝 아래 */
-export const FALL_SPAWN_Y = 8.5;
+/** 공이 놓이는 높이(m). 트러스(처마 9) 위, 용마루(13) 아래 — 천장 틈에서 떨어진다. 높을수록 공마다 닿는 시각 차이가 벌어진다 */
+export const FALL_SPAWN_Y = 11.5;
 /** 사람 몸 반지름(m) — 공 반지름과 더한 것이 맞는 거리다 */
 export const FALL_BODY_R = 0.35;
 /** 위협 반경·회피 방향 기준에 쓰는 대표 공 반지름(m) — 실제 판정은 공마다 자기 반지름으로 */
@@ -179,8 +179,12 @@ export const FALL_BALLS = [
   { id: 'bowling', label: '볼링공', r: 0.22, realR: 0.108, mass: 7.0, restitution: 0.1 },
 ] as const;
 export type FallBallKind = (typeof FALL_BALLS)[number]['id'];
-/** 공기저항을 실제보다 진하게 — 8.5m 낙하에서 공마다 닿는 시각 차이가 눈에 보이려면 이만큼은 필요하다(실제 ×1 이면 0.25초 차) */
-export const FALL_DRAG_GAIN = 2.5;
+/**
+ * 공기저항을 실제보다 진하게(×7) — 실제 공기(×1)면 볼링~축구가 0.1초 안에 다 닿아 눈으로 구분이 안 된다
+ * (2026-09-04 사용자: "사람 눈으로 보기에는 별 차이가 없어"). 11.5m 에서 볼링 1.55s · 야구 1.70s · 농구 1.95s ·
+ * 축구 2.04s · 탁구 3.75s — 순서는 실제 물리 그대로, 간격만 벌렸다.
+ */
+export const FALL_DRAG_GAIN = 7;
 /** 서버 물리 틱과 스냅샷 주기(ms). 틱은 판정용, 스냅샷은 그리기용 */
 export const FALL_TICK_MS = 50;
 export const FALL_SNAPSHOT_MS = 100;
