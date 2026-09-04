@@ -244,7 +244,9 @@ export function Doorway({
  */
 export const PART_COLORS = { sci_bulkhead: '#2d3744', sci_console: '#2a333f', sci_blast_door: '#343f4d', ring_lamp: '#2d3744', metal_case: '#4a5563', cargo_container: '#4a5563', crane_hoist: '#5a6472', charge_dock: '#4b5665', watch_drone: '#5d6879',
   /* 옆벽에서 움직이는 둘 — 벽(#2a333f 언저리)보다 밝게 둔다. 벽 색이면 움직여도 안 보인다 */
-  hall_fan: '#5a6472', wall_arm: '#5d6879' } as const;
+  hall_fan: '#5a6472', wall_arm: '#5d6879',
+  /* 특수인공지능대응센터 홀(map/govcenter.tsx) — 콘크리트 홀이라 부품은 어두운 강철·회색 도장. 랙만 검정에 가깝다 (서버실은 어둡다) */
+  gov_server_rack: '#22262d', gov_workstation: '#6a707a', gov_steel_door: '#6c717a', gov_wall_lamp: '#4c515a' } as const;
 export type ShapedPartId = keyof typeof PART_COLORS;
 
 /**

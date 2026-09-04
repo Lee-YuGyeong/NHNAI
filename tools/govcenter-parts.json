@@ -1,0 +1,18 @@
+[
+  {
+    "id": "gov_server_rack",
+    "prompt": "Data center server rack cabinet: a tall narrow black steel enclosure with a perforated mesh front door, rows of rack-mounted server units with small status LEDs, cable ports on the front, standing upright on the ground, front facing, simple clean geometry, centered"
+  },
+  {
+    "id": "gov_workstation",
+    "prompt": "Government office analyst workstation: a plain grey metal desk with two flat widescreen monitors on stands, a keyboard, and a rolling office chair tucked in under the desk, standing on the ground, front facing, simple clean geometry, centered"
+  },
+  {
+    "id": "gov_steel_door",
+    "prompt": "Heavy industrial steel security door in a thick steel frame: a flat grey painted steel slab with a small rectangular wired glass window, a horizontal push bar handle, and a small keypad panel on the frame, closed, front facing, wall mounted, simple clean geometry, centered"
+  },
+  {
+    "id": "gov_wall_lamp",
+    "prompt": "Industrial wall-mounted bulkhead lamp: an oval cast-metal fixture with a protective wire cage over a frosted glass lens, mounted on a small rectangular base plate, front facing, simple clean geometry, centered"
+  }
+]

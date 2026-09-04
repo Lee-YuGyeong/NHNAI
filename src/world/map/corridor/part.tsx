@@ -37,6 +37,11 @@ export const PART_NAMES = {
   wall_arm: '검사 암',
   // 작업 구역 맵 (world2/map/work.tsx)
   incinerator: '소각로 화구',
+  // 특수인공지능대응센터 홀 (map/govcenter.tsx) — 유리 방 소품 · 철문 · 벽등
+  gov_server_rack: '서버 랙',
+  gov_workstation: '워크스테이션',
+  gov_steel_door: '철문',
+  gov_wall_lamp: '벽등',
   // 물리 미니게임 — 정지선 (features/trial/games/stop-line)
   trial_gate: '정지선 게이트',
   trial_beacon: '레인 비콘',

@@ -265,10 +265,16 @@ function angleDelta(from: number, to: number): number {
 }
 
 /**
- * 배경 = 창고 3D 맵(격납고 홀) 그대로 (2026-08-30 사용자 결정 — 심문소 맵에서 바꿨다. 게임은 그대로, 맵만).
- * 게임의 바닥 치수(ARENA)와 오브젝트 카탈로그(objects.ts)도 같은 warehouse/layout.ts 를 본다
+ * 배경 — 시행(/arena)은 창고 3D 맵(격납고 홀) 그대로 (2026-08-30 사용자 결정 — 심문소 맵에서 바꿨다. 게임은 그대로, 맵만).
+ * 검문소(/interrogation)는 특수인공지능대응센터 홀(2026-09-04 사용자 참고 이미지 — 게임은 그대로, 맵만).
+ * **둘의 발자국·충돌 목록은 같다** — 게임의 바닥 치수(ARENA)와 오브젝트 카탈로그(objects.ts)가 warehouse/layout.ts 하나를 보고,
+ * govcenter/layout.ts 는 그 목록을 재수출한다. 그래서 맵이 바뀌어도 판·판정·리더의 어휘는 한 줄도 안 바뀐다.
  */
-const MAP_DEF: ArenaMapDef = { ...MAPS.warehouse, bounds: ARENA };
+export type ArenaMapId = 'warehouse' | 'govcenter';
+const MAP_DEFS: Record<ArenaMapId, ArenaMapDef> = {
+  warehouse: { ...MAPS.warehouse, bounds: ARENA },
+  govcenter: { ...MAPS.govcenter, bounds: ARENA },
+};
 
 const SAMPLE_MS = 100;
 /** 조준 지목(E)이 무는 각도 — 앞쪽 이만큼(약 30°) 안에 든 몸만 고른다 */
@@ -587,7 +593,8 @@ export function ArenaFeature({
   autoStart = false,
   skipButton = false,
   onStart,
-}: { autoStart?: boolean; skipButton?: boolean; onStart?: () => void } = {}) {
+  map = 'warehouse',
+}: { autoStart?: boolean; skipButton?: boolean; onStart?: () => void; map?: ArenaMapId } = {}) {
   const dispatch = useAppDispatch();
   const [phase, setPhase] = useState<Phase>('idle');
   const [trial, setTrial] = useState<FreeTrial | null>(null);
@@ -3554,7 +3561,7 @@ export function ArenaFeature({
       {/* 3D 는 항상 떠 있다 — 입장하자마자 개체들이 돌아다니는 심문소에 서 있는다 */}
       <div className="stage" data-world-click-to-lock>
         <WorldScene
-          mapDef={MAP_DEF}
+          mapDef={MAP_DEFS[map]}
           spawn={START}
           roster={roster}
           bubbleTick={bubbleTick}

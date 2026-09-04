@@ -43,7 +43,8 @@ export function InterrogationFeature() {
 
   return (
     <>
-      <ArenaFeature autoStart={fromStory} skipButton={!fromStory} onStart={handleStart} />
+      {/* 배경은 특수인공지능대응센터 홀(world/map/govcenter) — 2026-09-04 사용자 참고 이미지. 판·판정은 격납고 홀과 같다 */}
+      <ArenaFeature autoStart={fromStory} skipButton={!fromStory} onStart={handleStart} map="govcenter" />
       {showRole && <RoleBriefing onDone={() => setShowRole(false)} />}
     </>
   );
