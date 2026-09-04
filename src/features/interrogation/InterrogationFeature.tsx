@@ -516,7 +516,7 @@ export function InterrogationFeature() {
       </div>
 
       {showRole && me && me.role !== 'ai' ? (
-        <RoleBriefing role={me.role} aiName={me.aiId ? nameOf(me.aiId) : null} onDone={() => setShowRole(false)} />
+        <RoleBriefing role={me.role} body={myBody} aiName={me.aiId ? nameOf(me.aiId) : null} onDone={() => setShowRole(false)} />
       ) : null}
     </div>
   );
