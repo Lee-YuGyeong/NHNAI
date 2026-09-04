@@ -238,30 +238,61 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
             아홉은 <code>ELEVENLABS_SEAT_VOICE_IDS</code> 로 옮기고, 저기엔 방송용 하나만 남기는 게 맞다.
           </div>
         )}
-        {live.seats.map((s) => (
-          <div
-            key={s.id}
-            style={{
-              display: 'flex',
-              gap: 8,
-              alignItems: 'center',
-              margin: '1px 0',
-              padding: '3px 6px',
-              borderRadius: 4,
-              fontSize: 14,
-              // 연달아 들을 때 지금 어느 것이 우는지 — 아홉이 지나가는 동안 눈으로 따라간다
-              background: nowPlaying === s.index ? '#1d4a2b' : undefined,
-            }}
-          >
-            {/* 남1 … 남5 · 여1 … 여4 — 계정 이름으로는 아홉을 훑을 때 무엇이 무엇인지 안 잡힌다 */}
-            <strong style={{ width: 34 }}>{seatLabel(s.index)}</strong>
-            <span style={{ width: 20, opacity: 0.4, fontSize: 12 }}>{s.index}</span>
-            <span style={{ flex: 1, opacity: s.known ? 0.7 : 1, color: s.known ? undefined : '#e08a6a' }}>
-              {s.known ? s.name : `${s.id.slice(0, 10)}… — 계정에 없는 id`}
-            </span>
-            <button onClick={() => { setNowPlaying(s.index); hear(s.id); }}>듣기</button>
-          </div>
-        ))}
+        {/*
+          아홉을 **버튼 아홉**으로 둔다 (2026-09-04 사용자). 이름 옆에 「듣기」를 붙이는 것보다
+          이름 자체를 누르는 편이 짧다 — 이 칸에서 하는 일은 아홉을 계속 갈아 누르며 비교하는
+          것 하나뿐이라, 누르는 표적이 크고 이름이 곧 표적이어야 한다.
+        */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(8.5rem, 1fr))',
+            gap: 6,
+            margin: '8px 0 4px',
+          }}
+        >
+          {live.seats.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => {
+                setNowPlaying(s.index);
+                hear(s.id);
+              }}
+              title={s.known ? s.name : `${s.id} — 계정에 없다`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 2,
+                padding: '8px 10px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                font: 'inherit',
+                // 지금 우는 자리 — 아홉이 지나가는 동안 눈으로 따라간다
+                outline: nowPlaying === s.index ? '2px solid #6cf' : 'none',
+                borderColor: s.known ? undefined : '#e08a6a',
+              }}
+            >
+              <strong style={{ fontSize: 15 }}>
+                {nowPlaying === s.index ? '♪ ' : '▶ '}
+                {seatLabel(s.index)}
+              </strong>
+              <span
+                style={{
+                  fontSize: 11,
+                  opacity: s.known ? 0.55 : 1,
+                  color: s.known ? undefined : '#e08a6a',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '100%',
+                }}
+              >
+                {s.known ? s.name : '계정에 없는 id'}
+              </span>
+            </button>
+          ))}
+        </div>
         {live.state === 'done' && live.seats.length > 0 && (
           <p style={{ opacity: 0.55, fontSize: 12, margin: '8px 0 0' }}>
             성별 표시는 <code>roster.ts</code> 의 <code>SEAT_GENDERS</code> 다(앞 다섯 남 · 뒤 넷 여).

@@ -130,20 +130,27 @@ describe('지금 워커에 들어간 명부', () => {
     expect(await screen.findByText(/다 찼다/)).toBeInTheDocument();
   });
 
-  it('앞 다섯은 남1~남5, 뒤 넷은 여1~여4 로 부른다', async () => {
+  /** ★ 아홉이 **저마다 단추**여야 한다 (2026-09-04 사용자). 이름 옆의 「듣기」가 아니라 이름이 곧 표적이다 */
+  it('남1~남5 · 여1~여4 가 저마다 단추다', async () => {
     stubSeats({ seats: Array.from({ length: ROSTER_SIZE }, (_, i) => seat(i)) });
     render(<SeatCasting voices={VOICES} />);
-    await screen.findByText('남1');
+    await screen.findByRole('button', { name: /남1/ });
     for (const label of ['남1', '남2', '남3', '남4', '남5', '여1', '여2', '여3', '여4']) {
-      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: new RegExp(label) })).toBeInTheDocument();
     }
   });
 
-  it('자리마다 듣기가 있고, 아홉을 순서대로 듣는 단추도 있다', async () => {
+  it('그 단추에 계정 이름도 같이 적는다 — 어느 목소리인지 알아야 고친다', async () => {
     stubSeats({ seats: Array.from({ length: ROSTER_SIZE }, (_, i) => seat(i)) });
     render(<SeatCasting voices={VOICES} />);
-    await screen.findByText('남1');
-    expect(screen.getAllByRole('button', { name: '듣기' })).toHaveLength(ROSTER_SIZE);
+    const first = await screen.findByRole('button', { name: /남1/ });
+    expect(first).toHaveTextContent('내 목소리 0');
+  });
+
+  it('아홉을 순서대로 듣는 단추가 따로 있다', async () => {
+    stubSeats({ seats: Array.from({ length: ROSTER_SIZE }, (_, i) => seat(i)) });
+    render(<SeatCasting voices={VOICES} />);
+    await screen.findByRole('button', { name: /남1/ });
     expect(screen.getByRole('button', { name: /아홉 전부 순서대로/ })).toBeInTheDocument();
   });
 
@@ -156,8 +163,11 @@ describe('지금 워커에 들어간 명부', () => {
   it('계정에 없는 id 는 눈에 띄게 적는다 — 그 좌석 하나가 방을 조용하게 만든다', async () => {
     stubSeats({ seats: [seat(0), seat(1, false)] });
     render(<SeatCasting voices={VOICES} />);
-    // 그 좌석 줄에 id 를 적고 (이름 대신), 아래에 왜 위험한지도 적는다 — 둘 다 있어야 고칠 수 있다
-    expect(await screen.findByText(/^sv1.* 계정에 없는 id$/)).toBeInTheDocument();
+    // 그 단추에 이름 대신 「계정에 없는 id」를 적고, 아래에 왜 위험한지도 적는다 —
+    // 둘 다 있어야 고칠 수 있다 (무엇이 틀렸나 + 그래서 무슨 일이 나나)
+    const bad = await screen.findByRole('button', { name: /남2/ });
+    expect(bad).toHaveTextContent('계정에 없는 id');
+    expect(bad).toHaveAttribute('title', expect.stringContaining('sv1'));
     expect(screen.getByText(/그 좌석은 합성에서 503/)).toBeInTheDocument();
   });
 });
