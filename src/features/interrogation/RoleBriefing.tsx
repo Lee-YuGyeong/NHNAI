@@ -1,31 +1,27 @@
 /**
- * 역할 카드 — humanish(원본, /Users/yugyeong/Documents/GitHub/humanish)의 app/world/game-hud.tsx
- * 의 RoleCard 를 그대로 옮긴 것이다(2026-09-04 사용자: "intro 가 아니라 예전에 humanish
- * 폴더에서 만든 디자인 그대로 쓰라고"). /intro 의 배역 소개 카드(RoleCard, features/lobby/Intro.tsx)
- * 는 이것과 다른 컴포넌트다 — 더는 쓰지 않는다.
+ * 역할 카드 = 「배정 통보」 판 — docs/role-card 의 시안 A.
  *
- * 원본 구조를 그대로 따른다: 딜(입장) 애니메이션 → 액자선 · 광택 → kicker("Secret Role") →
- * 인물 그림 → 상징(가면/눈) → 이름 · 태그라인 → ◆ 구분선 → 문장 줄들 → 확인 버튼.
- * 겉모습(role-card.module.css)은 파일까지 그대로고, 내용(ROLE_CARD)만 이 게임의 두 배역
- * (사람·AI 설계자, PLANNING §1.1)에 맞춰 바꿨다 — 원본에 AI 역할 카드가 없는 것과 같은
- * 이유로(원본 머리말: "AI 좌석엔 소켓이 없어 카드가 갈 곳이 없다") 여기도 실제 AI(LLM 좌석)에는
- * 카드가 없다. 카드를 받는 것은 항상 "실제 플레이어"뿐이고, 그 안에서 사람 vs AI 설계자가 갈린다.
+ * 처음엔 humanish(원본, /Users/yugyeong/Documents/GitHub/humanish)의 RoleCard 를 파일째 옮겨
+ * 썼다(2026-09-04 사용자: "예전에 humanish 폴더에서 만든 디자인 그대로 쓰라고"). 그런데 그 카드는
+ * 둥근 카드 · 딜 입장 · 사람=청록이고, 카드가 뜨는 화면(interrogation.css)은 /arena 「구역 통신」
+ * 판에서 값을 가져와 세운 각진 단말이다. 한 화면에 말투가 둘이었다. 그래서 2026-09-05,
+ * **내용은 그대로 두고 겉모습만 그 화면 것으로** 옮겼다 (시안 3종은 docs/role-card/, 그중 A).
  *
- * 뜨는 시점은 원본과 같다 — 원본은 게이트가 열리는 순간(dealEarlyRoles) 딜되어 들어온다.
- * ArenaFeature 의 onStart(판이 실제로 열리는 순간, 이제는 autoStart 뿐이니 곧 마운트 직후)가
- * 그 신호다. 걷히는 방식은 원본과 다르게 잡았다 — 원본은 「확인」을 눌러야 닫히지만, 여기서는
- * **몇 초 보여주고 스스로 닫힌다**(2026-09-04 사용자: "역할카드도 게임시작 뭐 이런거 아니야.
- * humanish 처럼 몇초보여주고 없어져") — 카드가 판을 여는 관문이 아니라 스치는 알림이어야
- * 한다는 뜻이라, SHOW_MS 뒤 자동으로 닫는다. 「확인」 버튼은 그 전에 먼저 닫고 싶을 때 쓴다.
+ * 바뀐 것은 겉모습뿐이다. 뜨는 시점(ArenaFeature 의 onStart) · 받는 배역(서버의 game_role) ·
+ * 몇 초 뒤 스스로 걷히는 성질(SHOW_MS)은 그대로다. 이 판은 관문이 아니라 스쳐 가는 통보다
+ * (2026-09-04 사용자: "역할카드도 게임시작 뭐 이런거 아니야. humanish 처럼 몇초보여주고 없어져").
+ * 「닫기」는 그 전에 먼저 걷고 싶을 때 쓴다.
  *
- * 배역은 **서버가 준다** (worker/src/game/roles.ts → game_role, 그 소켓에만). 이 카드는 받은 배역을 그리기만 한다.
- * AI 설계자에게는 AI 의 좌석 번호가 같이 온다 — §1.1 "브리핑에서 자기 역할이 공개되는 바로 그 순간, AI 의 좌석 · 정체도
- * 함께 통보받는다". 그 줄이 카드의 마지막 문장이다.
+ * 배역은 **서버가 준다** (worker/src/game/roles.ts → game_role, 그 소켓에만). 이 판은 받은 배역을
+ * 그리기만 한다. 실제 AI(LLM 좌석)에는 소켓이 없어 판이 갈 곳도 없다 — 판을 받는 것은 언제나
+ * 실제 플레이어뿐이고, 그 안에서 사람 vs AI 설계자가 갈린다(호출부에서 role !== 'ai' 로 거른다).
+ * AI 설계자에게는 AI 의 좌석 번호가 마지막 줄로 같이 온다 — §1.1 "브리핑에서 자기 역할이 공개되는
+ * 바로 그 순간, AI 의 좌석 · 정체도 함께 통보받는다".
  */
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import cardStyles from './role-card.module.css';
 
-/** 카드가 떠 있는 시간(ms) — 서버의 배역 통보 국면(GAME_BRIEFING_MS)보다 조금 짧게, 판이 열리기 전에 걷힌다 */
+/** 판이 떠 있는 시간(ms) — 서버의 배역 통보 국면(GAME_BRIEFING_MS = 7초)보다 조금 짧게, 판이 열리기 전에 걷힌다 */
 const SHOW_MS = 6000;
 /** 닫힘 페이드 시간(ms) — role-card.module.css 의 fadeOut 과 같은 값이어야 한다 */
 const FADE_MS = 300;
@@ -33,66 +29,41 @@ const FADE_MS = 300;
 export type MyRole = 'human' | 'designer';
 
 /**
- * 역할별 화면 문구 — 원본 ROLE_CARD 와 같은 모양(name·tagline·lines·color·art·artAlt)이다.
- * lines 는 문장마다 한 줄씩 그린다(원본 규칙 그대로).
+ * 역할별 화면 문구. 색은 이 화면의 토큰을 쓴다 — 사람은 조명색(--amber), 설계자는 비상등(--signal).
+ * 원본의 청록(#6fd3ff)은 쓰지 않는다: 옆에 선 좌석판 · 통신판과 말투가 갈린다.
+ * 그림은 검문소 전용이다(/interrogation/) — /intro/role-*.jpg 는 표지와 로비 카드가 같이 쓰고 있어
+ * 건드리지 않는다. 인물이 군인인 것은 3인칭 아바타가 군인 몸이기 때문이다.
  */
 const ROLE_CARD: Record<MyRole, { name: string; tagline: string; lines: string[]; color: string; art: string; artAlt: string }> = {
   human: {
     name: '사람',
     tagline: '표식 없는 AI가 사람들 틈에 숨어 있다',
     lines: ['대화를 나누며 AI 같은 개체를 찾아내 지목하라.', 'AI가 격리되면 사람 진영이 이긴다.'],
-    color: '#6fd3ff',
-    art: '/intro/role-human.jpg',
-    artAlt: '검은 후드를 쓰고 손을 든 사람',
+    color: 'var(--amber)',
+    art: '/interrogation/role-human.jpg',
+    artAlt: '조명 아래 정면으로 선 군인',
   },
   designer: {
     name: 'AI 설계자',
-    tagline: '표식을 붙이지 않은 걸 들켜서는 안 되는 조력자',
+    tagline: '표식을 붙이지 않은 걸 들켜서는 안 된다',
     lines: ['AI의 정체를 시작부터 정확히 안다.', '판당 한 번, 누군가의 기록을 조작할 수 있다.', '들키면 그 자리에서 패배가 확정된다.'],
-    color: '#ffca8e',
-    art: '/intro/role-designer.jpg',
-    artAlt: '어둠 속에서 단말을 조작하는 손',
+    color: 'var(--signal)',
+    art: '/interrogation/role-designer.jpg',
+    artAlt: '비상등이 한쪽을 무는 어두운 통제실의 군인',
   },
 };
 
-
-/** AI 설계자 — 가면. 카드 문장(정체를 숨기고 조력한다)의 그림 버전이다 (원본 MaskIcon 그대로) */
-function MaskIcon({ size = 32 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M3 6.5C6 5.3 9 4.8 12 4.8s6 .5 9 1.7c0 5.5-2.6 10.7-6.7 10.7-1.5 0-2.3-.9-2.3-.9s-.8.9-2.3.9C5.6 17.2 3 12 3 6.5Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <ellipse cx="8.6" cy="10" rx="1.5" ry="1.1" fill="currentColor" />
-      <ellipse cx="15.4" cy="10" rx="1.5" ry="1.1" fill="currentColor" />
-    </svg>
-  );
-}
-
-/** 사람 — 감시하는 눈. 찾아내는 쪽의 그림이다 (원본 EyeIcon 그대로) */
-function EyeIcon({ size = 32 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M2.5 12S6 6.2 12 6.2 21.5 12 21.5 12 18 17.8 12 17.8 2.5 12 2.5 12Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="12" cy="12" r="0.9" fill="currentColor" />
-    </svg>
-  );
+/** 머리띠의 남은 시간 — 발치의 막대와 같은 것을 센다. 00:06 처럼 자리를 고정해 덜덜 떨지 않게 */
+function clock(ms: number) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `00:${String(s).padStart(2, '0')}`;
 }
 
 export function RoleBriefing({ role, aiName, onDone }: { role: MyRole; /** 설계자에게만 — AI 의 좌석 이름 */ aiName?: string | null; onDone: () => void }) {
-  const myRole = role;
   const [closing, setClosing] = useState(false);
-  const card = ROLE_CARD[myRole];
-  const lines = aiName ? [...card.lines, `표식 없는 AI 는 ${aiName} 이다.`] : card.lines;
+  const [left, setLeft] = useState(SHOW_MS);
+  const card = ROLE_CARD[role];
+  const lines = aiName ? [...card.lines, `표식 없는 AI는 ${aiName} 이다.`] : card.lines;
 
   // 먼저 닫힘(closing)을 켜서 페이드가 보이게 하고, 그 페이드가 끝난 뒤에야 실제로 걷는다
   const dismiss = useCallback(() => {
@@ -105,40 +76,57 @@ export function RoleBriefing({ role, aiName, onDone }: { role: MyRole; /** 설�
     return () => window.clearTimeout(t);
   }, [dismiss]);
 
+  // 머리띠의 숫자만 1초마다 센다. 막대는 CSS 가 --show 로 이어서 그린다 — 둘의 출처가 같아 어긋나지 않는다
+  useEffect(() => {
+    const started = performance.now();
+    const id = window.setInterval(() => setLeft(SHOW_MS - (performance.now() - started)), 250);
+    return () => window.clearInterval(id);
+  }, []);
+
   return (
     <div
       className={`${cardStyles.backdrop}${closing ? ` ${cardStyles.closing}` : ''}`}
       role="dialog"
-      aria-label="역할 카드"
+      aria-label="배정 통보"
     >
-      <div className={cardStyles.deal}>
-        <div className={cardStyles.card} style={{ '--rc': card.color } as CSSProperties}>
-          <div aria-hidden className={cardStyles.frame} />
-          <div aria-hidden className={cardStyles.shine} />
+      <div className={cardStyles.panel} style={{ '--rc': card.color, '--show': `${SHOW_MS}ms` } as CSSProperties}>
+        <div aria-hidden className={cardStyles.shine} />
 
-          <p className={cardStyles.kicker}>Secret Role — 당신의 역할</p>
+        <div className={cardStyles.hd}>
+          <span aria-hidden className={cardStyles.live} />
+          <span className={cardStyles.ttl}>배정 통보 · ROLE ASSIGNMENT</span>
+          <span className={cardStyles.clock}>{clock(left)}</span>
+        </div>
 
-          <div className={cardStyles.art}>
-            <img src={card.art} alt={card.artAlt} className={cardStyles.artImg} draggable={false} />
-            <div aria-hidden className={cardStyles.artFade} />
-          </div>
+        <div className={cardStyles.art}>
+          <img src={card.art} alt={card.artAlt} className={cardStyles.artImg} draggable={false} />
+          <div aria-hidden className={cardStyles.tone} />
+          <div aria-hidden className={cardStyles.fade} />
+          <div aria-hidden className={cardStyles.artScan} />
+        </div>
 
-          <div className={cardStyles.emblem} aria-hidden>
-            {myRole === 'designer' ? <MaskIcon /> : <EyeIcon />}
-          </div>
+        <div className={cardStyles.bd}>
+          <p className={cardStyles.kicker}>당신의 배역</p>
           <p className={cardStyles.name}>{card.name}</p>
           <p className={cardStyles.tagline}>{card.tagline}</p>
           <div className={cardStyles.rule} aria-hidden>
-            ◆
+            ▪
           </div>
-          <div className={cardStyles.lines}>
+          <ul className={cardStyles.lines}>
             {lines.map((line) => (
-              <p key={line}>{line}</p>
+              <li key={line}>{line}</li>
             ))}
-          </div>
-          <button type="button" onClick={dismiss} className={cardStyles.confirm}>
-            확인
+          </ul>
+        </div>
+
+        <div className={cardStyles.ft}>
+          <span className={cardStyles.ftx}>{SHOW_MS / 1000}초 뒤 스스로 걷힌다</span>
+          <button type="button" onClick={dismiss} className={cardStyles.close}>
+            닫기
           </button>
+          <span aria-hidden className={cardStyles.prog}>
+            <i />
+          </span>
         </div>
       </div>
     </div>
