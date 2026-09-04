@@ -9,6 +9,9 @@ import { BROADCAST_KINDS } from '../../shared/broadcast-kind';
 import { BROADCAST_MAX_LEN, NICK_MAX_LEN, POS_MARGIN, WORLD } from './constants';
 import { ANIM_STATES, type AnimState, type BroadcastKind, type C2SMessage } from './protocol';
 
+/** trial_ 로 시작하는 C2S 메시지만 뽑아낸 유니온 — RoomDO 가 TrialRuntime 에 넘기는 것의 타입이다 */
+export type TrialC2SMessage = Extract<C2SMessage, { t: `trial_${string}` }>;
+
 const ANIM_SET = new Set<string>(ANIM_STATES);
 
 function isFiniteNumber(v: unknown): v is number {
@@ -59,6 +62,11 @@ export function parseMove(msg: unknown): MoveInput | null {
 /** JSON.parse 결과가 우리가 아는 메시지 모양인가. 타입 좁히기용. */
 export function isC2SMessage(msg: unknown): msg is C2SMessage {
   return typeof msg === 'object' && msg !== null && typeof (msg as { t?: unknown }).t === 'string';
+}
+
+/** 물리 미니게임 메시지인가 — RoomDO 가 이걸로 TrialRuntime 에 넘길지를 가른다. */
+export function isTrialMessage(msg: C2SMessage): msg is TrialC2SMessage {
+  return msg.t.startsWith('trial_');
 }
 
 const BROADCAST_KIND_SET = new Set<string>(BROADCAST_KINDS);

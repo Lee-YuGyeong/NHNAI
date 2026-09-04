@@ -1,0 +1,10 @@
+[
+  {
+    "id": "trial_gate",
+    "prompt": "sci-fi checkpoint gantry for a running track: two slim dark gunmetal steel posts joined by a horizontal overhead beam, a bright red LED light strip along the underside of the beam, small warning hazard stripes on the posts, industrial brushed metal, clean silhouette, symmetric, game asset, isolated object, no base plate, no floor"
+  },
+  {
+    "id": "trial_beacon",
+    "prompt": "sci-fi lane start beacon: a short knee-high dark gunmetal bollard post with a cylindrical white LED light ring near the top and a small conical cap, industrial brushed metal, hazard stripe band at the base, clean simple silhouette, game asset, isolated object, no ground plane"
+  }
+]

@@ -117,3 +117,26 @@ export const JUMP_MAX_Y = (JUMP_SPEED * JUMP_SPEED) / (2 * GRAVITY);
 
 /** 이모트(키 1·2) 길이(ms). 아바타 클립 길이이자 anim 이 idle 로 돌아오는 시각이다 — 양쪽이 같이 본다. */
 export const EMOTE_MS = { angry: 2400, agree: 1800 } as const;
+
+/* ───────────────────────────── 물리 미니게임 — 정지선 ───────────────────────────── */
+
+/**
+ * 정지선 트랙의 **공개** 상수 — 마찰계수만 숨는다(worker/src/trial/condition.ts). 여기 값은 전부
+ * 클라이언트도 알아야 트랙을 그리고 달리는 시늉을 낼 수 있다. 실제 정지 위치는 서버가 계산해서
+ * `trial_stopline_waypoints` 로 내려준다 — 여기 상수로 클라가 스스로 판정하지 않는다.
+ */
+/**
+ * 트랙은 심문소 홀(map/interrogation/layout.ts: z 12 → -20, 무대 앞면 -14) 안에 놓인다 —
+ * 출발선 z 10 에서 무대 앞면까지 24m. 30 이면 무대(0.45m 단) 위로 올라가 버린다.
+ */
+export const STOPLINE_TRACK_LENGTH = 24;
+/** 출발선에서 목표 정지선까지의 거리(m). */
+export const STOPLINE_TARGET = 16;
+/** 가속이 끝나는 속도(m/s). 라운드마다 동일 — 변수를 마찰 하나로 좁힌다. */
+export const STOPLINE_TOP_SPEED = 6;
+/** 가속도(m/s²). 탑스피드까지 STOPLINE_TOP_SPEED / STOPLINE_ACCEL 초 걸린다. */
+export const STOPLINE_ACCEL = 4;
+/** 한 라운드에 허용되는 시행 횟수. */
+export const STOPLINE_ATTEMPTS_PER_ROUND = 3;
+/** 정지선 미니게임의 총 라운드 수. */
+export const STOPLINE_ROUNDS = 3;

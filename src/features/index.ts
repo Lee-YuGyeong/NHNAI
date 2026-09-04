@@ -36,6 +36,8 @@ const TtsFeature = lazy(() => import('./tts/TtsFeature').then((m) => ({ default:
 const LabFeature = lazy(() => import('./lab/LabFeature').then((m) => ({ default: m.LabFeature })));
 const TalkFeature = lazy(() => import('./talk/TalkFeature').then((m) => ({ default: m.TalkFeature })));
 const ArenaFeature = lazy(() => import('./arena/ArenaFeature').then((m) => ({ default: m.ArenaFeature })));
+/** 물리 미니게임 — 진짜 서버 권위 멀티플레이(PLANNING §2). 정지선만 실배선(PR1) */
+const TrialFeature = lazy(() => import('./trial/TrialFeature').then((m) => ({ default: m.TrialFeature })));
 /**
  * 시나리오 2 — 본판(/play)과 **아무것도 나눠 쓰지 않는 두 번째 판**이다.
  * 방은 world2/map, 이야기·저장소는 features/world2 에 따로 있다. 저쪽 챕터·체력·SYNC 는 여기서 안 돈다.
@@ -98,4 +100,5 @@ export const FEATURES: FeatureDef[] = [
   { id: 'lab',     title: '구역 (AI 5 + 나)',      path: '/lab',   owner: 'TBD', Component: TalkFeature },
   { id: 'rules',   title: '규정·검사판',            path: '/rules', owner: 'TBD', Component: LabFeature },
   { id: 'arena',   title: '검사 (리더가 좌표를 짠다)', path: '/arena', owner: 'TBD', Component: ArenaFeature },
+  { id: 'trial',   title: '물리 미니게임 (정지선)', path: '/trial', owner: 'TBD', Component: TrialFeature },
 ];
