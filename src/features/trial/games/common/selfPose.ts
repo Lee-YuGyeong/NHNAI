@@ -8,9 +8,11 @@ import type { AnimState } from '@/world/mp/protocol';
 export interface SelfPose {
   x: number;
   z: number;
+  /** 발 높이 — 점프 중이면 > 0 */
+  y: number;
   /** 몸이 보는 방향(rad) — 아바타의 앞면은 로컬 +z 라 rotation.y 에 그대로 넣는다 */
   heading: number;
   anim: AnimState;
 }
 
-export const selfPose: SelfPose = { x: 0, z: 0, heading: Math.PI, anim: 'idle' };
+export const selfPose: SelfPose = { x: 0, z: 0, y: 0, heading: Math.PI, anim: 'idle' };
