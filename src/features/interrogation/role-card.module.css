@@ -1,16 +1,25 @@
 /*
- * humanish(원본, /Users/yugyeong/Documents/GitHub/humanish)의 app/world/role-card.module.css +
- * game-hud.tsx 의 RoleCard 를 그대로 옮긴 것 — 딜 입장(deal) · 액자선(frame) · 광택(shine) ·
- * 살짝 떠다니는 카드(float). 색은 컴포넌트가 --rc 로 꽂아 준다(역할마다 다른 색).
+ * 역할 카드 = 「배정 통보」 판 — docs/role-card 의 시안 A.
  *
- * 원본은 tailwind 유틸(부모 오버레이의 absolute/z/padding, 카드의 w-[17rem]/rounded-2xl/px-5 등)을
- * JSX 클래스에 직접 썼다 — 이 저장소엔 tailwind 가 없어서 그 값들을 여기로 그대로 옮겨 적었다.
- * 원본의 .chrome(카드·판 오버레이가 공유하던 밑판)은 역할 카드만 옮기므로 .card 에 합쳤다.
+ * 원래 이 파일은 humanish(app/world/role-card.module.css)를 그대로 옮긴 것이었다:
+ * 둥근 카드(border-radius 1rem) · 딜 입장 · 부유(float) · 사람=청록(#6fd3ff). 그런데 이 카드가
+ * 뜨는 화면(interrogation.css)은 /arena 「구역 통신」 판에서 값을 가져와 세운 **각진 단말**이다 —
+ * 모따기 · 3px 스캔라인 · 왼쪽 세로선 · 위 가장자리 헤어라인 · 모노 라벨 · 둥근 모서리 없음.
+ * 카드 하나만 다른 말투로 서 있었다. 그래서 **내용은 그대로 두고 말투만 그 화면 것으로** 옮겼다.
+ *
+ * 값의 출처는 interrogation.css 의 .ig-chat 한 벌이다(모따기 · 스캔라인 · 머리띠 · 왼쪽 선).
+ * 다만 이름을 --ig-* 로 빌려 쓰지 않고 여기 다시 적는다 — 이 모듈이 부모의 사적인 변수에
+ * 기대면, 카드가 다른 화면으로 옮겨 가는 날 소리 없이 무너진다. 전역 토큰(global.css 의
+ * --amber · --linen · --signal …)만 밖에서 받는다.
+ *
+ * 역할 색은 컴포넌트가 --rc 로 꽂아 준다: 사람 = --amber(이 화면의 조명색),
+ * AI 설계자 = --signal(비상등). 청록은 쓰지 않는다 — 한 화면에 말투를 둘 두지 않기 위해서다.
+ * 남은 시간(--show)도 컴포넌트가 꽂는다. 진행 막대와 JS 타이머가 같은 값을 봐야 어긋나지 않는다.
  */
 
 .backdrop {
   /* 카드 밖(어두워진 영역)은 클릭을 흘려보낸다 — 뒤에 이미 살아 있는 3D 시설을 막지 않는다.
-     카드 자신은 .card 에서 다시 auto 로 되돌린다(확인 버튼은 눌려야 한다) */
+     판 자신은 .panel 에서 다시 auto 로 되돌린다(닫기 버튼은 눌려야 한다) */
   pointer-events: none;
   position: fixed;
   inset: 0;
@@ -19,163 +28,174 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 16px;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.82));
+  background: radial-gradient(ellipse at center, rgba(4, 6, 10, 0.52), rgba(2, 3, 6, 0.88));
   animation: fadeIn 0.3s ease both;
 }
 .closing {
   animation: fadeOut 0.3s ease both;
 }
-@media (min-width: 640px) {
-  .backdrop {
-    padding: 24px;
-  }
-}
 
-/* 딜(입장)과 부유(대기)를 한 요소에 걸면 뒤가 앞을 덮어쓴다 — 겹은 둘로 나눈다 */
-.deal {
-  margin: auto;
-  animation: deal 0.55s cubic-bezier(0.2, 1.35, 0.35, 1) both;
-}
-
-/* 카드 몸통 — 자리 잡은 뒤 살짝 떠다닌다 */
-.card {
+/* ── 판 ── 머리띠 · 그림 · 본문 · 발치가 한 장의 모따기 판으로 선다 (.ig-chat 과 같은 짜임) */
+.panel {
   pointer-events: auto;
   position: relative;
-  width: 17rem;
-  overflow: hidden;
-  border-radius: 1rem;
-  padding: 1rem 1.25rem 1.25rem;
-  text-align: center;
-  background:
-    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--rc) 14%, transparent), transparent 60%),
-    linear-gradient(160deg, #17120c, #0a0806 65%);
-  border: 1px solid color-mix(in srgb, var(--rc) 55%, transparent);
-  box-shadow:
-    0 0 44px color-mix(in srgb, var(--rc) 22%, transparent),
-    0 24px 60px rgba(0, 0, 0, 0.6);
-  animation: float 3.4s ease-in-out 0.6s infinite alternate;
+  margin: auto;
+  width: min(392px, 100%);
+  display: grid;
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  animation: on 0.42s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
-@media (min-width: 640px) {
-  .card {
-    width: 19rem;
-    padding: 1.25rem 1.5rem 1.5rem;
-  }
-}
-
-/* 안쪽 액자선 — 카드가 "인쇄물"처럼 읽히게 하는 한 줄 */
-.frame {
-  position: absolute;
-  inset: 7px;
-  border: 1px solid color-mix(in srgb, var(--rc) 25%, transparent);
-  border-radius: 0.75rem;
-  pointer-events: none;
-}
-
-/* 광택 한 번 — 딜이 끝나는 타이밍에 왼쪽에서 오른쪽으로 */
-.shine {
+/* 스캔라인은 판 전체를 덮는다 — 머리띠와 그림이 따로 켜진 장치로 보이지 않게 */
+.panel::after {
+  content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(110deg, transparent 42%, rgba(255, 255, 255, 0.14) 50%, transparent 58%);
+  opacity: 0.3;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.12) 50%);
+  background-size: 100% 3px;
+}
+
+/* 켜지는 순간 한 번 지나가는 빛 — 원본의 광택(shine)이 하던 일을 이 판의 말로 옮긴 것 */
+.shine {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 42%, rgba(255, 255, 255, 0.1) 50%, transparent 58%);
   transform: translateX(-130%);
-  animation: shine 0.9s ease 0.55s 1 forwards;
+  animation: shine 0.85s ease 0.35s 1 forwards;
 }
 
-.kicker {
+/* ── 머리띠 ── */
+.hd {
   position: relative;
-  z-index: 1;
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  background: rgba(8, 6, 4, 0.9);
+  border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
+  border-bottom: 1px solid rgba(232, 221, 205, 0.12);
+}
+/* 판 윗변에 한 줄 — 가장자리에서 사라지는 빛. 각진 상자에 결을 주는 건 이 선 하나다 */
+.hd::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--rc), transparent);
+  opacity: 0.7;
+}
+/* 켜져 있다는 표시 — 통신판의 그 점과 같은 박자(2.6초)로 숨쉰다 */
+.live {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rc);
+  box-shadow: 0 0 8px var(--rc);
+  animation: pulse 2.6s ease-in-out infinite;
+}
+.ttl {
+  font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: #8a8378;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--dust);
+}
+/* 남은 시간 — 발치의 막대와 같은 것을 세고 있다. 자리가 흔들리지 않게 tabular */
+.clock {
+  margin-left: auto;
+  padding: 2px 9px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  clip-path: polygon(0 4px, 4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%);
+  border: 1px solid color-mix(in srgb, var(--rc) 50%, transparent);
+  background: color-mix(in srgb, var(--rc) 14%, transparent);
+  color: var(--rc);
 }
 
-/* 역할 인물 — 카드 폭을 꽉 채운다. 좌우 마이너스 여백은 카드의 좌우 패딩을 되돌리는 값이다 */
+/* ── 그림 ── 개체 사진 한 장. 아래턱은 본문 바탕으로 완전히 녹인다 */
 .art {
   position: relative;
-  margin: 0.9rem -1.25rem 0;
-  height: 11rem;
+  height: 214px;
   overflow: hidden;
+  background: #0a0f18;
+  border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
 }
-@media (min-width: 640px) {
-  .art {
-    margin: 0.9rem -1.5rem 0;
-  }
-}
-
 .artImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
   /* 얼굴이 이 창의 위쪽에 오게 잡는다 — 가운데로 두면 가슴만 나온다 */
-  object-position: 50% 10%;
-  filter: saturate(0.92) contrast(1.05) brightness(0.98);
+  object-position: 50% 24%;
+  filter: grayscale(0.3) contrast(1.04) brightness(1.08);
 }
-
-/*
- * 그림이 물고 있는 제 배경을 카드 색으로 눌러 인물만 남기고, 아래턱을 카드 바탕(#0a0806)까지
- * 완전히 녹인다 — 그래야 그림이 "붙인 사진"이 아니라 카드에 인쇄된 것처럼 읽힌다.
- */
-.artFade {
+/* 역할 색을 사진에 한 겹 얹는다 — 사람은 조명색, 설계자는 비상등 아래 선 것처럼 보인다 */
+.tone {
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(72% 62% at 50% 26%, color-mix(in srgb, var(--rc) 16%, transparent), transparent 74%),
-    radial-gradient(78% 66% at 50% 32%, transparent 0%, rgba(10, 8, 6, 0.45) 68%, rgba(10, 8, 6, 0.85) 100%),
-    linear-gradient(to top, #0a0806 2%, rgba(10, 8, 6, 0.55) 34%, transparent 72%);
+  background: color-mix(in srgb, var(--rc) 15%, transparent);
+  mix-blend-mode: overlay;
 }
-
-/* 그림 아래턱에 걸쳐 앉는다 — 상징(가면 · 눈)과 인물이 한 덩어리로 보인다 */
-.emblem {
-  position: relative;
-  z-index: 1;
-  margin: -2rem auto 0;
-  display: flex;
-  width: 64px;
-  height: 64px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  color: var(--rc);
-  border: 1px solid color-mix(in srgb, var(--rc) 50%, transparent);
+.fade {
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(circle, color-mix(in srgb, var(--rc) 18%, transparent), transparent 70%),
-    #0a0806;
-  box-shadow: 0 0 22px color-mix(in srgb, var(--rc) 30%, transparent);
+    radial-gradient(78% 70% at 50% 30%, transparent 0%, rgba(8, 6, 4, 0.1) 72%, rgba(8, 6, 4, 0.55) 100%),
+    linear-gradient(to top, rgba(8, 6, 4, 0.94) 1%, rgba(8, 6, 4, 0.3) 22%, transparent 52%);
 }
-
+.artScan {
+  position: absolute;
+  inset: 0;
+  opacity: 0.32;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.12) 50%);
+  background-size: 100% 3px;
+}
+/* ── 본문 ── */
+.bd {
+  padding: 14px 18px;
+  background: rgba(8, 6, 4, 0.9);
+  border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
+  text-align: center;
+}
+.kicker {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--grime);
+}
 .name {
-  position: relative;
-  z-index: 1;
-  margin: 0.9rem 0 0;
-  font-size: 1.9rem;
+  margin: 6px 0 0;
+  font-size: 2.2rem;
   font-weight: 900;
   letter-spacing: -0.02em;
+  line-height: 1.15;
   color: var(--rc);
-  text-shadow: 0 0 24px color-mix(in srgb, var(--rc) 55%, transparent);
+  text-shadow: 0 0 26px color-mix(in srgb, var(--rc) 45%, transparent);
 }
-
 .tagline {
-  position: relative;
-  z-index: 1;
-  margin: 0.35rem 0 0;
-  font-size: 12px;
+  margin: 4px 0 0;
+  font-size: 12.5px;
   font-weight: 700;
-  color: #d6cfc2;
+  color: var(--bone);
 }
 
-/* ── ◆ ── 장식 구분선 */
+/* ── ▪ ── 장식 구분선 */
 .rule {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  margin: 1.1rem 0.4rem 0;
-  font-size: 9px;
-  color: color-mix(in srgb, var(--rc) 60%, transparent);
+  gap: 10px;
+  margin: 14px 2px 0;
+  font-size: 8px;
+  color: color-mix(in srgb, var(--rc) 65%, transparent);
 }
 .rule::before,
 .rule::after {
@@ -184,49 +204,102 @@
   flex: 1;
 }
 .rule::before {
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--rc) 40%, transparent));
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--rc) 45%, transparent));
 }
 .rule::after {
-  background: linear-gradient(270deg, transparent, color-mix(in srgb, var(--rc) 40%, transparent));
+  background: linear-gradient(270deg, transparent, color-mix(in srgb, var(--rc) 45%, transparent));
 }
 
-/* 문장마다 한 줄 */
+/* 지시는 문장마다 한 줄. 왼쪽 눈금이 「기록판의 한 줄」처럼 읽히게 한다 */
 .lines {
-  position: relative;
-  z-index: 1;
-  margin-top: 0.9rem;
-  font-size: 12px;
-  line-height: 1.9;
-  color: #a89f90;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 7px;
+  text-align: left;
 }
-.lines p {
-  margin: 0;
+.lines li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--bone);
+}
+.lines li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 7px;
+  height: 1px;
+  background: var(--rc);
 }
 
-.confirm {
+/* ── 발치 ── 이 판이 관문이 아니라 스쳐 가는 통보라는 것을 말하는 줄 */
+.ft {
   position: relative;
-  z-index: 1;
-  margin-top: 1.25rem;
-  width: 100%;
-  border: none;
-  border-radius: 0.75rem;
-  padding: 0.8rem 1rem;
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: #0a0806;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(8, 6, 4, 0.94);
+  border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
+  border-top: 1px solid rgba(232, 221, 205, 0.12);
+}
+.ftx {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--grime);
+}
+.close {
+  margin-left: auto;
+  padding: 4px 12px;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  clip-path: polygon(0 4px, 4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%);
+  border: 1px solid color-mix(in srgb, var(--rc) 50%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--rc) 14%, transparent);
+  box-shadow: none;
+  color: var(--rc);
   cursor: pointer;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--rc) 92%, white), var(--rc));
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--rc) 35%, transparent);
-  transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease;
 }
-.confirm:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--rc) 45%, transparent);
+.close:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--rc) 75%, transparent);
+  background: color-mix(in srgb, var(--rc) 24%, transparent);
+  box-shadow: none;
 }
-.confirm:active {
-  transform: translateY(0);
+/* 남은 시간 — 판 바닥에 붙은 한 줄. --show 를 그대로 쓰므로 머리띠의 숫자와 어긋날 수 없다 */
+.prog {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(232, 221, 205, 0.1);
+}
+.prog i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: var(--rc);
+  box-shadow: 0 0 10px var(--rc);
+  animation: drain var(--show) linear both;
+}
+
+@media (max-width: 480px) {
+  .art {
+    height: 176px;
+  }
+  .name {
+    font-size: 1.9rem;
+  }
 }
 
 @keyframes fadeIn {
@@ -247,28 +320,53 @@
   }
 }
 
-@keyframes deal {
+/* 딜(카드가 날아드는 것)이 아니라 판이 켜지는 것이다 — 아래에서 한 뼘, 세로로 한 번 펴진다 */
+@keyframes on {
   from {
     opacity: 0;
-    transform: translateY(70px) rotate(-7deg) scale(0.6);
+    transform: translateY(10px) scaleY(0.985);
   }
   to {
     opacity: 1;
-    transform: translateY(0) rotate(0) scale(1);
-  }
-}
-
-@keyframes float {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-6px);
+    transform: translateY(0) scaleY(1);
   }
 }
 
 @keyframes shine {
   to {
     transform: translateX(130%);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* 켜짐·빛·깜빡임은 걷는다. 다만 남은 시간 막대는 정보라서 남긴다 */
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .shine {
+    animation: none;
+  }
+  .shine {
+    display: none;
+  }
+  .live {
+    animation: none;
   }
 }
