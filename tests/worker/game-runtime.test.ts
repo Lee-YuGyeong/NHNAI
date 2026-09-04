@@ -7,7 +7,16 @@
  *   3. 의심도는 지목으로만 움직이고, 100 이면 격리 · 정체 공개 · 승패로 이어진다 (P1 · §1.2 · §1.3).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GAME_BRIEFING_MS, GAME_FIRST_DISCUSSION_MS, GAME_RESULT_MODAL_MS, type GameS2CMessage, type GameStateWire } from '../../src/world/mp/game-protocol';
+import {
+  GAME_BRIEFING_MS,
+  GAME_DISCUSSION_MS,
+  GAME_FIRST_DISCUSSION_MS,
+  GAME_RESULT_MODAL_MS,
+  GAME_TEST_MS,
+  GAME_TEST_ORDER,
+  type GameS2CMessage,
+  type GameStateWire,
+} from '../../src/world/mp/game-protocol';
 import type { PlayerSnapshot, S2CMessage, TrialPlayerResult } from '../../src/world/mp/protocol';
 import type { Brain } from '../../worker/src/game/brain';
 import { GameRuntime } from '../../worker/src/game/runtime';
@@ -279,6 +288,64 @@ describe('GameRuntime — 판 한 바퀴', () => {
     // 다른 사람의 공개본은 그대로다
     const other = result.players.find((p) => p.id !== role.aiId)!;
     expect(other.errorDirection).toEqual([1, -1]);
+  });
+});
+
+/**
+ * 차례표 (2026-09-05 사용자: "입장 · 40초 대화 · 낙하생존 30초 · 40초 대화 · 발판 30초 · 40초 대화 · 원판 30초").
+ * 관리 AI 가 매번 종류를 고르던 것을 그만두었으므로, **무엇이 몇 번째로 몇 초 열리는가**가 이제 판의 규칙이다.
+ */
+describe('GameRuntime — 고정 차례표', () => {
+  const rounds = (h: ReturnType<typeof harness>) => h.sent.filter((m): m is Extract<S2CMessage, { t: 'trial_round_start' }> => m.t === 'trial_round_start');
+
+  it('낙하 생존 → 발판 → 원판 을 30초씩, 사이사이 40초 대화로 연다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    expect(h.lastState().phase).toBe('discussion');
+
+    for (const game of GAME_TEST_ORDER) {
+      // 대화가 끝나야 시험이 열린다 — 첫 대화도 그 뒤의 대화도 40초다
+      await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+      expect(h.lastState().phase).toBe('test');
+      expect(rounds(h).at(-1)).toMatchObject({ game, durationMs: GAME_TEST_MS });
+
+      // 엔진이 제 길이(/trial 의 1분)로 끝내기 전에 판이 30초에 닫는다
+      await vi.advanceTimersByTimeAsync(GAME_TEST_MS - 1_000);
+      expect(h.lastState().phase).toBe('test');
+      await vi.advanceTimersByTimeAsync(1_100);
+      expect(h.lastState().phase).toBe('result');
+
+      await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+      expect(h.lastState().phase).toBe('discussion');
+    }
+
+    expect(rounds(h).map((r) => r.game)).toEqual([...GAME_TEST_ORDER]);
+    expect(h.lastState().testsDone).toBe(3);
+    // 마지막 대화 40초까지 끝나면 판이 닫힌다 — 그때까지 AI 를 못 찾았으면 AI 의 승리
+    await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+    expect(h.lastState().phase).toBe('ended');
+    expect(h.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_ended' }> => m.t === 'game_ended')?.outcome.winner).toBe('ai');
+  });
+
+  it('시험이 도는 중에도 의심도 100 은 그 자리에서 격리한다 — 격리가 목표에 닿으면 차례표가 남아도 끝난다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    const mine = new Set(['p1', 'p2', 'p3'].map((p) => h.roleOf(p)!.seatId));
+    const ai = h.lastState().seats.find((s) => !mine.has(s.id))!;
+
+    // 첫 시험(낙하 생존)이 도는 동안 셋이 한 좌석을 몬다 — 몸으로 하는 판이어도 지목은 멈추지 않는다
+    await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+    expect(h.lastState().phase).toBe('test');
+    for (let i = 0; i < 12 && h.lastState().phase !== 'ended'; i += 1) {
+      for (const p of ['p1', 'p2', 'p3']) await h.rt.handle(p, { t: 'game_accuse', target: ai.id });
+      await vi.advanceTimersByTimeAsync(5_100);
+    }
+    // 셋째 시험을 열기 한참 전에 AI 가 잡혀 판이 끝난다
+    expect(h.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_isolated' }> => m.t === 'game_isolated')?.id).toBe(ai.id);
+    expect(h.lastState().phase).toBe('ended');
+    expect(rounds(h).length).toBeLessThan(3);
   });
 });
 

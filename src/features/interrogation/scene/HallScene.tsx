@@ -5,6 +5,8 @@
  *
  *   토론 · 낙하 생존 · 색 사냥   FreeRig (자유 보행) — 낙하 생존은 마당(FALL_ARENA)이 좁고 낙하물(FallObjects)이
  *                              떨어지고, 색 사냥은 마당(HUNT_ARENA)에서 구슬을 줍는다(E, PickKey)
+ *   움직이는 플랫폼             FreeRig + PlatformCourse (발판 열)
+ *   회전 원판                   DiscRig (걷기 명령만 올리고 자리는 서버 것) + DiscStage — 마당 한가운데 원판이 선다
  *   정지선                      StopRig (레일) + TrackDressing, 남의 몸은 runnerState 타임라인으로 움직인다
  *
  * 남의 몸은 전부 remotePlayers(좌석 id 로 키) → SeatBodies 가 그린다 — **머리 위에 이름표와 의심도 막대**가 붙는다
@@ -33,6 +35,9 @@ import { PLATFORM_ARENA } from '@/world/mp/platform';
 // 색 사냥의 구슬 · 견본판 · E 키는 /trial 과 같은 부품이다 — 상태(huntState)가 하나라 화면도 하나로 그린다
 import { HuntOrbs, SampleBoard } from '@/features/trial/games/color-hunt/HuntObjects';
 import { PickKey } from '@/features/trial/games/color-hunt/PickKey';
+// 회전 원판도 같은 이유로 /trial 의 부품 그대로다 — 원판(무대)과 다리(예측 보정)는 서버 물리와 짝이라 베낄 수 없다
+import { DiscRig } from '@/features/trial/games/disc/DiscRig';
+import { DiscStage } from '@/features/trial/games/disc/DiscStage';
 import { FreeRig, type Teleport } from './FreeRig';
 import { StopRig } from './stopline/StopRig';
 import { TrackDressing } from './stopline/TrackDressing';
@@ -77,6 +82,8 @@ export interface HallSceneProps {
   onBrake: () => void;
   /** 색 사냥 — E 로 구슬을 청한다. 판정은 서버 (PickKey 머리말) */
   onPick: (objectId: number) => void;
+  /** 회전 원판 — 걷기 명령(월드 기준 m/s). 자리는 안 보낸다 (GameConnection.sendWalk 머리말) */
+  onWalk: (x: number, z: number) => void;
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
 }
 
@@ -85,6 +92,7 @@ export function HallScene(p: HallSceneProps) {
   const fall = p.test?.game === 'fall';
   const hunt = p.test?.game === 'colorhunt';
   const platform = p.test?.game === 'platform';
+  const disc = p.test?.game === 'disc';
 
   return (
     <WorldCanvas
@@ -114,6 +122,12 @@ export function HallScene(p: HallSceneProps) {
           <PlatformCourse />
         </Suspense>
       ) : null}
+      {/* 회전 원판 — 원판은 서버가 준 각도로 돌고(discState), 그 위의 몸은 스냅샷으로 온다 (InterrogationFeature 의 trial_disc) */}
+      {disc ? (
+        <Suspense fallback={null}>
+          <DiscStage />
+        </Suspense>
+      ) : null}
       {hunt ? (
         <group>
           <HuntOrbs />
@@ -132,6 +146,9 @@ export function HallScene(p: HallSceneProps) {
 
       {stopline && p.mySeatId ? (
         <StopRig myId={p.mySeatId} lane={p.myLane} myAttempts={p.myAttempts} onAccel={p.onAccel} onBrake={p.onBrake} sendMove={p.sendMove} />
+      ) : disc ? (
+        /* 원판 위에서는 자리를 안 보낸다 — 서버가 적분해서 스냅샷으로 돌려준다 (DiscRig 머리말) */
+        <DiscRig selfId={p.mySeatId} body={p.myBody} sendWalk={p.onWalk} />
       ) : (
         <FreeRig
           spawn={p.spawn}

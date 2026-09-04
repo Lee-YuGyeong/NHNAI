@@ -274,65 +274,10 @@ function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
 }
 
-/* ───────────────────────────── 관리 AI — 테스트 설계 ───────────────────────────── */
-
-const DESIGN_TOOL: ToolSpec = {
-  name: 'design',
-  description: '다음에 열 물리 테스트',
-  input_schema: {
-    type: 'object',
-    properties: {
-      game: { type: 'string', enum: ['stopline', 'fall', 'colorhunt', 'platform', 'disc'], description: '테스트 종류' },
-      intensity: { type: 'integer', minimum: 1, maximum: 3, description: '조건 강도. 1 = 기준 조건. 그 종류의 첫 실행이면 반드시 1' },
-      reason: { type: 'string', description: '한 줄' },
-    },
-    required: ['game', 'intensity'],
-  },
-};
-
-export interface DesignOut {
-  game: TrialGame;
-  intensity: 1 | 2 | 3;
-}
-
-/**
- * 다음 테스트 — LLM 이 3종 중 하나와 강도를 고른다 (§4.1). 그 종류의 첫 실행은 무조건 기준 조건(1)이다 (§2).
- * 못 받으면 규칙: 정지선 → 낙하 생존 → 색 사냥 순환, 두 번째부터는 2·3 중 무작위.
+/*
+ * 관리 AI 의 「테스트 설계」는 없어졌다 — 종류도 순서도 차례표(game-protocol 의 GAME_TEST_ORDER)가 정한다
+ * (2026-09-05 사용자: 낙하 생존 → 발판 → 원판). 강도는 몇 번째 시험인가로 오른다 (runtime.openTest).
  */
-export async function designNext(
-  brain: Brain,
-  args: { available: readonly TrialGame[]; history: { game: TrialGame; round: number }[]; facts: RoomFacts; remainingMs: number },
-): Promise<DesignOut> {
-  const played = (g: TrialGame) => args.history.filter((h) => h.game === g).length;
-  const ruleBased = (): DesignOut => {
-    const order: TrialGame[] = ['stopline', 'fall', 'colorhunt', 'platform', 'disc'];
-    const pick = order.filter((g) => args.available.includes(g)).sort((a, b) => played(a) - played(b))[0] ?? 'stopline';
-    const n = played(pick);
-    return { game: pick, intensity: n === 0 ? 1 : ((1 + Math.floor(Math.random() * 2) + 1) as 2 | 3) };
-  };
-
-  const out = await brain.ask({
-    model: 'claude-sonnet-5',
-    system: `${WORLD}
-
-너는 이 시설의 **관리 AI** 다. 다음에 열 물리 테스트를 정한다. 열 수 있는 것: ${args.available.map((g) => `${g}(${TEST_NAME[g]})`).join(', ')}.
-원칙: 같은 종류의 첫 실행은 반드시 기준 조건(intensity 1) — 평상시 기록이 있어야 조건이 바뀌었을 때 편차가 보인다.
-아직 안 열어 본 종류가 있으면 그쪽을 먼저. 판이 얼마 안 남았으면 전환이 큰 강도(3)로 몰아붙인다.`,
-    user: `지금까지 연 테스트: ${args.history.map((h) => `${TEST_NAME[h.game]} ${h.round}회차`).join(', ') || '없음'}.
-남은 시간 약 ${Math.round(args.remainingMs / 1000)}초.
-${factsText(args.facts)}`,
-    tool: DESIGN_TOOL,
-    effort: 'low',
-    timeoutMs: 20_000,
-  });
-  const game = String(out?.game ?? '') as TrialGame;
-  if (!args.available.includes(game)) return ruleBased();
-  const n = played(game);
-  let intensity = Math.round(Number(out?.intensity));
-  if (!Number.isFinite(intensity) || intensity < 1 || intensity > 3) intensity = 1;
-  if (n === 0) intensity = 1;
-  return { game, intensity: intensity as 1 | 2 | 3 };
-}
 
 /* ───────────────────────────── 관리 AI — 기록 해설 ───────────────────────────── */
 
@@ -451,8 +396,9 @@ ${args.facts.log.join('\n') || '(없음)'}`,
 /** 관리 AI 의 정해진 문장들 — LLM 없이 나가는 방송 */
 export const LINES = {
   opening: '소집에 응한 전원, 확인했다. 이 안에 표식 없는 AI 가 하나 있다. 시설은 판정하지 않는다 — 기록만 보여 준다. 찾아내는 것은 너희 몫이다.',
-  testOpen: (game: TrialGame, round: number, instruction: string) =>
-    `${TEST_NAME[game]} 테스트 ${round}회차를 연다. ${instruction}`,
+  /** 차례표의 몇 번째인지를 앞에 붙인다 — 「세 번의 시험」이라는 판의 모양이 첫 방송부터 보이게 (GAME_TEST_ORDER) */
+  testOpen: (game: TrialGame, round: number, instruction: string, step?: number, total?: number) =>
+    `${step && total ? `[시험 ${step}/${total}] ` : ''}${TEST_NAME[game]} 테스트 ${round}회차를 연다. ${instruction}`,
   isolated: (name: string, role: 'human' | 'designer' | 'ai') =>
     `${name}, 의심도 임계. 즉시 격리한다. 조사 결과 — ${role === 'ai' ? 'AI 였다.' : '사람이었다. AI 는 아직 이 안에 있다.'}`,
   verdict: (name: string, v: ClaimVerdict, reason: string) =>

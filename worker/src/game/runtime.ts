@@ -3,9 +3,14 @@
  *
  *   lobby → (방장 시작) → briefing → discussion ⇄ test → result → discussion … → ended
  *
+ *   차례표는 **고정**이다 (2026-09-05 사용자, game-protocol 의 GAME_TEST_ORDER · GAME_TEST_MS):
+ *     입장 → 대화 40초 → ① 낙하 생존 30초 → 대화 40초 → ② 발판 30초 → 대화 40초 → ③ 원판 30초 → 대화 40초 → 끝
+ *   그 사이 언제든 의심도가 100 에 닿은 좌석은 그 자리에서 격리되고(무대 위 처형자가 쏜다), 격리 수가
+ *   목표(총원의 절반, roles.quotaFor)에 닿으면 차례표가 남아 있어도 판은 거기서 끝난다.
+ *
  *   · 좌석: 실제 사람 + 대역(모자란 만큼, §9 폴백) + AI 1 — 판이 열릴 때 섞여 SUBJECT nn 이 된다 (§1.1)
  *   · 배역: roles.ts. 설계자에게만 AI 의 좌석이 통보된다
- *   · 테스트: 관리 AI 가 종류·강도를 고르고(agents.designNext) worker/src/trial 의 엔진이 돈다 (engines.ts)
+ *   · 테스트: 차례표가 종류를 정하고 worker/src/trial 의 엔진이 돈다 (engines.ts). 강도는 몇 번째 시험인가로 오른다
  *   · 의심도: suspicion.ts — 지목 · 동조 · 몰이 · 철회 · 주장 판정. 테스트 수치는 절대 자동 반영되지 않는다 (P1)
  *   · 격리: 100 에 닿는 순간, 정체 공개. 격리 수가 총원 절반이면 끝 (§1.3)
  *   · 관리 AI: 소집 · 테스트 개시 · 결과 해설 · 주장 판정 방송 (§4)
@@ -28,7 +33,8 @@ import {
   GAME_MAX_HUMANS,
   GAME_MIN_HUMANS,
   GAME_RESULT_MODAL_MS,
-  GAME_TEST_MAX_MS,
+  GAME_TEST_MS,
+  GAME_TEST_ORDER,
   type GameC2SMessage,
   type GameOutcome,
   type GamePhase,
@@ -48,7 +54,7 @@ import type { GameEngine, SeatTuning } from '../trial/engine';
 import { appendHistory, readHistory } from '../trial/history';
 import { groupStats } from '../trial/scoring';
 import type { TrialResult } from '../trial/types';
-import { LINES, aiStrategy, designNext, judgeClaim, leaderComment, personaPool, sayAs, type RoomFacts } from './agents';
+import { LINES, aiStrategy, judgeClaim, leaderComment, personaPool, sayAs, type RoomFacts } from './agents';
 import type { Brain } from './brain';
 import { ENGINES, INSTRUCTION, availableGames } from './engines';
 import { assignRoles, outcomeFor, quotaFor, shuffled } from './roles';
@@ -446,6 +452,8 @@ export class GameRuntime {
         this.openDiscussion(GAME_FIRST_DISCUSSION_MS, true);
         return;
       case 'discussion':
+        // 차례표를 다 돌았다 — 마지막 대화까지 끝났으니 여기서 닫는다 (아직 AI 를 못 찾았으면 AI 의 승리)
+        if (this.testsDone >= schedule().length) return void (await this.hardCap());
         await this.openTest();
         return;
       case 'test':
@@ -474,25 +482,26 @@ export class GameRuntime {
 
   private async openTest(): Promise<void> {
     if (this.phase !== 'discussion') return;
-    const available = availableGames();
-    if (!available.length) return this.openDiscussion(GAME_DISCUSSION_MS, false);
+    const order = schedule();
+    const step = this.testsDone + 1;
+    const game = order[this.testsDone];
+    if (!game) return void (await this.hardCap());
 
-    // 토론을 막지 않게 먼저 국면을 옮긴다 — LLM 설계·전략 호출은 물리 루프 밖이다 (P6)
+    // 토론을 막지 않게 먼저 국면을 옮긴다 — LLM 전략 호출은 물리 루프 밖이다 (P6)
     this.clearPhaseTimer();
     this.phase = 'test';
     this.phaseEndsAt = null;
     this.stopTalk();
     this.stopIdle();
 
-    const design = await designNext(this.deps.brain, {
-      available,
-      history: this.history.map((h) => ({ game: h.game, round: h.round })),
-      facts: this.facts(),
-      remainingMs: Math.max(0, this.startedAt + GAME_HARD_CAP_MS - this.now()),
-    });
-    if (this.phase !== 'test') return; // 그 사이 판이 끝났다
-    const engine = this.makeEngine(design.game);
+    const engine = this.makeEngine(game);
     if (!engine) return this.openDiscussion(GAME_DISCUSSION_MS, false);
+    /**
+     * 강도는 몇 번째 시험인가로 오른다 (1 → 2 → 3). 종류마다 한 번씩만 열리니 「같은 종류의 첫 실행은
+     * 기준 조건」(§3)이 지키려던 것 — 견줄 바탕 — 은 이 판에서 **무리 안의 편차**가 대신한다:
+     * 전원이 같은 조건에서 같은 30초를 겪고, 결과 모달은 무리 평균과의 거리를 보여 준다.
+     */
+    const intensity = Math.min(3, step) as 1 | 2 | 3;
 
     const alive = this.seats.filter((s) => !s.isolated);
     const realIds = alive.filter((s) => s.kind === 'real').map((s) => s.id);
@@ -507,29 +516,32 @@ export class GameRuntime {
         name: aiSeat.name,
         persona: aiSeat.persona,
         facts: this.facts(),
-        game: design.game,
+        game,
         mySuspicion: this.book.get(aiSeat.id),
       });
       tuning[aiSeat.id] = { precision };
     }
     if (this.phase !== 'test') return;
 
-    const run = (this.testRuns.get(design.game) ?? 0) + 1;
-    this.testRuns.set(design.game, run);
+    const run = (this.testRuns.get(game) ?? 0) + 1;
+    this.testRuns.set(game, run);
     const startAt = this.now();
     this.engine = engine;
-    this.currentIntensity = design.intensity;
-    this.currentTest = { game: design.game, round: run, startAt, durationMs: engine.durationMs, instruction: INSTRUCTION[design.game] };
+    this.currentIntensity = intensity;
+    this.currentTest = { game, round: run, startAt, durationMs: GAME_TEST_MS, instruction: INSTRUCTION[game] };
     this.finishing = false;
 
-    this.leader(LINES.testOpen(design.game, run, INSTRUCTION[design.game]), 'announce');
+    this.leader(LINES.testOpen(game, run, INSTRUCTION[game], step, order.length), 'announce');
     // pace — 움직이는 플랫폼의 발판 배속(공개, mp/platform.ts). 다른 엔진은 안 싣는다
-    const pace = engine.paceFor?.(design.intensity);
-    this.deps.broadcast({ t: 'trial_round_start', game: design.game, round: run, startAt, durationMs: engine.durationMs, ...(pace === undefined ? {} : { pace }) });
-    // 마감: 시간제는 엔진이 스스로 finish 를 부르고, 이벤트제는 상한에서 강제로 닫는다
-    this.setPhase('test', startAt + (engine.durationMs ?? GAME_TEST_MAX_MS) + 1_500);
+    const pace = engine.paceFor?.(intensity);
+    this.deps.broadcast({ t: 'trial_round_start', game, round: run, startAt, durationMs: GAME_TEST_MS, ...(pace === undefined ? {} : { pace }) });
+    /**
+     * 마감은 **판이 쥔다** — 30초. 엔진이 제 길이(/trial 의 1분)에 스스로 finish 를 부르기 전에 여기서 닫고,
+     * finishTest 가 engine.stop() 으로 타이머를 걷는다. 이벤트제(정지선)도 같은 30초에 닫힌다.
+     */
+    this.setPhase('test', startAt + GAME_TEST_MS);
     engine.start(
-      design.intensity,
+      intensity,
       realIds,
       botIds,
       { broadcast: (m) => this.deps.broadcast(m), finish: () => void this.finishTest(), bodyOf: (id) => this.seats.find((s) => s.id === id)?.body },
@@ -1145,4 +1157,13 @@ export class GameRuntime {
 
 function finite(v: number | undefined, fallback: number): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+}
+
+/**
+ * 이 판이 실제로 여는 시험들 — 차례표(GAME_TEST_ORDER) 중 엔진이 꽂혀 있는 것만.
+ * 엔진이 빠진 종류는 조용히 건너뛴다: 차례가 비었다고 판이 멎는 것보다 한 판이 두 시험으로 도는 편이 낫다.
+ */
+function schedule(): TrialGame[] {
+  const have = new Set(availableGames());
+  return GAME_TEST_ORDER.filter((g) => have.has(g));
 }

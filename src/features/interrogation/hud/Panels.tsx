@@ -8,6 +8,7 @@ import { followsBottom } from '@/features/arena/feedscroll';
 import {
   GAME_MAX_HUMANS,
   GAME_MIN_HUMANS,
+  GAME_TEST_ORDER,
   type GameOutcome,
   type GameRole,
   type GameSeat,
@@ -59,7 +60,10 @@ export function TopBar({ wire, roomCode }: { wire: GameStateWire; roomCode: stri
         {wire.currentTest ? ` · ${TEST_TITLE[wire.currentTest.game]} ${wire.currentTest.round}회차` : ''}
       </span>
       {left !== null ? <span className="ig-timer">{left}s</span> : null}
-      <span>테스트 {wire.testsDone}</span>
+      {/* 차례표가 셋으로 고정이라 「몇째 중 몇」이 읽힌다 — 판이 언제 끝나는지가 첫 화면부터 보인다 (GAME_TEST_ORDER) */}
+      <span>
+        테스트 {wire.testsDone}/{GAME_TEST_ORDER.length}
+      </span>
       <span>
         격리 {isolated}/{wire.quota}
       </span>

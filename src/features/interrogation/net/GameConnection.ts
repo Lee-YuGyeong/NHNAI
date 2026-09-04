@@ -125,6 +125,15 @@ export class GameConnection {
     return this.send({ t: 'trial_pick', objectId });
   }
 
+  /**
+   * 회전 원판 — 걷기 **명령**(월드 기준 속도 m/s)만 올린다. 자리는 안 올린다:
+   * 원판이 몸을 실어 나르고 미끄러뜨리는데 그 미끄러짐이 숨은 마찰계수에서 나오므로(P8) 서버가 적분한다.
+   * 돌려받는 것은 trial_disc 스냅샷이다 (worker/src/trial/disc/engine.ts 머리말).
+   */
+  sendWalk(x: number, z: number): boolean {
+    return this.send({ t: 'trial_walk', x, z });
+  }
+
   game(msg: GameC2SMessage): boolean {
     return this.send(msg);
   }

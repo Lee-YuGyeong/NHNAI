@@ -36,6 +36,8 @@ import { PAD_START_Z } from '@/world/mp/platform';
 import { runnerState } from './scene/stopline/runnerState';
 // 색 사냥의 구슬 상태·오버레이 색은 /trial 과 같은 모듈이다 — 화면은 달라도 게임은 하나다 (huntState 머리말)
 import { huntState, softLight } from '@/features/trial/games/color-hunt/huntState';
+// 회전 원판도 같은 모듈 하나 — 원판 각도와 몸의 자리가 여기 들어간다 (discState 머리말)
+import { discState } from '@/features/trial/games/disc/discState';
 import './interrogation.css';
 
 /** 좌석의 기본 자리 — 홀 가운데 좌석 원 위 (spawn.ts). 판이 열릴 때 전원이 여기서 시작한다 */
@@ -61,6 +63,8 @@ export function InterrogationFeature() {
   const myHits = useAppSelector(gameSelectors.selectMyHits);
   const myPicks = useAppSelector(gameSelectors.selectMyPicks);
   const myLand = useAppSelector(gameSelectors.selectMyLandings, (a, b) => a.landings === b.landings && a.centers === b.centers && a.misses === b.misses && a.finished === b.finished);
+  const myFalls = useAppSelector(gameSelectors.selectMyFalls);
+  const discOmega = useAppSelector(gameSelectors.selectDiscOmega);
   const hunt = useAppSelector(gameSelectors.selectHunt);
   const latestResult = useAppSelector(gameSelectors.selectLatestResult);
   const roles = useAppSelector(gameSelectors.selectRoles);
@@ -112,6 +116,7 @@ export function InterrogationFeature() {
     executioner.reset();
     platformState.clear();
     huntState.clear();
+    discState.clear();
     dispatch(gameActions.connecting());
 
     const conn = connRef.current!;
@@ -207,6 +212,7 @@ export function InterrogationFeature() {
           runnerState.resetAll();
           fallState.clear();
           huntState.clear();
+          discState.clear();
           // 움직이는 플랫폼 — 발판 열이 서고(platformState), 전원이 출발 발판 위에서 시작한다 (좌석 번호로 나란히)
           if (msg.game === 'platform') {
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
@@ -240,6 +246,30 @@ export function InterrogationFeature() {
           }
           return;
         }
+        case 'trial_disc': {
+          /*
+           * 회전 원판 — 이 게임만은 **사람의 자리도 서버가 적분한다** (원판이 실어 나르고 미끄러뜨리는 양이
+           * 숨은 마찰계수에서 나온다, P8). 그래서 player_moved 가 안 오고, 남의 몸은 여기서 remotePlayers 로
+           * 밀어 넣는다 — 홀의 다른 국면과 같은 길이라 이름표와 의심도 막대가 그대로 따라온다 (SeatAvatar).
+           * 원판 각도(theta)는 discState 가 들고 DiscStage · DiscRig 가 프레임마다 읽는다.
+           */
+          discState.push(msg);
+          dispatch(gameActions.discSynced(msg.omega));
+          const at = now();
+          for (const b of msg.players) {
+            if (b.id === meRef.current?.seatId) {
+              // 내 몸은 DiscRig 가 그린다. 자리만 적어 둔다 — 원판 위에서 격리되면 처형자가 겨눌 곳이다
+              myPos.current.x = b.x;
+              myPos.current.z = b.z;
+              continue;
+            }
+            remotePlayers.move(b.id, b.x, b.z, b.y, b.h, b.m === 2 ? 'run' : b.m === 1 ? 'walk' : 'idle', at);
+          }
+          return;
+        }
+        case 'trial_fell':
+          dispatch(gameActions.fellRecorded(msg.id));
+          return;
         case 'trial_hit':
           dispatch(gameActions.hitRecorded(msg.id));
           return;
@@ -258,6 +288,7 @@ export function InterrogationFeature() {
         case 'trial_result':
           dispatch(gameActions.resultReceived(msg.result));
           platformState.clear();
+          discState.clear();
           // 정지선 레일에서 내려온다 — 내 좌석 자리로
           {
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
@@ -288,8 +319,8 @@ export function InterrogationFeature() {
         dispatch(gameActions.playerLeft(id));
       },
       onMoved: (id, x, z, y, heading, anim) => {
-        // 정지선 동안은 레일 타임라인이 그린다 — 두 출처로 그리면 몸이 두 자리를 오간다 (HallScene.StopRunners)
-        if (testRef.current?.game === 'stopline') return;
+        // 정지선은 레일 타임라인이, 회전 원판은 서버 스냅샷이 그린다 — 두 출처로 그리면 몸이 두 자리를 오간다
+        if (testRef.current?.game === 'stopline' || testRef.current?.game === 'disc') return;
         remotePlayers.move(id, x, z, y, heading, anim, now());
       },
       onMessage,
@@ -341,6 +372,7 @@ export function InterrogationFeature() {
   const onAccel = useCallback(() => conn.sendAccel(), [conn]);
   const onBrake = useCallback(() => conn.sendBrake(), [conn]);
   const onPick = useCallback((objectId: number) => conn.sendPick(objectId), [conn]);
+  const onWalk = useCallback((x: number, z: number) => conn.sendWalk(x, z), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
   const onAccuse = useCallback((target: string) => conn.game({ t: 'game_accuse', target }), [conn]);
   const onWithdraw = useCallback(() => conn.game({ t: 'game_withdraw' }), [conn]);
@@ -390,9 +422,11 @@ export function InterrogationFeature() {
                 ? myLand.finished
                   ? `완주 — 도착 발판에서 기다려라 (착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses})`
                   : `움직이는 발판을 건너라 — W 앞으로 · Space 점프 · 떨어지면 출발로 (착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses})`
-              : hunt
-                ? `「${hunt.target}」 구슬만 E 로 주워라 (주움 ${myPicks}) — 헷갈리면 견본판과 대조하라`
-                : '지시된 색의 구슬을 E 로 주워라'
+                : test.game === 'disc'
+                  ? `도는 원판 위에서 버텨라 — WASD 걷기 · Shift 달리기 (낙하 ${myFalls}회 · 회전 ${Math.abs(discOmega).toFixed(1)} rad/s ${discOmega > 0 ? '↻' : discOmega < 0 ? '↺' : ''})`
+                  : hunt
+                    ? `「${hunt.target}」 구슬만 E 로 주워라 (주움 ${myPicks}) — 헷갈리면 견본판과 대조하라`
+                    : '지시된 색의 구슬을 E 로 주워라'
           : phase === 'discussion'
             ? 'WASD 이동 · Enter 채팅 · 왼쪽 판에서 지목'
             : '';
@@ -416,6 +450,7 @@ export function InterrogationFeature() {
         onAccel={onAccel}
         onBrake={onBrake}
         onPick={onPick}
+        onWalk={onWalk}
         sendMove={sendMove}
       />
 

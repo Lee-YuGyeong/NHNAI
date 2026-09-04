@@ -24,7 +24,7 @@ import type { Group, Mesh } from 'three';
 import { RobotAvatar } from '@/world/avatar/RobotAvatar';
 import { SoldierAvatar } from '@/world/avatar/SoldierAvatar';
 import type { BodyId } from '@/world/mp/bodies';
-import { platformState } from './platformState';
+import { hallGroundAt } from './ground';
 import { selfPose } from './selfPose';
 import { SuspicionBar } from './SuspicionBar';
 
@@ -43,8 +43,8 @@ export function SelfAvatar({ body, getSuspicion }: { body: BodyId | null; getSus
     }
   });
   const getAnim = () => selfPose.anim;
-  // 발판 위(움직이는 플랫폼)는 공중이 아니다 — SeatAvatar 와 같은 규칙
-  const getAirborne = () => selfPose.y > platformState.groundAt(selfPose.x, selfPose.z, selfPose.y) + 0.02;
+  // 발판(움직이는 플랫폼) 위도 원판(회전 원판) 위도 공중이 아니다 — SeatAvatar 와 같은 규칙 (scene/ground.ts)
+  const getAirborne = () => selfPose.y > hallGroundAt(selfPose.x, selfPose.z, selfPose.y) + 0.02;
   return (
     <group ref={group}>
       <Suspense fallback={null}>

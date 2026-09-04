@@ -156,14 +156,29 @@ export function isGameMessage(msg: { t: string }): msg is GameC2SMessage {
 export const GAME_MIN_HUMANS = 3;
 export const GAME_MAX_HUMANS = 8;
 
+/**
+ * 검문소 한 판의 **차례표** (2026-09-05 사용자):
+ *
+ *   입장 → 대화 40초 → ① 낙하 생존 30초 → 대화 40초 → ② 발판 30초 → 대화 40초 → ③ 원판 30초 → 대화 40초 → 끝
+ *
+ * 종류도 순서도 고정이다 — 예전엔 관리 AI 가 매번 골랐지만(agents.designNext), 그러면 한 판에 무엇을
+ * 몇 번 하는지가 판마다 달라져 「세 번의 시험」이라는 판의 모양이 안 선다. 순서를 바꾸려면 여기 한 줄이다.
+ */
+export const GAME_TEST_ORDER: readonly TrialGame[] = ['fall', 'platform', 'disc'];
+
 /** 배역 통보 화면이 떠 있는 시간(ms) — RoleBriefing 의 SHOW_MS 와 같은 박자 */
 export const GAME_BRIEFING_MS = 7_000;
-/** 첫 토론 — 판이 열리고 첫 테스트까지 (§1.2 60~90초 간격의 앞부분을 조금 짧게) */
+/** 첫 토론 — 판이 열리고 첫 테스트까지 */
 export const GAME_FIRST_DISCUSSION_MS = 40_000;
-/** 테스트 사이 토론 길이(ms) — 결과 모달이 닫힌 뒤 다음 테스트까지 (§1.2 60~90초) */
-export const GAME_DISCUSSION_MS = 60_000;
+/** 테스트 사이 · 마지막 테스트 뒤의 토론 길이(ms). 첫 토론과 같은 40초다 — 차례표가 일정한 박자로 돈다 */
+export const GAME_DISCUSSION_MS = 40_000;
 /** 결과 모달 — 항상 고정, 스킵 불가 (§1.2 5~8초) */
 export const GAME_RESULT_MODAL_MS = 7_000;
+/**
+ * 시험 하나의 길이(ms) — 엔진이 제 몸에 적어 둔 길이(/trial 의 1분)를 **판이 덮어쓴다.**
+ * 검문소의 시험은 기록을 재는 자리지 완주하는 자리가 아니라서, 세 종류가 같은 30초여야 서로 견줄 수 있다.
+ */
+export const GAME_TEST_MS = 30_000;
 /** 정지선처럼 이벤트제인 테스트가 안 닫힐 때의 상한(ms) (§1.2 테스트 진행 30~45초) */
 export const GAME_TEST_MAX_MS = 45_000;
 /** 하드캡 — 이만큼 지나면 그 자리에서 끝낸다 (§0 "하드캡 제안 10분") */

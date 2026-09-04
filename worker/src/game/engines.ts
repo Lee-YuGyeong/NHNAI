@@ -1,12 +1,14 @@
 /**
  * 판이 열 수 있는 물리 테스트 — worker/src/trial 의 엔진(GameEngine 계약)을 그대로 조립한다.
- * 3종(PLANNING §2)에 2026-09-05 넷째 「움직이는 플랫폼」(worker/src/trial/platform)이 붙었다 — 점프 정확도를 본다.
+ * 다섯 종이 다 꽂혀 있지만 한 판이 실제로 여는 셋은 차례표(game-protocol 의 GAME_TEST_ORDER)가 정한다 —
+ * 낙하 생존 · 움직이는 플랫폼 · 회전 원판. 정지선과 색 사냥은 차례표를 바꾸면 그 자리에서 다시 선다.
  *
  * 화면 위 한 줄 지시문도 여기 둔다 — 조건값(마찰 · 중력 · 차단 파장)은 문장에도 없다 (P8).
  */
 
 import type { TrialGame } from '../../../src/world/mp/protocol';
 import { ColorhuntEngine } from '../trial/colorhunt/engine';
+import { DiscEngine } from '../trial/disc/engine';
 import type { GameEngine } from '../trial/engine';
 import { FallEngine } from '../trial/fall/engine';
 import { PlatformEngine } from '../trial/platform/engine';
@@ -17,7 +19,8 @@ export const ENGINES: Partial<Record<TrialGame, () => GameEngine>> = {
   fall: () => new FallEngine(),
   colorhunt: () => new ColorhuntEngine(),
   platform: () => new PlatformEngine(),
-  // disc(회전 원판)는 /trial 에만 있다 — 검문소 홀(HallScene)에 원판이 서면 여기 넣는다
+  // 회전 원판 — 홀 가운데 마당(DISC_CENTER)에 원판이 서고, 자리는 서버가 적분한다 (HallScene 의 DiscStage · DiscRig)
+  disc: () => new DiscEngine(),
 };
 
 export const INSTRUCTION: Record<TrialGame, string> = {

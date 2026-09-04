@@ -27,7 +27,7 @@ import { INTERP_DELAY_MS } from '@/world/mp/constants';
 import { sampleAt, type Pose } from '@/world/mp/interp';
 import type { AnimState } from '@/world/mp/protocol';
 import { remotePlayers, type RemotePlayer } from '@/world/net/remote-players';
-import { platformState } from './platformState';
+import { hallGroundAt } from './ground';
 import { SuspicionBar } from './SuspicionBar';
 
 export interface SeatBodiesProps {
@@ -69,8 +69,8 @@ const SeatAvatar = memo(function SeatAvatar({
 
   // ★ 값이 아니라 함수로 준다. player 는 Map 안에서 제자리 변형되므로 값을 넘기면 입장 시점의 'idle' 이 굳는다
   const getAnim = useCallback((): AnimState => player.anim, [player]);
-  // 발판(움직이는 플랫폼) 위에 선 몸은 y 가 0.5 라도 공중이 아니다 — 그 자리 발판 높이보다 떠 있을 때만 점프 클립
-  const getAirborne = useCallback(() => player.pose.y > platformState.groundAt(player.pose.x, player.pose.z, player.pose.y) + 0.02, [player]);
+  // 발판 위(y 0.5)도 원판 위(y 0.75)도 공중이 아니다 — 그 자리 바닥보다 떠 있을 때만 점프 클립 (scene/ground.ts)
+  const getAirborne = useCallback(() => player.pose.y > hallGroundAt(player.pose.x, player.pose.z, player.pose.y) + 0.02, [player]);
   /**
    * 화면에서 실제로 움직이는 속도(m/s, 지수 평활) — 군인 몸은 이 값으로 걸음 클립의 빠르기를 맞추고,
    * 서 있는데 anim 이 walk 로 남아 있으면 걷지 않는다 (2026-09-04 사용자: "제자리에 멈춰서 걷는거").

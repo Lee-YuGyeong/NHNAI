@@ -44,6 +44,10 @@ export interface GameState {
   myMisses: number;
   /** 도착 발판에 내렸다 — 남은 시간은 거기서 기다린다 */
   myFinished: boolean;
+  /** 회전 원판 — 이번 테스트에 내가 원판 밖으로 떨어진 횟수 (trial_fell) */
+  myFalls: number;
+  /** 회전 원판 — 지금 각속도(rad/s). 부호가 방향이다. HUD 한 줄에만 쓴다 — 마찰계수는 어디에도 없다 (P8) */
+  discOmega: number;
   /** 색 사냥 — 지금 조명과 목표색 (trial_colorhunt). HUD 스와치(원색)와 조명 오버레이가 그린다 */
   hunt: { light: string; target: string; targetHex: string } | null;
   /** 결과 모달이 그릴 것 — 서버 trial_result. 모달이 닫힌 뒤에도 HUD 요약으로 남는다 */
@@ -76,6 +80,8 @@ const initialState: GameState = {
   myCenters: 0,
   myMisses: 0,
   myFinished: false,
+  myFalls: 0,
+  discOmega: 0,
   hunt: null,
   latestResult: null,
   history: [],
@@ -198,7 +204,17 @@ export const interrogationSlice = createSlice({
       s.myCenters = 0;
       s.myMisses = 0;
       s.myFinished = false;
+      s.myFalls = 0;
+      s.discOmega = 0;
       s.hunt = null;
+    },
+    /** 회전 원판 — 스냅샷마다 오는 각속도. 자리는 여기 안 온다 (discState, 가변) */
+    discSynced(s, a: PayloadAction<number>) {
+      s.discOmega = a.payload;
+    },
+    /** 회전 원판 — 누가 원판 밖으로 떨어졌다(trial_fell). 내 좌석일 때만 센다 */
+    fellRecorded(s, a: PayloadAction<string>) {
+      if (s.me && a.payload === s.me.seatId) s.myFalls += 1;
     },
     /** 색 사냥 — 테스트가 열렸거나 조명이 바뀌었다(trial_colorhunt). 구슬은 huntState(가변)가 든다 */
     colorhuntSynced(s, a: PayloadAction<{ light: string; target: string; targetHex: string }>) {
@@ -256,6 +272,8 @@ export const gameSelectors = {
   selectMyHits: (r: Root) => r.interrogation.myHits,
   selectMyPicks: (r: Root) => r.interrogation.myPicks,
   selectMyLandings: (r: Root) => ({ landings: r.interrogation.myLandings, centers: r.interrogation.myCenters, misses: r.interrogation.myMisses, finished: r.interrogation.myFinished }),
+  selectMyFalls: (r: Root) => r.interrogation.myFalls,
+  selectDiscOmega: (r: Root) => r.interrogation.discOmega,
   selectHunt: (r: Root) => r.interrogation.hunt,
   selectLatestResult: (r: Root) => r.interrogation.latestResult,
   selectHistory: (r: Root) => r.interrogation.history,
