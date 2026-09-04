@@ -43,7 +43,7 @@ const BACK_DIST = 4.5;
 const BACK_MIN_S = 0.5;
 const BACK_GRACE_S = 0.35;
 const BACK_MAX_S = 3;
-const EMOTE_BUMP: Record<AnimState, number> = { idle: 0, walk: 0, angry: 10, agree: 4 };
+const EMOTE_BUMP: Record<AnimState, number> = { idle: 0, walk: 0, run: 0, angry: 10, agree: 4 };
 /** 점프 — 첫 번은 이만큼, 10초 안에 또 뛰면 더 */
 const JUMP_BUMP = 10;
 const JUMP_AGAIN_BUMP = 14;

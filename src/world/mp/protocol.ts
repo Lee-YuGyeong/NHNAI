@@ -23,10 +23,16 @@ export type EmoteState = 'angry' | 'agree';
 export type { BroadcastKind } from '../../shared/broadcast-kind';
 import type { BroadcastKind } from '../../shared/broadcast-kind';
 
-/** 아바타 애니메이션 상태. 서버가 화이트리스트로 검증한다. 공중인지는 `y > 0`으로 판단한다. */
-export type AnimState = 'idle' | 'walk' | EmoteState;
+import type { BodyId } from './bodies';
+export type { BodyId } from './bodies';
 
-export const ANIM_STATES: readonly AnimState[] = ['idle', 'walk', 'angry', 'agree'];
+/**
+ * 아바타 애니메이션 상태. 서버가 화이트리스트로 검증한다. 공중인지는 `y > 0`으로 판단한다.
+ * 'run' 은 검문소의 달리기(Shift+W, 2026-09-04) — 규칙 2 대로 값만 추가했다. 옛 워커는 이 값을 흘린다(validate 의 화이트리스트).
+ */
+export type AnimState = 'idle' | 'walk' | 'run' | EmoteState;
+
+export const ANIM_STATES: readonly AnimState[] = ['idle', 'walk', 'run', 'angry', 'agree'];
 
 /** 방에 있는 한 사람의 현재 모습. */
 export interface PlayerSnapshot {
@@ -52,6 +58,11 @@ export interface PlayerSnapshot {
    *   이 값이 말하는 것은 「이름을 사칭한 게 아니다」까지고, 인간인지 AI 인지는 말하지 않는다.
    */
   authed?: boolean;
+  /**
+   * 이 사람의 몸 — 군인 넷 가운데 하나 (mp/bodies.ts). 서버가 입장 때 **방 안에서 겹치지 않게** 뽑는다.
+   * 규칙 2 대로 추가만 하는 필드 — 없으면(옛 워커) 클라는 로봇 몸을 그린다.
+   */
+  body?: BodyId;
 }
 
 /** 클라이언트 → 서버 */

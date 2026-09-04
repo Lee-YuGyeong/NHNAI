@@ -22,6 +22,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 import { RobotAvatar } from '@/world/avatar/RobotAvatar';
+import { SoldierAvatar } from '@/world/avatar/SoldierAvatar';
 import { INTERP_DELAY_MS } from '@/world/mp/constants';
 import { sampleAt, type Pose } from '@/world/mp/interp';
 import type { AnimState } from '@/world/mp/protocol';
@@ -133,7 +134,8 @@ const SeatAvatar = memo(function SeatAvatar({
        * 바닥에 그림자만 떠 있는 사람이 된다 (world/scene/WorldScene 의 같은 자리 주석).
        */}
       <Suspense fallback={null}>
-        <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />
+        {/* 몸은 서버가 준 군인(mp/bodies.ts) — 옛 워커라 몸이 없으면 로봇 */}
+        {player.body ? <SoldierAvatar body={player.body} getAnim={getAnim} getAirborne={getAirborne} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
         <mesh ref={shadow} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.34, 20]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.35} />

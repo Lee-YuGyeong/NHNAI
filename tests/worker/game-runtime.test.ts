@@ -281,3 +281,19 @@ describe('GameRuntime — 판 한 바퀴', () => {
     expect(other.errorDirection).toEqual([1, -1]);
   });
 });
+
+describe('GameRuntime — 좌석의 몸 (mp/bodies)', () => {
+  it('사람은 입장 때 받은 몸 그대로, 대역·AI 는 남은 몸에서 — 넷이면 넷이 다 다르다', async () => {
+    const h = harness({ players: [{ ...player('p1', 1), body: 'sol_fit_f' }, { ...player('p2', 2), body: 'sol_heavy_m' }] });
+    await h.rt.handle('p1', { t: 'game_start', fillTo: 3 });
+    const seats = h.lastState().seats;
+    // 사람 2 + 대역 1 + AI 1
+    expect(seats).toHaveLength(4);
+    const bodies = seats.map((s) => s.body);
+    expect(bodies.every(Boolean)).toBe(true);
+    expect(new Set(bodies).size).toBe(4);
+    // 사람의 몸은 바뀌지 않는다 (좌석 id 는 seat-<playerId>)
+    expect(seats.find((s) => s.id === 'seat-p1')?.body).toBe('sol_fit_f');
+    expect(seats.find((s) => s.id === 'seat-p2')?.body).toBe('sol_heavy_m');
+  });
+});

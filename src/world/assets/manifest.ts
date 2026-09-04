@@ -105,6 +105,16 @@ export const ASSETS = {
   gov_wall_lamp: { url: '/world/govcenter/gov_wall_lamp.glb' },
 
   /**
+   * 검문소(/interrogation) 플레이어의 몸 — 군인 넷 (2026-09-04 사용자 제공 Tripo 리깅 GLB → tools/soldier-glb.sh).
+   * 뼈 41개 + 클립 5개(preset:biped:walk · run · jump · agree · angry). 원본 77MB → 1.2MB. 어느 몸인지는 서버가 입장 때 정한다
+   * (mp/bodies.ts). 그리는 것은 world/avatar/SoldierAvatar.tsx — 걷기·달리기 클립의 제자리 이동(root motion)은 로드 때 뗀다.
+   */
+  sol_fit_m: { url: '/world/soldier/sol_fit_m.glb' },
+  sol_fit_f: { url: '/world/soldier/sol_fit_f.glb' },
+  sol_heavy_m: { url: '/world/soldier/sol_heavy_m.glb' },
+  sol_heavy_f: { url: '/world/soldier/sol_heavy_f.glb' },
+
+  /**
    * 물리 미니게임 — 정지선(features/trial). 심문소 홀 안에 레인을 깔고 그 위에 세우는 소품 둘:
    * 목표 정지선의 게이트(레인마다 하나)와 출발선의 비콘. Tripo text-to-model(힉스필드 MCP tripo_3d, 2026-09-04)
    * → tools/trial-glb.sh. 프롬프트는 tools/trial-parts.json. 리깅도 클립도 없다.

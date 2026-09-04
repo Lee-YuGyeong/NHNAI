@@ -9,12 +9,14 @@
  */
 
 import { pushSample, type MoveSample, type Pose } from '../mp/interp';
-import type { AnimState, PlayerSnapshot } from '../mp/protocol';
+import type { AnimState, BodyId, PlayerSnapshot } from '../mp/protocol';
 
 export interface RemotePlayer {
   id: string;
   seat: number;
   nickname: string;
+  /** 몸 (mp/bodies.ts). 없으면 로봇 */
+  body?: BodyId;
   /** 애니메이션은 보간하지 않고 즉시 적용한다 */
   anim: AnimState;
   /** 좌표 링버퍼. 제자리에서 변형된다 */
@@ -36,6 +38,7 @@ function createRemote(snap: PlayerSnapshot, now: number): RemotePlayer {
     id: snap.id,
     seat: snap.seat,
     nickname: snap.nickname,
+    body: snap.body,
     anim: snap.anim,
     buffer: [{ t: now, x: snap.x, z: snap.z, y: snap.y ?? 0, heading: snap.heading }],
     pose: { x: snap.x, z: snap.z, y: snap.y ?? 0, heading: snap.heading },
