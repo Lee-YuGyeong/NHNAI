@@ -1,7 +1,8 @@
 /**
  * 떨어지는 공들 — 서버 스냅샷(fallState)이 준 자리에 종류별 GLB(FALL_BALLS 순서)를 인스턴싱해 그린다.
- * 스스로 떨어뜨리지 않는다. 공마다 바닥에 그림자 원반을 깐다 — 사람이 "어디 떨어지나"를 읽는 물리적 단서다
- * (진짜 그림자는 여럿이면 비싸다). 원반은 높이 따라 작아지고 옅어져서 착지가 가까워질수록 또렷해진다.
+ * 스스로 떨어뜨리지 않는다. 공마다 바닥에 그림자 원반을 깐다 — 위를 못 보는 3인칭에서 사람이 "어디 떨어지나"를
+ * 읽는 유일한 물리적 단서다(진짜 그림자는 여럿이면 비싸다). 수직 낙하라 그림자 = 착지점. 공이 떨어지기 시작하는
+ * 순간부터 옅게 있다가 내려올수록 진해진다 — 그래서 위를 안 봐도 "곧 온다"를 안다.
  */
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -21,7 +22,9 @@ const _e = new THREE.Euler();
 const PART_OF: PartId[] = ['ball_basketball', 'ball_soccer', 'ball_baseball', 'ball_pingpong', 'ball_bowling'];
 
 const SHADOW_GEO = new THREE.CircleGeometry(1, 24);
-const SHADOW_MAT = new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.45, depthWrite: false });
+/** 흰 바탕에 인스턴스 색을 곱한다 — 높이에 따라 회색(멀다) → 검정(닿는다) */
+const SHADOW_MAT = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.7, depthWrite: false });
+const _c = new THREE.Color();
 
 function BallKind({ kind, frames }: { kind: number; frames: React.RefObject<PodFrame[]> }) {
   const spec = FALL_BALLS[kind];
@@ -44,18 +47,21 @@ function BallKind({ kind, frames }: { kind: number; frames: React.RefObject<PodF
       _s.set(scale[0], scale[1], scale[2]);
       bm.setMatrixAt(n, _m.compose(_p, _q, _s));
 
-      // 그림자 원반 — 높을수록 작고 옅게. 착지하면 몸통 밑에 붙는다
-      const k = spec.r * 1.1 * Math.max(0.4, 1 - (f.y - spec.r) / FALL_SPAWN_Y);
+      // 그림자 원반 — 크기는 그대로(착지점을 처음부터 알려 준다), 색은 높이에 따라 회색 → 검정
+      const near = 1 - Math.min(1, Math.max(0, (f.y - spec.r) / FALL_SPAWN_Y)); // 0 = 천장, 1 = 바닥
+      const k = spec.r * 1.35;
       _p.set(f.x, 0.02, f.z);
       _q.setFromEuler(_e.set(-Math.PI / 2, 0, 0));
       _s.set(k, k, 1);
       sm.setMatrixAt(n, _m.compose(_p, _q, _s));
+      sm.setColorAt(n, _c.setScalar(0.55 * (1 - near) ** 1.5));
       n += 1;
     }
     bm.count = n;
     sm.count = n;
     bm.instanceMatrix.needsUpdate = true;
     sm.instanceMatrix.needsUpdate = true;
+    if (sm.instanceColor) sm.instanceColor.needsUpdate = true;
   });
 
   return (

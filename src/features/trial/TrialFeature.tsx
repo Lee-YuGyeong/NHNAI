@@ -189,10 +189,10 @@ export function TrialFeature() {
           : over
             ? '끝났다'
             : game === 'fall'
-              ? `남은 시간 ${secondsLeft}초 · 맞음 ${myHits} — WASD 로 피해라. 그림자를 봐라`
+              ? `맞음 ${myHits} — WASD 로 피해라. 바닥 그림자가 진해지면 온다`
               : myAttempts >= STOPLINE_MAX_ATTEMPTS
-                ? `남은 시간 ${secondsLeft}초 · 시행 다 썼다`
-                : `남은 시간 ${secondsLeft}초 · 시행 ${myAttempts}회 — W 달리기 · S 브레이크 · 붉은 선에 멈춰라`;
+                ? '시행 다 썼다'
+                : `시행 ${myAttempts}회 — W 달리기 · S 브레이크 · 붉은 선에 멈춰라`;
   const title = (game ?? wantGame) === 'fall' ? '낙하 생존' : '정지선';
   const flashing = Date.now() - flash < 350;
 
@@ -231,6 +231,29 @@ export function TrialFeature() {
         <BackToRoot />
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--dust)', letterSpacing: '0.1em' }}>{title} // 방 {roomCode}</span>
       </div>
+      {/* 남은 시간 — 위 가운데에 큰 숫자 (2026-09-04 사용자: "남은 시간도 위에 숫자로"). 마지막 10초는 붉게 */}
+      {round > 0 && roundDurationMs !== null && !over ? (
+        <div
+          aria-live="off"
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 44,
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            color: secondsLeft <= 10 ? 'var(--signal)' : 'var(--linen)',
+            textShadow: '0 2px 12px rgba(0,0,0,0.9)',
+            pointerEvents: 'none',
+            lineHeight: 1,
+          }}
+        >
+          {secondsLeft}
+          <span style={{ fontSize: 14, marginLeft: 6, color: 'var(--dust)' }}>초</span>
+        </div>
+      ) : null}
       <nav style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
         <button type="button" onClick={() => setTab('live')} aria-pressed={tab === 'live'}>
           진행
