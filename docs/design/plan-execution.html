@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>걸어오는 것</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700&family=Gothic+A1:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+    --display:'Hahmlet','Nanum Myeongjo','Noto Serif KR','Apple SD Gothic Neo',serif;
+    --body:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',monospace;
+    --measure:40rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+      --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+      --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+      --halt:#D4796C; --halt-soft:#2B1C1A;
+      --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+    --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+    --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+    --halt:#D4796C; --halt-soft:#2B1C1A;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.7; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:64rem; margin:0 auto; padding:4.5rem 1.5rem 7rem; display:flex; flex-direction:column; gap:4.2rem; }
+  .col { max-width:var(--measure); }
+
+  .eyebrow { margin:0 0 1.3rem; font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; color:var(--dim); }
+  h1 { margin:0 0 1.3rem; font-family:var(--display); font-weight:700; font-size:clamp(2.3rem,6vw,3.4rem); line-height:1.16; letter-spacing:-.02em; }
+  .lede { margin:0; max-width:var(--measure); font-size:1.05rem; font-weight:300; line-height:1.78; }
+  .lede + .lede { margin-top:.9rem; }
+  .lede b { font-weight:700; }
+
+  section { display:flex; flex-direction:column; gap:1.4rem; }
+  .sec-head { display:flex; flex-direction:column; gap:.4rem; }
+  .sec-label { font-family:var(--mono); font-size:.7rem; letter-spacing:.18em; color:var(--signal); }
+  h2 { margin:0; font-family:var(--display); font-weight:700; font-size:clamp(1.5rem,3.4vw,2rem); letter-spacing:-.015em; text-wrap:balance; }
+  h3 { margin:0; font-family:var(--display); font-weight:700; font-size:1.12rem; }
+  p { margin:0; max-width:var(--measure); }
+  p + p { margin-top:.9rem; }
+  .quiet { color:var(--dim); font-weight:300; }
+  code { font-family:var(--mono); font-size:.84em; background:var(--sunk); padding:.08em .35em; }
+
+  .pull { max-width:var(--measure); border-left:2px solid var(--trace); padding:.2rem 0 .2rem 1.4rem;
+    font-family:var(--display); font-weight:500; font-size:1.28rem; line-height:1.55; }
+  .pull b { color:var(--trace); font-weight:700; }
+  .pull.hot { border-left-color:var(--halt); }
+  .pull.hot b { color:var(--halt); }
+
+  figure { margin:0; display:flex; flex-direction:column; gap:.8rem; }
+  .plate { background:var(--panel); border:1px solid var(--line); padding:1.4rem 1.2rem; overflow-x:auto; }
+  .plate svg { display:block; min-width:46rem; max-width:100%; height:auto; }
+  svg .ft{fill:var(--trace)} svg .st{stroke:var(--trace)}
+  svg .fs{fill:var(--signal)} svg .ss{stroke:var(--signal)}
+  svg .fh{fill:var(--halt)} svg .sh{stroke:var(--halt)}
+  svg .fk{fill:var(--sunk)}
+  figcaption { max-width:var(--measure); font-size:.88rem; font-weight:300; line-height:1.65; color:var(--dim); }
+  figcaption b { color:var(--ink); font-weight:500; }
+
+  .table-scroll { overflow-x:auto; border:1px solid var(--line); }
+  table { border-collapse:collapse; width:100%; min-width:38rem; background:var(--panel); font-size:.92rem; }
+  th,td { text-align:left; padding:.72rem .9rem; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.58; }
+  thead th { font-family:var(--mono); font-weight:500; font-size:.66rem; letter-spacing:.1em; color:var(--dim); background:var(--sunk); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.k { font-family:var(--display); font-weight:700; color:var(--signal); white-space:nowrap; }
+  td.m { font-family:var(--mono); font-size:.8rem; color:var(--signal); white-space:nowrap; }
+  td.d { font-family:var(--mono); font-size:.82rem; color:var(--trace); white-space:nowrap; font-variant-numeric:tabular-nums; text-align:right; }
+  td.hot { color:var(--halt); font-weight:500; }
+
+  .laws { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.9rem; max-width:var(--measure); }
+  .laws li { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--signal); padding:1rem 1.15rem; font-size:.95rem; font-weight:300; line-height:1.66; }
+  .laws .ln { display:block; font-family:var(--display); font-weight:700; font-size:1rem; color:var(--signal); margin-bottom:.25rem; }
+  .laws li.warm { border-left-color:var(--trace); }
+  .laws li.warm .ln { color:var(--trace); }
+  .laws li.hot { border-left-color:var(--halt); background:var(--halt-soft); }
+  .laws li.hot .ln { color:var(--halt); }
+
+  .wins { display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .wins div { background:var(--panel); padding:1.1rem 1.2rem 1.3rem; }
+  .wins .wk { display:block; font-family:var(--mono); font-size:.66rem; letter-spacing:.12em; color:var(--trace); margin-bottom:.4rem; }
+  .wins .wt { display:block; font-family:var(--display); font-weight:700; font-size:1.06rem; margin-bottom:.35rem; }
+  .wins p { font-size:.9rem; font-weight:300; line-height:1.64; }
+  .wins .cost { display:block; margin-top:.5rem; font-family:var(--mono); font-size:.7rem; color:var(--halt); }
+
+  .ln-block { background:var(--panel); border:1px solid var(--line); padding:1.1rem 1.3rem 1.2rem; max-width:44rem; }
+  .ln-row { display:grid; grid-template-columns:7.5rem 1fr; gap:.15rem 1.1rem; padding:.36rem 0 .36rem .7rem; border-left:2px solid transparent; align-items:baseline; }
+  .ln-row.n { border-left-color:var(--trace); }
+  .ln-row .who { font-family:var(--mono); font-size:.72rem; color:var(--dim); }
+  .ln-row .say { font-size:.95rem; line-height:1.7; }
+  .ln-row .cond { grid-column:2; font-family:var(--mono); font-size:.68rem; color:var(--faint); }
+  .gap { height:.8rem; }
+  .beat { font-size:.86rem; font-style:italic; color:var(--dim); padding:.4rem 0 .4rem .7rem; font-weight:300; }
+
+  .closing { border-top:2px solid var(--rail); padding-top:1.9rem; max-width:var(--measure); }
+  .closing p { font-family:var(--display); font-weight:500; font-size:1.18rem; line-height:1.65; }
+  .closing b { color:var(--trace); font-weight:700; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Who is human · 집행 설계 · 의심도 100 · 걸어오는 것</p>
+    <h1>걸어오는 것</h1>
+    <p class="lede">
+      의심도가 100 에 닿았을 때 무엇이 일어나는가. 답의 절반은 이미 정해져 있다 —
+      <b>총 든 개체가 있다.</b> 나머지 절반은 설계다: 그것이 <b>언제 나타나고, 얼마나 걸어오고,
+      그 사이에 무엇을 할 수 있는가.</b>
+    </p>
+    <p class="lede">
+      가장 중요한 결정 하나부터 못 박는다. <b>집행자는 특별한 존재가 아니다.</b>
+      복도에서 순찰하던 그 개체다 — 무릎이 닳았고, 총은 한 번도 쏴 본 적 없는 사람처럼 메고 다니고,
+      「나도 이거 하고 싶어서 하는 거 아니야」라고 말했던 그것.
+      <b>모델을 새로 만들지 않는다.</b> 이미 있는 GLB 하나면 된다.
+    </p>
+  </header>
+
+  <!-- ═══ 세 가지 죽음 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">종류</span>
+      <h2>죽음이 세 가지다</h2>
+    </div>
+
+    <p class="col">
+      전부 총으로 끝나지만 <b>플레이어가 느끼는 것이 완전히 다르다.</b>
+      하나는 다가오는 것이고, 하나는 내가 방금 한 짓이고, 하나는 판결이다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>종류</th><th>계기</th><th>누가 쏘나</th><th>걸어오나</th><th>막을 수 있나</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="k">누적형</td>
+            <td>의심도 <b>100</b> 도달</td>
+            <td>이 구역 순찰 개체 (UNIT-21 계열)</td>
+            <td class="d">걸어온다 · 최소 8 초</td>
+            <td>개체가 막을 수 있다</td>
+          </tr>
+          <tr>
+            <td class="k">즉결형</td>
+            <td class="hot">기록 불일치 · 적대 반응</td>
+            <td>지금 나를 검문하던 그 개체</td>
+            <td class="d">그 자리 · 1.5 초</td>
+            <td class="hot">막을 수 없다</td>
+          </tr>
+          <tr>
+            <td class="k">판결형</td>
+            <td>마지막 방 지목 확정</td>
+            <td>리더가 지시, 곁의 개체가 집행</td>
+            <td class="d">원 안 · 4 초</td>
+            <td>표결이 이미 답이었다</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col">
+      <b>누적형만 막을 수 있게 한 것이 이 설계의 전부다.</b> 즉결형은 플레이어가 명백히 선을 넘은 것이고
+      (없는 구역을 말했거나 검문에 대들었거나), 판결형은 마지막 방의 표결이
+      이미 그 답이었다. 반면 누적형은 <b>수십 번의 작은 선택이 쌓인 결과</b>라,
+      마지막 순간에 한 번의 갚음이 있어야 앞의 선택들이 값을 한다.
+    </p>
+  </section>
+
+  <!-- ═══ 문턱 × 위치 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">예고</span>
+      <h2>미터를 안 봐도 안다 — 총이 가까워진다</h2>
+    </div>
+
+    <p class="col">
+      의심도 문턱마다 방송이 나가는 건 이미 있다. 여기에 하나를 더한다 —
+      <b>문턱마다 집행자의 위치가 달라진다.</b> 40 에서는 없고, 60 에서 이 구역에 배치되고,
+      80 에서 시야 안으로 들어오고, 100 에서 걸어온다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>문턱</th><th>방송</th><th>집행자의 위치</th><th>화면에서 보이는 것</th></tr></thead>
+        <tbody>
+          <tr><td class="d">40</td><td>「패턴 편차. 관측을 지속한다.」</td><td>방 안에 없음</td><td>방송만. 집행자 없음</td></tr>
+          <tr><td class="d">60</td><td>「개체 스캔.」</td><td>이 구역 문가에 배치 — <b>안 쏜다</b></td><td>「저게 언제부터 저기 있었지」</td></tr>
+          <tr><td class="d">80</td><td>「신원 재확인.」</td><td>같은 방 10 m 안 · 나를 본다</td><td>시선이 붙는다. 개체들도 나를 피하기 시작</td></tr>
+          <tr><td class="hot d">100</td><td class="hot">「판정: 인간. 보안 개시.」</td><td class="hot">걸어온다 — 총은 아직 메고 있다</td><td class="hot">여덟 걸음 — 마지막 창</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col quiet">
+      <b>UI 없이 긴장이 전달된다.</b> 60 단계가 가장 무섭다 — 아무 일도 안 일어나는데 저기 서 있기 때문이다.
+      집행자는 60 에서 배치될 때 <b>다른 방에서 걸어 들어온다.</b> 순간 등장이 없다.
+      복도에서 순찰하던 그 개체가 총을 메고 그대로 들어오는 것이라,
+      플레이어는 <b>아는 얼굴</b>이 자기를 보러 왔다는 걸 안다.
+    </p>
+  </section>
+
+  <!-- ═══ 여덟 걸음 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">마지막 창</span>
+      <h2>여덟 걸음 동안 무엇을 할 수 있나</h2>
+    </div>
+
+    <p class="col">
+      100 에 닿아도 즉시 죽지 않는다. <b>걸어오는 시간이 이 게임의 마지막 자원</b>이고,
+      그 길이는 <b>맵이 정한다</b> — 레벨 문서의 거리가 여기서 다시 쓰인다.
+      타임라인: <b>걸어온다(여덟 걸음 · 방에 따라 8–14초) → 총을 내린다(1.5초 · UNSLING) →
+      겨눔(0.4초) → 발사.</b> 개입할 수 있는 구간은 <b>총을 내리는 동안까지</b>다 —
+      겨눈 뒤에는 아무것도 못 한다.
+    </p>
+
+    <div class="wins">
+      <div>
+        <span class="wk">개체가 정하는 것 ①</span>
+        <span class="wt">말로 막는다</span>
+        <p>첫 걸음에서 디렉터가 그 방의 개체 전원에게 <b>판정 원장을 펼쳐 놓고 묻는다</b> —
+        「너는 쟤를 어떻게 봐왔지. 나설 거야?」 나서는 개체가 있으면 사이에 서고,
+        집행이 <b>3 초 멎고</b> 검증관이 한 번 더 묻는다. 답하면 의심도 90.</p>
+        <span class="cost">그 개체의 태도가 +1 깎인다</span>
+      </div>
+      <div>
+        <span class="wk">개체가 정하는 것 ②</span>
+        <span class="wt">대신 부서진다</span>
+        <p>원장에 <b>「나를 위해 나선 적 있다」</b> 가 있는 개체만 여기까지 온다.
+        「내가 그 자야.」 그것이 처리되고 나는 산다. 의심도가 <b>60 으로</b> 떨어진다.
+        <b>누가 나올지는 표가 아니라 그 개체가 정한다.</b></p>
+        <span class="cost">판에 한 번뿐 · 그 개체는 마지막 방에도 없다</span>
+      </div>
+      <div>
+        <span class="wk">할 수 있는 것 ③</span>
+        <span class="wt">도망친다</span>
+        <p>못 도망친다. 개체가 더 빠르고, 문 쪽으로 가면 경로를 막는다.
+        <b>시도 자체가 인간의 증거</b>라 본 개체 전원의 태도가 −1 이 된다.</p>
+        <span class="cost">다음 판에도 남는다 (조각)</span>
+      </div>
+      <div>
+        <span class="wk">대부분의 판</span>
+        <span class="wt">아무것도 못 한다</span>
+        <p>곁에 아무도 없거나, 있어도 <b>나설 만한 이유를 원장에서 못 찾으면</b> 그냥 걸어온다.
+        <b>여덟 걸음을 그냥 보게 되는 것</b>이 이 게임의 기본값이다.</p>
+        <span class="cost">차갑게 굴수록 여기로 온다</span>
+      </div>
+    </div>
+
+    <p class="pull">친밀도가 마지막에 갚아지는 자리가 <b>마지막 방 하나가 아니라 둘</b>이 된다.</p>
+
+    <p class="col quiet">
+      ②는 마지막 방의 「대신 나섬」과 같은 장치다. 다른 것은 <b>여기서는 막을 수 없다</b>는 점 —
+      게임 중반이라 아직 선택지를 줄 여유가 없고, 그래서 <b>플레이어가 원치 않아도 일어난다.</b>
+      마지막 방에서 그 선택지를 줬을 때 무게가 다른 이유다.
+      그리고 결말 화면에서 <b>그 개체가 원장에 적어 뒀던 줄</b>이 그대로 뜬다 —
+      「내가 몰린 자리에서 대신 대답해 줬다.」 왜 나왔는지가 <b>플레이어가 기억하는 사건</b>이어야 한다.
+    </p>
+  </section>
+
+  <!-- ═══ 방별 거리 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">거리</span>
+      <h2>방마다 걸어오는 시간이 다르다</h2>
+    </div>
+
+    <p class="col">
+      집행자가 어디서 오는지는 <b>레벨 문서의 평면이 이미 정해 놨다.</b>
+      새 수치를 만들지 않고 그 거리를 그대로 쓴다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>방</th><th>어디서 오나</th><th style="text-align:right">걸어오는 시간</th><th>이 방의 성격</th></tr></thead>
+        <tbody>
+          <tr><td class="k">복도</td><td>격납문 쪽 — 꺾임 뒤에서 나타난다</td><td class="d">14 초</td><td>가장 길다. 되돌아갈 수 있는 유일한 방이라 관대하다.</td></tr>
+          <tr><td class="k">휴게 구역</td><td>입구 — 차폐가 없어 처음부터 다 보인다</td><td class="d">9 초</td><td>보면서 기다리는 9 초. 숨을 곳이 없다.</td></tr>
+          <tr><td class="k">중앙 시설</td><td>출입구 넷 중 가장 가까운 곳</td><td class="d">11 초</td><td>군중을 헤치고 온다. <b>개체 뒤로 갈 자리가 가장 많다.</b></td></tr>
+          <tr><td class="k">작업 구역</td><td>소각로 쪽 벽 — A-063 옆에서</td><td class="d">12 초</td><td>라인이 계속 흐른다. 소음 때문에 아무도 안 돌아본다.</td></tr>
+          <tr><td class="k">줄 · 검증</td><td class="hot">바로 옆 — 이미 검문 중이다</td><td class="d">3 초</td><td class="hot">가장 위험하다. 여기서는 사실상 즉결이다.</td></tr>
+          <tr><td class="k">재검실</td><td class="hot">묻던 자가 그 자리에서</td><td class="d">0 초</td><td class="hot">문으로 새 몸이 안 들어온다. 「이 방에 감시는 없다」</td></tr>
+          <tr><td class="k">기록 복도</td><td>—</td><td class="d">—</td><td>아무도 없다. <b>여기서는 의심도가 안 오른다.</b></td></tr>
+          <tr><td class="k">마지막 방</td><td>원 안 — 이미 여덟이 서 있다</td><td class="d">4 초</td><td>표결이 끝난 뒤라 아무도 안 막는다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col">
+      줄에서 3 초인 것은 <b>일부러다.</b> 그 챕터의 목격 반경이 앞뒤 하나씩이라 속삭임이 제일 싼데,
+      대신 <b>걸리면 가장 빨리 죽는다.</b> 싼 자리와 위험한 자리가 같아야 선택이 된다.
+    </p>
+  </section>
+
+  <!-- ═══ 대사 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">대사</span>
+      <h2>집행의 줄들</h2>
+    </div>
+
+    <p class="col">
+      <b>줄은 전부 대본이고, 누가 그 줄을 말할지는 개체가 정한다.</b>
+      집행이 걸리는 순간에는 확인 호출을 한 번 더 돌려 <b>모델이 자기 판정을 다시 본다</b>
+      (AI 문서 · 되돌릴 수 없는 것에는 두 번 묻는다). 지어낸 문장이 사람을 죽이는 통로는 없다 —
+      <b>정해진 문장 앞에 누가 서는지만 달라진다.</b>
+    </p>
+
+    <div class="ln-block">
+      <div class="ln-row"><span class="who">SYSTEM · 100</span><span class="say">판정: 인간. 보안 개시.</span></div>
+      <div class="ln-row n"><span class="who">집행자</span><span class="say">…아.</span><span class="cond">신규 · 총을 메고 걸어오기 시작할 때</span></div>
+      <div class="ln-row n"><span class="who">집행자</span><span class="say">너였구나.</span><span class="cond">신규 · 복도에서 이 개체와 말을 나눈 적이 있을 때만</span></div>
+      <div class="beat">— 여덟 걸음. 개체들이 하나씩 등을 돌린다. 소리는 없다. —</div>
+      <div class="ln-row n"><span class="who">집행자</span><span class="say">…미안.</span><span class="cond">신규 · 총을 내리는 1.5초 동안 · 태도가 +1 이상일 때만</span></div>
+      <div class="ln-row"><span class="who">SYSTEM</span><span class="say">신경 접속 강제 종료.</span></div>
+      <div class="ln-row n"><span class="who">과학자</span><span class="say">…연결이 끊겼습니다.</span></div>
+      <div class="ln-row n"><span class="who">정부요원</span><span class="say">다음 요원 준비해.</span></div>
+    </div>
+
+    <p class="col">
+      <b>「미안」 한 줄이 태도 조건부인 것이 이 씬의 전부다.</b> 아무하고도 안 엮인 플레이어는
+      그 줄을 못 듣고 그냥 죽는다. 말을 걸어 뒀던 플레이어만 <b>사과를 듣는다</b> —
+      그리고 그게 아무것도 못 바꾼다.
+    </p>
+
+    <div class="ln-block" style="margin-top:1rem">
+      <div class="ln-row"><span class="who">묻던 개체</span><span class="say">…안 맞네.</span><span class="cond">즉결형 · 기록 불일치</span></div>
+      <div class="ln-row"><span class="who">묻던 개체</span><span class="say">…야. 왜 이래.</span><span class="cond">즉결형 · 적대 반응</span></div>
+      <div class="ln-row"><span class="who">SYSTEM</span><span class="say">개체 위장 확인. 즉시 처리한다.</span></div>
+      <div class="beat">— 걸어오지 않는다. 이미 앞에 서 있다. —</div>
+    </div>
+
+    <div class="ln-block" style="margin-top:1rem">
+      <div class="ln-row n"><span class="who">개체</span><span class="say">잠깐.</span><span class="cond">개입 ① · 나서기로 정한 개체가 사이에 선다</span></div>
+      <div class="ln-row n"><span class="who">집행자</span><span class="say">…비켜.</span></div>
+      <div class="ln-row n"><span class="who">개체</span><span class="say">한 번만 더 물어봐.</span></div>
+      <div class="ln-row n"><span class="who">집행자</span><span class="say">……</span><span class="cond">3초 멎는다 · 검증관이 한 번 더 묻는다</span></div>
+      <div class="gap"></div>
+      <div class="ln-row n"><span class="who">개체</span><span class="say">내가 그 자야.</span><span class="cond">개입 ② · 원장에 이유가 있는 개체 · 플레이어는 막을 수 없다</span></div>
+      <div class="ln-row n"><span class="who">나 (속마음)</span><span class="say">아니야—</span></div>
+      <div class="ln-row n"><span class="who">개체</span><span class="say">(이쪽을 안 본다)</span></div>
+      <div class="ln-row n"><span class="who">SYSTEM</span><span class="say">처리 완료. 관측 수준 하향.</span><span class="cond">의심도 60</span></div>
+      <div class="ln-row n"><span class="who">나 (속마음)</span><span class="say">…내가 아무 말도 안 했으면.</span></div>
+    </div>
+  </section>
+
+  <!-- ═══ 3인 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">3 인</span>
+      <h2>하나가 죽어도 판은 안 끝난다</h2>
+    </div>
+
+    <ul class="laws">
+      <li class="hot">
+        <span class="ln">죽은 요원의 조각은 남는다</span>
+        그가 복도에서 한 말이 <b>계속 돈다.</b> 죽은 뒤에도 동료를 위험하게 만들고,
+        남은 둘은 그게 누구 말이었는지 끝까지 모른다.
+      </li>
+      <li>
+        <span class="ln">경보도만 오른다</span>
+        <b>+25.</b> 남은 둘의 의심도는 안 오른다 — 헌법 9 조(경보도는 아무도 지목하지 않는다).
+        판이 어려워질 뿐 누구를 가리키지는 않는다.
+      </li>
+      <li class="warm">
+        <span class="ln">죽은 플레이어는 남아서 본다</span>
+        나가지 않는다. 재검실 유리처럼 <b>남은 둘을 계속 본다.</b> 아무것도 못 하고,
+        말도 못 걸고, <b>자기가 남긴 조각이 동료를 무는 것</b>을 본다.
+      </li>
+      <li>
+        <span class="ln">아무 반응도 하면 안 된다</span>
+        남은 둘의 화면에 뜨는 유일한 문구는 「움직이지 마라」다.
+        0.6 m 넘게 움직이면 의심도 +25 — 이미 대본의 줄 분기 C 에 있는 규칙 그대로다.
+      </li>
+      <li>
+        <span class="ln">시체는 격리 통로로 간다</span>
+        그리고 <b>다음 회차 벽화의 금이 하나 는다.</b> 열여섯이 열일곱이 된다.
+      </li>
+    </ul>
+  </section>
+
+  <!-- ═══ 안전장치 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">안전장치</span>
+      <h2>억울한 죽음을 막는 다섯 줄</h2>
+    </div>
+
+    <p class="col">
+      플레이어가 「왜 죽었는지 모르겠다」고 느끼는 순간 이 게임은 끝난다.
+      <b>죽음은 언제나 설명 가능해야 한다.</b>
+    </p>
+
+    <ul class="laws">
+      <li class="warm">
+        <span class="ln">의심도는 한 번에 25 를 못 넘는다</span>
+        가장 큰 단일 증가가 +25 이므로, 100 에 닿으려면 <b>최소 두 번은 경고 문턱을 지난다.</b>
+        60 과 80 을 못 보고 죽는 판이 없다.
+      </li>
+      <li class="warm">
+        <span class="ln">집행 직전에 한 번 더 묻는다</span>
+        의심도 100 이 찍혀도 바로 안 쏜다. 원장과 사실만 넘겨 <b>확인 호출</b>을 한 번 돌린다.
+        여덟 걸음이 8 초이므로 시간이 남고, <b>토큰 하나가 어긋나서 사람이 죽는 일이 없다.</b>
+      </li>
+      <li class="warm">
+        <span class="ln">걸어오는 집행은 최소 8 초</span>
+        방이 아무리 좁아도 8 초를 보장한다. 예외는 <b>즉결형과 재검실</b>뿐이고,
+        둘 다 플레이어가 명백히 무언가를 한 뒤다.
+      </li>
+      <li>
+        <span class="ln">폴백은 아무도 안 쏜다</span>
+        모델이 죽었을 때는 <b>의심도가 아예 안 오른다.</b> 판단한 게 아니라 못 물어본 것이므로.
+        판정을 개체에게 넘긴 뒤에도 이 줄은 그대로다 — <b>판단이 없으면 집행도 없다.</b>
+      </li>
+      <li>
+        <span class="ln">죽은 뒤에 이유를 보여 준다</span>
+        결말 화면에 <b>내 조각 목록</b>과 <b>개체들이 나를 어떻게 봤는지(판정 원장)</b> 가 함께 뜬다 —
+        무슨 말을 했고, 누가 들었고, 그 말을 <b>어떻게 받아들였는지.</b>
+        「저 말 때문이었구나」가 보여야 다음 판이 있다.
+      </li>
+    </ul>
+
+    <p class="pull hot">막을 수 없는 죽음은 있어도, <b>설명할 수 없는 죽음은 없다.</b></p>
+  </section>
+
+  <!-- ═══ 구현 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">구현</span>
+      <h2>이미 있는 GLB 로 무엇을 하나</h2>
+    </div>
+
+    <p class="col">
+      총 든 개체는 <b>집행자 전용 모델이 아니다.</b> 복도를 순찰하는 UNIT-21 과 같은 것이고,
+      그래서 <b>같은 GLB 가 두 역할을 한다</b> — 판 내내 배경에 있다가 마지막에 나를 향해 돈다.
+      새 에셋이 필요 없고, 그게 이 연출의 힘이다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>상태</th><th>애니메이션</th><th>언제</th><th>총</th></tr></thead>
+        <tbody>
+          <tr><td class="m">PATROL</td><td>걷기 (느림)</td><td>판 내내 · 40 초 왕복</td><td>어깨에 멘 채</td></tr>
+          <tr><td class="m">POSTED</td><td>대기 · 가끔 고개</td><td>의심도 60 · 문가에 선다</td><td>어깨에 멘 채</td></tr>
+          <tr><td class="m">WATCH</td><td>대기 + 머리 IK 로 나를 추적</td><td>의심도 80 · 시야 안</td><td>어깨에 멘 채</td></tr>
+          <tr><td class="m">APPROACH</td><td>걷기 (보통) · 경로 탐색</td><td>의심도 100 · 8 – 14 초</td><td>어깨에 멘 채</td></tr>
+          <tr><td class="m">UNSLING</td><td class="hot">총을 내린다 · <b>1.5 초</b></td><td class="hot">도착 · 판에 한 번뿐인 동작</td><td>내리는 중</td></tr>
+          <tr><td class="m">AIM</td><td>겨눔 · 0.4 초</td><td>개입 불가 시점</td><td>겨눔</td></tr>
+          <tr><td class="m">FIRE</td><td>발사 · 반동</td><td>—</td><td>—</td></tr>
+          <tr><td class="m">BLOCKED</td><td>멈춤 · 고개를 든다</td><td>개체가 사이에 섰을 때 · 3 초</td><td>내리다 만 채</td></tr>
+          <tr><td class="m">RETURN</td><td>총을 다시 메고 돌아선다</td><td>개입 성공 · 대신 나섬</td><td>다시 멘다</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ul class="laws" style="margin-top:.4rem">
+      <li class="warm">
+        <span class="ln">UNSLING 이 이 게임에서 한 번만 나오는 동작이다</span>
+        판 내내 총을 <b>메고만</b> 다니게 한다. 그래서 내리는 동작이 나오는 순간,
+        플레이어는 대사 없이도 무슨 일인지 안다. <b>이 규칙을 어기는 연출을 다른 데 넣지 않는다.</b>
+      </li>
+      <li>
+        <span class="ln">경로 탐색은 방마다 진입점 하나</span>
+        레벨 문서의 평면에 <b>집행자 진입점</b>을 방마다 하나씩 박아 둔다.
+        복잡한 내비메시가 필요 없다 — 진입점에서 플레이어까지 직선 + 회피뿐이다.
+      </li>
+      <li>
+        <span class="ln">카메라를 뺏지 않는다</span>
+        락온도 컷신도 없다. 플레이어는 <b>고개를 돌려 다른 데를 볼 수 있다</b> —
+        그리고 대부분 안 돌린다. 강제하지 않는 편이 더 오래 남는다.
+      </li>
+      <li class="hot">
+        <span class="ln">3 인에서 집행자는 서버가 소유한다</span>
+        위치와 상태를 세션 객체가 갖고 세 클라이언트에 방송한다.
+        <b>누구 화면에서도 다른 위치에 있으면 안 된다</b> — 남은 둘이 그걸 보고 판단하기 때문이다.
+      </li>
+    </ul>
+  </section>
+
+  <div class="closing">
+    <p>
+      이 게임에서 총은 한 방향으로만 나간다. 플레이어는 반격할 수 없고,
+      그래서 <b>다가오는 것을 보는 것</b>이 유일하게 할 수 있는 일이다.
+    </p>
+    <p>
+      그리고 나를 쏘는 것은 낯선 것이 아니다. 아까 복도에서
+      <b>「나도 이거 하고 싶어서 하는 거 아니야」</b>라고 말했던 그 개체다.
+    </p>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,705 @@
+{
+  "$doc": [
+    "복도 챕터 목소리 캐스팅 — tools/voice-lines.mjs 가 읽는다. 값(키)은 없다.",
+    "voice.library 는 ElevenLabs Voice Library 의 한국어 보이스(계정에 'Add to My Voices' 해야 TTS 에 쓸 수 있다).",
+    "계정에 voice.name 이 없으면 스크립트가 라이브러리에서 추가를 시도하고(키에 add_voice_from_voice_library 권한 필요),",
+    "그것도 안 되면 fallback(기본 제공 영어 보이스 — 한국어 억양이 섞인다)으로 만든다. manifest 에 어느 쪽을 썼는지 남긴다.",
+    "fx 는 브라우저 재생 필터(src/features/world/voice.ts): pa=시설 방송, robot=기계 음색, none=원음. **무전기(comm)는 없다** — 과학자에서 걷고 정부요원에서도 걷었다 (2026-09-01 사용자). 사람 목소리는 이제 원음이거나 시설 방송이고, 필터가 걸리는 것은 기계뿐이다.",
+    "**'me' 화자는 없다 — 내 말은 소리를 안 낸다** (2026-09-03 사용자: \"사용자는 tts 제거해줘\"). 이 게임에서 내 말은 내가 친 말이라, 합성 목소리를 얹으면 내가 한 말을 남이 대신 읽어 주는 꼴이 된다 — 과학자·정부요원과 주고받는 자리에서 제일 두드러졌다. 굽는 쪽에서 걷었고(여기), 재생부도 내 말에는 화자를 안 붙인다 (src/features/world/voice.ts 의 speakerOf) — 둘 다 걸어 둔 것은 옛 배포본의 manifest 에 구운 클립이 남아 있어도 소리가 새면 안 되기 때문이다. 되살릴 일이 생기면 두 자리를 같이 본다.",
+    "settings.speed 는 합성 속도(음높이가 안 변한다), playRate 는 재생 배속(음높이가 같이 오른다 — voice.ts VOICE_RATE 1.1).",
+    "무전기(comm)는 걷어냈다 — 화자에서도, 재생부의 체인·회선 잡음에서도 (2026-09-01 사용자). 첫 판이 '너무 심하다'였고(2026-08-31), 값을 절반으로 내려도 남았다: 대사가 몇십 줄 이어지는 매체라 한 줄만 들으면 알맞은 값이 열 줄 들으면 시끄럽다 — 필터로 분위기를 내는 축은 여기서 전부 이 함정을 밟는다. 되살릴 일이 생기면 커밋에서 꺼내 온다 (대역·저역 선반·중역 봉우리·송신기 포화·히스·스퀄치가 한 벌이었다).",
+    "과학자는 speed 1.1 로 굽고 playRate 1.0 으로 튼다 — 음높이는 원음, 말 속도는 1.1 배. 재생 배속이 deep 축이다: 1.1 → 1.0 (2026-08-30, 올리면 가벼워진다) → 0.94 (2026-08-31 사용자: 목소리에 deep 한 걸 더, -1.1반음) 로 내려왔다가, 그중 한 단계를 되돌려 1.0 이다 (2026-09-02 사용자: deep 한 단계만 올려). 다시 내릴 일이 생기면 playRate 를 0.94 로 두고 speed x playRate 가 1 아래로 안 내려가게 speed 를 같이 본다.",
+    "unit07·unit12 는 **같은 목소리, 다른 몸**이다 — 둘 다 리더의 계정 보이스 'mw_The Combat Veteran Mech' 를 쓴다 (2026-09-04 사용자: unit- 라인 목소리가 리더와 달라 어색하니 같은 걸로. 이전 배역 07 Minho · 12 Hanna 는 git 이력에). 같은 보이스를 같은 값으로 틀면 안 된다는 것은 이미 밟아 본 함정이다(2026-09-03 되돌림): 검문소처럼 경비(guard→07)와 줄 선 개체(peer→12)가 번갈아 말하는 자리가 혼자 문답하는 소리가 된다 — fx 반송파 46/72Hz 만으로는 안 갈린다. 그래서 이번에는 **재생 음높이(playRate)로 가른다**: 07 은 1.0(낮고 무겁게), 12 는 1.12(밝고 얇게) — 약 2반음 차이. 합성 속도도 1.0/1.05 로 벌렸다. 07/12 구분이 또 흐려지면 playRate·speed·carrier 세 축을 같이 본다.",
+    "속마음(chapter1 의 who: 'thought')은 **소리를 안 낸다** — 화자가 없으니 대본에서 긁혀도 걸러진다 (2026-08-30 사용자).",
+    "sources.slots 는 대본에 글자로 남은 빈자리(${series}·${unit})를 값 목록만큼 부풀린다 — 계열 하나당 클립 한 벌이라, SERIES 를 늘리면 구울 양도 그만큼 늘어난다 (2026-09-01)."
+  ],
+  "speakerAlias": {
+    "guard": "unit07",
+    "peerA": "unit12",
+    "peerB": "unit12",
+    "peer": "unit12",
+    "device": "system",
+    "examiner": "unit07",
+    "u104": "unit12",
+    "u089": "unit07",
+    "u012": "unit07",
+    "seer": "unit12",
+    "leader": "unit07",
+    "guard21": "unit07",
+    "guard22": "unit07",
+    "guard23": "unit12",
+    "u201": "unit12",
+    "u063": "unit07",
+    "u118": "unit12",
+    "u137": "unit12",
+    "ally-timid": "unit12",
+    "ally-hard": "unit07",
+    "bg-c2-044": "unit12",
+    "bg-c2-128": "unit12",
+    "bg-c2-061": "unit07",
+    "bg-c2-093": "unit12",
+    "bg-c2-152": "unit07",
+    "bg-c2-207": "unit12",
+    "bg-c2-215": "unit07"
+  },
+  "model": "eleven_multilingual_v2",
+  "format": "mp3_44100_64",
+  "names": {
+    "과학자": "scientist",
+    "정부요원": "agent",
+    "SYSTEM": "system",
+    "A-01": "system",
+    "UNIT-07": "unit07",
+    "UNIT-12": "unit12",
+    "UNIT-21": "unit07",
+    "UNIT-22": "unit07",
+    "UNIT-23": "unit12",
+    "A${series}-044": "unit12",
+    "A${series}-128": "unit12",
+    "A${series}-206": "unit12",
+    "A${series}-118": "unit12",
+    "A${series}-072": "unit12",
+    "A${series}-155": "unit12",
+    "검문 장치": "system",
+    "정비 단말": "system",
+    "UNIT-33": "unit12",
+    "UNIT-40": "unit12",
+    "UNIT-52": "unit07",
+    "UNIT-58": "unit07",
+    "UNIT-63": "unit12",
+    "ENFORCER": "unit07",
+    "UNIT-04": "unit07",
+    "검증 장치": "system",
+    "A${series}-104": "unit12",
+    "A${series}-089": "unit07",
+    "A${series}-012": "unit07",
+    "A${series}-051": "unit12",
+    "A${series}-077": "unit07",
+    "밖을 본 것": "unit12",
+    "먼저 온 것": "unit07"
+  },
+  "sources": {
+    "chapter": [
+      {
+        "file": "src/features/world/chapter1.ts",
+        "arrays": [
+          "INTRO",
+          "WATCH_ADVICE",
+          "INSCRIPTION",
+          "ARRIVE",
+          "LOCKDOWN"
+        ]
+      },
+      {
+        "file": "src/features/world/chapter2.ts",
+        "arrays": [
+          "ANALYZE",
+          "NOTICE",
+          "ROLL_A",
+          "ROLL_B",
+          "ROLL_ME",
+          "PROTOCOL",
+          "TEST1",
+          "TEST1_OK",
+          "TEST1_BAD",
+          "TEST2",
+          "TEST3",
+          "VERDICT",
+          "VERDICT_TALK",
+          "MARCH",
+          "QUEUE_TALK",
+          "PURGE_AFTER",
+          "FLEE_AFTER",
+          "ENTER_CHECK",
+          "ENTER_OK",
+          "ENTER_BAD",
+          "INLINE"
+        ]
+      },
+      {
+        "file": "src/features/world/chapter3.ts",
+        "arrays": [
+          "ARRIVE",
+          "OPEN",
+          "RELEASE"
+        ],
+        "why": "재검실의 **정해진 줄은 전부 굽는다** — 도착(SYSTEM·과학자), 검증관의 첫 마디(OPEN), 내보내는 말(RELEASE). 검증관 UNIT-04 는 names 에서 unit07 목소리를 빌린다. 감독이 그 자리에서 지은 질문·판정만 미리 못 굽고 실시간 합성으로 나간다 (chapter3 의 live)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "arrays": [
+          "INTRO",
+          "DISMISS",
+          "NOTICE_LINES",
+          "WATCH_LINES",
+          "REST_ARRIVE",
+          "REST_SEER",
+          "REST_LINGER",
+          "REST_STILL",
+          "REST_STILL_40",
+          "LEAVE_REST",
+          "WINDOW_SEER",
+          "WINDOW_GO",
+          "WINDOW_SUMMON",
+          "CENTRAL2_ARRIVE",
+          "LOCKDOWN_LINES",
+          "HOLD_BREAK",
+          "ROLL_LINES",
+          "PROTOCOL_LINES",
+          "GATE3_LINES",
+          "VERDICT_DIM_LINES",
+          "LEAVE_CORE_LINES",
+          "ARRIVE_WORK",
+          "ARRIVE_WORK_012",
+          "FURNACE_CALL",
+          "FURNACE_BLOCKED",
+          "FURNACE_BLOCK_AFTER",
+          "FURNACE_LET",
+          "AFTER_FURNACE_063",
+          "LEAVE_WORK",
+          "OTHER_HAND",
+          "OTHER_HAND_MORE",
+          "EXEC_60",
+          "EXEC_80",
+          "EXEC_START",
+          "EXEC_KNOWN",
+          "EXEC_ARRIVE",
+          "EXEC_SORRY",
+          "EXEC_OVER",
+          "EXEC_END",
+          "COVER_REPLY",
+          "COVER_PAUSE",
+          "BODY_BLOCK",
+          "EXEC_STAND_IN"
+        ],
+        "why": "시나리오 2(/scenario2)의 대본 v8 — 복도(INTRO · DISMISS · NOTICE · WATCH) · 휴게 · 창 · 중앙 시설 · 작업(ARRIVE_WORK · FURNACE · AFTER_FURNACE · LEAVE_WORK) · 기록(OTHER_HAND) · 집행(EXEC_* · COVER · BODY_BLOCK). skipSpeakers 의 me·thought 는 소리가 아니다 — 내 말·속마음엔 음성이 없다 (2026-09-01 사용자). 속마음만인 배열(HALL_* · DOOR_* · CORE_RING_ENTER · LOCK_* · DIM_HERE · FURNACE_BLOCK_ME …)은 굽을 것이 없어 적지 않았다. who:'unit' 이 섞인 CastLine 배열(FIRST_LOOK · DOZE · DARK_CORE · LEAVE_WORK_LIKE_US)은 castLines 에 따로 적는다 (2026-09-03)",
+        "skipSpeakers": [
+          "me",
+          "thought"
+        ]
+      },
+      {
+        "file": "src/features/world2/hints.ts",
+        "arrays": [
+          "HINT_CORRIDOR_NEXT",
+          "HINT_CORRIDOR_LAST",
+          "HINT_REST_NEXT",
+          "HINT_REST_LAST",
+          "HINT_CENTRAL2_NEXT",
+          "HINT_CENTRAL2_LAST",
+          "HINT_WORK_NEXT",
+          "HINT_WORK_LAST",
+          "HINT_ARCHIVE_NEXT",
+          "HINT_ARCHIVE_LAST",
+          "HINT_WINDOW_NEXT",
+          "HINT_WINDOW_LAST"
+        ],
+        "why": "귓속말 — 친밀도가 오른 개체가 다음 방과 마지막 검문실을 흘리는 열두 항목(2026-09-04 사용자). 화자는 u104·u137·u201·u118·u063·seer 여섯뿐이라 speakerAlias 에 이미 다 있다. 굽기 전에는 markLive 로 그 자리에서 합성해 나가고(scenario2 의 offerHint), 구운 뒤에는 클립이 이긴다 (voice.ts)",
+        "skipSpeakers": [
+          "me",
+          "thought"
+        ]
+      }
+    ],
+    "interrogation": {
+      "file": "src/features/world/interrogation.ts",
+      "speakers": [
+        "unit07",
+        "unit12"
+      ],
+      "exclude": [
+        "말투",
+        "보고",
+        "순찰 중 정지"
+      ]
+    },
+    "threshold": {
+      "file": "src/world/mp/suspicion.ts",
+      "speaker": "system"
+    },
+    "templates": [
+      {
+        "file": "src/features/world/chapter2.ts",
+        "namesFrom": "QUEUE_UNITS",
+        "why": "줄에 선 개체들의 대사는 이름을 끼워 만든다 — passLines/purgeLines/fleeLines"
+      }
+    ],
+    "blocks": [
+      {
+        "file": "src/features/world/scan.ts",
+        "const": "LINE",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "패턴 스캔 — 어느 경비가 맡을지 모른다"
+      },
+      {
+        "file": "src/features/world/enforcerStore.ts",
+        "const": "LINES",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "즉결 사격 — 순찰 경비가 맡거나 ENFORCER 가 온다"
+      },
+      {
+        "file": "src/features/world/WorldFeature.tsx",
+        "const": "GLITCH_SEEN",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "SYNC 글리치를 본 개체의 한 마디"
+      },
+      {
+        "file": "src/features/world/chapter3.ts",
+        "const": "OPENERS",
+        "speakers": [
+          "unit07"
+        ],
+        "why": "재검실의 첫 질문 — 감독이 아니라 대본이 고른다(여섯 중 하나). 검증관 목소리로 굽는다"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "REST_STIR",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "휴게 구역 STILL — 서성인 나를 곁의 개체가 본다. 누가 곁에 있을지 판마다 달라 둘 다 굽는다"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "CORE_RING_NEW_BODY",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "CORE_RING_ENVY",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "SHADOW_LINGER_SAY",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "RECOGNIZED_UP",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "RECOGNIZED_UP_AGAIN",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "RECOGNIZED_FLAT",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "RECOGNIZED_DOWN_ASIDE",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "RUMOR_LINES",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "LOCK_STAY_CALM",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "GATE1",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설의 검문 — UNIT-21 이 묻는다 (관문 ①②③ · 프로토콜) — coverSay 한 줄만 곁의 개체가 말하므로 둘 다 굽는다"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "PROTOCOL_LOOKED",
+        "speakers": [
+          "unit07"
+        ],
+        "why": "중앙 시설의 검문 — UNIT-21 이 묻는다 (관문 ①②③ · 프로토콜)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "GATE2_ASK",
+        "speakers": [
+          "unit07"
+        ],
+        "why": "중앙 시설의 검문 — UNIT-21 이 묻는다 (관문 ①②③ · 프로토콜)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "GATE2",
+        "speakers": [
+          "unit07"
+        ],
+        "why": "중앙 시설의 검문 — UNIT-21 이 묻는다 (관문 ①②③ · 프로토콜)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "GATE3",
+        "speakers": [
+          "unit07"
+        ],
+        "why": "중앙 시설의 검문 — UNIT-21 이 묻는다 (관문 ①②③ · 프로토콜)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "DARK_CONSOLE_EARLIER",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "DARK_CONSOLE_NOW",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "EMPTY_SEAT_STAY",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "EMPTY_SEAT_CORE",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "EMPTY_SEAT_SHADOW",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "LEAVE_SEE_YOU",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "중앙 시설 — 그 자리에 누가 서 있느냐가 판마다 달라서 문장만 있다 (코어권 · 곁 · 재회 개체)"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "COVER_SAY",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "집행 걸음 4–5 · 말로 막는 개체 — 누가 나서느냐가 판마다 달라 둘 다 굽는다"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "COVER_SAY2",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "집행 걸음 4–5 · 말로 막는 개체 — 누가 나서느냐가 판마다 달라 둘 다 굽는다"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "BODY_BLOCK_UNIT",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "집행 걸음 6–7 · 몸으로 막는 개체 — 한글이 없는 줄(……)은 파서가 거른다"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "STAND_IN_SAY",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "집행 걸음 8 · 대신 부서지는 개체 — 「나를 위해 나선 적 있다」 개체만"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "OPENERS",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "경비의 첫 마디(이유별) — UNIT-21 이 묻지만 WATCH·집행 한 번 더 묻기에서 곁의 개체가 같은 표를 쓴다"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "OPENER_CHAT",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "경비의 잡담 — 3 m 안을 지나갈 때"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "OPENER_SILENT",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "무응답 18 초"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "OPENER_ESCORT",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "감시 — 따라붙고 보낸다"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "OPENER_ACCEPT",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "보고 수용"
+      },
+      {
+        "file": "src/features/world2/script.ts",
+        "const": "OVERHEAR",
+        "speakers": [
+          "unit07",
+          "unit12"
+        ],
+        "why": "배회 개체 둘이 지나치며 두 마디 — 주제마다 [A, B]. 누가 지나갈지 판마다 달라 둘 다"
+      },
+      {
+        "file": "src/features/world2/alert.ts",
+        "const": "THRESHOLD_LINES",
+        "speakers": [
+          "system"
+        ],
+        "why": "경보도 문턱 넷 — 구역이 조여드는 방식. 의심도 문턱(suspicion.ts)과 짝이다"
+      }
+    ],
+    "slots": [
+      {
+        "name": "unit",
+        "file": "src/world/mp/identity.ts",
+        "from": "TAGS",
+        "field": "unit",
+        "why": "이 몸의 식별번호 — 경비가 그 번호로 부른다 (chapter2 의 TEST2). 값 자체가 'A${series}-091' 이라 series 보다 먼저 편다"
+      },
+      {
+        "name": "series",
+        "file": "src/shared/series.ts",
+        "from": "SERIES",
+        "why": "판마다 바뀌는 계열 번호(A-17 의 17). 후보 목록만큼 방송·경비 대사를 전부 구워 둔다 — 목록에 값을 더했으면 여기를 다시 돌려야 그 판에 소리가 난다"
+      }
+    ],
+    "castLines": [
+      {
+        "file": "src/features/world2/script.ts",
+        "arrays": [
+          "FIRST_LOOK_OPEN",
+          "FIRST_LOOK_NONE",
+          "FIRST_LOOK_ANY",
+          "LEAVE_WORK_LIKE_US",
+          "DOZE_LINES",
+          "DOZE_REPLY",
+          "DARK_CORE"
+        ],
+        "unitSpeakers": [
+          "unit07",
+          "unit12"
+        ],
+        "skipSpeakers": [
+          "me",
+          "thought"
+        ],
+        "why": "화자가 그 자리에 누가 서 있느냐로 정해지는 줄 — who:'unit' 은 unit07·unit12 둘 다 굽는다(누가 서 있을지 판마다 다르다, 2026-09-03). 다른 who(scientist)는 별칭 그대로"
+      }
+    ],
+    "castVoices": {
+      "file": "src/features/world2/cast.ts",
+      "idAlias": "speakerAlias",
+      "why": "배역별 대답표(work · comfort · mural · sign · byTag · up/flat/down) — 배역 id(u104 · guard21 · ally-timid …)를 speakerAlias 로 목소리에 잇는다. 한 글자라도 바뀐 문장은 새 클립이다"
+    }
+  },
+  "speakers": {
+    "scientist": {
+      "label": "과학자 — 40대 후반 연구자(백발 섞인 남성). 통신 너머에서 브리핑한다 — 다만 소리에는 무전기를 안 입힌다(fx none, 2026-09-01 사용자). 차분·정확·설명조, 위기에선 짧게 흔들린다('뭐지?'). 욕은 안 한다(2026-09-02 사용자).",
+      "voice": {
+        "name": "WIH 과학자 · Ethan",
+        "library": {
+          "voiceId": "K349x43DIDecCYoQWw7U",
+          "libraryName": "Ethan - Deep",
+          "ownerId": "b9390dd1b77630e5859750f8637ecb5e985247945d571d0694be0eec09999348",
+          "why": "Ethan - Deep — 낮고 진중한 남성. 전임 Hyunbin(외교적·쿨한 PR 톤)이 진중해 보이지 않아 교체 (2026-08-30 사용자가 /tts 후보 찾기에서 선택)"
+        },
+        "fallback": "Eric"
+      },
+      "settings": {
+        "stability": 0.55,
+        "similarity_boost": 0.8,
+        "style": 0.2,
+        "speed": 1.1
+      },
+      "fx": {
+        "preset": "none"
+      },
+      "playRate": 1.0,
+      "gain": 1.0
+    },
+    "agent": {
+      "label": "정부요원 — 50대 은발 지휘관. '여기는 지휘부.' 냉정·단호·명령형, 감정을 싣지 않는다. 말이 짧고 느리다. 통신 너머에서 말하지만 소리에는 무전기를 안 입힌다(fx none, 2026-09-01 사용자 — 과학자와 같은 이유).",
+      "voice": {
+        "name": "WIH 정부요원 · Hyuk",
+        "library": {
+          "voiceId": "ZJCNdZEjYwkOElxugmW2",
+          "libraryName": "Hyuk - Cold and Clear",
+          "ownerId": "219e2c24fb2ce1f2a9727325609ced8e5548e2320fdd30d5f0e774c19e0604f8",
+          "why": "Hyuk - Cold and Clear — 중년 남성, 차갑고 또렷"
+        },
+        "fallback": "Daniel"
+      },
+      "settings": {
+        "stability": 0.78,
+        "similarity_boost": 0.8,
+        "style": 0.05,
+        "speed": 0.94
+      },
+      "fx": {
+        "preset": "none"
+      },
+      "gain": 1.0
+    },
+    "system": {
+      "label": "SYSTEM / A-01 — 시설 방송·감시 시스템(눈 하나 달린 로봇 초상). 감정 0, 또박또박, 안내 방송 톤.",
+      "voice": {
+        "name": "WIH 시스템 · Sola",
+        "library": {
+          "voiceId": "KlstlYt9VVf3zgie2Oht",
+          "libraryName": "Sola - Warm, Clear and Rich",
+          "ownerId": "98b0a9a9ec7363c02603024a30a594046055d61684f436bd3c4a89cf305829d5",
+          "why": "Sola — 공공 안내 방송용으로 만든 젊은 여성 보이스"
+        },
+        "fallback": "River"
+      },
+      "settings": {
+        "stability": 0.92,
+        "similarity_boost": 0.75,
+        "style": 0.0,
+        "speed": 0.95
+      },
+      "fx": {
+        "preset": "pa"
+      },
+      "gain": 0.9
+    },
+    "unit07": {
+      "label": "UNIT-07 — 복도 경비 AI. '정지. 식별 코드.' 한 호흡짜리 단문·명령형·무감정. 07 은 낮고 무거운 쪽 — 리더 보이스를 원래 음높이로 튼다.",
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "fallback": "Freaky and Frenzy Robot"
+      },
+      "settings": {
+        "stability": 0.9,
+        "similarity_boost": 0.7,
+        "style": 0.0,
+        "speed": 1.0
+      },
+      "fx": {
+        "preset": "robot",
+        "carrier": 46,
+        "depth": 0.32,
+        "steps": 48
+      },
+      "playRate": 1.0,
+      "gain": 1.0
+    },
+    "unit12": {
+      "label": "UNIT-12 — 복도 경비 AI. 07 과 같은 목소리(리더 보이스)지만 몸이 다르다 — 재생 음높이 +2반음, 더 밝고 얇은 기계음.",
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "fallback": "Freaky and Frenzy Robot"
+      },
+      "settings": {
+        "stability": 0.9,
+        "similarity_boost": 0.7,
+        "style": 0.0,
+        "speed": 1.05
+      },
+      "fx": {
+        "preset": "robot",
+        "carrier": 72,
+        "depth": 0.28,
+        "steps": 48
+      },
+      "playRate": 1.12,
+      "gain": 0.95
+    }
+  }
+}

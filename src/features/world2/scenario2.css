@@ -1,0 +1,588 @@
+/*
+ * 시나리오 2 의 화면 — 본판의 hud.css 를 건드리지 않는다. 계량기가 다르고(SYNC 가 없다) 판이 다르다.
+ * 원칙 하나: **친밀도는 어디에도 숫자로 안 뜬다.** 띄우는 순간 위로가 자원 채집이 되고 플레이어는 감정을 파밍한다.
+ */
+
+.s2 {
+  position: absolute;
+  z-index: 30;
+  font-family: 'Gothic A1', 'Apple SD Gothic Neo', system-ui, sans-serif;
+  color: #cfd8e6;
+  pointer-events: none;
+}
+
+/* ── 왼쪽 위 계량기 둘 ── */
+.s2-meters {
+  top: 12px;
+  left: 12px;
+  width: 244px;
+  padding: 10px 12px;
+  background: rgba(6, 10, 16, 0.62);
+  border: 1px solid rgba(140, 170, 210, 0.18);
+  border-radius: 8px;
+  backdrop-filter: blur(3px);
+}
+.s2-room {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: #7f93ad;
+  margin-bottom: 8px;
+}
+.s2-meter {
+  padding: 3px 4px;
+  margin: -3px -4px;
+  border-radius: 3px;
+  transition: box-shadow 0.35s, background-color 0.35s;
+}
+.s2-meter + .s2-meter { margin-top: 11px; }
+
+/*
+ * 과학자가 이 줄을 설명하는 동안 — 숨쉬듯 빛난다.
+ * 값은 본판 hud.css 의 `.hud-row--hl` 그대로다: 두 판의 「설명 중」이 다르게 보이면 같은 시설로 안 읽힌다.
+ */
+.s2-meter.hl {
+  background: rgba(111, 211, 255, 0.1);
+  box-shadow: 0 0 0 1px rgba(111, 211, 255, 0.7), 0 0 18px rgba(111, 211, 255, 0.45);
+  animation: s2-hl 1.2s ease-in-out infinite;
+}
+@keyframes s2-hl {
+  50% {
+    box-shadow: 0 0 0 1px rgba(111, 211, 255, 0.9), 0 0 28px rgba(111, 211, 255, 0.8);
+  }
+}
+.s2-meter-hint {
+  margin-left: 7px;
+  font-style: normal;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: #8fd6ff;
+  animation: s2-hl-arrow 1.2s ease-in-out infinite;
+}
+@keyframes s2-hl-arrow {
+  50% { transform: translateX(3px); }
+}
+.s2-meter-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #8b9db6;
+}
+.s2-bar {
+  margin-top: 3px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(140, 170, 210, 0.16);
+  overflow: hidden;
+}
+.s2-bar > i {
+  display: block;
+  height: 100%;
+  background: #5f9fd8;
+  transition: width 0.25s linear;
+}
+.s2-bar.alert > i { background: #d08a4a; }
+.s2-bar.hot > i { background: #d4796c; }
+
+/* ── 목표 ── */
+.s2-objective {
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: #d8e2f0;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+.s2-objective b {
+  font-weight: 500;
+  color: #8fc0e8;
+  margin-right: 6px;
+}
+
+/*
+ * 답할 창 — 개체가 말을 걸고 기다린다 (address.ts). 숫자도 초읽기도 없다: 목표 줄이 살짝 숨 쉬고, 밑의 가는 막대가 줄어들 뿐이다.
+ * 치는 동안(.paused)은 막대가 멈춘 채 따뜻한 색으로 — 창이 멈췄다는 것을 글자 없이 안다
+ */
+.s2-objective.addressed { animation: s2-addressed 1.6s ease-in-out infinite; }
+@keyframes s2-addressed {
+  0%, 100% { color: #d8e2f0; }
+  50% { color: #eef5ff; text-shadow: 0 0 10px rgba(111, 211, 255, 0.35), 0 1px 6px rgba(0, 0, 0, 0.9); }
+}
+.s2-answer {
+  margin: 7px auto 0;
+  width: 180px;
+  height: 2px;
+  background: rgba(111, 211, 255, 0.14);
+}
+.s2-answer > i {
+  display: block;
+  height: 100%;
+  background: rgba(111, 211, 255, 0.7);
+  transition: width 0.1s linear;
+}
+.s2-answer.paused > i { background: rgba(226, 199, 152, 0.8); }
+
+/*
+ * 락다운 — 목표 밑의 작은 표. 글은 목표가 이미 하고 있으니 여기서는 테두리만 위험 판(.s2-urgent)의 붉기로 뛴다.
+ * 움직이면 의심이 오르는 국면이라, 「가만히」를 눈금이 아니라 맥박으로 읽게 한다.
+ */
+.s2-hold {
+  display: inline-block;
+  margin-top: 7px;
+  padding: 2px 8px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  color: #e8c4bc;
+  border: 1px solid rgba(212, 121, 108, 0.55);
+  border-radius: 3px;
+  animation: s2-hold 1.1s ease-in-out infinite;
+}
+@keyframes s2-hold {
+  50% {
+    border-color: rgba(212, 121, 108, 1);
+    box-shadow: 0 0 10px rgba(212, 121, 108, 0.55);
+  }
+}
+
+/* 코어 콘솔 곁 — 말 걸기와 같은 자리, 같은 색. 어둠이면 단추가 아니라 사실이라 흐려진다 */
+.s2-console-hint {
+  bottom: 196px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12.5px;
+  color: #cfe0f2;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+}
+.s2-console-hint b { color: #6fd3ff; font-weight: 500; }
+.s2-console-hint.off { color: rgba(207, 224, 242, 0.55); }
+
+/* ── 방 이름 ── */
+.s2-banner {
+  top: 34%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Hahmlet', 'Nanum Myeongjo', serif;
+  font-size: 30px;
+  letter-spacing: 0.22em;
+  color: #e6edf6;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.95);
+  animation: s2-banner 2.2s ease forwards;
+}
+@keyframes s2-banner {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/*
+ * ── 공지 ── 중앙 시설 국면이 바뀔 때 한 번. 방 이름(.s2-banner)과 같은 자리·같은 등장이지만 글꼴이 다르다 —
+ * 방 이름은 이야기가 붙인 제목이고 공지는 시설이 띄운 글자라, 명조가 아니라 모노다. 락다운은 위험 판의 붉기, 어둠은 식은 색.
+ */
+.s2-notice {
+  top: 34%;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 82vw;
+  padding: 8px 18px;
+  text-align: center;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 15px;
+  letter-spacing: 0.2em;
+  line-height: 1.7;
+  white-space: pre-line;
+  color: #e8c4bc;
+  border: 1px solid rgba(212, 121, 108, 0.7);
+  border-radius: 3px;
+  background: rgba(8, 6, 8, 0.55);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.95);
+  animation: s2-notice 6s ease forwards;
+}
+.s2-notice.dark {
+  color: #c9d6e6;
+  border-color: rgba(143, 192, 232, 0.5);
+}
+@keyframes s2-notice {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* 「EXTERNAL SIGNAL DETECTED」 — 인트로 22 초 뒤 1.8 초. 시설이 띄운 글자라 같은 모노, 다만 붉지도 식지도 않은 흰빛 */
+.s2-notice.signal {
+  color: #d8e2ec;
+  border-color: rgba(200, 214, 230, 0.45);
+  animation-duration: 1.8s;
+}
+
+/* ── 암전 ── */
+.s2-black {
+  inset: 0;
+  background: #000;
+  transition: opacity 0.7s linear;
+}
+
+/* ── 가만히 있기 ── */
+.s2-still {
+  bottom: 210px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  text-align: center;
+}
+.s2-still-label {
+  font-size: 12px;
+  color: #9fb2c8;
+  margin-bottom: 6px;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+.s2-still .s2-bar { height: 3px; }
+
+/* ── 갈림 · 도화선 ── 갈림(.s2-choice)은 같은 판에서 도화선만 없다 — 물러났다 오면 또 묻는 문이라 급할 이유가 없다 */
+.s2-choice {
+  background: rgba(8, 10, 14, 0.82);
+  border-color: rgba(200, 214, 230, 0.3);
+}
+.s2-choice h4 { color: #dfe6ee; margin-bottom: 10px; }
+.s2-choice .s2-urgent-row button { border-color: rgba(200, 214, 230, 0.3); }
+.s2-urgent {
+  bottom: 190px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 340px;
+  padding: 14px 16px;
+  background: rgba(20, 8, 6, 0.82);
+  border: 1px solid rgba(212, 121, 108, 0.4);
+  border-radius: 10px;
+  text-align: center;
+  pointer-events: auto;
+}
+.s2-urgent h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #f0dcd8;
+}
+.s2-urgent p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #b79c96;
+}
+.s2-urgent-row { display: flex; gap: 8px; }
+.s2-urgent-row button {
+  flex: 1;
+  padding: 8px 0;
+  font-size: 12px;
+  color: #e8dcd8;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(212, 121, 108, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.s2-urgent-row button:hover { background: rgba(255, 255, 255, 0.12); }
+.s2-fuse {
+  margin-top: 10px;
+  height: 2px;
+  background: rgba(212, 121, 108, 0.25);
+}
+.s2-fuse > i { display: block; height: 100%; background: #d4796c; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   말 걸기 — **판이 아니라 한 줄이다.**
+   다가가서 멈추면 열리고, 치고 Enter 를 누르면 사라진다. 누르는 단추가 없다.
+   톤은 uxpilot 디자인(page W7TGAlXHQbySDrUy8JXK · HUD_DialogueInput)에서 가져오되
+   층층이 쌓인 상자는 걷어냈다 — 다가설 때마다 창이 열리면 말 거는 게 일이 된다.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/*
+ * 자리는 **본판 입력줄과 같다** (2026-09-03 사용자: 「말 쓰는 창이 너무 올라가 있다 — world1 과 동일하게」): 화면 맨 아래 24px,
+ * 폭 min(520px, 90vw). 열리면 대화창(.dlg--lifted)이 --dlg-lift(54px) 만큼 올라가 이 줄 위에 선다.
+ * 힌트 칩이 있을 땐 줄이 한 단 더 높아지므로 대화창을 그만큼 더 올린다 (.s2-hinted .dlg — 아래)
+ */
+.s2-talk {
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, 90vw);
+  pointer-events: auto;
+  z-index: 45;
+}
+.s2-hinted .dlg--lifted:not(.dlg--touch) { --dlg-lift: 86px; }
+
+/* 떠오르는 말 — 힌트다. 눌러야 하는 단추가 아니다 */
+.s2-hints {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 7px;
+  padding-left: 2px;
+}
+.s2-hints-label {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(208, 168, 106, 0.5);
+}
+.s2-hint {
+  padding: 2px 9px;
+  font-size: 11px;
+  color: rgba(226, 199, 152, 0.85);
+  background: rgba(208, 168, 106, 0.08);
+  border: 1px solid rgba(208, 168, 106, 0.22);
+  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+/*
+ * 내가 치는 한 줄 — 규칙은 **두 상태**다.
+ *   기본   떠 있기만 한다. 흐리고, 마우스도 안 받는다 (걸어 다니는 중이다)
+ *   .on    Enter 를 눌러 자판이 잡혔다. 밝아지고 다리가 멈춘다
+ * 지금 TalkPanel 은 잡힌 동안만 그리므로 늘 .on 이다 — 기본 상태는 나중에 「떠 있기만 하는 줄」을 되살릴 자리로 남긴다.
+ * (한동안 컴포넌트가 on 을 안 붙여 흐린 채 마우스도 안 받았다: 포커스가 빠지면 눌러서 되찾을 수가 없었다)
+ */
+/* 생김새도 본판 입력줄(WorldFeature 의 <input>)과 같다 — 둥근 4px, 청록 1px 테두리, 은은한 글로우. 잘린 모서리는 걷었다 */
+.s2-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(4, 12, 22, 0.82);
+  border: 1px solid rgba(111, 211, 255, 0.7);
+  border-radius: 4px;
+  box-shadow: 0 0 12px rgba(111, 211, 255, 0.25);
+  opacity: 0.72;
+  pointer-events: none;
+  transition: opacity 0.18s linear, border-color 0.18s linear, background-color 0.18s linear;
+}
+.s2-line.on {
+  opacity: 1;
+  pointer-events: auto;
+}
+.s2-line.on.filled { border-color: rgba(111, 211, 255, 0.9); }
+/* 개체가 답을 기다리는 중 — 이 줄이 그 답이다. 왼쪽 테두리가 조용히 뛴다 (숫자 없음) */
+.s2-line.on.addressed { animation: s2-addressed-line 1.6s ease-in-out infinite; }
+@keyframes s2-addressed-line {
+  0%, 100% { border-color: rgba(111, 211, 255, 0.7); box-shadow: 0 0 12px rgba(111, 211, 255, 0.25); }
+  50% { border-color: rgba(111, 211, 255, 1); box-shadow: 0 0 18px rgba(111, 211, 255, 0.45); }
+}
+
+/*
+ * **겨눈 몸 위의 동사 한 줄** — 「아직 안 잡혔을 때의 자리, 무엇을 할 수 있는지만」이라고 적어 두고
+ * 아무도 안 쓰던 자리를 여기서 쓴다 (2026-09-03: [E] 로 말 걸기).
+ *
+ * 이 판의 원칙은 「곁에 누가 있는지 화면이 대신 짚어 주지 않는다」다 (Hud2 의 말 걸기 묶음). 그 원칙이
+ * 금지하는 것은 **주변에 누가 있는지의 목록**이지 **내가 겨눈 하나 위의 동사 한 줄**이 아니다 —
+ * 판은 같은 모양을 물건에 대해 이미 허락하고 있다(코어 콘솔의 `[E] 코어 출력을 내린다`). 그래서 선이 둘이다:
+ *   ⓐ 조준(state.aim)에만 붙는다. 곁(near)으로는 안 띄우고, 근처 목록·거리 눈금·꺾쇠는 하나도 안 그린다.
+ *   ⓑ **이름을 안 쓴다.** 누구인지는 입력줄을 연 뒤 안내문(「… 이(가) 듣는다」)이 말한다 —
+ *     「보는 것이 먼저」라는 순서가 그대로 산다.
+ *
+ * 자리는 조준점 밑, 콘솔 힌트(bottom 196px)보다 아래다 — 코어 앞에서 둘이 겹치지 않게.
+ * 글자와 강조색은 콘솔 힌트와 **같은 값**이다: 같은 동사([E])는 같은 모양이어야 한다.
+ * 120 ms 전이를 두는 것은 겨눈 몸이 걷다 원뿔을 벗어날 때 툭 사라지는 것이 깜빡임으로 안 보이게 하려는 것이다.
+ */
+.s2-idle {
+  bottom: 128px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12.5px;
+  color: #cfe0f2;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+  animation: s2-aim-in 120ms ease-out;
+}
+.s2-idle b { color: #6fd3ff; font-weight: 500; }
+@keyframes s2-aim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.s2-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: 14px;
+  color: #eaf6ff;
+  background: none;
+  border: 0;
+  outline: none;
+  caret-color: #6fd3ff;
+}
+.s2-input::placeholder { color: rgba(111, 211, 255, 0.3); }
+
+/* 치를 값 — 줄 뒤에 담담하게. 경고처럼 붉게 하지 않는다 */
+.s2-cost {
+  flex: none;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: rgba(111, 211, 255, 0.55);
+}
+/* 대화 스킵 — 대사가 흐르는 동안만, 오른쪽 아래에 아주 작게 */
+.s2-skip {
+  right: 18px;
+  bottom: 168px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: rgba(143, 180, 212, 0.45);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+
+/* ── 조각 기록 (디버그) ── */
+/*
+ * 단추는 **머리줄 안에 흘러 앉는다** (Scenario2Feature 의 오른쪽 위 한 줄: 조각 · 음량 · 나가기).
+ * 여태는 `right: 92px` 으로 제 발로 섰는데, 그 줄에 음량 손잡이가 들어오면서 머리줄이
+ * 왼쪽으로 100px 넘게 자랐다 — 92px 은 그 안에 파묻히는 자리다. 좌표를 다시 손으로 재는 대신
+ * 자리를 줄에게 맡긴다 (features/world/Bgm 머리말과 같은 결정).
+ */
+.s2-frag-toggle {
+  position: static;
+  pointer-events: auto;
+  font-size: 11px;
+  padding: 4px 9px;
+  color: #b6c4d6;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  cursor: pointer;
+}
+/*
+ * 펼친 목록은 그대로 화면 오른쪽 위에 매단다. 단추가 머리줄 안으로 들어가면서 이 판의 부모가
+ * 머리줄(absolute)이 됐으므로, **fixed** 로 바꿔 화면을 기준으로 삼는다 — 안 그러면 머리줄
+ * 안쪽을 기준으로 잡아 화면 밖으로 밀린다. 좌표는 여태와 같은 자리다.
+ */
+.s2-frags {
+  position: fixed;
+  top: 44px;
+  right: 12px;
+  width: 320px;
+  max-height: 58vh;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: rgba(6, 10, 16, 0.9);
+  border: 1px solid rgba(140, 170, 210, 0.22);
+  border-radius: 8px;
+  pointer-events: auto;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.s2-frag { padding: 5px 0; border-top: 1px solid rgba(140, 170, 210, 0.12); }
+.s2-frag:first-child { border-top: 0; }
+.s2-frag-id { color: #6f8098; }
+.s2-frag-text { color: #dbe4f0; }
+.s2-frag-meta { color: #7f93ad; }
+.s2-frag.anon .s2-frag-meta { color: #d4796c; }
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   집행 — 걸어오는 것. **UI 를 거의 안 쓴다.**
+   미터를 안 봐도 총이 가까워지는 것으로 알아야 하므로, 화면이 하는 일은
+   여덟 걸음이 줄어드는 눈금 하나와 마지막 창의 한 줄뿐이다.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.s2-exec {
+  top: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+/* 여덟 걸음 — 하나씩 꺼진다. 숫자보다 이게 빨리 읽힌다 */
+.s2-exec-steps {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+.s2-exec-steps > i {
+  width: 16px;
+  height: 3px;
+  background: rgba(212, 121, 108, 0.16);
+  transition: background-color 0.3s linear;
+}
+.s2-exec-steps > i.on {
+  background: #d4796c;
+  box-shadow: 0 0 8px rgba(212, 121, 108, 0.6);
+}
+.s2-exec-label {
+  margin-top: 8px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: #d4796c;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+}
+/* 마지막 창 — 총을 내리는 1.5 초 동안만 */
+.s2-exec-cover {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: #cfe0f2;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+  animation: s2-exec-blink 0.5s ease-in-out infinite;
+}
+.s2-exec-cover b { color: #6fd3ff; }
+@keyframes s2-exec-blink {
+  50% { opacity: 0.55; }
+}
+/* 걸어오는 동안 — 누구 곁으로. 마지막 창(.s2-exec-cover)과 같은 글씨, 깜빡이지는 않는다: 아직 창이 아니라 길이다 */
+.s2-exec-move {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: #cfe0f2;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+}
+.s2-exec-move b { color: #6fd3ff; font-weight: 500; }
+.s2-exec-move.beside { color: #9fdcff; }
+.s2-exec-fled {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: rgba(212, 121, 108, 0.7);
+}
+
+/* 죽은 뒤 — 이유를 보여 준다. 설명할 수 없는 죽음은 없다 */
+.s2-dead {
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 6, 10, 0.9);
+  pointer-events: auto;
+  animation: s2-dead-in 1.6s ease forwards;
+}
+@keyframes s2-dead-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.s2-dead-in {
+  width: min(560px, 88vw);
+  max-height: 76vh;
+  overflow-y: auto;
+  padding: 26px 28px;
+  border: 1px solid rgba(212, 121, 108, 0.3);
+  border-top-width: 2px;
+  background: rgba(10, 8, 10, 0.7);
+}
+.s2-dead-in h3 {
+  margin: 0;
+  font-family: 'Hahmlet', 'Nanum Myeongjo', serif;
+  font-size: 22px;
+  letter-spacing: 0.18em;
+  color: #e8d5d1;
+}
+.s2-dead-why {
+  margin: 8px 0 18px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #9aa7b6;
+}
+.s2-dead-list {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.55;
+}

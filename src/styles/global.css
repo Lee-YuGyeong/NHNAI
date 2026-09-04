@@ -1,0 +1,422 @@
+/*
+ * 창고 시네마 라운지 — humanish app/globals.css 이식.
+ *
+ * 원작은 Tailwind(@theme) 위에 있었다. 이 프로젝트는 Tailwind 가 없으므로:
+ *   - @theme 토큰 → :root CSS 변수 (--tung 처럼 이름 그대로)
+ *   - 유틸리티 클래스 대신 **기본 요소(button·input)에 재질을 입힌다** —
+ *     화면들이 인라인 스타일(간격)만 쓰므로 이 파일 하나로 전 화면이 같은 공간에 선다.
+ *   - .room / .case / .screen / .rib / .cut / .stencil / .engraved 는 원작 그대로.
+ *
+ * 색을 지어내지 않는다. 전부 원작 3D 씬(bg-3d/room-scene)의 재질·조명 값이다.
+ * 빛은 언제나 **위 앞쪽**에서 온다. 튀어나온 것은 윗변이 밝고 아래에 그림자가 지며,
+ * 파인 것은 그 반대다. 이 규칙을 어기면 즉시 가짜로 보인다.
+ */
+
+:root {
+  --background: #080604;
+  --foreground: #d6cfc2;
+
+  /* 빛 방향 — 그림자·하이라이트가 전부 이 값을 참조한다 */
+  --lit: 255 217 172; /* #ffd9ac 다운라이트 */
+  --lit-soft: 230 201 163; /* #e6c9a3 스크린 미광 */
+
+  --font-sans: 'IBM Plex Sans KR', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* 어두운 쪽 — 공간 */
+  --void: #080604;
+  --fog: #0b0805;
+  --steel: #1e1b17;
+  --iron: #2e2a24;
+  --stage: #37332e;
+  --grit: #4b453e;
+
+  /* 표면 — 벽과 바닥 */
+  --plaster: #6f6a62;
+  --wall: #8b847b;
+  --floor: #93887a;
+  --crate: #9c8b71;
+
+  /* 글자 — 영사막에서 뜯어온 밝기 순서 */
+  --linen: #e8ddcd;
+  --bone: #d6cfc2;
+  --dust: #9c9287;
+  --grime: #6f6a62;
+  --ash: #4b453e;
+
+  /* 빛 */
+  --tung: #ffd9ac;
+  --flare: #ffe8c4;
+  --amber: #ffca8e;
+  --bounce: #e6c9a3;
+
+  /* 비상등 — 위험 · 진행 중 · 마감 임박 */
+  --signal: #ff3320;
+  --rust: #4a2b21;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  /* 한글은 라틴보다 글자가 빽빽해서 같은 값이면 답답하다. 조금 띄운다 */
+  line-height: 1.65;
+  /*
+   * ★ 한글은 낱말 중간에서 줄이 바뀌면 읽기가 뚝 끊긴다. keep-all 이 그걸 막는다.
+   *   대신 끊을 데가 없는 긴 영문·URL이 칸을 넘길 수 있어 anywhere 를 짝으로 둔다.
+   */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  /* .room 의 z-index:-1 이 body 밖으로 새지 않게 가둔다 */
+  isolation: isolate;
+}
+
+::selection {
+  background: rgba(255, 51, 32, 0.3);
+  color: #fff;
+}
+
+/* 초점은 조명 색으로. 어두운 화면에서 파란 기본 링은 튄다. */
+:focus-visible {
+  outline: 2px solid rgb(var(--lit) / 0.75);
+  outline-offset: 2px;
+}
+
+/* 숫자는 전부 장비 계기판처럼 — 자리가 흔들리면 카운트다운이 덜덜 떤다 */
+:is(time, output, [data-num]) {
+  font-variant-numeric: tabular-nums;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   기본 요소 = 재질 (이 프로젝트만의 층 — 원작은 Tailwind 유틸로 붙였다)
+
+   버튼은 플라이트 케이스, 입력칸은 파인 면이다. 화면 쪽 인라인 스타일이
+   background 를 덮으면 그 화면의 뜻을 따른다 (3D 월드 HUD 가 그렇게 한다).
+   ══════════════════════════════════════════════════════════════════════════ */
+button {
+  font: inherit;
+  color: var(--bone);
+  cursor: pointer;
+  border: 1px solid rgba(214, 207, 194, 0.09);
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, rgba(214, 207, 194, 0.045), transparent 42%),
+    linear-gradient(180deg, #171310, #100d0a);
+  box-shadow:
+    inset 0 1px 0 rgb(var(--lit) / 0.09),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.7),
+    0 12px 28px -16px rgba(0, 0, 0, 0.95);
+  transition:
+    border-color 140ms ease,
+    box-shadow 200ms ease,
+    transform 160ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgb(var(--lit) / 0.28);
+  box-shadow:
+    inset 0 1px 0 rgb(var(--lit) / 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.7),
+    0 20px 38px -18px rgba(0, 0, 0, 0.95),
+    0 0 34px -14px rgb(var(--lit) / 0.5);
+}
+button:active:not(:disabled) {
+  transform: translateY(0);
+  transition-duration: 60ms;
+}
+button:disabled {
+  color: var(--grime);
+  cursor: default;
+}
+
+input,
+textarea {
+  font: inherit;
+  color: var(--linen);
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.75),
+    0 1px 0 rgba(214, 207, 194, 0.05);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--grime);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   방 — 모든 화면 뒤에 깔리는 공간 (src/App.tsx 가 한 번 그린다)
+
+   3D 씬을 페이지마다 띄우지 않는다. 같은 방을 CSS로 **투영해서** 짓는다.
+   벽은 rotateY, 바닥은 rotateX로 실제 원근을 받으므로 골강판 골과 슬래브
+   눈금이 소실점을 향해 좁아진다 — 평면에 그린 격자와 다르다.
+   ══════════════════════════════════════════════════════════════════════════ */
+.room {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(140% 100% at 50% 8%, #100c08 0%, #080604 55%, #050403 100%);
+  perspective: 90vw;
+  perspective-origin: 50% 42%;
+}
+
+/* ── 좌우 골강판 벽 ──────────────────────────────────────────────────── */
+.room-wall {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  width: 46vw;
+  /* 골강판. 좁은 밝은 선 = 골 능선, 넓은 어두운 면 = 골 사이 */
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.55) 0px,
+    rgba(139, 132, 123, 0.13) 7px,
+    rgba(139, 132, 123, 0.05) 9px,
+    rgba(0, 0, 0, 0.5) 17px
+  );
+  opacity: 0.85;
+}
+.room-wall-l {
+  left: 0;
+  transform-origin: left center;
+  transform: rotateY(58deg);
+  mask-image: linear-gradient(90deg, transparent, #000 22%, #000 68%, transparent);
+}
+.room-wall-r {
+  right: 0;
+  transform-origin: right center;
+  transform: rotateY(-58deg);
+  mask-image: linear-gradient(270deg, transparent, #000 22%, #000 68%, transparent);
+}
+
+/* ── 콘크리트 슬래브 바닥 ────────────────────────────────────────────── */
+.room-floor {
+  position: absolute;
+  left: -60%;
+  right: -60%;
+  bottom: -28vh;
+  height: 96vh;
+  transform-origin: 50% 0%;
+  transform: rotateX(74deg);
+  background-color: #0c0906;
+  /* 4m짜리 슬래브. 이음매만 보이고 면은 거의 검다 */
+  background-image:
+    repeating-linear-gradient(90deg, rgba(147, 136, 122, 0.16) 0 1px, transparent 1px 148px),
+    repeating-linear-gradient(0deg, rgba(147, 136, 122, 0.13) 0 1px, transparent 1px 148px);
+  /* 멀수록 안개에 먹힌다 — 이게 없으면 격자가 종이에 그린 것처럼 보인다 */
+  mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.55) 32%, transparent 68%);
+}
+
+/* ── 정면 영사 스크린 — 방에서 유일하게 밝은 면 ──────────────────────── */
+.room-screen {
+  position: absolute;
+  left: 50%;
+  top: 4vh;
+  width: min(62vw, 900px);
+  aspect-ratio: 21 / 9;
+  translate: -50% 0;
+  border-radius: 2px;
+  background:
+    linear-gradient(180deg, rgba(232, 221, 205, 0.13), rgba(232, 221, 205, 0.04) 62%, transparent),
+    #0d0b08;
+  /* 스크린이 방으로 뿜는 미광 */
+  box-shadow:
+    0 0 12vw 4vw rgb(var(--lit-soft) / 0.07),
+    inset 0 0 6vw rgba(232, 221, 205, 0.05);
+}
+
+/* 스크린을 때리는 스포트 3개 + 지붕 트러스 실루엣 */
+.room::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(30% 26% at 32% 4%, rgba(255, 227, 189, 0.16), transparent 70%),
+    radial-gradient(30% 26% at 50% 2%, rgba(255, 227, 189, 0.18), transparent 70%),
+    radial-gradient(30% 26% at 68% 4%, rgba(255, 227, 189, 0.16), transparent 70%),
+    radial-gradient(26% 30% at 22% 46%, rgb(var(--lit) / 0.1), transparent 72%),
+    radial-gradient(26% 30% at 78% 40%, rgb(var(--lit) / 0.09), transparent 72%),
+    radial-gradient(12% 14% at 1% 58%, rgba(255, 51, 32, 0.1), transparent 70%),
+    radial-gradient(12% 14% at 99% 58%, rgba(255, 51, 32, 0.1), transparent 70%),
+    repeating-linear-gradient(-24deg, transparent 0 38px, rgba(0, 0, 0, 0.5) 38px 41px);
+  background-repeat: no-repeat;
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 18vh;
+  /* 백열등은 안정적이지 않다. 아주 약하게 깜빡인다 */
+  animation: room-lamp 13s ease-in-out infinite;
+}
+
+/* 필름 그레인 + 렌즈 비네팅 */
+.room::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(120% 90% at 50% 45%, transparent 32%, rgba(0, 0, 0, 0.58) 76%, rgba(0, 0, 0, 0.9) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  background-blend-mode: normal, overlay;
+}
+
+@keyframes room-lamp {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  38% {
+    opacity: 0.94;
+  }
+  41% {
+    opacity: 0.99;
+  }
+  67% {
+    opacity: 0.91;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room::before {
+    animation: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   재질 — 화면의 모든 표면은 이 셋 중 하나다 (판·구획에 클래스로 붙인다)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 플라이트 케이스 — 검은 철판에 모서리 쇠를 두른 상자. 물건인 것 */
+.case {
+  position: relative;
+  border: 1px solid rgba(214, 207, 194, 0.09);
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, rgba(214, 207, 194, 0.045), transparent 42%),
+    linear-gradient(180deg, #171310, #100d0a);
+  box-shadow:
+    inset 0 1px 0 rgb(var(--lit) / 0.09),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.7),
+    0 12px 28px -16px rgba(0, 0, 0, 0.95);
+}
+
+/* 영사 스크린 — 안에서 빛나는 면. 내용이 실리는 곳 */
+.screen {
+  position: relative;
+  border: 1px solid rgba(232, 221, 205, 0.12);
+  border-radius: 2px;
+  background:
+    radial-gradient(120% 90% at 50% -20%, rgba(232, 221, 205, 0.1), transparent 62%),
+    linear-gradient(180deg, #16120e, #0e0c09);
+  box-shadow:
+    inset 0 1px 0 rgba(232, 221, 205, 0.1),
+    0 24px 60px -34px rgba(0, 0, 0, 1);
+}
+
+/* 골강판 — 머리말·바닥글·기둥처럼 '구조'인 곳에만. 카드에 쓰면 화면이 줄무늬가 된다 */
+.rib {
+  background-color: rgba(8, 6, 4, 0.72);
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.34) 0px,
+    rgba(139, 132, 123, 0.07) 5px,
+    rgba(139, 132, 123, 0.02) 7px,
+    rgba(0, 0, 0, 0.3) 13px
+  );
+  backdrop-filter: blur(10px);
+}
+
+/* 파인 면 — 입력칸·로그처럼 안으로 들어간 것 (input 기본값과 같은 재질) */
+.cut {
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.75),
+    0 1px 0 rgba(214, 207, 194, 0.05);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   표기 — 창고 물건에 적힌 글자
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 스텐실 — 케이스·박스에 뿌린 글자. 라벨과 자리 번호처럼 '물건에 적힌 것'에만 */
+.stencil {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  /* 자간은 한글에 맞춰 잡는다 — 0.13em이면 라틴은 라벨처럼, 한글은 흩어지지 않게 읽힌다 */
+  letter-spacing: 0.13em;
+  font-weight: 600;
+  /* 스프레이가 번진 가장자리 */
+  text-shadow: 0 0 12px rgba(214, 207, 194, 0.14);
+}
+
+/* 계기판 숫자 — 카운트다운·좌석 수처럼 기계가 읽어주는 값 */
+.readout {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700; /* 원작은 800 — IBM Plex Mono 는 700까지라 조인다 */
+  letter-spacing: 0.04em;
+}
+
+/* 켜진 LED. 켜졌다는 걸 색이 아니라 **번짐**으로 알린다 */
+.lit-signal {
+  color: #ff6a53;
+  text-shadow:
+    0 0 10px rgba(255, 51, 32, 0.75),
+    0 0 26px rgba(255, 51, 32, 0.4);
+}
+.lit-tung {
+  color: #ffe8c4;
+  text-shadow:
+    0 0 12px rgb(var(--lit) / 0.55),
+    0 0 30px rgb(var(--lit) / 0.28);
+}
+
+/* 큰 제목 — 강판에 새긴 글자. 그라디언트 대신 실제 조명 방향을 따른다 */
+.engraved {
+  color: #e8ddcd;
+  text-shadow:
+    0 1px 0 rgba(255, 217, 172, 0.16),
+    0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 14px 34px rgba(0, 0, 0, 0.85);
+  /* 음수 자간을 한글에 세게 걸면 받침이 옆 글자에 닿는다 — -0.02em에서 멈춘다 */
+  letter-spacing: -0.02em;
+}
+
+/* 케이스에 박힌 리벳 한 줄. 모서리에 점 네 개면 물건처럼 보인다 */
+.riveted::before,
+.riveted::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(180deg, rgba(214, 207, 194, 0.22) 0 3px, transparent 3px 16px);
+  pointer-events: none;
+}
+.riveted::before {
+  left: 6px;
+}
+.riveted::after {
+  right: 6px;
+}

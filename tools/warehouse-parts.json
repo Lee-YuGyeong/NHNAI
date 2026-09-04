@@ -1,0 +1,26 @@
+[
+  {
+    "id": "cargo_container",
+    "prompt": "Sci-fi cargo shipping container: a rectangular steel box with corrugated ribbed side panels, heavy corner castings at all eight corners, a recessed double latch bar on one end, flat top with two shallow stacking sockets, dark gunmetal steel, closed, standing upright on the ground, simple clean geometry, centered"
+  },
+  {
+    "id": "crane_hoist",
+    "prompt": "Industrial overhead crane hoist trolley: a boxy dark steel winch housing on a short wheeled carriage, a cable drum on one side, a thick steel hook hanging from a short taut cable underneath, heavy sci-fi hangar machinery, simple clean geometry, centered"
+  },
+  {
+    "id": "charge_dock",
+    "prompt": "Sci-fi robot charging dock berth: a tall narrow upright alcove for a humanoid robot, dark steel back panel with a recessed vertical light channel down the middle, a raised angled footplate at the bottom, two folded clamp arms at shoulder height, thick side frames, wall mounted, front facing, simple clean geometry, centered"
+  },
+  {
+    "id": "watch_drone",
+    "prompt": "Small sci-fi surveillance drone: a rounded dark grey armoured chassis with one large lens eye on the front, four short arms each ending in a ducted fan rotor, compact and heavy, hovering level, simple clean geometry, centered"
+  },
+  {
+    "id": "hall_fan",
+    "prompt": "Industrial fan rotor impeller: a thick central cylindrical hub with five wide curved sheet-metal blades radiating outward to form a disc, surrounded by a thin circular guard ring, dark gunmetal steel with rivets, flat circular silhouette, front view, simple clean geometry, centered"
+  },
+  {
+    "id": "wall_arm",
+    "prompt": "Compact sci-fi wall-mounted robotic inspection arm: a round steel base plate, a short shoulder block, two straight boxy arm segments joined by a visible pivot, a small scanner head with one lens at the tip, cable conduits along the segments, folded at a slight angle, dark gunmetal steel, side view, simple clean geometry, centered"
+  }
+]

@@ -1,0 +1,252 @@
+/**
+ * 리더 방송 음성 합성 — **워커에서만**. ElevenLabs 키는 브라우저로 절대 안 나간다 (PLANNING §4.2).
+ *
+ *   POST /api/tts  { text, kind?, voiceId? }  → audio/mpeg 바이트
+ *
+ * 브라우저는 이 바이트를 받아 WebAudio 로 굴린다. **로봇 음색은 여기서 만들지 않는다** —
+ * ko-KR 로봇 목소리를 파는 API 는 없어서(어느 업체든 사람 목소리다) 기계 소리는
+ * 브라우저의 필터 체인이 만든다. 워커가 할 일은 "감정 없이 또박또박 읽은 한국어"를
+ * 가져오는 것까지다.
+ *
+ * 응답 본문은 버퍼링하지 않고 그대로 흘려보낸다 — 워커가 오디오를 통째로 들고 있을 이유가 없다.
+ */
+
+import { BROADCAST_KINDS, type BroadcastKind } from '../../src/shared/broadcast-kind';
+
+const API = 'https://api.elevenlabs.io/v1/text-to-speech';
+
+/** 지연 75ms 급. 방송이 한두 문장이라 품질 모델을 쓸 이유가 없다 */
+const MODEL = 'eleven_flash_v2_5';
+
+/**
+ * 22kHz/32kbps — 일부러 낮게 잡는다.
+ * 어차피 브라우저에서 확성기 대역(300~3400Hz)으로 밴드패스를 먹일 거라 위쪽 대역은 버려진다.
+ * 낮은 쪽이 내려받기도 빠르고, 요금제 등급을 타지 않는 포맷이다.
+ */
+const FORMAT = 'mp3_22050_32';
+
+/**
+ * 글자 수 천장 — **크레딧 방어용**이지 문장을 다듬는 가위가 아니다.
+ * 다듬는 건 클라이언트가 이미 한다 (features/tts/cap.ts, 가장 긴 announce 예산이 165자).
+ * 여기서는 버그나 폭주가 요금으로 새는 것만 막는다. 넘으면 자르지 않고 거절한다 —
+ * 말이 중간에 잘려 나가느니 안 나가는 게 낫다.
+ */
+const MAX_CHARS = 300;
+
+/**
+ * 종류별 발성. ElevenLabs 의 stability 는 **높을수록 단조롭다** —
+ * 보통은 단점으로 치는 값인데, 감정 없는 관제 방송에는 그게 정확히 우리가 원하는 것이다.
+ * style 0 = 연기하지 않는다.
+ */
+const VOICE_SETTINGS: Record<BroadcastKind, Record<string, number>> = {
+  announce: { stability: 0.85, similarity_boost: 0.75, style: 0, speed: 0.95 },
+  readout: { stability: 0.9, similarity_boost: 0.75, style: 0, speed: 1.0 },
+  // 경보만 조금 풀어 준다. 완전히 단조로우면 급한 소리로 안 들린다
+  alarm: { stability: 0.7, similarity_boost: 0.75, style: 0.3, speed: 1.1 },
+};
+
+/**
+ * 본문으로 받는 모델 — 배역 시청(/tts)용이다. 대본 클립은 voice-lines.mjs 가
+ * eleven_multilingual_v2 로 굽는데, 방송 기본인 flash 로 들려주면 다른 소리를 듣고 고르게 된다.
+ * 목록에 없는 모델은 조용히 기본으로 — 상류 요금 등급을 본문이 정하게 두지 않는다.
+ */
+const MODELS = ['eleven_flash_v2_5', 'eleven_multilingual_v2'];
+
+/**
+ * 본문으로 받는 포맷 — 역시 배역 시청용이다. 대본 클립은 44.1kHz/64kbps(voice-cast 의 format)로
+ * 굽는데, 방송 기본(22/32)으로 후보를 들려주면 게임 클립보다 탁한 소리로 비교하게 된다
+ * (2026-08-30 — "/tts 소리가 게임과 다르다"의 한 갈래). 목록 밖은 조용히 기본으로.
+ */
+const FORMATS = ['mp3_22050_32', 'mp3_44100_64'];
+
+/**
+ * 본문 settings 의 축별 허용 범위. 배역 시청이 대본 화자의 발성(voice-cast.json 의 settings)
+ * 그대로 듣는 자리라 종류(kind) 발성만으로는 부족하다. 값은 믿지 않고 축마다 자른다 —
+ * 요금이 아니라 소리를 지키는 것이다 (speed 0.7~1.2 는 ElevenLabs 가 받는 범위).
+ * 모르는 축은 버린다 — 상류 API 로 임의 필드를 흘리는 통로가 되면 안 된다.
+ */
+const SETTING_RANGE: Record<string, [number, number]> = {
+  stability: [0, 1],
+  similarity_boost: [0, 1],
+  style: [0, 1],
+  speed: [0.7, 1.2],
+};
+
+/** 종류 기본값 위에 본문 settings 를 얹는다 (잘라서) */
+function toneSettings(tone: BroadcastKind, settings: Record<string, unknown> | undefined): Record<string, number> {
+  const out = { ...VOICE_SETTINGS[tone] };
+  if (!settings || typeof settings !== 'object') return out;
+  for (const [axis, [lo, hi]] of Object.entries(SETTING_RANGE)) {
+    const v = settings[axis];
+    if (typeof v === 'number' && Number.isFinite(v)) out[axis] = Math.min(hi, Math.max(lo, v));
+  }
+  return out;
+}
+
+export interface TtsEnv {
+  /** 로컬은 .dev.vars, 배포는 wrangler secret */
+  ELEVENLABS_API_KEY?: string;
+  /** 기본 목소리. 요청의 voiceId 가 있으면 그쪽이 이긴다 (/tts 화면에서 목소리를 갈아 보려고) */
+  ELEVENLABS_VOICE_ID?: string;
+}
+
+interface TtsBody {
+  text?: string;
+  kind?: BroadcastKind;
+  voiceId?: string;
+  /** 배역 시청용 — 대본 화자의 발성(voice-cast.json 의 settings). 축별로 잘라서 쓴다 */
+  settings?: Record<string, unknown>;
+  /** 배역 시청용 — MODELS 에 있는 것만. 그 밖은 기본(flash) */
+  model?: string;
+  /** 배역 시청용 — FORMATS 에 있는 것만. 그 밖은 기본(22/32) */
+  format?: string;
+}
+
+export async function handleTts(request: Request, env: TtsEnv): Promise<Response> {
+  if (request.method !== 'POST') return fail('POST 만 받는다', 405);
+  if (!env.ELEVENLABS_API_KEY) {
+    return fail('ELEVENLABS_API_KEY 가 없다 — 로컬은 .dev.vars, 배포는 wrangler secret 으로 넣는다', 503);
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return fail('본문이 JSON 이 아니다', 400);
+  }
+
+  const { text, kind, voiceId, settings, model, format } = (body ?? {}) as TtsBody;
+
+  const clean = (text ?? '').replace(/\s+/g, ' ').trim();
+  if (!clean) return fail('text 가 비었다', 400);
+  if (clean.length > MAX_CHARS) return fail(`text 가 너무 길다 (${clean.length}자 > ${MAX_CHARS}자)`, 400);
+
+  // 모르는 종류는 거절하지 않고 일반 방송으로 읽는다 — 소리가 안 나는 것보다 낫다
+  const tone = kind && BROADCAST_KINDS.includes(kind) ? kind : 'announce';
+
+  const voice = voiceId ?? env.ELEVENLABS_VOICE_ID;
+  if (!voice) {
+    return fail('보이스가 없다 — ElevenLabs 대시보드 Voices 에서 목소리 하나를 고르고 그 ID 를 ELEVENLABS_VOICE_ID 에 넣는다', 503);
+  }
+
+  const upstream = await fetch(`${API}/${encodeURIComponent(voice)}?output_format=${format && FORMATS.includes(format) ? format : FORMAT}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'xi-api-key': env.ELEVENLABS_API_KEY },
+    body: JSON.stringify({
+      text: clean,
+      model_id: model && MODELS.includes(model) ? model : MODEL,
+      voice_settings: toneSettings(tone, settings),
+    }),
+  });
+
+  if (!upstream.ok) {
+    // 조용히 삼키지 않는다 — 키·보이스·크레딧 중 무엇이 막혔는지는 저쪽 본문에만 적혀 있다
+    const detail = await upstream.text();
+    return fail(`elevenlabs ${upstream.status}: ${detail.slice(0, 300)}`, 502);
+  }
+
+  return new Response(upstream.body, {
+    headers: {
+      'content-type': 'audio/mpeg',
+      // 같은 문장은 같은 소리다. 브라우저가 다시 받지 않게 해서 크레딧을 아낀다
+      'cache-control': 'public, max-age=86400',
+    },
+  });
+}
+
+/**
+ * 계정이 쓸 수 있는 목소리 목록 — /tts 의 A/B 용.
+ *
+ * 상류 응답을 그대로 흘리지 않는다. 거기에는 공유 설정·소유자 식별자·요금 배수까지
+ * 들어 있어서, 화면에 필요 없는 계정 정보가 브라우저로 새 나간다. 셋만 추려 보낸다.
+ */
+export async function handleTtsVoices(request: Request, env: TtsEnv): Promise<Response> {
+  if (request.method !== 'GET') return fail('GET 만 받는다', 405);
+  if (!env.ELEVENLABS_API_KEY) return fail('ELEVENLABS_API_KEY 가 없다', 503);
+
+  const upstream = await fetch('https://api.elevenlabs.io/v1/voices', {
+    headers: { 'xi-api-key': env.ELEVENLABS_API_KEY },
+  });
+  if (!upstream.ok) {
+    const detail = await upstream.text();
+    return fail(`elevenlabs ${upstream.status}: ${detail.slice(0, 300)}`, 502);
+  }
+
+  const data = (await upstream.json()) as {
+    voices?: { voice_id: string; name: string; category?: string }[];
+  };
+  const voices = (data.voices ?? []).map((v) => ({
+    id: v.voice_id,
+    name: v.name,
+    category: v.category ?? '',
+  }));
+
+  return new Response(JSON.stringify({ voices }), {
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
+}
+
+/**
+ * Voice Library 검색 — /tts 의 "후보 찾기" 용. 계정에 추가하기 전에 훑는 자리라
+ * 상류는 shared-voices(공유 라이브러리)다.
+ *
+ * 쿼리는 셋만 통과시킨다(search·gender·age). 언어는 ko 로 못 박는다 — 이 게임의
+ * 대사는 한국어고, 열어 두면 이 프록시가 범용 라이브러리 브라우저가 된다.
+ * 응답도 상류를 그대로 흘리지 않는다 — 필요한 것만 추린다. ownerId 를 남기는 이유는
+ * 캐스팅(voice-cast.json 의 library 항목)과 계정 추가 API 가 그걸 요구해서다.
+ */
+export async function handleTtsLibrary(request: Request, env: TtsEnv): Promise<Response> {
+  if (request.method !== 'GET') return fail('GET 만 받는다', 405);
+  if (!env.ELEVENLABS_API_KEY) return fail('ELEVENLABS_API_KEY 가 없다', 503);
+
+  const q = new URL(request.url).searchParams;
+  const up = new URLSearchParams({ language: 'ko', page_size: '20' });
+  for (const key of ['search', 'gender', 'age'] as const) {
+    const v = (q.get(key) ?? '').trim();
+    if (v) up.set(key, v);
+  }
+
+  const upstream = await fetch(`https://api.elevenlabs.io/v1/shared-voices?${up}`, {
+    headers: { 'xi-api-key': env.ELEVENLABS_API_KEY },
+  });
+  if (!upstream.ok) {
+    const detail = await upstream.text();
+    return fail(`elevenlabs ${upstream.status}: ${detail.slice(0, 300)}`, 502);
+  }
+
+  const data = (await upstream.json()) as {
+    voices?: {
+      voice_id: string;
+      name: string;
+      public_owner_id: string;
+      preview_url?: string;
+      gender?: string;
+      age?: string;
+      accent?: string;
+      descriptive?: string;
+      use_case?: string;
+    }[];
+  };
+  const voices = (data.voices ?? []).map((v) => ({
+    id: v.voice_id,
+    name: v.name,
+    ownerId: v.public_owner_id,
+    previewUrl: v.preview_url ?? '',
+    gender: v.gender ?? '',
+    age: v.age ?? '',
+    accent: v.accent ?? '',
+    descriptive: v.descriptive ?? '',
+    useCase: v.use_case ?? '',
+  }));
+
+  return new Response(JSON.stringify({ voices }), {
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
+}
+
+function fail(error: string, status: number): Response {
+  return new Response(JSON.stringify({ error }), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
+}

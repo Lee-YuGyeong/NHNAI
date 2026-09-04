@@ -1,0 +1,26 @@
+#!/bin/sh
+# pre-commit — 시크릿이 저장소 이력에 들어가는 걸 막는다 (팀 공통).
+#   활성화: npm install 이 `git config core.hooksPath tools/git-hooks` 를 건다 (package.json prepare). 수동: 같은 명령.
+#   1) .dev.vars / .env 계열이 스테이징되면 거부 — `git add -f` 로 gitignore 를 뚫은 경우까지.
+#   2) 스테이징된 추가 줄에 알려진 키 형태(tsk_·ep_·sk-ant-·xi-api-key…)가 있으면 거부.
+#   정말 넣어야 하면 `git commit --no-verify` — 단 그건 사용자의 명시적 결정이다.
+set -eu
+
+files=$(git diff --cached --name-only --diff-filter=ACMR)
+bad=$(printf '%s\n' "$files" | grep -E '(^|/)(\.dev\.vars|\.env)(\.[A-Za-z0-9_-]+)*$' | grep -vE '\.(example|sample|template)$' || true)
+if [ -n "$bad" ]; then
+  echo "✗ 커밋 거부 — 시크릿 파일이 스테이징돼 있다:" >&2
+  printf '    %s\n' $bad >&2
+  echo "  git restore --staged <파일>  로 빼고, 값은 .dev.vars 에만 둔다 (.dev.vars.example 은 이름만)." >&2
+  exit 1
+fi
+
+# 추가된 줄(+)만, 파일 헤더(+++)는 제외. 키 접두사·헤더 형태만 보고 값은 출력하지 않는다.
+pattern='(sk-ant-[A-Za-z0-9_-]{20,}|tsk_[A-Za-z0-9]{16,}|ep_[A-Za-z0-9]{32,}|xi-api-key["'"'"':= ]+[A-Za-z0-9]{24,}|eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36})'
+hits=$(git diff --cached -U0 --diff-filter=ACMR -- . ':(exclude)package-lock.json' | grep -E '^\+' | grep -vE '^\+\+\+' | grep -cE "$pattern" || true)
+if [ "${hits:-0}" -gt 0 ]; then
+  echo "✗ 커밋 거부 — 스테이징된 변경에 API 키처럼 보이는 값이 ${hits}줄 있다." >&2
+  echo "  git diff --cached | grep -nE '$pattern' 로 찾아서 .dev.vars 로 옮긴다." >&2
+  exit 1
+fi
+exit 0

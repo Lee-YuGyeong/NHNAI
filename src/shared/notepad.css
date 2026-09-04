@@ -1,0 +1,483 @@
+/*
+ * 관찰 수첩 — 방마다 **오른쪽**에 서는 판. 왼쪽의 대화 기록과 마주 본다.
+ *
+ * 모양은 무대 HUD 한 벌(features/world/hud.css)의 문법 그대로다 — 남색 반투명 모따기 판 ·
+ * 청록 #6fd3ff 선 · 스캔라인 · 모노 라벨 · 각진 것들. 다만 **선은 오른쪽에 긋는다**:
+ * 왼쪽 패널이 왼쪽 변에 선을 그어 화면 가장자리에 붙듯, 이 판은 오른쪽 변에 붙는다
+ * (hud-vital 이 border-right 를 쓰는 것과 같은 손).
+ *
+ * ★ 남의 CSS 를 안 쓴다 (shared/SfxToggle 머리말의 규칙) — 값은 hud.css 에서 눈으로 옮겨 온 것이고,
+ *   이 파일 하나만 읽어도 판이 다 그려져야 한다. 클래스는 전부 .np- 로 시작한다.
+ *
+ * ★ 자리: 위는 「나가기」 단추(top 12) 아래, 아래는 **대화창(.dlg) 위**에서 멎는다.
+ *
+ *   왜 244px 인가. 대화창은 화면 가운데 min(660px, 66vw) 이고, 입력줄이 열리면 54px(--dlg-lift)
+ *   더 올라간다 — 바닥에서 78px, 높이 154px 이니 위쪽 끝이 232px 다. 가로로는 창이 1284px 보다
+ *   좁으면 대화창 오른쪽 끝과 이 판이 겹친다 (V-312 ≥ V/2+330 을 풀면 나오는 값이라, 웬만한
+ *   노트북이 다 여기 든다). 그래서 세로로 확실히 피한다: 244 > 232.
+ *   폰은 대화창이 조이스틱 위로 올라와 있어(.dlg--touch: 바닥 150 + 높이 121 = 271) 더 위에서 멎는다.
+ */
+
+.np {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 46;
+  pointer-events: none;
+  user-select: none;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  --np-mono: ui-monospace, 'JetBrains Mono', Menlo, Consolas, 'Pretendard', 'Apple SD Gothic Neo', monospace;
+  --np-cyan: #6fd3ff;
+  --np-panel: rgba(8, 24, 42, 0.78);
+  --np-edge: rgba(111, 211, 255, 0.4);
+  --np-ink: #dbe6f2;
+  --np-dim: rgba(159, 208, 232, 0.62);
+  --np-mark: #ffb84d;
+  --np-scan: linear-gradient(to bottom, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.12) 50%);
+
+  /*
+   * ── 판이 앉는 자리 ──
+   * 접힌 손잡이([메모])와 펼친 판의 머리줄([접기])이 **화면의 같은 점**에 서야 한다
+   * (2026-09-02 사용자: "다시 열 수 있는 버튼을 [접기] 위치에 똑같이"). 두 자리에 숫자를
+   * 손으로 두 번 적으면 반드시 어긋나므로 값은 여기 한 벌뿐이고, 양쪽이 이것만 읽는다.
+   * 단추의 오른쪽 끝 = 화면 오른쪽 − (--np-right + 머리줄 오른쪽 여백), 위 끝 = --np-top + 머리줄 윗여백.
+   */
+  --np-right: 12px;
+  --np-top: 52px;
+  --np-w: 300px;
+  /* 머리줄 여백 — 접힌 손잡이도 같은 여백을 써야 단추가 같은 점에 선다 */
+  --np-head-pad: 9px 10px 8px 14px;
+}
+
+/*
+ * ── 접혀 있을 때 ──
+ *
+ * **[접기]가 서 있던 그 점에 [메모]가 선다** (2026-09-02 사용자 요청). 접었다 펴는 일이
+ * 한 자리에서 끝나야 손이 그 점을 기억한다 — 접으러 간 곳으로 다시 가면 펴진다.
+ * 여태는 오른쪽 변 한복판의 세로 손잡이였는데, 접은 손이 화면 반대편 아래까지 내려가야 했다.
+ *
+ * 어떻게 같은 점인가: 이 줄은 펼친 판의 **머리줄과 같은 상자**다 — 같은 자리(--np-right/top),
+ * 같은 폭(--np-w), 같은 여백(--np-head-pad), 그리고 단추도 같은 .np-btn 이다. 그래서 마지막
+ * 칸(단추)의 오른쪽 위 모서리가 두 상태에서 같은 점에 떨어진다. 값은 .np 의 변수 한 벌뿐이다.
+ *
+ * 판(배경·테두리)은 안 그린다. 접힌 자리에 판이 남아 있으면 그건 접힌 게 아니다.
+ */
+.np-stub {
+  position: absolute;
+  right: var(--np-right);
+  top: var(--np-top);
+  width: var(--np-w);
+  max-width: calc(100vw - 24px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: var(--np-head-pad);
+  /* 줄 전체는 클릭을 안 받는다 — 뒤의 방을 덮으면 안 된다. 받는 것은 단추뿐이다 */
+  pointer-events: none;
+}
+/* 접힌 손잡이는 방 위에 홀로 서므로 판 위의 단추보다 조금 더 또렷하게 */
+.np-stub .np-btn {
+  color: var(--np-cyan);
+  background: rgba(8, 24, 42, 0.72);
+  border-color: var(--np-edge);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+/* 적힌 줄 수 — 접어 둬도 몇 줄 있는지는 보인다 */
+.np-stub__n {
+  flex: none;
+  padding: 1px 5px;
+  font-family: var(--np-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: #05101b;
+  background: var(--np-cyan);
+  clip-path: polygon(0 3px, 3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%);
+}
+.np-stub__n--mark {
+  background: var(--np-mark);
+}
+
+/* ── 펼쳤을 때 ── */
+
+.np-panel {
+  position: absolute;
+  right: var(--np-right);
+  top: var(--np-top);
+  bottom: 244px;
+  width: var(--np-w);
+  max-width: calc(100vw - 24px);
+  display: grid;
+  /* 머리줄 · (찾는 줄) · 목록 · 적는 칸 — 가운데 목록만 늘어난다 */
+  grid-template-rows: auto auto 1fr auto;
+  pointer-events: auto;
+  background: var(--np-panel);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-right: 1px solid var(--np-edge);
+  /* 판 모따기 — hud-panel 을 좌우로 뒤집은 것 (왼쪽 위 · 오른쪽 아래를 깎는다) */
+  clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 18px);
+}
+/* 스캔라인 — 판이 켜진 화면이라는 표시 */
+.np-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--np-scan);
+  background-size: 100% 3px;
+  opacity: 0.35;
+}
+/* 폰 — 아래는 조이스틱·말하기 단추와 올라온 대화창 자리를 비우고, 폭은 화면에 맞춘다 */
+.np--touch .np-panel {
+  bottom: 286px;
+}
+.np--touch {
+  --np-w: min(300px, 76vw);
+}
+/*
+ * ★ 폰의 손잡이 예외(`.np--touch .np-tab { top: 76px }`)는 **없어졌다.** 그 예외는 세로
+ *   손잡이가 오른쪽 화면 한복판 — 폰에서 시야를 돌리는 자리 (world/input/TouchControls 의
+ *   전면 드래그 층) — 에 서 있어서 둔 것이었다. 이제 손잡이가 머리줄 자리(위쪽)로 올라와
+ *   그 자리를 애초에 안 밟는다.
+ */
+
+/* 머리줄 */
+.np-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--np-head-pad);
+  border-bottom: 1px solid rgba(111, 211, 255, 0.14);
+  font-family: var(--np-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--np-dim);
+}
+.np-head__t {
+  font-weight: 700;
+  color: rgba(159, 224, 255, 0.95);
+}
+.np-head__k {
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.np-head__sp {
+  flex: 1;
+}
+/* 거르는 중의 「보이는 수/전체」 — 가려진 줄이 있다는 표시다 */
+.np-head__n {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 184, 77, 0.85);
+}
+.np-btn {
+  flex: none;
+  padding: 2px 7px;
+  font-family: var(--np-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--np-dim);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(111, 211, 255, 0.22);
+  cursor: pointer;
+  clip-path: polygon(0 3px, 3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%);
+  transition: color 0.15s, border-color 0.15s;
+}
+.np-btn:hover,
+.np-btn:focus-visible {
+  color: #bfeaff;
+  border-color: var(--np-edge);
+}
+.np-btn--armed {
+  color: #ff9a8a;
+  border-color: rgba(255, 106, 90, 0.6);
+}
+/*
+ * 자판 이름을 단 손잡이 — 「M | 메모」 · 「M | 접기」.
+ *
+ * 걷는 중에는 이 단추를 못 누른다 (마우스가 시야에 잠겨 있다). 그러니 단추가 할 일은
+ * 눌리는 것이 아니라 **어느 키를 누르면 되는지 말해 주는 것**이다 — 대화창의 「T | SKIP」과
+ * 같은 표기·같은 이유다 (features/world/dialogue.css 의 .dlg__skip).
+ */
+.np-btn--key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* 자판 글자 — 조금 밝게, 그리고 오른쪽에 칸막이 한 줄 */
+.np-btn--key b {
+  position: relative;
+  padding-right: 6px;
+  font-weight: 700;
+  color: #9fe0ff;
+}
+.np-btn--key b::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 8px;
+  background: rgba(111, 211, 255, 0.45);
+}
+/* 접힌 손잡이는 방 위에 홀로 서므로 자판 글자도 그만큼 또렷하게 */
+.np-stub .np-btn--key b {
+  color: #bfeaff;
+}
+/*
+ * 폰에는 자판이 없다 — 글자만 지운다 (단추는 그대로 눌린다).
+ * 대화창이 같은 자리에서 하는 것과 같다 (.dlg--touch .dlg__skip b).
+ */
+.np--touch .np-btn--key b {
+  display: none;
+}
+
+/* 눌려 있는 손잡이 (표식만 보기) — 켜져 있다는 것이 색으로 보여야 한다 */
+.np-btn--on {
+  color: #05101b;
+  background: var(--np-mark);
+  border-color: var(--np-mark);
+}
+.np-btn--on:hover,
+.np-btn--on:focus-visible {
+  color: #05101b;
+  border-color: var(--np-mark);
+}
+
+/* ── 찾는 줄 — 줄이 쌓였을 때만 선다 (FIND_AT) ── */
+
+.np-find {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 14px;
+  border-bottom: 1px solid rgba(111, 211, 255, 0.1);
+}
+.np-find__in {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 4px 7px;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: #eaf6ff;
+  background: rgba(4, 12, 22, 0.7);
+  border: 1px solid rgba(111, 211, 255, 0.18);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.np-find__in::placeholder {
+  color: rgba(159, 208, 232, 0.3);
+}
+.np-find__in:focus {
+  border-color: rgba(111, 211, 255, 0.55);
+}
+.np-find .np-btn {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 적힌 줄들 */
+.np-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 4px 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #3a4657 transparent;
+}
+.np-list::-webkit-scrollbar {
+  width: 6px;
+}
+.np-list::-webkit-scrollbar-thumb {
+  background: #3a4657;
+}
+
+.np-empty {
+  padding: 18px 14px;
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: rgba(159, 208, 232, 0.45);
+  word-break: keep-all;
+}
+.np-empty b {
+  color: rgba(159, 208, 232, 0.7);
+  font-weight: 700;
+}
+
+/*
+ * 방이 바뀌는 자리 — 그 아래 줄들은 전부 이 방에서 적은 것이다.
+ * 목록 안의 작은 이정표라, 판의 머리줄(.np-head)보다 조용해야 한다: 선 한 줄과 모노 라벨뿐.
+ */
+.np-where {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 6px 3px 10px;
+  font-family: var(--np-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(111, 211, 255, 0.62);
+}
+.np-where:first-child {
+  margin-top: 3px;
+}
+.np-where b {
+  flex: none;
+  font-weight: 700;
+}
+/* 라벨 오른쪽으로 뻗는 선 — 여기서부터 저 방이라는 표시 */
+.np-where::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, rgba(111, 211, 255, 0.28), rgba(111, 211, 255, 0));
+}
+/* 이정표 바로 아래 줄은 윗선을 안 긋는다 — 선이 둘이면 둘 다 안 읽힌다 */
+.np-where + .np-row {
+  border-top: 0;
+}
+
+.np-row {
+  display: grid;
+  grid-template-columns: 14px 1fr 16px;
+  align-items: start;
+  gap: 6px;
+  padding: 5px 6px 5px 10px;
+  border-top: 1px solid rgba(111, 211, 255, 0.08);
+}
+.np-row:first-child {
+  border-top: 0;
+}
+.np-row--mark {
+  background: rgba(255, 184, 77, 0.07);
+}
+
+/* 의심 표식 — 눌러서 켠다 */
+.np-dot {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: rgba(111, 211, 255, 0.28);
+  font-size: 11px;
+  line-height: 1;
+}
+.np-dot:hover {
+  color: rgba(255, 184, 77, 0.7);
+}
+.np-row--mark .np-dot {
+  color: var(--np-mark);
+}
+
+.np-body {
+  min-width: 0;
+}
+.np-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--np-ink);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+.np-row--mark .np-text {
+  color: #ffe3b8;
+}
+.np-meta {
+  margin-top: 2px;
+  font-family: var(--np-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: rgba(159, 208, 232, 0.42);
+}
+.np-meta b {
+  font-weight: 700;
+  color: rgba(111, 211, 255, 0.55);
+}
+
+.np-x {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: rgba(159, 208, 232, 0.28);
+  font-size: 12px;
+  line-height: 1;
+}
+.np-x:hover {
+  color: #ff8a7a;
+}
+
+/* 고쳐 적는 칸 — 줄을 눌렀을 때 그 자리에 선다 */
+.np-edit {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 5px;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #eaf6ff;
+  background: rgba(4, 12, 22, 0.9);
+  border: 1px solid var(--np-edge);
+  outline: none;
+}
+
+/* 적는 칸 */
+.np-foot {
+  display: grid;
+  gap: 5px;
+  padding: 8px 10px 9px 14px;
+  border-top: 1px solid rgba(111, 211, 255, 0.14);
+}
+.np-in {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: #eaf6ff;
+  background: rgba(4, 12, 22, 0.82);
+  border: 1px solid rgba(111, 211, 255, 0.28);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.np-in::placeholder {
+  color: rgba(159, 208, 232, 0.35);
+}
+.np-in:focus {
+  border-color: rgba(111, 211, 255, 0.7);
+  box-shadow: 0 0 10px rgba(111, 211, 255, 0.18);
+}
+.np-hint {
+  font-family: var(--np-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: rgba(159, 208, 232, 0.34);
+}
+/* 자리가 차 간다 — 조작 안내와 같은 자리지만 읽히기는 해야 한다 */
+.np-hint--full {
+  color: rgba(255, 184, 77, 0.72);
+}
+/* 나가는 문 — 빈 칸에 커서가 있을 때. 여기가 자판만으로 빠져나오는 유일한 길이라 조금 밝게 */
+.np-hint--exit {
+  color: rgba(111, 211, 255, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .np-btn,
+  .np-in {
+    transition: none;
+  }
+}

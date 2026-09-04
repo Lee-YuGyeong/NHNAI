@@ -1,0 +1,2407 @@
+/*
+ * 파란 콘솔 — humanish 의 「게임 로비」와 「대기방」을 **리더가 말할 때 뜨는 말풍선**의 문법으로 다시 지은 것.
+ *
+ * 원작(humanish app/main/lobby.module.css · components/room-lobby.module.css)은 형광 초록 + 금속 케이스였다.
+ * 여기서는 색도 재질도 전부 features/world/dialogue.css — 리더의 대화 상자에서 끌어온다:
+ *
+ *   #6fd3ff  바깥 테. 리더가 말할 때 화면 아래에 뜨는 그 청록 선이다 (.dlg__frame 의 stroke)
+ *   #3f8fc2  안쪽 가는 선. 테 안에서 한 겹 더 도는 장식선
+ *   #0a1a2c → #04101c  바탕. 말풍선 안을 채우는 남색 유리 (dlgFill 그라디언트)
+ *   모따기   모서리를 대각으로 깎는다. 말풍선 프레임의 M22 6 … L894 40 이 하는 일과 같다
+ *   글로우   선이 은은하게 번진다. 켜져 있는 화면이라는 표시다
+ *
+ * ── 모따기와 1px 선을 같이 쓰는 법 ──────────────────────────────────────────
+ * clip-path 로 모서리를 깎으면 border 는 그 대각선 자리에서 잘려 사라진다.
+ * 그래서 **두 겹**으로 그린다: 바깥 겹(::before)이 청록 선 색으로 꽉 차고,
+ * 안쪽 겹(::after)이 1px 들어와 남색 바탕을 덮는다. 둘 다 같은 clip-path 라
+ * 대각선 자리에도 1px 선이 남는다. 이 짓을 하는 클래스가 .bl-edge 하나다.
+ */
+
+/* ══════════════════════════════════ 바탕 ══════════════════════════════════ */
+
+/*
+ * 이 화면 안에서는 폭에 테와 안쪽 여백이 포함된다. 전역(global.css)에는 이 선언이 없어서
+ * 100% 짜리 입력칸이 제 여백만큼 판 밖으로 삐져나갔다 — 팝업에서 눈에 띄게 어긋났다.
+ * .bl 아래에만 건다: 다른 화면의 셈을 바꾸지 않는다.
+ */
+.bl,
+.bl *,
+.bl *::before,
+.bl *::after {
+  box-sizing: border-box;
+}
+
+.bl {
+  --bl-line: #6fd3ff;
+  --bl-line-2: #3f8fc2;
+  --bl-ink: #f2f8ff;
+  --bl-ink-2: #c3ddef;
+  --bl-dim: #83a8c2;
+  --bl-faint: #4e6f88;
+  --bl-red: #ff6a5a;
+
+  /* 모따기 — 왼쪽 위와 오른쪽 아래를 깎는다. 말풍선 프레임이 파고드는 방향과 같다 */
+  --bl-cut: polygon(0 10px, 10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.72), rgba(63, 143, 194, 0.34));
+  --bl-edge-fill: linear-gradient(180deg, rgba(10, 26, 44, 0.86), rgba(4, 16, 28, 0.94));
+
+  position: relative;
+  z-index: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  color: var(--bl-ink);
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'IBM Plex Sans KR', system-ui, sans-serif;
+}
+
+/* 초점 링도 이 화면의 색으로 — 창고 화면의 호박색이 여기서는 남의 색이다 */
+.bl :focus-visible {
+  outline: 2px solid rgba(111, 211, 255, 0.8);
+  outline-offset: 2px;
+}
+
+/*
+ * 배경 세 겹 (원작의 .backdrop · .noise · .scanlines 를 한 요소에 접었다).
+ * 뒤에는 App.tsx 가 깔아 둔 창고(.room)가 그대로 있다 — 여기서 파랗게 덮어 콘솔 안으로 끌어온다.
+ */
+.bl-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(24, 62, 96, 0.55), transparent 62%),
+    radial-gradient(90% 70% at 50% 110%, rgba(10, 40, 66, 0.5), transparent 60%),
+    linear-gradient(180deg, rgba(3, 12, 22, 0.92), rgba(2, 8, 15, 0.96));
+}
+/* 콘솔 격자 — 멀어질수록 안개에 먹힌다 */
+.bl-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(111, 211, 255, 0.05) 0 1px, transparent 1px 88px),
+    repeating-linear-gradient(0deg, rgba(111, 211, 255, 0.04) 0 1px, transparent 1px 88px);
+  mask-image: radial-gradient(120% 90% at 50% 40%, #000 20%, transparent 78%);
+}
+/* 주사선 — 켜진 브라운관 */
+.bl-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.24) 0 1px, transparent 1px 3px);
+  opacity: 0.5;
+}
+
+/* ══════════════════════════════ 테 두르기 ══════════════════════════════ */
+
+/*
+ * 모따기 + 1px 청록 선 + 남색 바탕. 판·버튼·입력칸·좌석이 전부 이것 하나를 쓴다.
+ * button 에 붙일 때 전역 재질(global.css)을 지워야 해서 background/border/box-shadow 를 여기서 끈다.
+ */
+.bl-edge {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.bl-edge::before,
+.bl-edge::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  clip-path: var(--bl-cut);
+  transition: opacity 0.18s ease;
+}
+.bl-edge::before {
+  inset: 0;
+  background: var(--bl-edge-line);
+}
+.bl-edge::after {
+  inset: 1px;
+  background: var(--bl-edge-fill);
+}
+
+/* ════════════════════════════════ 머리말 ════════════════════════════════ */
+
+.bl-top {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 52px;
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(111, 211, 255, 0.22);
+  background: linear-gradient(180deg, rgba(9, 26, 44, 0.9), rgba(4, 14, 25, 0.82));
+  backdrop-filter: blur(8px);
+}
+/* 머리말 아래에 흐르는 한 줄 — 콘솔이 살아 있다는 표시 */
+.bl-top::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(111, 211, 255, 0.9), transparent);
+  animation: bl-sweep 6s linear infinite;
+}
+@keyframes bl-sweep {
+  0% {
+    transform: translateX(-60%) scaleX(0.35);
+  }
+  100% {
+    transform: translateX(60%) scaleX(0.35);
+  }
+}
+.bl-logo {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bl-ink);
+  text-shadow: 0 0 12px rgba(111, 211, 255, 0.45);
+}
+.bl-nav {
+  display: flex;
+  gap: 20px;
+}
+.bl-navbtn {
+  padding: 0 0 3px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--bl-faint);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.bl-navbtn:hover:not(:disabled) {
+  transform: none;
+  color: var(--bl-ink-2);
+  box-shadow: none;
+}
+.bl-navbtn--on {
+  color: var(--bl-line);
+  border-bottom-color: var(--bl-line);
+  text-shadow: 0 0 10px rgba(111, 211, 255, 0.5);
+}
+
+/* ═══════════════════════════ 계정 칩과 그 메뉴 ═══════════════════════════ */
+
+/*
+ * 머리말에 서는 **내 이름** (shared/AccountButton). 원작의 .chip · .menu · .menuItem 을
+ * 이 줄의 색으로 옮긴 것이다 (humanish app/main/lobby.module.css).
+ *
+ * ★ .bl-navbtn 을 그대로 입히지 않는다. 저건 **탭 글씨**라 대문자에 자간이 0.16em 이다 —
+ *   사람 이름이 들어가면 「이 유 경」처럼 벌어지고, 옆의 「기록」·「로그인」과 같은 무게로
+ *   서서 무엇이 내 이름이고 무엇이 메뉴인지 안 보인다. 이름은 이름꼴로 그린다.
+ *
+ * ★ 이 클래스들을 lobby.css 에 두는 이유: 계정 칩이 서는 자리가 셋 다 이 콘솔이다
+ *   (Intro · 로비 · 대기방). 색을 정하는 변수(--bl-line …)도 .bl 에만 있다.
+ */
+
+/*
+ * 이름 한 줄 — 아바타 + 이름. **누를 수 있는 자리와 읽기만 하는 자리가 같은 모양이다**:
+ * 로비 머리말과 요원 칸은 눌러서 메뉴를 열고(둘 다 AccountMenu), 대기방 머리말은 읽기만 한다.
+ * 그래서 모양은 여기가 정하고, 누를 수 있는 쪽에만 .bl-chip 을 겹쳐 입힌다.
+ */
+.bl-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 190px;
+  min-width: 0;
+  color: var(--bl-ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+/* 이름이 길면 아바타를 밀어내지 않고 이름 쪽이 줄어든다 */
+.bl-who__name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 누를 수 있는 쪽. 단추의 기본 살결을 걷어내고 눌리는 표시만 남긴다 */
+.bl-chip {
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.bl-chip:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+  background: rgba(111, 211, 255, 0.1);
+}
+/* 열려 있는 동안 카레트가 뒤집힌다 — 이 단추가 지금 무엇을 하고 있는지 */
+.bl-chip__caret {
+  flex-shrink: 0;
+  color: var(--bl-dim);
+  transition: transform 0.15s;
+}
+.bl-chip[aria-expanded='true'] .bl-chip__caret {
+  transform: rotate(180deg);
+}
+
+/*
+ * 이니셜 아바타. 외부 이미지 호스트를 쓰지 않는다 — 배포본은 외부 요청 없이 떠야 한다
+ * (원작과 같은 규칙). 크기는 쓰는 쪽이 정한다.
+ */
+.bl-avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(111, 211, 255, 0.4);
+  background: rgba(111, 211, 255, 0.14);
+  color: var(--bl-line);
+  font-weight: 700;
+  line-height: 1;
+}
+
+/*
+ * ★ z-index 는 판(.bl-body)과 훑는 선보다 커야 한다. 메뉴가 그 밑으로 들어가면
+ *   반쯤 비치는 글자가 된다. 팝업(.bl-overlay, 50)보다는 낮다 — 그건 화면 전체를
+ *   덮는 것이라 늘 위여야 한다.
+ */
+.bl-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 40;
+  min-width: 140px;
+  padding: 4px;
+  border: 1px solid rgba(111, 211, 255, 0.32);
+  background: rgba(6, 18, 30, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.95);
+}
+/*
+ * 왼쪽 기둥에서 열리는 메뉴 — 이름 **아래 왼쪽**에 건다 (로비의 요원 칸). 기본값(right: 0)은
+ * 머리말 것이라, 폭 250px 짜리 판에서 그대로 쓰면 메뉴가 판 밖으로 밀려 나간다.
+ */
+.bl-menu--under {
+  right: auto;
+  left: 0;
+}
+.bl-menuitem {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--bl-ink-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.bl-menuitem:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+  background: rgba(111, 211, 255, 0.12);
+  color: var(--bl-ink);
+}
+.bl-menuitem:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* ═══════════════════════════ 리더의 말풍선 ═══════════════════════════ */
+
+/*
+ * 이 화면의 주인공. 리더가 대화 상자로 말하듯, 로비에서도 리더가 한 줄을 건다.
+ * 꼬리(::after)가 왼쪽 아래로 뻗어 "누가 말하고 있다"를 만든다 — 배너가 아니라 말이다.
+ */
+.bl-lead {
+  position: relative;
+  margin: 18px 16px 0;
+  filter: drop-shadow(0 0 16px rgba(111, 211, 255, 0.14));
+}
+/*
+ * 상자와 꼬리를 **따로** 짓는다. 한 요소에 몰면 .bl-edge 의 두 겹(::before·::after)과
+ * 꼬리 삼각형이 같은 가상요소를 두고 다투다가 둘 다 무너진다.
+ */
+.bl-lead__box {
+  margin: 0;
+  padding: 13px 20px 13px 54px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--bl-ink);
+  text-shadow: 0 0 10px rgba(111, 211, 255, 0.22);
+}
+/* 왼쪽의 작은 송출등 — 말하는 동안 깜빡인다 */
+.bl-lead__led {
+  position: absolute;
+  left: 22px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--bl-line);
+  box-shadow: 0 0 10px rgba(111, 211, 255, 0.9);
+  animation: bl-blink 1.9s ease-in-out infinite;
+}
+@keyframes bl-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+.bl-lead__who {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bl-line);
+}
+/* 꼬리 — 말풍선 왼쪽 아래. 바깥 삼각형이 테 색, 그 위에 바탕 삼각형을 2px 올려 1px 선을 남긴다 */
+.bl-lead__tail {
+  position: absolute;
+  left: 30px;
+  bottom: -9px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid rgba(111, 211, 255, 0.6);
+}
+.bl-lead__tail::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: -11px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #061420;
+}
+
+/* ══════════════════════════════════ 판 ══════════════════════════════════ */
+
+/*
+ * 판 하나 = 이름표(.bl-card__tab) + 테(.bl-frame). 이름표는 테 **밖**에 산다 —
+ * clip-path 는 자식을 자르므로 안에 두면 이름표가 모서리에서 잘린다.
+ * 모양은 대화 상자의 이름 탭(.dlg__name) 그대로: 오른쪽 위가 깎인 작은 판.
+ */
+.bl-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: 9px;
+}
+/*
+ * 메뉴가 열리는 판(요원 칸)은 이웃보다 한 겹 위에 선다. .bl-frame 이 .bl-edge 라
+ * isolation: isolate 로 제 층을 만드는데, 그 안의 메뉴가 아무리 높아도 **판 바깥에서는**
+ * 뒤에 오는 형제 판(최근 방)이 이긴다 — 그러면 메뉴가 그 판 밑으로 반쯤 들어간다.
+ */
+.bl-card--menu {
+  z-index: 5;
+}
+.bl-card__tab {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 20px;
+  padding: 0 14px 0 11px;
+  background: linear-gradient(180deg, rgba(20, 52, 84, 0.98), rgba(8, 26, 46, 0.98));
+  border: 1px solid var(--bl-line);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  box-shadow: 0 0 10px rgba(111, 211, 255, 0.3);
+  color: #eaf6ff;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* 목업 표시 — 뒷받침할 데이터가 없는 판에만 붙는다. 화면이 스스로 실토하는 자리다 */
+.bl-card__mock {
+  color: var(--bl-faint);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+.bl-frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  /*
+   * ★ min-width: 0 이 없으면 안쪽이 판 밖으로 삐져나온다. flex 항목의 기본 최소 폭은 auto(=내용의
+   *   최소 폭)이고, 좌석 격자(auto-fit)는 폭이 정해지지 않은 채로 물으면 **세 칸이 다 들어가는
+   *   폭**으로 답한다 — 그 값이 판의 폭을 이기고 격자가 오른쪽으로 흘러 나갔다.
+   */
+  min-width: 0;
+  min-height: 0;
+  filter: drop-shadow(0 0 14px rgba(111, 211, 255, 0.1));
+}
+.bl-frame__in {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 18px 16px 16px;
+  gap: 12px;
+}
+
+/* 오른쪽 위 표시등 넷 — 대화 상자의 .dlg__deco 그대로 */
+.bl-deco {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+.bl-deco i {
+  width: 12px;
+  height: 2px;
+  background: var(--bl-line);
+  opacity: 0.32;
+}
+.bl-deco i:first-child {
+  opacity: 0.9;
+  box-shadow: 0 0 6px rgba(111, 211, 255, 0.8);
+}
+
+/* ═══════════════════════════════ 글자 ═══════════════════════════════ */
+
+.bl-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bl-faint);
+}
+.bl-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+.bl-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--bl-dim);
+}
+.bl-alert {
+  margin: 0;
+  padding: 9px 12px;
+  border-left: 2px solid var(--bl-red);
+  background: rgba(72, 16, 14, 0.5);
+  color: #ffd9d4;
+  font-size: 12.5px;
+}
+
+/* 안이 흐르는 자리 — 판 이름은 붙박이, 속만 구른다 */
+.bl-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(111, 211, 255, 0.35) transparent;
+}
+
+/* ═══════════════════════════════ 버튼 ═══════════════════════════════ */
+
+.bl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  color: var(--bl-ink-2);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  --bl-cut: polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.45), rgba(63, 143, 194, 0.2));
+  --bl-edge-fill: linear-gradient(180deg, rgba(14, 34, 54, 0.9), rgba(6, 18, 30, 0.95));
+}
+.bl-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  color: #eaf6ff;
+  box-shadow: none;
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.95), rgba(111, 211, 255, 0.45));
+}
+.bl-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+.bl-btn:disabled {
+  color: var(--bl-faint);
+  opacity: 0.55;
+}
+/* 하는 일이 있는 버튼 — 켜져 있다 */
+.bl-btn--go {
+  color: #041420;
+  font-weight: 700;
+  --bl-edge-line: linear-gradient(180deg, rgba(160, 232, 255, 0.9), rgba(111, 211, 255, 0.6));
+  --bl-edge-fill: linear-gradient(180deg, #8fdcff, #4fb8e8);
+}
+.bl-btn--go:hover:not(:disabled) {
+  color: #041420;
+  filter: drop-shadow(0 0 12px rgba(111, 211, 255, 0.55));
+}
+.bl-btn--go:disabled {
+  color: rgba(4, 20, 32, 0.55);
+  --bl-edge-fill: linear-gradient(180deg, #2f5c76, #1d3d52);
+}
+.bl-btn--wide {
+  width: 100%;
+  padding: 12px 16px;
+}
+/* 나가는 길은 붉게 — 되돌릴 수 없는 조작이라 색으로도 갈린다 */
+.bl-btn--out {
+  color: #ffb3a9;
+  --bl-edge-line: linear-gradient(180deg, rgba(255, 106, 90, 0.5), rgba(255, 106, 90, 0.2));
+}
+.bl-btn--out:hover:not(:disabled) {
+  color: #ffd9d4;
+  --bl-edge-line: linear-gradient(180deg, rgba(255, 106, 90, 0.95), rgba(255, 106, 90, 0.45));
+}
+
+/* ═══════════════════════════════ 입력칸 ═══════════════════════════════ */
+
+/*
+ * 입력칸은 **.bl-edge 를 쓰지 못한다** — input 은 대체 요소라 ::before/::after 가 아예 안 생긴다.
+ * (한 번 붙였다가 테가 통째로 안 보이는 채로 지나갔다.) 그래서 모따기는 clip-path 로 직접 하고,
+ * 선은 안쪽 그림자로 그린다. 대각선 자리에서 선이 끊기는데, 그게 오히려 잘린 모서리처럼 읽힌다.
+ */
+.bl-field {
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 0;
+  color: var(--bl-ink);
+  font-size: 13px;
+  caret-color: var(--bl-line);
+  clip-path: polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  background: linear-gradient(180deg, rgba(1, 7, 13, 0.96), rgba(3, 12, 22, 0.92));
+  box-shadow:
+    inset 0 0 0 1px rgba(111, 211, 255, 0.42),
+    inset 0 2px 7px rgba(0, 0, 0, 0.55);
+  transition: box-shadow 0.16s ease;
+}
+.bl-field::placeholder {
+  color: var(--bl-faint);
+}
+.bl-field:focus {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(111, 211, 255, 0.95),
+    inset 0 2px 7px rgba(0, 0, 0, 0.55),
+    0 0 14px rgba(111, 211, 255, 0.25);
+}
+
+/* ═════════════════════════════ 방 목록 ═════════════════════════════ */
+
+.bl-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.bl-search {
+  position: relative;
+  flex: 1;
+  min-width: 150px;
+  max-width: 260px;
+}
+.bl-search svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--bl-faint);
+  pointer-events: none;
+}
+.bl-search .bl-field {
+  padding-left: 30px;
+}
+
+/* 한 줄 = 방 하나. 머리(열 이름)와 줄이 같은 격자를 쓴다 — 어긋나면 표가 아니다 */
+.bl-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 74px 66px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  text-align: left;
+  color: var(--bl-ink);
+  font: inherit;
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.3), rgba(63, 143, 194, 0.12));
+  --bl-edge-fill: linear-gradient(90deg, rgba(12, 30, 48, 0.8), rgba(6, 18, 30, 0.7));
+}
+.bl-row:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.85), rgba(111, 211, 255, 0.35));
+  --bl-edge-fill: linear-gradient(90deg, rgba(18, 46, 72, 0.9), rgba(8, 24, 40, 0.8));
+}
+/* 이미 도는 판 — 들어갈 수는 있지만(재입장) 새로 앉을 자리는 아니다 */
+.bl-row--busy {
+  opacity: 0.62;
+}
+/*
+ * 목록이 오기 전에 서는 빈 줄 (원작 RoomRowSkeleton). 줄과 **같은 높이**를 잡아 둔다 —
+ * 다르면 목록이 도착하는 순간 판 전체가 위아래로 튄다. 「읽는 중…」 이라고 글로 적지 않는
+ * 이유도 같다: 글자에서 줄로 바뀌는 것이 제일 크게 튄다.
+ */
+.bl-row--ghost {
+  min-height: 41px;
+  opacity: 0.3;
+  animation: bl-ghost 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes bl-ghost {
+  0%,
+  100% {
+    opacity: 0.16;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bl-row--ghost {
+    animation: none;
+  }
+}
+.bl-head {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 74px 66px;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 14px;
+}
+.bl-sort {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+.bl-sort:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+.bl-sort:hover .bl-label {
+  color: var(--bl-ink-2);
+}
+.bl-sort--on .bl-label {
+  color: var(--bl-line);
+}
+.bl-sortmark {
+  width: 8px;
+  font-size: 8px;
+  color: var(--bl-line);
+}
+.bl-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+}
+.bl-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid rgba(131, 168, 194, 0.4);
+  color: var(--bl-dim);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+.bl-tag--open {
+  border-color: rgba(111, 211, 255, 0.6);
+  color: var(--bl-line);
+  box-shadow: 0 0 8px rgba(111, 211, 255, 0.2) inset;
+}
+.bl-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bl-line);
+  box-shadow: 0 0 7px rgba(111, 211, 255, 0.8);
+}
+.bl-dot--red {
+  background: var(--bl-red);
+  box-shadow: 0 0 7px rgba(255, 106, 90, 0.8);
+}
+.bl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 46px 20px;
+  border: 1px dashed rgba(111, 211, 255, 0.22);
+  text-align: center;
+}
+
+/* ═════════════════════════════ 왼쪽 기둥 ═════════════════════════════ */
+
+/*
+ * 몸통 — 넓으면 기둥이 왼쪽에 서고, 좁으면 아래로 눕는다.
+ *
+ * ★ 로비의 기둥(요원·전적·최근 방)은 좁은 화면에서 **감춘다** — 원작도 lg 미만에서 감췄다.
+ *   읽을 것이지 누를 것이 아니라, 목록을 밀어낼 이유가 없다.
+ * ★ 대기방의 기둥은 **감추지 않는다** (.bl-side--keep). 준비 · 시작 · 대화 · 나가기가
+ *   전부 거기 살아서, 감추면 폰에서는 방에 들어와도 누를 것이 하나도 없다 (원작 2026-08-07).
+ */
+.bl-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 14px;
+  padding: 14px 16px 18px;
+}
+.bl-side {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+.bl-side--keep {
+  display: flex;
+}
+.bl-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: 14px;
+}
+/** 판 하나가 남은 높이를 다 먹는다 — 좌석판·목록판처럼 안이 흐르는 판에만 붙인다 */
+.bl-grow {
+  flex: 1;
+  min-height: 0;
+}
+@media (min-width: 900px) {
+  .bl-body {
+    flex-direction: row;
+  }
+  .bl-side {
+    display: flex;
+    width: 250px;
+    flex-shrink: 0;
+    /* 기둥이 화면보다 길면 기둥만 흐른다 — 좌석판까지 같이 밀려 내려가지 않게 */
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(111, 211, 255, 0.35) transparent;
+  }
+}
+/*
+ * 좁은 화면에서는 **판이 늘지 않고 페이지가 흐른다.** 100dvh 안에 좌석 셋과 기둥 셋을
+ * 욱여넣으면 어느 쪽도 못 읽는다 — 안쪽 스크롤을 풀고 화면 전체를 굴린다.
+ */
+@media (max-width: 899px) {
+  .bl-main,
+  .bl-grow {
+    flex: 0 0 auto;
+  }
+  .bl-scroll {
+    overflow: visible;
+  }
+}
+@media (max-width: 599px) {
+  /*
+   * ★ 좌석 격자(.bl-seats)의 좁은 화면 규칙은 **여기 없다** — 좌석 정의 바로 아래로 옮겼다.
+   *   미디어 질의는 특이도를 안 올리므로, 기본 규칙보다 앞에 적으면 뒤엣것이 이겨서
+   *   아무 일도 안 일어난다 (실제로 그동안 안 먹고 있었다).
+   */
+  /* 머리말에서 접히는 것들. 인원은 좌석판 이름표(참가자 n/3)가 이미 들고 있다 */
+  .bl-top__wide {
+    display: none;
+  }
+  .bl-top {
+    padding: 0 10px;
+    gap: 8px;
+  }
+}
+/* 요원 카드 — 초상은 좌석과 같은 그림이다 (신분증 한 장) */
+.bl-me {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+/*
+ * 그 칸의 이름 — 머리말 칩과 **같은 부품이다** (shared/AccountButton 의 AccountMenu).
+ * 여기서는 이름이 카드의 주인공이라 한 치 크고, 판 폭을 다 쓴다.
+ */
+.bl-me__who .bl-who {
+  max-width: 100%;
+  font-size: 14px;
+}
+/* 칩의 안여백(3px 6px)만큼 되민다 — 초상과의 사이가 글자였을 때와 같아야 한다 */
+.bl-me__who .bl-chip {
+  margin-left: -6px;
+}
+.bl-me__face {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #08182a;
+  box-shadow: inset 0 0 0 1px rgba(111, 211, 255, 0.5), inset 0 0 18px rgba(111, 211, 255, 0.15);
+}
+.bl-bar {
+  height: 3px;
+  background: rgba(111, 211, 255, 0.14);
+}
+.bl-bar i {
+  display: block;
+  height: 100%;
+  background: var(--bl-line);
+  box-shadow: 0 0 8px rgba(111, 211, 255, 0.8);
+}
+.bl-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.bl-stat {
+  padding: 7px 9px;
+  border-left: 1px solid rgba(111, 211, 255, 0.3);
+  background: rgba(8, 24, 42, 0.5);
+}
+.bl-stat b {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 15px;
+  color: var(--bl-ink);
+}
+.bl-hist {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(111, 211, 255, 0.1);
+  font-size: 12px;
+  color: var(--bl-dim);
+}
+
+/* ══════════════════════════════ 좌석 ══════════════════════════════ */
+
+/*
+ * 세 칸. 넓으면 **한 줄로 늘어선다** — 신분증 세 장이 나란히 걸린 줄이 곧 이 방이다.
+ * auto-fit 이라 빈 트랙이 접히고 카드가 남은 폭을 나눠 갖는다 (auto-fill 이면 네 번째 빈 칸이 남는다).
+ *
+ * ┌─ 카드 크기 (2026-08-31 사용자 지시: 「참가자 카드 크게」) ────────────────┐
+ * │ 정원을 아홉에서 셋으로 줄이면서 max-width 를 520 으로 조였다가 되돌린다.  │
+ * │ 좁히면 카드가 166px 로 앉는데, 그건 아홉 장이 걸려 있을 때의 크기다 —     │
+ * │ 세 장만 걸린 판에서는 카드가 작은 게 아니라 **판이 빈** 것으로 보인다.    │
+ * │ 860 이면 카드가 280×373 으로 서고, 그게 이 화면에서 사람이 셋이라는 말을  │
+ * │ 제일 먼저 한다.                                                          │
+ * │                                                                          │
+ * │ 커진 만큼 **카드 안도 같이 커져야 한다** — 이름과 도장이 12px 로 남으면    │
+ * │ 카드를 키운 게 아니라 늘린 것으로 보인다. 그래서 아래 글자·여백은 카드 폭 │
+ * │ 을 재는 컨테이너 질의(cqw)로 적는다. 바닥값은 전부 지금 값이라 좁은 화면  │
+ * │ 에서는 한 픽셀도 안 바뀐다.                                              │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * ★ 낮은 창에서 카드가 판을 뚫지 않게 하는 **세로 안전선**은 바로 아래 900px 이상 규칙에 있다.
+ */
+.bl-seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  /* 남는 높이를 받아 **가운데**에 선다 — 위로 붙이면 판 아래가 통째로 빈 방바닥이 된다 */
+  flex: 1;
+  align-content: center;
+  width: 100%;
+  max-width: 860px;
+  gap: 10px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+/*
+ * 세로 안전선 — **판이 높이를 붙들고 있는 배치에서만** 건다.
+ * 카드는 폭에서 높이가 나오므로(3/4) 폭만 키우면 낮은 창에서 판을 뚫는다. 좌석판 위아래로
+ * 머리말·리더 줄·판 여백이 약 240px 을 먹으니, 남는 높이 H 에 들어가는 최대 폭은 2.25·H + 여백이다.
+ * 창이 613px 보다 낮을 때만 이 항이 이긴다. 900px 미만에서는 판이 늘고 페이지가 흐르므로
+ * (위 .bl-grow{flex:0 0 auto}) 높이로 폭을 깎을 이유가 없다 — 그래서 여기 안에만 있다.
+ */
+@media (min-width: 900px) {
+  .bl-seats {
+    max-width: min(860px, max(320px, calc(2.25 * (100dvh - 240px) + 20px)));
+  }
+}
+/*
+ * 폰에서도 **한 줄에 셋**이다. 130px 짜리 최소 폭으로는 폭 360 안에 두 칸밖에 못 들어가서
+ * 「둘 + 하나」로 접히는데, 그러면 셋이 마주 앉은 방이 아니라 남는 자리가 있는 방으로 보인다.
+ * 이 규칙은 기본 규칙 **뒤**에 있어야 한다 (위 599px 블록의 주석 참고).
+ */
+@media (max-width: 599px) {
+  .bl-seats {
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 7px;
+  }
+}
+.bl-seat {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  /* 카드 안의 크기는 **카드 폭**을 잰다 (1cqw = 카드 폭의 1%) — 화면 폭이 아니라 */
+  container-type: inline-size;
+  --bl-cut: polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.4), rgba(63, 143, 194, 0.16));
+}
+/* 빈자리는 꺼져 있다 — 선이 죽고 그림이 흐려진다 */
+.bl-seat--empty {
+  --bl-edge-line: linear-gradient(180deg, rgba(78, 111, 136, 0.4), rgba(78, 111, 136, 0.14));
+  --bl-edge-fill: linear-gradient(180deg, rgba(6, 16, 27, 0.7), rgba(3, 10, 18, 0.8));
+}
+.bl-seat--empty .bl-seat__art {
+  opacity: 0.22;
+}
+/* 내 자리 — 테가 밝다. 세 칸에서 나를 찾는 유일한 표시 */
+.bl-seat--me {
+  --bl-edge-line: linear-gradient(180deg, rgba(160, 232, 255, 1), rgba(111, 211, 255, 0.6));
+}
+/* 준비된 자리 — 홀로그램 필름이 흐른다 (원작 .holo) */
+.bl-seat--ready {
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 1), rgba(111, 211, 255, 0.55));
+}
+.bl-seat__art {
+  position: absolute;
+  inset: 1px;
+  display: block;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+}
+.bl-seat__num {
+  position: absolute;
+  top: clamp(7px, 2.6cqw, 10px);
+  left: clamp(9px, 3.4cqw, 13px);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(9px, 3.9cqw, 12px);
+  letter-spacing: 0.1em;
+  color: var(--bl-faint);
+}
+.bl-seat__host {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  color: var(--bl-line);
+  filter: drop-shadow(0 0 6px rgba(111, 211, 255, 0.9));
+}
+/*
+ * 내보내기 — **방장에게만, 남의 자리에만** 뜬다 (Waitroom).
+ * 왕관 반대쪽 구석에 둔다: 같은 쪽에 있으면 방장 표시를 누르려다 사람을 내보낸다.
+ * 평소에는 흐리게 있다가 그 자리에 손이 가면 붉어진다 — 되돌릴 수 없는 단추라 눈에 띄어야 한다.
+ */
+.bl-seat__kick {
+  position: absolute;
+  top: 5px;
+  left: 6px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid rgba(111, 211, 255, 0.22);
+  border-radius: 3px;
+  background: rgba(2, 10, 18, 0.55);
+  color: var(--bl-faint);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+}
+.bl-seat:hover .bl-seat__kick,
+.bl-seat__kick:focus-visible {
+  opacity: 1;
+}
+.bl-seat__kick:hover {
+  border-color: rgba(255, 92, 92, 0.6);
+  color: var(--bl-red);
+}
+/* 이름판 — 그림 위에 얹힌 어두운 띠. 카드가 커지면 띠도 같이 두꺼워진다 */
+.bl-plate {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  padding: clamp(6px, 2.4cqw, 9px) clamp(8px, 3.2cqw, 12px);
+  background: linear-gradient(180deg, rgba(2, 10, 18, 0), rgba(2, 10, 18, 0.92) 42%);
+  text-align: center;
+}
+.bl-plate span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* 이 카드에서 제일 중요한 글자다 — 카드가 커진 만큼 이름이 제일 먼저 커진다 */
+  font-size: clamp(12px, 5.7cqw, 17px);
+  font-weight: 600;
+}
+/* 준비 도장 — 이름판 바로 위. 이름판이 두꺼워진 만큼 같이 올라간다 (겹치면 상태가 사라진다) */
+.bl-stamp {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(34px, 15cqw, 46px);
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border: 1px solid var(--bl-line);
+  background: rgba(8, 26, 46, 0.85);
+  color: var(--bl-line);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(9px, 3.9cqw, 12px);
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+  box-shadow: 0 0 12px rgba(111, 211, 255, 0.35);
+}
+.bl-holo {
+  position: absolute;
+  inset: 1px;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 38%, rgba(111, 211, 255, 0.22) 50%, transparent 62%);
+  background-size: 260% 100%;
+  animation: bl-holo 3.4s linear infinite;
+}
+@keyframes bl-holo {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -130% 0;
+  }
+}
+
+/*
+ * 좌석 위의 말풍선 — 리더의 것과 같은 문법을 작게 줄인 것. 자리를 미리 잡지 않으려고
+ * absolute 다 (한 사람만 말해도 그 칸만 키가 커지면 격자가 들썩인다).
+ */
+.bl-bubble {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  /* 준비 도장 위에 선다 — 겹치면 말이 도장을 덮어 상태가 사라진다. 도장과 같은 비율로 올라간다 */
+  bottom: clamp(66px, 28cqw, 84px);
+  z-index: 3;
+  padding: 5px 8px;
+  border: 1px solid rgba(111, 211, 255, 0.75);
+  background: rgba(8, 26, 46, 0.96);
+  box-shadow: 0 0 14px rgba(111, 211, 255, 0.3);
+  color: #eaf6ff;
+  font-size: clamp(11px, 4.6cqw, 14px);
+  line-height: 1.4;
+  text-align: center;
+  animation: bl-pop 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.bl-bubble::before,
+.bl-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  margin-left: -6px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+}
+.bl-bubble::before {
+  bottom: -7px;
+  border-top: 7px solid rgba(111, 211, 255, 0.75);
+}
+.bl-bubble::after {
+  bottom: -5px;
+  border-top: 7px solid rgba(8, 26, 46, 0.96);
+}
+@keyframes bl-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* ═══════════════════════════ 대화판 · 조작판 ═══════════════════════════ */
+
+.bl-lines {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 6px;
+}
+.bl-line {
+  padding: 8px 6px;
+  font-size: 11.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.bl-pips {
+  display: flex;
+  gap: 3px;
+}
+.bl-pip {
+  flex: 1;
+  height: 5px;
+  background: rgba(111, 211, 255, 0.14);
+}
+.bl-pip--on {
+  background: var(--bl-line);
+  box-shadow: 0 0 8px rgba(111, 211, 255, 0.75);
+}
+
+/* ══════════════════════════════ 팝업 ══════════════════════════════ */
+
+.bl-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(1, 6, 12, 0.72);
+  backdrop-filter: blur(3px);
+}
+.bl-modal {
+  width: min(380px, 100%);
+  padding: 22px;
+  --bl-cut: polygon(0 14px, 14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.9), rgba(63, 143, 194, 0.4));
+  filter: drop-shadow(0 0 26px rgba(111, 211, 255, 0.2));
+  animation: bl-pop 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.bl-x {
+  padding: 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--bl-faint);
+}
+.bl-x:hover:not(:disabled) {
+  transform: none;
+  color: var(--bl-ink);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bl-top::after,
+  .bl-lead__led,
+  .bl-holo,
+  .bl-bubble,
+  .bl-modal {
+    animation: none;
+  }
+}
+
+/* ══════════════════════════════ 브리핑 (Intro.tsx) ══════════════════════════════
+   같은 이야기를 이 줄의 색으로 다시 말하는 화면. features/intro 의 랜딩은 그대로 두고,
+   여기서는 사진마저 파랗게 물들여 콘솔 안으로 끌고 온다 — 화면이 갈아끼워진 것처럼
+   보이지 않게 하는 것이 이 화면의 유일한 목적이다.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * 사진을 팔레트에 담그는 법: 남색 바닥 위에 luminosity 로 얹는다. 사진은 밝기만 남기고
+ * 색은 바닥에서 온다 — 회색조로 만들고 청록을 덧칠하는 것보다 사진의 결이 덜 죽는다.
+ * isolation 이 없으면 페이지 전체와 섞여 뒤의 창고 배경까지 물든다.
+ */
+.bl-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: min(78vh, 640px);
+  padding: 48px 16px;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(111, 211, 255, 0.18);
+}
+.bl-hero__art,
+.bl-role__art,
+.bl-final__art {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+  overflow: hidden;
+  background: #0d2438;
+}
+.bl-hero__art img,
+.bl-role__art img,
+.bl-final__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  mix-blend-mode: luminosity;
+  filter: contrast(1.05) brightness(0.82);
+}
+/* 글이 앉을 자리를 어둡게 — 왼쪽에서 오른쪽으로 걷힌다 */
+.bl-hero__art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(2, 10, 18, 0.94) 12%, rgba(2, 10, 18, 0.6) 52%, rgba(2, 10, 18, 0.3)),
+    linear-gradient(180deg, rgba(2, 10, 18, 0.55), transparent 34%, rgba(2, 10, 18, 0.8));
+}
+.bl-hero__body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+.bl-hero__title {
+  margin: 0;
+  font-size: clamp(32px, 6.5vw, 64px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 30px rgba(111, 211, 255, 0.25);
+}
+.bl-hero__title--sm {
+  font-size: clamp(24px, 4vw, 38px);
+}
+/* 하나뿐인 따뜻한 색 — 「인간」에만 붙는다 (원작 인트로의 앰버 한 점을 그대로 옮겼다) */
+.bl-hero__title em {
+  font-style: normal;
+  color: var(--amber, #ffca8e);
+  text-shadow: 0 0 26px rgba(255, 202, 142, 0.4);
+}
+.bl-hero__sub {
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.16em;
+  color: var(--bl-dim);
+}
+.bl-hero__lines {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 5px;
+}
+.bl-hero__lines li {
+  padding-left: 14px;
+  position: relative;
+  font-size: 14px;
+  color: var(--bl-ink-2);
+}
+.bl-hero__lines li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 7px;
+  height: 1px;
+  background: var(--bl-line);
+}
+.bl-hero__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* ── 본문 ─────────────────────────────────────────────────────────── */
+
+.bl-brief {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 18px 16px 40px;
+}
+.bl-h2 {
+  margin: 0 0 8px;
+  font-size: clamp(19px, 2.4vw, 26px);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.bl-h2 .dim {
+  color: var(--bl-faint);
+}
+.bl-about {
+  display: grid;
+  gap: 18px;
+}
+.bl-about > div:first-child {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+@media (min-width: 760px) {
+  .bl-about {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 26px;
+  }
+}
+
+/* ── 배역 ─────────────────────────────────────────────────────────── */
+
+.bl-roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.bl-role {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+  padding: 12px;
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.4), rgba(63, 143, 194, 0.16));
+}
+/*
+ * 인간만 따뜻하다 — 화면 전체에서 딱 한 자리다. 청록 일색인 구역에서 유일하게 다른 온도가
+ * 곧 '섞여 있는 것'이라, 색이 설명을 대신한다 (원작 인트로의 앰버 한 점을 그대로 옮겼다).
+ */
+.bl-role--human {
+  --bl-edge-line: linear-gradient(180deg, rgba(255, 202, 142, 0.85), rgba(255, 202, 142, 0.3));
+}
+.bl-role--human .bl-slide__text h3 {
+  color: #ffe0bd;
+}
+.bl-role--human .bl-role__art::after {
+  background:
+    linear-gradient(90deg, transparent 55%, rgba(4, 16, 28, 0.92)),
+    linear-gradient(180deg, rgba(60, 34, 12, 0.28), transparent 40%, rgba(2, 10, 18, 0.5));
+}
+.bl-role__art {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 2px;
+}
+.bl-role__art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 26, 44, 0.1), rgba(4, 16, 28, 0.85));
+}
+.bl-role__code {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--bl-faint);
+}
+.bl-role--human .bl-role__code {
+  color: rgba(255, 202, 142, 0.75);
+}
+.bl-role h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.bl-role__tags {
+  display: grid;
+  gap: 3px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.bl-role__tags li {
+  position: relative;
+  padding-left: 12px;
+  font-size: 11.5px;
+  color: var(--bl-dim);
+}
+.bl-role__tags li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 4px;
+  height: 4px;
+  background: var(--bl-line);
+}
+.bl-role--human .bl-role__tags li::before {
+  background: var(--amber, #ffca8e);
+}
+
+/* ── 진행 · 규칙 ──────────────────────────────────────────────────── */
+
+.bl-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 10px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+.bl-step {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 11px 12px 12px;
+  border-top: 1px solid rgba(111, 211, 255, 0.45);
+  background: linear-gradient(180deg, rgba(12, 30, 48, 0.7), transparent);
+}
+.bl-step__no {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--bl-line);
+}
+.bl-step h4 {
+  margin: 0;
+  font-size: 13.5px;
+}
+
+.bl-rules {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.bl-rule {
+  display: grid;
+  gap: 3px;
+  padding: 9px 12px;
+  border-left: 2px solid rgba(111, 211, 255, 0.55);
+  background: rgba(8, 24, 42, 0.5);
+  font-size: 13px;
+  color: var(--bl-ink-2);
+}
+.bl-rule--human {
+  border-left-color: var(--amber, #ffca8e);
+}
+.bl-rule--human b {
+  color: var(--amber, #ffca8e);
+}
+
+/* ── 마지막 ───────────────────────────────────────────────────────── */
+
+.bl-final {
+  position: relative;
+  overflow: hidden;
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+  text-align: center;
+  --bl-cut: polygon(0 16px, 16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+}
+.bl-final__art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(90% 80% at 50% 45%, rgba(2, 10, 18, 0.55), rgba(2, 10, 18, 0.94) 78%);
+}
+.bl-final__body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+/* ══════════════════════════ 배역 슬라이드 (한 번에 하나) ══════════════════════════
+   카드 셋을 나란히 놓으면 어느 것도 안 읽힌다. 한 장을 **극장 판형으로** 세운다:
+   사진이 칸을 통째로 덮고, 글은 그 위 아래쪽에 앉고, 배역 코드는 뒤에 크게 찍힌다.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.bl-slides {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+/* 셋을 한 칸에 겹쳐 쌓는다 — 높이가 제일 큰 장에 맞춰 고정되므로 넘어갈 때 화면이 안 들썩인다 */
+.bl-slides__stack {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/*
+ * ★ 인물 사진은 **정사각(900×900)이다.** 넓은 띠에 깔면 object-fit: cover 가 위아래를
+ *   잘라내서 얼굴도 구도도 남지 않는다 (첫 판이 그랬다). 그래서 사진은 제 비율(1:1)
+ *   그대로 한 칸을 차지하고, 글은 옆 칸에 앉는다 — 게임의 캐릭터 선택 화면과 같은 짜임이다.
+ */
+.bl-slide {
+  grid-area: 1 / 1;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.015);
+  transition: opacity 0.45s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --bl-cut: polygon(0 14px, 14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+}
+@media (min-width: 700px) {
+  .bl-slide {
+    grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  }
+}
+.bl-slide--on {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+/* 사진 칸 — 제 비율대로 선다. 아주 천천히 밀려 들어온다 (멈춘 사진은 배경이지만 움직이면 장면이다) */
+.bl-slide .bl-role__art {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 0;
+}
+.bl-slide--on .bl-role__art img {
+  animation: bl-push 9s ease-out both;
+}
+@keyframes bl-push {
+  from {
+    transform: scale(1.08) translateX(1.5%);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+/* 사진의 가장자리를 판 색으로 녹인다 — 붙여 놓은 사진이 아니라 화면 안에 든 장면이 되게 */
+.bl-slide .bl-role__art::after {
+  background:
+    linear-gradient(90deg, transparent 55%, rgba(4, 16, 28, 0.92)),
+    linear-gradient(180deg, rgba(2, 10, 18, 0.35), transparent 30%, rgba(2, 10, 18, 0.45));
+}
+@media (max-width: 699px) {
+  .bl-slide .bl-role__art::after {
+    background: linear-gradient(180deg, rgba(2, 10, 18, 0.3), transparent 40%, rgba(4, 16, 28, 0.95));
+  }
+}
+/* 넘어가는 순간 한 번 훑고 지나가는 선 */
+.bl-slide--on::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  height: 2px;
+  z-index: 3;
+  z-index: 1;
+  background: linear-gradient(90deg, transparent, rgba(160, 232, 255, 0.85), transparent);
+  animation: bl-scanline 0.85s ease-out both;
+  pointer-events: none;
+}
+@keyframes bl-scanline {
+  from {
+    top: 0;
+    opacity: 0.9;
+  }
+  to {
+    top: 100%;
+    opacity: 0;
+  }
+}
+.bl-slide__text {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 20px 22px 22px;
+}
+/* 뒤에 크게 찍힌 배역 코드 — 장비에 새겨진 품번처럼. 게임 화면이 늘 하고 웹 카드는 안 하는 일 */
+.bl-slide__text::before {
+  content: attr(data-code);
+  position: absolute;
+  right: 10px;
+  top: -6px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(48px, 9vw, 92px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: rgba(111, 211, 255, 0.07);
+  pointer-events: none;
+  user-select: none;
+}
+.bl-role--human .bl-slide__text::before {
+  color: rgba(255, 202, 142, 0.08);
+}
+/* 사진이 위로 오는 좁은 화면에서는 글칸이 사진을 살짝 파고든다 — 두 칸이 아니라 한 장으로 읽히게 */
+@media (max-width: 699px) {
+  .bl-slide__text {
+    margin-top: -34px;
+  }
+}
+.bl-slide__text h3 {
+  margin: 0;
+  font-size: clamp(20px, 3vw, 30px);
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85);
+}
+/*
+ * 번호표 — 수용동에서 받은 **등록 번호**다. 카드의 이름이 아니라 번호라서 제목 위에 따로 선다.
+ *
+ * ★ 이름을 번호로 바꾸지 않는 이유가 여기 있다 (2026-08-30 사용자: "리더 AI 말고 A-1 이라고 할까?").
+ *   노드와 인간은 **같은 번호대**를 쓴다 — 제목을 번호로 바꾸면 두 장이 같은 제목이 되어
+ *   「둘은 같은 것」이라고 말하게 된다. 그래서 번호는 번호표로 올리고 이름은 남긴다.
+ *   그리고 두 장의 번호표를 **똑같이** 둔다: 번호로는 아무도 가려지지 않는다는 규칙을
+ *   글로 말하지 않고 그 자리에서 보여 주는 것이 이 카드가 할 수 있는 유일한 증명이다.
+ */
+.bl-slide .bl-role__code {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  width: max-content;
+  padding: 4px 11px;
+  font-size: 12.5px;
+  letter-spacing: 0.16em;
+  color: var(--bl-line);
+  border: 1px solid rgba(111, 211, 255, 0.3);
+  background: rgba(9, 26, 44, 0.6);
+  box-shadow: inset 0 0 18px rgba(111, 211, 255, 0.07);
+}
+/* 인간의 번호표도 **같은 색**이다 — 이 카드의 앰버는 제목과 테두리에만 든다 */
+.bl-slide.bl-role--human .bl-role__code {
+  color: var(--bl-line);
+}
+/* 마릿수는 번호와 다른 값이다 — 금을 긋고 한 단 죽인다 */
+.bl-slide .bl-role__code span + span {
+  padding-left: 11px;
+  border-left: 1px solid rgba(111, 211, 255, 0.22);
+  color: var(--bl-faint);
+}
+.bl-slide .bl-note {
+  color: var(--bl-ink-2);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+}
+.bl-slide .bl-role__tags {
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 16px;
+  margin-top: 4px;
+}
+@media (max-width: 599px) {
+  .bl-slide .bl-role__tags {
+    grid-auto-flow: row;
+    gap: 3px;
+  }
+}
+
+/* ── 넘기는 손잡이 ───────────────────────────────────────────────────
+   세 칸이다: 왼쪽 계기 · 가운데 손잡이 · 빈 칸. 양쪽을 1fr 로 잡아야 눈금이
+   **글자 수와 상관없이** 화면 한가운데 선다 (Intro.tsx 의 같은 자리 주석).
+   ────────────────────────────────────────────────────────────────── */
+
+.bl-slides__nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+.bl-slides__ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+}
+/* 계기 — 지금 장/전체. 지금 것만 불이 들어온다 */
+.bl-slides__count {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--bl-faint);
+  white-space: nowrap;
+}
+.bl-slides__count b {
+  font-weight: 600;
+  color: var(--bl-line);
+  text-shadow: 0 0 10px rgba(111, 211, 255, 0.45);
+}
+/* 화살표는 **네모난 키**다. 글자만 덜렁 두면 눌러도 되는 것인지 안 보인다 */
+.bl-slides__arrow {
+  width: 32px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  line-height: 1;
+}
+.bl-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/*
+ * 점이 아니라 **눈금**이다 — 남은 시간이 그 안을 채운다.
+ *
+ * ★ 눌리는 것은 20px 짜리 칸이고, 보이는 것은 그 한가운데의 3px 짜리 선이다.
+ *   3px 를 정확히 눌러야 넘어가는 손잡이는 손가락으로는 못 쓴다 — 보이는 크기와
+ *   닿는 크기를 따로 두는 것이 눈금·슬라이더의 기본이다.
+ */
+.bl-dot-btn {
+  position: relative;
+  display: block;
+  width: 38px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.bl-dot-btn::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  background: rgba(111, 211, 255, 0.18);
+  transition: background 0.18s ease;
+}
+.bl-dot-btn:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+  background: transparent;
+}
+.bl-dot-btn:hover::before {
+  background: rgba(111, 211, 255, 0.36);
+}
+/* 지금 장의 눈금은 채워지지 않은 부분도 한 단 밝다 — 멈춰 있을 때도 어디인지 보이게 */
+.bl-dot-btn--on::before {
+  background: rgba(111, 211, 255, 0.3);
+}
+.bl-dot-btn i {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  margin-top: -1.5px;
+  height: 3px;
+  width: 0;
+  background: var(--bl-line);
+  box-shadow: 0 0 8px rgba(111, 211, 255, 0.9);
+}
+.bl-dot-btn--on i {
+  animation-name: bl-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes bl-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+/* 좁은 화면 — 계기를 버리지 않고 눈금을 줄인다. 몇 번째인지는 폰에서도 알아야 한다 */
+@media (max-width: 479px) {
+  .bl-slides__nav {
+    gap: 8px;
+  }
+  .bl-dot-btn {
+    width: 24px;
+  }
+  .bl-slides__arrow {
+    width: 28px;
+  }
+}
+
+/* ══════════════════════════ 장비처럼 보이게 ══════════════════════════
+   판이 '상자'가 아니라 '장치'로 읽히게 하는 두 가지 — 모서리 꺾쇠와, 켜질 때의 한 박자.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 네 귀퉁이 꺾쇠. 게임 HUD 가 늘 하는 일이고, 웹 카드가 절대 안 하는 일이다 */
+.bl-frame__in::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  opacity: 0.45;
+  background-image:
+    linear-gradient(var(--bl-line), var(--bl-line)), linear-gradient(var(--bl-line), var(--bl-line)),
+    linear-gradient(var(--bl-line), var(--bl-line)), linear-gradient(var(--bl-line), var(--bl-line)),
+    linear-gradient(var(--bl-line), var(--bl-line)), linear-gradient(var(--bl-line), var(--bl-line)),
+    linear-gradient(var(--bl-line), var(--bl-line)), linear-gradient(var(--bl-line), var(--bl-line));
+  background-repeat: no-repeat;
+  background-size:
+    11px 1px, 1px 11px,
+    11px 1px, 1px 11px,
+    11px 1px, 1px 11px,
+    11px 1px, 1px 11px;
+  background-position:
+    left top, left top,
+    right top, right top,
+    left bottom, left bottom,
+    right bottom, right bottom;
+}
+
+/* 켜질 때 한 박자 — 아래에서 올라오며 자리를 잡는다 (문서가 아니라 화면이 켜지는 느낌) */
+.bl-brief > * {
+  animation: bl-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.bl-brief > *:nth-child(2) {
+  animation-delay: 0.07s;
+}
+.bl-brief > *:nth-child(3) {
+  animation-delay: 0.14s;
+}
+.bl-brief > *:nth-child(4) {
+  animation-delay: 0.21s;
+}
+@keyframes bl-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* 히어로의 사진도 아주 느리게 밀린다 — 정지 화면이 아니라 촬영 중인 화면 */
+.bl-hero__art img {
+  animation: bl-drift 26s ease-in-out infinite alternate;
+}
+@keyframes bl-drift {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.12) translate(-1.5%, -1%);
+  }
+}
+/* 화면을 훑고 지나가는 주사선 하나 — 7초에 한 번, 켜져 있다는 신호 */
+.bl-hero::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 120px;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(111, 211, 255, 0.06), transparent);
+  animation: bl-sweepdown 7s linear infinite;
+}
+@keyframes bl-sweepdown {
+  0% {
+    top: -120px;
+  }
+  55%,
+  100% {
+    top: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bl-slide--on .bl-role__art img,
+  .bl-slide--on::before,
+  .bl-hero__art img,
+  .bl-hero::after,
+  .bl-brief > *,
+  .bl-dot-btn--on i {
+    animation: none;
+  }
+  /* 자동으로 안 넘어가는 대신 지금 어느 장인지는 남아야 한다 */
+  .bl-dot-btn--on i {
+    width: 100%;
+  }
+}
+
+/* ══════════════════════════ 한 번에 한 칸 (브리핑의 스크롤) ══════════════════════════
+   굴리면 칸이 하나씩 선다. 문서처럼 흐르지 않고 **장(章)으로 넘어간다** — 게임의 브리핑이
+   늘 그렇고, 웹 문서는 절대 그렇지 않다. 이 하나가 화면의 성격을 가장 크게 바꾼다.
+   ══════════════════════════════════════════════════════════════════════════════════ */
+
+.bl--snap {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  /* 머리말이 sticky 로 위 52px 을 먹는다 — 칸이 그 아래에서 시작하도록 스크롤에 여백을 준다 */
+  scroll-padding-top: 52px;
+  /* 브라우저 부품이 보이면 게임 화면이 깨진다. 굴리는 자리는 오른쪽 눈금(.bl-rail)이 대신 말한다 */
+  scrollbar-width: none;
+}
+.bl--snap::-webkit-scrollbar {
+  display: none;
+}
+.bl--snap .bl-top {
+  position: sticky;
+  top: 0;
+}
+.bl-snap {
+  position: relative;
+  flex-shrink: 0; /* 없으면 flex 가 칸을 눌러 붙여 스크롤이 사라진다 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100dvh - 52px);
+  padding: 26px 16px 40px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+/* 표지는 사진이 칸을 통째로 덮으므로 여백을 두지 않는다 */
+.bl-snap.bl-hero {
+  padding: 26px 16px 64px;
+  min-height: calc(100dvh - 52px);
+}
+.bl-wide {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+/*
+ * 마지막 칸은 **화면 끝까지** 간다. 테를 두른 띠가 빈 화면에 떠 있으면 배너처럼 읽히는데,
+ * 여기는 배너가 아니라 마지막 장면이다 — 눈이 화면을 가득 채우고 그 위에 물음이 앉는다.
+ */
+.bl-snap--flush {
+  padding: 0;
+}
+.bl-snap--flush .bl-final {
+  width: 100%;
+  max-width: none;
+  min-height: calc(100dvh - 52px);
+  border-top: 1px solid rgba(111, 211, 255, 0.2);
+}
+
+/* 칸이 들어오면 글이 한 박자 늦게 올라온다 — 켜지는 순서가 보여야 「하나씩」이 된다 */
+.bl-snap__in {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.55s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.bl-snap--in .bl-snap__in {
+  opacity: 1;
+  transform: none;
+}
+
+/* 오른쪽 눈금 — 다섯 칸 중 어디인지. 스크롤바를 감춘 자리를 이게 대신한다 */
+.bl-rail {
+  position: fixed;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  display: grid;
+  gap: 9px;
+}
+.bl-rail__tick {
+  width: 3px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(111, 211, 255, 0.22);
+  box-shadow: none;
+  transition: height 0.25s ease, background 0.25s ease;
+}
+.bl-rail__tick:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+  background: rgba(111, 211, 255, 0.5);
+}
+.bl-rail__tick--on {
+  height: 34px;
+  background: var(--bl-line);
+  box-shadow: 0 0 10px rgba(111, 211, 255, 0.85);
+}
+
+/* 아래에 더 있다는 표시 — 한 칸씩 서는 화면에서는 이게 없으면 여기서 끝인 줄 안다 */
+.bl-scrollcue {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.bl-scrollcue:hover:not(:disabled) {
+  transform: translateX(-50%);
+  box-shadow: none;
+}
+.bl-scrollcue__line {
+  width: 1px;
+  height: 30px;
+  background: linear-gradient(180deg, var(--bl-line), transparent);
+  animation: bl-cue 1.9s ease-in-out infinite;
+}
+@keyframes bl-cue {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.bl-scrollcue__line {
+  transform-origin: top;
+}
+
+/*
+ * 낮은 화면(노트북 · 가로 폰)에서는 칸이 화면보다 커진다. 그때까지 mandatory 로 붙잡으면
+ * **아래를 못 본다** — 놓는 순간 칸 머리로 되돌아가기 때문이다. 그런 화면에서는 붙잡기를
+ * 느슨하게 풀고 칸도 내용만큼만 쓴다.
+ */
+@media (max-height: 720px) {
+  .bl--snap {
+    scroll-snap-type: y proximity;
+  }
+  .bl-snap,
+  .bl-snap.bl-hero {
+    min-height: auto;
+    padding: 22px 16px 34px;
+  }
+  .bl-snap--flush {
+    padding: 0;
+  }
+  .bl-snap--flush .bl-final {
+    min-height: 420px;
+  }
+}
+@media (max-width: 599px) {
+  .bl-rail {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bl--snap {
+    scroll-behavior: auto;
+  }
+  .bl-snap__in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .bl-scrollcue__line {
+    animation: none;
+  }
+}
+
+/* ══════════════════════════ 장면 (브리핑의 각 칸) ══════════════════════════
+   가운데 뜬 판을 걷어낸 자리. 제목은 위, 계기는 아래, 그 사이는 비워 둔다 —
+   브리핑 화면이 늘 그렇게 생겼고, 웹 카드는 절대 그렇지 않다.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.bl-scene {
+  display: grid;
+  align-content: space-between;
+  gap: 26px;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  /* 화면을 실제로 채운다 — 짧은 글 하나가 복판에 뜨는 꼴을 막는 것이 이 한 줄이다 */
+  min-height: min(720px, calc(100dvh - 150px));
+}
+.bl-scene__h {
+  margin: 6px 0 0;
+  font-size: clamp(26px, 4.2vw, 50px);
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+  text-shadow: 0 0 34px rgba(111, 211, 255, 0.18);
+}
+.bl-scene__h .dim {
+  color: var(--bl-faint);
+  font-weight: 400;
+}
+.bl-scene__cols {
+  display: grid;
+  gap: 14px;
+  max-width: 900px;
+}
+@media (min-width: 860px) {
+  .bl-scene__cols {
+    grid-template-columns: 1fr 1fr;
+    gap: 34px;
+  }
+}
+.bl-scene__lead {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.85;
+  color: var(--bl-ink-2);
+}
+.bl-scene__lead b {
+  color: var(--bl-ink);
+}
+.bl-scene__lead--tight {
+  margin-top: 10px;
+  max-width: 620px;
+  font-size: 13.5px;
+}
+
+/* ── 진행: 카드 다섯 장이 아니라 **한 줄의 순서** ─────────────────── */
+
+.bl-flow {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* 칸들을 꿰는 선 — 이게 있어야 '순서'로 읽힌다 */
+.bl-flow::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 21px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(111, 211, 255, 0.45) 6%, rgba(111, 211, 255, 0.45) 94%, transparent);
+}
+.bl-flow__step {
+  position: relative;
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  padding: 0 16px 0 0;
+}
+/* 선 위에 박힌 점 */
+.bl-flow__step::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 17px;
+  width: 9px;
+  height: 9px;
+  background: var(--bl-line);
+  box-shadow: 0 0 12px rgba(111, 211, 255, 0.9);
+  transform: rotate(45deg);
+}
+.bl-flow__no {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--bl-faint);
+}
+.bl-flow__step h4 {
+  margin: 18px 0 0;
+  font-size: 14px;
+}
+.bl-flow__step .bl-note {
+  font-size: 12px;
+  line-height: 1.65;
+}
+@media (max-width: 719px) {
+  .bl-flow::before {
+    top: 0;
+    bottom: 0;
+    left: 4px;
+    right: auto;
+    width: 1px;
+    height: auto;
+    background: linear-gradient(180deg, transparent, rgba(111, 211, 255, 0.45) 6%, rgba(111, 211, 255, 0.45) 94%, transparent);
+  }
+  .bl-flow__step {
+    padding: 0 0 14px 20px;
+  }
+  .bl-flow__step::before {
+    top: 6px;
+  }
+  .bl-flow__step h4 {
+    margin: 2px 0 0;
+  }
+}
+
+/* 규칙 셋은 화면 아래를 가로지르는 띠로 */
+.bl-scene .bl-rules {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  margin: 0;
+  gap: 8px;
+}
+
+/*
+ * 장면 뒤에 옅게 깔리는 사진. 읽는 자리(왼쪽)는 마스크로 걷어내고 반대쪽만 남긴다 —
+ * 화면을 채우되 글을 건드리지 않는다. 빈 복판이 어색한 것은 글이 모자라서가 아니라
+ * 공기가 없어서다.
+ */
+.bl-scene__bleed {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  isolation: isolate;
+  overflow: hidden;
+  pointer-events: none;
+  background: #071522;
+  opacity: 0.5;
+  mask-image: linear-gradient(90deg, transparent 8%, #000 62%);
+}
+.bl-scene__bleed img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 62% 42%;
+  display: block;
+  mix-blend-mode: luminosity;
+  filter: contrast(1.02) brightness(0.7);
+  animation: bl-drift 34s ease-in-out infinite alternate;
+}
+.bl-scene__bleed--left {
+  mask-image: linear-gradient(270deg, transparent 14%, #000 66%);
+  opacity: 0.34;
+}
+.bl-scene__bleed--left img {
+  object-position: 34% 38%;
+}
+/* 사진 위에 화면 색을 한 겹 더 — 남색이 화면 전체를 하나로 묶는다 */
+.bl-scene__bleed::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3, 12, 22, 0.62), rgba(3, 12, 22, 0.3) 45%, rgba(3, 12, 22, 0.8));
+}
+.bl-scene {
+  position: relative;
+  z-index: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bl-scene__bleed img {
+    animation: none;
+  }
+}
+
+/*
+ * 브리핑의 아랫줄 — 계기판을 걷어낸 자리 (Intro.tsx 의 주석 참고).
+ * 왼쪽은 **말**, 오른쪽은 진짜 수치 하나. 숫자를 크게 띄우는 대신 문장을 크게 띄운다.
+ */
+.bl-brief-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(111, 211, 255, 0.45);
+}
+.bl-brief-foot__facts {
+  margin: 0;
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  color: var(--bl-faint);
+  white-space: nowrap;
+}
+/*
+ * 왼쪽의 연표 — 오른쪽 수치와 같은 크기·같은 흐림이다. 해 둘만 한 단 밝다:
+ * 이 줄에서 읽혀야 하는 것은 「첫 규칙 / 구역 폐쇄」라는 말이 아니라 **그 사이의 거리**다.
+ * 청록(--bl-key)은 안 쓴다 — 이 화면에서 청록은 구역이 정한 것에 붙는 색이고(Intro.tsx 의 색 세 단),
+ * 아랫줄은 계기지 서술이 아니라 색을 하나 더 들이면 위의 글과 다투게 된다.
+ */
+.bl-brief-foot__era {
+  margin: 0;
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  color: var(--bl-faint);
+}
+.bl-brief-foot__era b {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+}
+/* 두 해를 잇는 줄 — 글자 사이가 아니라 **기간**으로 보이게 여백을 넉넉히 준다 */
+.bl-brief-foot__era i {
+  padding: 0 10px;
+  font-style: normal;
+  opacity: 0.5;
+}
+
+/* 방송의 출처 — 이 글이 누구 입에서 나왔는지. 붙이는 순간 카피가 아니라 대사가 된다 */
+.bl-hero__from {
+  margin: 2px 0 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  color: var(--bl-faint);
+}
+.bl-final__sub {
+  margin: -2px 0 0;
+  font-size: 13.5px;
+  color: var(--bl-dim);
+}
+
+/* 모션을 꺼 둔 화면 — 넘기지 않고 셋을 다 편다 (Intro.tsx 의 still 갈래) */
+.bl-slides__stack--still {
+  gap: 10px;
+}
+.bl-slides__stack--still .bl-slide {
+  grid-area: auto;
+}
+/* 셋 중 몇 번째인지. 눈금만 있으면 켜지지 않은 둘이 "빈 칸"으로 읽힌다 */
+/*
+ * 서술의 색 — 세 단 (Intro.tsx 의 표). 무엇이 중요한지만이 아니라 **무엇의 이야기인지**를
+ * 색이 맡는다. 이 약속은 화면 전체에서 같다: 앰버는 늘 사람이고, 청록은 늘 구역이다.
+ */
+.bl-narr mark {
+  background: none; /* 브라우저 기본 노란 형광펜을 끈다 */
+  color: var(--bl-line);
+  text-shadow: 0 0 18px rgba(111, 211, 255, 0.35);
+}
+.bl-narr b {
+  color: var(--bl-ink);
+  font-weight: 700;
+}
+.bl-narr em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--amber, #ffca8e);
+  text-shadow: 0 0 20px rgba(255, 202, 142, 0.35);
+}
+
+/* 배역 소개 — 줄마다 한 칸씩. 한 덩이로 흘리면 네 문장이 뭉쳐 한 호흡이 안 보인다 */
+.bl-slide__body {
+  display: grid;
+  gap: 6px;
+}
+.bl-slide__body p {
+  margin: 0;
+}

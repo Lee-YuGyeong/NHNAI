@@ -1,0 +1,134 @@
+{
+  "_note": "2026-09-03 시나리오 2 개체 열 재생성 기록 — scenario2-cast-projects.json 은 id→프로젝트 문자열만 쥔다(scenario2-cast-rig.sh 가 그렇게 읽는다). 여기에 텍스트→모델·리깅 operator, 재시도, 판정을 남긴다. 클립은 Tripo animate 그대로 쓰지 않고 스크래치 rebase.mjs 로 바인드에 다시 앉힌 것이다(보고서 참조).",
+  "bodies": {
+    "s2_leader": {
+      "previous_project": "d566578d-0c57-40ee-81c8-03e9c8c6805b",
+      "generated": "2026-09-03",
+      "attempts": [
+        {
+          "tag": "_first",
+          "prompt": "prompt_rig",
+          "project": "c4ae4e9a-5c1e-41d9-b3dc-1258c81d7ff7",
+          "text_to_model": "67b55059-1c03-4706-b2f4-2115b0deb2a8",
+          "rigging": "ecf28377-2340-414b-9c59-9d57b5559eb8",
+          "chosen": true
+        }
+      ],
+      "cost_credits": 50
+    },
+    "s2_seer": {
+      "previous_project": "785e6a11-7d0f-43a0-9d2b-1ee8a5f6e90d",
+      "generated": "2026-09-03",
+      "attempts": [
+        {
+          "tag": "_first",
+          "prompt": "prompt_rig",
+          "project": "0acc04f7-db90-4e1d-8585-1c5bcdd8e4f0",
+          "text_to_model": "d2659be0-ad7a-4661-8c94-9fbd07921aa8",
+          "rigging": "d837ac71-fc17-4eed-af5f-2a0b3661e9fe",
+          "chosen": false
+        },
+        {
+          "tag": "_r3",
+          "prompt": "prompt_rig3",
+          "project": "5d59dcdd-71a6-4a9c-85fb-97c76850a81d",
+          "text_to_model": "20f0bb7a-22be-4a5b-9436-ad3679d0fa43",
+          "rigging": "c1304a8e-688c-4aa2-8795-dbcc7b31b362",
+          "chosen": true
+        }
+      ],
+      "cost_credits": 100
+    },
+    "s2_u063": {
+      "previous_project": "a8bf2cbd-b61a-4f0a-8945-a8fbd99d49e4",
+      "generated": "2026-09-03",
+      "attempts": [
+        {
+          "tag": "_first",
+          "prompt": "prompt_rig",
+          "project": "f9c88c98-1412-4e16-832f-62a8dbe44b98",
+          "text_to_model": "5a360ffc-1647-402f-893f-d0cd87cfa45c",
+          "rigging": "88f99e36-8823-494a-9099-0c0274e3f2b5",
+          "chosen": true
+        }
+      ],
+      "cost_credits": 50
+    },
+    "s2_u089": {
+      "previous_project": "913180cf-b067-43e5-b3f6-6241405329a5",
+      "generated": "2026-09-03",
+      "attempts": [
+        {
+          "tag": "_first",
+          "prompt": "prompt_rig",
+          "project": "c4f0850d-22f9-4ac3-9832-efe59590ff71",
+          "text_to_model": "11527242-6e8a-4b51-84c6-805c392c2624",
+          "rigging": "19da93f2-50f6-480f-90e6-5778e6a9ac7f",
+          "chosen": false
+        },
+        {
+          "tag": "_r3",
+          "prompt": "prompt_rig3",
+          "project": "ba310ffb-d1fa-4c8b-a39f-bf9795e6e949",
+          "text_to_model": "e035f58d-4944-4d50-bba0-fae157f3a48b",
+          "rigging": "dbbe47bf-9d46-4621-9794-76e8e6fbb4b9",
+          "chosen": true
+        }
+      ],
+      "cost_credits": 100
+    },
+    "s2_u104": {
+      "previous_project": "bc606bdf-ba2c-4288-b006-df40cfb1a8af",
+      "generated": "2026-09-03",
+      "attempts": [
+        {
+          "tag": "_first",
+          "prompt": "prompt_rig",
+          "project": "a0626a7e-10fd-4e11-8d42-ba12578f6119",
+          "text_to_model": "451104bb-94bc-423a-ad96-9c4ac2215128",
+          "rigging": "9a54fde8-0089-4301-b112-602ce633a873",
+          "chosen": true
+        },
+        {
+          "tag": "_r2",
+          "prompt": "prompt_rig2",
+          "project": "67031ac1-a200-415b-902f-e5b347335985",
+          "text_to_model": "273119b8-e82d-4dec-af6b-6143f1e0418b",
+          "rigging": "dc3a84e6-8e3a-45e7-a66e-52c80be2ef89",
+          "chosen": false
+        }
+      ],
+      "cost_credits": 100
+    },
+    "s2_u118": {
+      "previous_project": "febd8ccb-a43d-493e-87ab-163039b8de8f",
+      "generated": "2026-09-03",
+      "attempts": [
+        {
+          "tag": "_first",
+          "prompt": "prompt_rig",
+          "project": "f3078b09-a966-4169-a26d-3ddd222d2368",
+          "text_to_model": "72823b74-911b-4292-b56f-b7e3eb71f246",
+          "rigging": "16393912-dd9b-44ea-a097-d9eecc0bfb41",
+          "chosen": true
+        }
+      ],
+      "cost_credits": 50
+    },
+    "s2_u201": {
+      "previous_project": "44f0c8f9-8711-4081-a210-ad7b05b2d938",
+      "generated": "2026-09-03",
+      "attempts": [
+        {
+          "tag": "_first",
+          "prompt": "prompt_rig",
+          "project": "925c4c30-270a-4d87-81aa-08088b5cc973",
+          "text_to_model": "f07c5ec3-fcc1-4255-853b-379110ccc8c0",
+          "rigging": "79c262b7-14e2-4121-adcd-b4a1b9b19350",
+          "chosen": true
+        }
+      ],
+      "cost_credits": 50
+    }
+  }
+}

@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>window.addEventListener('DOMContentLoaded',function(){if(window.mermaid){mermaid.initialize({startOnLoad:true,theme:window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'neutral'});}});</script>
+</head>
+<body>
+<title>전부 한 장에 — 개발 마스터</title>
+
+<style>
+  :root {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+    --display:'Hahmlet','Nanum Myeongjo','Noto Serif KR','Apple SD Gothic Neo',serif;
+    --body:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',monospace;
+    --measure:42rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+      --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+      --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+      --halt:#D4796C; --halt-soft:#2B1C1A;
+      --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+    --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+    --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+    --halt:#D4796C; --halt-soft:#2B1C1A;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+  }
+  :root[data-theme="light"] {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:15.5px; line-height:1.68; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:70rem; margin:0 auto; padding:4rem 1.5rem 7rem; display:flex; flex-direction:column; gap:3.6rem; }
+  .col { max-width:var(--measure); }
+
+  .eyebrow { margin:0 0 1.2rem; font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; color:var(--dim); }
+  h1 { margin:0 0 1.2rem; font-family:var(--display); font-weight:700; font-size:clamp(2.1rem,5.5vw,3rem); line-height:1.16; letter-spacing:-.02em; }
+  .lede { margin:0; max-width:var(--measure); font-size:1.02rem; font-weight:300; line-height:1.75; }
+  .lede + .lede { margin-top:.8rem; }
+  .lede b { font-weight:700; }
+
+  section { display:flex; flex-direction:column; gap:1.3rem; }
+  .sec-head { display:flex; flex-direction:column; gap:.35rem; border-bottom:2px solid var(--rail); padding-bottom:.8rem; }
+  .sec-label { font-family:var(--mono); font-size:.7rem; letter-spacing:.18em; color:var(--signal); }
+  h2 { margin:0; font-family:var(--display); font-weight:700; font-size:clamp(1.45rem,3.2vw,1.9rem); letter-spacing:-.015em; text-wrap:balance; }
+  h3 { margin:.4rem 0 0; font-family:var(--display); font-weight:700; font-size:1.1rem; }
+  p { margin:0; max-width:var(--measure); }
+  p + p { margin-top:.8rem; }
+  .quiet { color:var(--dim); font-weight:300; }
+  code { font-family:var(--mono); font-size:.84em; background:var(--sunk); padding:.08em .35em; }
+  a { color:var(--signal); text-decoration-thickness:1px; text-underline-offset:2px; }
+  a:focus-visible { outline:2px solid var(--trace); outline-offset:3px; }
+
+  .pull { max-width:var(--measure); border-left:2px solid var(--trace); padding:.2rem 0 .2rem 1.3rem;
+    font-family:var(--display); font-weight:500; font-size:1.18rem; line-height:1.55; }
+  .pull b { color:var(--trace); font-weight:700; }
+
+  .note { max-width:var(--measure); padding:.8rem 1rem; background:var(--sunk); border-left:2px solid var(--rail); font-size:.87rem; font-weight:300; line-height:1.66; color:var(--dim); }
+  .note b { color:var(--ink); font-weight:500; }
+  .note.warn { border-left-color:var(--halt); background:var(--halt-soft); color:var(--ink); }
+
+  .table-scroll { overflow-x:auto; border:1px solid var(--line); }
+  table { border-collapse:collapse; width:100%; min-width:38rem; background:var(--panel); font-size:.9rem; }
+  th,td { text-align:left; padding:.62rem .8rem; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.55; }
+  thead th { font-family:var(--mono); font-weight:500; font-size:.65rem; letter-spacing:.1em; color:var(--dim); background:var(--sunk); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.k { font-family:var(--display); font-weight:700; color:var(--signal); white-space:nowrap; }
+  td.d { font-family:var(--mono); font-size:.78rem; color:var(--trace); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  td.f { font-family:var(--mono); font-size:.76rem; color:var(--trace); }
+  td.m { font-family:var(--mono); font-size:.76rem; color:var(--signal); white-space:nowrap; }
+  td.hot { color:var(--halt); font-weight:500; }
+  td.ok { color:var(--signal); font-weight:500; }
+  tr.hl td { background:var(--trace-soft); }
+
+  /* TOC */
+  .toc { display:grid; grid-template-columns:repeat(auto-fit,minmax(14rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .toc a { display:block; background:var(--panel); padding:.85rem 1rem 1rem; text-decoration:none; color:var(--ink); }
+  .toc a:hover { background:var(--sunk); }
+  .toc .tn { display:block; font-family:var(--mono); font-size:.64rem; letter-spacing:.12em; color:var(--trace); margin-bottom:.3rem; }
+  .toc .tt { display:block; font-family:var(--display); font-weight:700; font-size:1rem; }
+  .toc .td { display:block; font-size:.8rem; font-weight:300; color:var(--dim); margin-top:.2rem; line-height:1.5; }
+
+  .laws { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(19rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .laws li { background:var(--panel); padding:.85rem 1rem 1rem; font-size:.88rem; font-weight:300; line-height:1.6; }
+  .laws .ln { display:block; font-family:var(--display); font-weight:700; font-size:.96rem; color:var(--signal); margin-bottom:.2rem; }
+  .laws li.warm .ln { color:var(--trace); }
+  .laws li.hot { background:var(--halt-soft); }
+  .laws li.hot .ln { color:var(--halt); }
+
+  pre { margin:0; background:var(--sunk); border:1px solid var(--line); padding:1rem 1.1rem; overflow-x:auto;
+    font-family:var(--mono); font-size:.78rem; line-height:1.8; max-width:56rem; }
+  pre .c { color:var(--faint); }
+  pre .g { color:var(--signal); }
+  pre .t { color:var(--trace); }
+  pre b { font-weight:500; color:var(--ink); }
+
+  figure { margin:0; display:flex; flex-direction:column; gap:.7rem; }
+  .plate { background:var(--panel); border:1px solid var(--line); padding:1.1rem 1rem; overflow-x:auto; }
+  .plate pre.mermaid { margin:0; background:transparent; border:none; padding:0; display:flex; justify-content:center; }
+  figcaption { max-width:var(--measure); font-size:.85rem; font-weight:300; line-height:1.62; color:var(--dim); }
+  figcaption b { color:var(--ink); font-weight:500; }
+
+  .closing { border-top:2px solid var(--rail); padding-top:1.7rem; max-width:var(--measure); }
+  .closing p { font-family:var(--display); font-weight:500; font-size:1.12rem; line-height:1.62; }
+  .closing b { color:var(--trace); font-weight:700; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Who is human · 개발 마스터 문서 v1 · 기획서 9종 종합 · AI 구현 참조용</p>
+    <h1>전부 한 장에</h1>
+    <p class="lede">
+      아홉 문서(대사 · 맵 · 캐릭터 · 설계 · AI 아키텍처 · 처형 + 게임 개발 · 코드 처리 · 흐름)를
+      <b>구현하는 AI 가 순서대로 읽고 바로 개발할 수 있게</b> 한 장으로 접었다.
+      각 절은 수치 · 파일 경로 · 조건을 표로 고정하고, 판단이 필요한 자리는 원본 문서 링크로 되돌린다.
+    </p>
+    <p class="lede">
+      규칙 하나로 요약하면 — <b>말을 걸면 값이 든다.</b> 조각 · 태도 · 의심도 · 처형 · 표결 전부가
+      그 한 줄의 가지다. 그리고 헌법 열네 줄(§1.3)이 깨지면 다른 게임이다.
+    </p>
+  </header>
+
+  <!-- ═══ TOC ═══ -->
+  <nav class="toc">
+    <a href="#s1"><span class="tn">§1</span><span class="tt">구축 — 설계 총론</span><span class="td">코어 루프 · 헌법 14 · 시스템 5 · 로드맵</span></a>
+    <a href="#s2"><span class="tn">§2</span><span class="tt">흐름</span><span class="td">두 트랙 · 일곱 구간 · 집행 상태 기계 · 데이터</span></a>
+    <a href="#s3"><span class="tn">§3</span><span class="tt">대사 — 씬 색인</span><span class="td">챕터별 씬 · 트리거 · 분기 · 수치 색인</span></a>
+    <a href="#s4"><span class="tn">§4</span><span class="tt">맵 구성</span><span class="td">7방 스펙 · 동심원 · 배치 규칙 · 디렉터 슬롯</span></a>
+    <a href="#s5"><span class="tn">§5</span><span class="tt">캐릭터</span><span class="td">마모=성격 · 개체 10 시트 · 태도 · 이벤트 9</span></a>
+    <a href="#s6"><span class="tn">§6</span><span class="tt">AI 아키텍처</span><span class="td">판정 3층 · 원장 · 디렉터 · 안전장치 · 예산</span></a>
+    <a href="#s7"><span class="tn">§7</span><span class="tt">기술 스택 통합</span><span class="td">three.js · Supabase · Tripo · UXPilot · Higgsfield · LLM 라우팅</span></a>
+    <a href="#s8"><span class="tn">§8</span><span class="tt">테스트 흐름</span><span class="td">로컬 4단 파이프라인 · 시험 인벤토리 · 지표</span></a>
+    <a href="#s9"><span class="tn">§9</span><span class="tt">1인 / 3인 동작 처리</span><span class="td">인원별 매트릭스 · 이탈/재접속 · SOLO</span></a>
+  </nav>
+
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>원본 문서</th><th>담당</th><th>링크 (수정은 반드시 원본에서)</th></tr></thead>
+      <tbody>
+        <tr><td class="k">쉬어 본 적 있나</td><td>대사 전문 v8 · 7구간 · 중앙 시설 단일 통과</td><td class="f"><a href="https://claude.ai/code/artifact/c62be8de-a2aa-48d8-adb5-40cb0699392b">artifact/c62be8de</a></td></tr>
+        <tr><td class="k">누가 듣고 있나</td><td>레벨 설계 v2 · 7방</td><td class="f"><a href="https://claude.ai/code/artifact/2cdefaa4-ef95-427c-a436-a24dac331b0d">artifact/2cdefaa4</a></td></tr>
+        <tr><td class="k">어디가 닳았나</td><td>캐릭터 v2 · 개체 10</td><td class="f"><a href="https://claude.ai/code/artifact/5f210d91-609e-407b-8b6e-381df8e29971">artifact/5f210d91</a></td></tr>
+        <tr><td class="k">한 마디의 값</td><td>통합 설계 · 헌법</td><td class="f"><a href="https://claude.ai/code/artifact/11f52082-ce6f-4900-9a21-929a6b359c2e">artifact/11f52082</a></td></tr>
+        <tr><td class="k">믿을지는 쟤가 정한다</td><td>AI 아키텍처</td><td class="f"><a href="https://claude.ai/code/artifact/dd91fe17-5e90-459c-8906-68a62a38b8fb">artifact/dd91fe17</a></td></tr>
+        <tr><td class="k">걸어오는 것</td><td>집행 설계</td><td class="f"><a href="https://claude.ai/code/artifact/bd38dc2d-59c3-43c6-ae37-d1139b38422a">artifact/bd38dc2d</a></td></tr>
+        <tr><td class="k">어디서 죽을 것인가</td><td>world2 집행 개정 (게임)</td><td class="f"><a href="https://claude.ai/code/artifact/cbeb704e-ad9c-4c8f-a7e5-6c10dfb812c6">artifact/cbeb704e</a></td></tr>
+        <tr><td class="k">빌리되 건드리지 않는다</td><td>world2 집행 개정 (코드)</td><td class="f"><a href="https://claude.ai/code/artifact/46c2bb98-c393-4240-bd6b-90400e32e3bd">artifact/46c2bb98</a></td></tr>
+        <tr><td class="k">두 판이 도는 길</td><td>전체 흐름도</td><td class="f"><a href="https://claude.ai/code/artifact/d989d092-0f26-4df4-8b11-2ce353b8434a">artifact/d989d092</a></td></tr>
+        <tr><td class="k">Who is human 대사 흐름</td><td>대사 흐름 요약 v8 · 씬별 판정 주체 · 어색한 자리 19</td><td class="f"><a href="plan-dialogue-flow.html">docs/design/plan-dialogue-flow.html</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══════════ §1 구축 ═══════════ -->
+  <section id="s1">
+    <div class="sec-head"><span class="sec-label">§1 · 구축</span><h2>설계 총론 — 무엇을 만드는가</h2></div>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>항목</th><th>값</th></tr></thead>
+        <tbody>
+          <tr><td class="k">장르</td><td>사회적 잠입 · 대화 스릴러 (3D 웹)</td></tr>
+          <tr><td class="k">인원</td><td>1–3인 (빈 자리는 NPC — §9)</td></tr>
+          <tr><td class="k">한 판</td><td>약 47분 · 일곱 챕터 · 일곱 구간 (v8 — 중앙 시설 재통과 삭제)</td></tr>
+          <tr><td class="k">코어 판타지</td><td>내가 한 말이 세계에 남는다</td></tr>
+          <tr><td class="k">판정 주체</td><td>개체(모델)가 직접 판정 — 서버는 적고 · 더하고 · 되돌릴 수 없는 것만 한 번 더 묻는다</td></tr>
+          <tr><td class="k">계량기</td><td>의심도(개인 0–100 · 100=집행) / 경보도(셋 공용 0–100 · 100=봉쇄). SYNC 폐기</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>1.1 코어 루프 — 본다 · 건다 · 남는다 · 돈다 · 돌아온다</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>#</th><th>단계</th><th>구현 포인트</th></tr></thead>
+        <tbody>
+          <tr><td class="d">1</td><td class="k">본다</td><td>마모(실루엣)로 상대를 짐작 · 주제(어휘)는 3경로로 획득: 겪고·듣고·읽는다 — §3.1</td></tr>
+          <tr><td class="d">2</td><td class="k">건다</td><td>Enter 자유 입력. 값 셋: 시간 · 노출(조각) · 의심</td></tr>
+          <tr><td class="d">3</td><td class="k">남는다</td><td>목격 반경 안 개체에 조각 · 그 개체의 태도/원장 갱신 (모델 판정)</td></tr>
+          <tr><td class="d">4</td><td class="k">돈다</td><td>조각 전파 — 감쇠, 신뢰도 0.55 출처 유지 / 0.30 출처 소실, hop 뒤틀림</td></tr>
+          <tr><td class="d">5</td><td class="k">돌아온다</td><td>검문 press · 증인 · 리더 지목 · 재회 대사의 재료</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>1.2 시스템 다섯 — 위는 관계로, 아래는 소문으로</h3>
+    <p class="col">한 마디가 둘로 갈린다. <b>윗줄(개체 판정 → 태도/원장 → 표결)은 모델</b>,
+    <b>아랫줄(조각 → 전파 → 검문 회귀)은 규칙(서버)</b>. 둘이 마지막 방에서 다시 만난다 —
+    하나는 변호로, 하나는 지목 근거로.</p>
+
+    <h3>1.3 헌법 열네 줄 — 어기면 다른 게임</h3>
+    <ul class="laws">
+      <li><span class="ln">1 · 사실은 서버, 해석은 개체</span>번호/몸 상태는 서버의 사실. 받아들임만 모델.</li>
+      <li><span class="ln">2 · 판정은 발화와 같은 호출</span>판정이 먼저 오고(120ms) 대사가 따른다. 화면은 안 기다린다.</li>
+      <li><span class="ln">3 · 근거 없는 문장 금지</span>조각 id 인용 가능할 때만 그 사실을 말한다.</li>
+      <li><span class="ln">4 · 조각은 사람이 읽는 한 줄</span>벡터 저장 금지 — 설명 가능성.</li>
+      <li><span class="ln">5 · 불변점은 반드시 일어난다</span>락다운·검문·이송. 조각은 인식만 바꾼다.</li>
+      <li class="warm"><span class="ln">6 · 위로에는 예외 없이 값</span>공짜 호감 금지.</li>
+      <li class="warm"><span class="ln">7 · 친밀도는 검문을 대신 통과 못 함</span>대신 총구 앞에는 설 수 있다.</li>
+      <li class="warm"><span class="ln">8 · 태도는 숫자로 안 보인다</span>자세로만. 결말 뒤에만 원장 공개.</li>
+      <li><span class="ln">9 · 경보도는 아무도 지목 안 함</span>기여자 영구 비공개 — 의심은 플레이어 몫.</li>
+      <li><span class="ln">10 · 모델 사망 = 마지막 태도로 동결</span>고정 대사 3벌. 아무도 안 쏜다.</li>
+      <li class="warm"><span class="ln">11 · 원장은 지워지지 않는다</span>추가만 — 주입 공격의 구조적 방어.</li>
+      <li class="warm"><span class="ln">12 · 한 마디 태도 상한 ±3</span>한 문장이 40분을 못 지운다. (통상 ±1, 대사건만 +2)</li>
+      <li class="warm"><span class="ln">13 · 의심도 단일 상한 +25</span>100 전에 60·80 경고를 반드시 본다.</li>
+      <li class="warm"><span class="ln">14 · 집행은 걸어온다 · 최소 8초</span>예외는 즉결형·재검실뿐.</li>
+    </ul>
+
+    <h3>1.4 구현 로드맵 (모델은 네 번째)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>PHASE</th><th>내용</th><th>모델</th></tr></thead>
+        <tbody>
+          <tr><td class="d">1</td><td>규칙 뼈대 — 조각 자료구조 · 목격 판정 · 감쇠 · 뒤틀림 · 개체 기억</td><td class="m">0회</td></tr>
+          <tr><td class="d">2</td><td>말 걸기 · 태도 −3~+3 · 판정 원장 구조(임시 낱말 대조) · 벽화→어휘</td><td class="m">0회 — 여기까지 게임의 절반</td></tr>
+          <tr><td class="d">3</td><td>집행과 예고 — 문턱별 집행자 위치 · 개입 창 · UNSLING</td><td class="m">0회</td></tr>
+          <tr><td class="d">4</td><td>L1 발화 — 판정+대사 한 호출 · 스트리밍 · 첫 글자 300ms</td><td class="m">시작</td></tr>
+          <tr><td class="d">5</td><td>L2 배경 전파 — 조각 생성/전파를 모델로</td><td class="m">배경 2–10초</td></tr>
+          <tr><td class="d">6–9</td><td>방 셋 → 표결·결말 → 3인 세션 → 기록 복도·회차</td><td class="m">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">world2 는 현재 PHASE 1–3 구간을 도는 중이다(모델 0회 원칙 유지). <b>사람이 죽는 판정에 모델을 부르는 통로는 어느 PHASE 에서도 만들지 않는다.</b></p>
+  </section>
+
+  <!-- ═══════════ §2 흐름 ═══════════ -->
+  <section id="s2">
+    <div class="sec-head"><span class="sec-label">§2 · 흐름</span><h2>두 트랙 · 일곱 구간 · 집행 · 데이터</h2></div>
+
+    <figure>
+      <div class="plate">
+        <pre class="mermaid">
+flowchart LR
+  subgraph MAIN["본판 — WorldFeature + RoomDO 멀티(최대 3인)"]
+    direction LR
+    P["/play"] --> W["/world 복도"] --> C["/central 중앙시설"] --> R["/recheck 재검"] --> A["/interrogation 아레나"]
+  end
+  subgraph S2["world2 — SOLO · 자체 등록부 MAPS2"]
+    direction LR
+    H["복도"] --> REST["휴게 90초"] --> C2["central2 코어 ★<br/>밝음 → 락다운 → 어둠"] --> WORK["작업 소각로"] --> ARC["기록 복도"] --> WIN["창이 있는 방"]
+  end
+  WIN -. "handover (sessionStorage)" .-> A
+  style C2 fill:#EDE0C9,stroke:#8E5405,color:#101619
+        </pre>
+      </div>
+      <figcaption>★ = 「어디서 죽을 것인가」 개정으로 신설. <b>재통과(3′)는 v8 에서 삭제</b> — 재회 · 어둠 · 빈 자리는 central2 의 국면으로 접혔다(대사 v8 챕터 3 · TRIGGERS). 두 판의 결합점은 <b>의심도 싱글턴</b>(<code>src/world/mp/suspicion.ts</code> · bindCross 단일 슬롯)과 <b>handover</b>(현재 write-only) 둘뿐.</figcaption>
+    </figure>
+
+    <h3>2.1 집행 상태 기계 (world2 · <code>execution.ts</code>)</h3>
+    <figure>
+      <div class="plate">
+        <pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> posted : 의심도 60 문가
+  posted --> watch : 80 시선
+  watch --> approach : 100 걸어온다 (방별 8–14초 고정)
+  approach --> unsling : 도착 · 1.5초
+  unsling --> aim : 0.4초
+  aim --> dead : 발사
+  approach --> blocked : cover 태도+2 · 4m 안 · 3초 정지 → 의심 −10
+  blocked --> approach
+  approach --> spared : standIn 태도+3 · 원장 조건 · 의심 −40 · 판당 1회
+  note right of approach : 개정 — 이동 허용(문 방향 ±35°만 flee) · 콘솔 dimmed 15초 · 코어 조명 추적(판에 1회)
+  note right of dead : 개정 — zone 배율 반경에 목격 조각 · 경보도는 위치 무관 +25 고정
+        </pre>
+      </div>
+    </figure>
+
+    <h3>2.2 죽음 세 종류</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>종류</th><th>계기</th><th>도달</th><th>막기</th></tr></thead>
+        <tbody>
+          <tr><td class="k">누적형</td><td>의심도 100</td><td class="d">걸어옴 · 방별 8–14초</td><td class="ok">개체가 막을 수 있다 (cover / standIn)</td></tr>
+          <tr><td class="k">즉결형</td><td>기록 불일치 · 적대 (모델 미경유)</td><td class="d">그 자리 1.5초</td><td class="hot">불가</td></tr>
+          <tr><td class="k">판결형</td><td>마지막 방 지목 확정</td><td class="d">원 안 4초</td><td>표결이 이미 답</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2.3 문턱 방송 (전 챕터 공용)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>의심도</th><th>방송 · 효과</th><th>경보도</th><th>효과</th></tr></thead>
+        <tbody>
+          <tr><td class="d">40</td><td>"패턴 편차. 관측을 지속한다." — 감시가 붙음</td><td class="d">40</td><td>관문 15초 → 12초</td></tr>
+          <tr><td class="d">60</td><td>"개체 스캔을 요청한다." — 3.8초 스캔, 움직이면 실패 / 집행자 문가 배치</td><td class="d">60</td><td>순찰 증편 · 격리 기준 하향</td></tr>
+          <tr><td class="d">80</td><td>"이상 징후. 신원 재확인." — 전원 응시 · 집행자 방 안 진입</td><td class="d">80</td><td>검문 press 기본화</td></tr>
+          <tr><td class="d">100</td><td>"판정: 인간. 보안 개시." → EIGHT_STEPS</td><td class="d">100</td><td>구역 봉쇄 · 전멸</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2.4 회차 연결 (NEXT_RUN — 다음 판 복도의 새 벽화)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>지난 결말</th><th>새 그림</th><th>이월</th></tr></thead>
+        <tbody>
+          <tr><td>개인③ 팔고 통과</td><td>하나가 하나를 세워 두고 나감</td><td class="d">초기 태도 −1단계</td></tr>
+          <tr><td>개인④ 보내 줌</td><td>문 밖 하나 · 안쪽이 손을 듦</td><td class="d">갈망형 +1</td></tr>
+          <tr><td>개인⑤ 대신 죽음</td><td>누운 개체 위 금 열여섯</td><td class="d">—</td></tr>
+          <tr><td>팀 「둘」</td><td>둘이 하나를 세워 두고 나감</td><td class="d">초기 태도 −1단계</td></tr>
+          <tr><td>팀 「셋 다」</td><td>문 앞 셋 · 전원 손을 듦</td><td class="d">갈망형 +2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════ §3 대사 ═══════════ -->
+  <section id="s3">
+    <div class="sec-head"><span class="sec-label">§3 · 대사</span><h2>씬 색인 — 트리거 · 분기 · 수치</h2></div>
+
+    <p class="col">전문은 「쉬어 본 적 있나」. 여기는 <b>구현 조건 색인</b>이다. 공통 원칙:
+    개체는 반말(기계 말투는 SYSTEM·검문 장치·공지만), 인간 측만 존댓말,
+    치환자 <code>${series} ${unit} ${sector}</code>는 발화 직전 <code>identity.fill()</code>,
+    동료는 <code>{동료}</code>(판마다 다름).</p>
+
+    <h3>3.1 주제(어휘) 3경로 — 겪고 · 듣고 · 읽는다 (v7 개정 · 게임의 열쇠)</h3>
+    <p class="col">벽화가 주는 것은 <b>문장이 아니라 주제</b>다 — 「」 문장은 예시일 뿐, 개체는 뜻으로 읽는다(태그 매칭 아님).
+    같은 주제가 <b>최소 두 경로</b>로 열린다. 도달률 튜닝은 벽이 아니라 <b>엿듣기 빈도(디렉터 손잡이 · 판당 기본 3회)</b>.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>주제 · 예시 문장</th><th>① 겪는다 (행동 목격)</th><th>② 듣는다 (OVERHEAR 2마디)</th><th>③ 읽는다</th><th>효과</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td class="m">쉼 「쉬어 본 적 있나」</td><td>DOZE — 자는 개체</td><td>「쉬었어?」 「…아직.」</td><td>resting</td><td>갈망형 최강 · 마지막 방 반박 근거</td></tr>
+          <tr><td class="m">밖 「해를 본 적 있나」</td><td>빈 벽 응시 개체</td><td>「저쪽이 서쪽이래.」</td><td>window</td><td>밖을 아는 자 탐지 · 세력 셋째 열쇠</td></tr>
+          <tr><td class="m">운반 「몇 밤을 날랐나」</td><td>A-012 의 큰 짐</td><td>「몇 밤째야?」</td><td>carry</td><td>숫자 질문 — 냉소형도 답함 · 가장 안전</td></tr>
+          <tr><td class="m">위험 「누가 시켰나」</td><td>A-063 그을린 앞면</td><td>「걔 앞만 탔더라.」</td><td>danger</td><td class="hot">위험 — 신봉형이 들으면 리더 직행 조각</td></tr>
+          <tr><td class="m">기억 「열다섯을 기억하나」</td><td>금 세는 개체</td><td>「몇이었지.」 「열다섯.」</td><td>memorial</td><td>판당 1회 · 태도 즉시 +2단계</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>OVERHEAR 규격</b>: 배회 개체 둘 · 두 마디 골격 + 감독 20자 · 들리는 범위 = 그 방의 목격 반경(들으러 가면 나도 보인다) · 배치는 디렉터 슬롯.
+    <b>A-155 메모</b>: 세계관 안에서 정당화되는 유일한 텍스트 힌트(전임 요원의 긁힌 글 · 판당 2곳 · 응시 판정 재사용).
+    <b>3인 암구호는 벽화 몫</b>: 「벽에 있던 말」임을 아는 건 벽을 본 사람뿐 — 동료 확인은 벽화 내용 지식으로 걸고, 고정 응답 "…그거, 벽에 있던 말인데."는 <b>폴백에서도 반드시 동작</b>.</p>
+
+    <h3>3.2 챕터별 핵심 씬 (트리거 → 결과)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>챕터</th><th>씬</th><th>트리거 · 규칙 · 수치</th></tr></thead>
+        <tbody>
+          <tr><td class="k" rowspan="4">1 복도</td><td class="m">FIRST_LOOK</td><td>과학자 설명이 끝난 뒤 개체가 먼저 말 걺(입력 튜토리얼 대체) · 판정 ±0 — 가르치는 씬에서 죽이지 않는다</td></tr>
+          <tr><td class="m">NOTICE</td><td>의심도 첫 상승 = 근처 개체가 <b>1.2초</b> 응시(숫자 설명 없음) · 판당 1회</td></tr>
+          <tr><td class="m">tagLines</td><td>명판 후보 셋: A-091/4구역 · A-063/7구역 · A-137/2구역. "마지막 정비"는 미기재 — 재검에서 '모른다'가 정답</td></tr>
+          <tr><td class="m">WATCH</td><td>의심도 40 · UNIT-21 "어이. 잠깐만." — 첫 자유 응답 시험 · 틀려도 원장 1줄만</td></tr>
+          <tr><td class="k" rowspan="2">2 휴게</td><td class="m">STILL</td><td>90초 강제 대기 · <b>0.6m 초과 이동 시 의심 +6</b> + 개체 "왜 그렇게 서성여?" · 40초 정지 시 과학자에게 첫 반항 대사</td></tr>
+          <tr><td class="m">DOZE</td><td>자는 개체 — "절전은 명령으로 들어가는 거고. 쟤는 그냥 자는 거야." (resting 실물화)</td></tr>
+          <tr><td class="k" rowspan="7">3 중앙<br><span style="font-weight:400;opacity:.7">국면 셋 · 상태 트리거</span></td><td class="m">TRIGGERS</td><td>순서 고정은 밝음 → 락다운 → 어둠만. 재회 슬롯 2(복도·휴게 원장 보유 개체) · 소문/기억 짝 · 락다운이 자리 고정(4 m) · 콘솔 이력 · 처형 위치 · 무접촉이면 검문만 남는다</td></tr>
+          <tr><td class="m">RECOGNIZED</td><td>대본 없음 — 원장에서 생성. +2↑: 원장 줄 인용 + 눈앞 검문 정보(+1) / 0: 「어디 있다 왔어?」 어긋나면 −1 / −2↓: 「쟤 아까 그 애야」 나쁜 조각(전파 거리 0 → 관문① press) / 무접촉: 배경 개체 · 「아무도 나를 모른다」는 어둠 국면에</td></tr>
+          <tr><td class="m">CORE_RING</td><td>코어권: 전파 ×3 · 새 몸 판독 시 의심 +2 「몸이 안 맞는다」(태도 +2↑ 개체는 "부럽다") / 벽 그늘: ×0.4 · 30초 체류 시 판정 −1</td></tr>
+          <tr><td class="m">RUMOR</td><td>조각 도착 판당 최대 2회 · 신뢰도 0.55 출처 유지 / 0.30 소실 · "내 말이다/아니다" 속마음(출처 영구 비공개)</td></tr>
+          <tr><td class="m">LOCKDOWN·FREEZE</td><td>불변점 · 위치 고수 0.6m(+10) · <b>자리 고정</b> — 4 m 안 개체 = 목격자·감싸기·개입 후보 · 태도 +2↑ 재회 개체는 두 걸음 다가옴(개체는 명령 대상 아님)</td></tr>
+          <tr><td class="m">관문①②③</td><td>15초(경보 40이면 12초) · 대본 + 감독 20자: 통과/escort/유예/press/즉결. 관문① 추가 갈래: press + 4 m 안 태도 +2↑ → 「막아준다」(press 1 삭감 · 판당 1 · 원장 「나를 위해 나선 적 있다」) / RECOGNIZED 나쁜 조각 → 「방금 누가 너 얘기하던데」 press. 굉음 PROTOCOL: 돌아보면 +12, 견디면 −2 (판정 창 0.35초)</td></tr>
+          <tr><td class="m">VERDICT·DIM → DARK_CORE · EMPTY_SEAT · LEAVE_CORE</td><td>어둠 국면 2분: 조명 40% · 판독 4m · 전파 ×1 · 위치 고수 해제 · 검문 없음 · 경보 안 오름. DARK_CORE: 콘솔 썼던 판 「아까 왜 껐어」 −2 · 어둠 중 콘솔 무효 「이미 내려갔어」 −1. EMPTY_SEAT(3인 · 이 방에서 처리된 판): 자리 비움 · 코어권 「다들 봤어」 / 그늘 「어두워서」. LEAVE_CORE: +2↑ 재회 개체 「…또 봐」</td></tr>
+          <tr class="hl"><td class="k">4 작업</td><td class="m">THE_FURNACE</td><td><b>8초 · 목표 미표시.</b> A-201 투입. 막으면: 의심 +30 · 경보 +15 · 목격 전원 태도 +1 · A-063 +3, A-201 생존. 안 막으면: 수치 0 · A-063 −3 · 벽의 금 15→16. 두 주기 일하면 「같이 일했다」 +1 — <b>새 몸 페널티의 유일한 회수처</b></td></tr>
+          <tr><td class="k" rowspan="3">5 검증</td><td class="m">QUEUE</td><td>줄 순서 = 의심도 낮은 순 · 속삭임 전파 거리 0(다음 검문에 즉시 도착) · 조각 2개 이상 = 재검행</td></tr>
+          <tr><td class="m">QUEUE_DEATH</td><td>분기 A(무관 개체 +경보10) / B(내 조각 연루 +경보14 · 내 의심 +8) / C(3인 · 동료 사살 +경보18 · "움직이지 마라" 0.6m 위반 +25)</td></tr>
+          <tr><td class="m">WITNESS</td><td>재검실 증인(조각 최다 개체): 태도0 중립 / 1 +6 / 2 −4(흐려줌) / 3 −10+동행 / 신봉 +18. 의심 60↑이면 동료 소환: 감싸기(나 +20) · 팔기(상대 +25 나 −10) · 침묵(상대 +10) — 배신이 가장 싸다(의도)</td></tr>
+          <tr><td class="k">6 기록</td><td class="m">ARCHIVE</td><td>속마음 4줄뿐 · "금이 — 열여섯이다"(설명 없음) · A-155 그림은 낮게(사람 키) — 높이 하나로 "사람이 그렸다" 전달 · 창이 있는 방: 리더 첫 대면 30초 무사건</td></tr>
+          <tr><td class="k" rowspan="3">7 마지막</td><td class="m">ACCUSE·VOTE</td><td>조각으로 지목 · 비지목자 반박 8초. 발언은 개체가 원장 읽고 결정(단계표 폐기) · 동료가 반박하면 <b>그 동료 +30</b> + 리더 되물음. 반박 2↑ = 질문 연장 / 1↓ = 확정 방향</td></tr>
+          <tr><td class="m">HAND_OVER</td><td>비지목 둘 전용: [E]침묵=확정 / [Q]반박 +30 / [R]다른 이름 −10 — <b>조각 1개 이상 보유 시에만</b></td></tr>
+          <tr><td class="m">STAND_IN</td><td>원장 「나를 위해 나선 적 있다」 보유 개체만 · [E] 그대로 / [Q] 거부 가능(생존 급락) — EIGHT_STEPS(강제)와 대칭</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>3.3 수치 색인 (밸런스 단일표)</h3>
+    <pre><span class="c">// 의심도(개인)</span>
++6 냉소형 헛질문 · 휴게 STILL 이동   +8 심문 무응답(18초) · QUEUE_DEATH B 연루
++10 위치 고수 위반                   +12 굉음 돌아봄 · fear 인정 · (경보) 신봉형 암구호
++18 신봉형 증인                      +20 동료 감싸기      +25 분기 C 이동 · <b>단일 상한</b>
++30 소각로 저지 · VOTE 동료 반박 · HAND_OVER [Q]
+−2 굉음 견딤   −4 증인 태도2   −10 증인 태도3 · HAND_OVER [R]   −16 선제 보고
+=100 즉결   →90 걸음4–5 응답   →60 대신 부서짐   −40 spared(world2)
+<span class="c">// 경보도(공용)</span>  +10 A-118 사살 · +12 신봉형 암구호 · +14 조각 연루 사살 · +15 소각로 저지 · +18 동료 사살 · +25 처형(위치 무관 고정)
+<span class="c">// 시간</span>  관문 15s(경보40→12s) · entry 14s · 재검 답변 26s · FURNACE 8s · 반박 8s · STILL 90s · 창 30s · 스캔 3.8s · 무응답 18s · 굉음 판정창 0.35s</pre>
+  </section>
+
+  <!-- ═══════════ §4 맵 ═══════════ -->
+  <section id="s4">
+    <div class="sec-head"><span class="sec-label">§4 · 맵 구성</span><h2>일곱 방 — 표가 곧 밸런스 문서</h2></div>
+
+    <p class="col">여덟 원칙 요약: ①소리 반경=조각 반경 ②거리=제한시간 ③읽으려면 등을 보인다
+    ④한 화면에 다 들어온다 ⑤밝을수록 내 몸이 읽힌다 ⑥원장은 재회에서 갚아진다
+    ⑦여덟 걸음 안에 몇이 닿나 ⑧조명은 실루엣만 남긴다. <b>벽을 옮기면 규칙이 바뀐다.</b></p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>#</th><th>방</th><th>치수</th><th>목격 반경</th><th>판독</th><th>개입</th><th>집행 도달</th><th>체류</th></tr></thead>
+        <tbody>
+          <tr><td class="d">1</td><td class="k">복도</td><td class="d">4×22m L자</td><td class="d">6m</td><td class="d">3m</td><td class="d">1–2</td><td class="d">14s</td><td>무제한 · 유일한 회귀 가능</td></tr>
+          <tr><td class="d">2</td><td class="k">휴게 구역</td><td class="d">12×14m · 천장 2.2m</td><td class="d">방 전체</td><td class="d">1.5m</td><td class="d">6+</td><td class="d">9s</td><td>90초 강제 · 차폐물 전무</td></tr>
+          <tr><td class="d">3</td><td class="k">중앙 시설</td><td class="d">지름 26m 원형</td><td class="d">10m</td><td class="d">코어권 전체 → 어둠 4m</td><td class="d">6+ → 락다운 후 4m 안</td><td class="d">11s</td><td>약 9분 · 국면 셋 · 문 ①② 동선, ③④ 잠김 · 락다운 시 출구 0 · 어둠 2분 검문 없음</td></tr>
+          <tr><td class="d">4</td><td class="k">작업 구역</td><td class="d">8×34m 라인</td><td class="d">8m</td><td class="d">5m</td><td class="d">2–3</td><td class="d">12s</td><td>소각로까지 26m = 뛰어서 8초</td></tr>
+          <tr><td class="d">5</td><td class="k">검증·재검</td><td class="d">폭 2m 통로 + 5×5</td><td class="d">앞뒤 1명</td><td class="d">1m</td><td class="d">2</td><td class="d hot">3s / 재검실 0s</td><td>유도등 경로 강제 · 유리 관전</td></tr>
+          <tr><td class="d">6</td><td class="k">기록 복도</td><td class="d">3×60m 곡선 + 4×4</td><td class="d">0</td><td class="d">0</td><td class="d">0</td><td class="d">— 없음</td><td>2분 · 의심도 안 오름</td></tr>
+          <tr><td class="d">7</td><td class="k">마지막 방</td><td class="d">지름 12m 원형</td><td class="d">전원</td><td class="d">전체</td><td class="d">전원</td><td class="d">4s</td><td>사각지대 0 · 문 하나</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4.1 중앙 시설 동심원 (corefield 단일 출처)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>구역</th><th>전파</th><th>조명·판독</th><th>개입</th><th>여기서 죽으면 (개정)</th></tr></thead>
+        <tbody>
+          <tr><td class="k">코어권 r6</td><td class="d">×3</td><td>최대 — 몸이 다 읽힘</td><td class="d">6+</td><td>방 전체가 목격 · 벽화 금 굵게 · 개입 후보 최다</td></tr>
+          <tr><td class="k">홀 r10</td><td class="d">×1</td><td>기본</td><td class="d">2–4</td><td>반경 안 개체만 목격</td></tr>
+          <tr><td class="k">벽 그늘</td><td class="d">×0.4</td><td>어두움 — 서로 안 읽힘</td><td class="d">0–1</td><td class="hot">조용히 죽는다 · 나설 개체 없음</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>콘솔(남서벽)</b>: 코어 출력 하강 15초 — 전파 ×0.4 · 조명 하강. 비용: 본 개체 전원 태도 −1 · 경보 +12 · 디렉터 압박 상승. <b>락다운</b>: 문 넷 동시 폐쇄 · 허용 이동 0.6m(개체 간격은 그보다 넓게).</p>
+
+    <h3>4.2 방별 핵심 배치 규칙</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>방</th><th>깨면 안 되는 배치</th></tr></thead>
+        <tbody>
+          <tr><td class="k">복도</td><td>벽화 6장은 꺾임 안쪽(정면 응시 = 순찰에 등 보임) · 단말은 벽화보다 먼저 · 순찰 40초 왕복(벽화 1장 12초 → 주기당 2장 한계) · 개체 5는 서로 6m 이상 이격</td></tr>
+          <tr><td class="k">휴게</td><td>입출구 정면 마주봄(12m 직선인데 90초 잠김) · 차폐 전부 금지 · 앉는 단은 벽에만 · "밖을 본 것"은 빈 서쪽 벽 앞 · 자는 개체는 최안쪽 구석</td></tr>
+          <tr><td class="k">중앙</td><td>검문 지점은 벽 쪽 + 코어권 군중과 겹침 · 재회 슬롯 둘은 문 ① 정면 좌우 홀(진입하며 판독 거리 안) · 락다운 후 개입 거리 4 m · 어둠 국면 콘솔 무효 · 처리된 자리는 비워 둠</td></tr>
+          <tr><td class="k">작업</td><td>작업 위치–소각로 26m 고정 · 소각로는 정면에 보임 · 컨베이어 절대 안 멈춤 · A-063 소각로 옆 벽(뛰면 그 앞을 지남) · A-012 라인 최선두</td></tr>
+          <tr><td class="k">검증</td><td>통로 폭 2m(말이 앞뒤로만) · 유리는 재검실–대기 정면(눈 마주침) · 재검실 다른 출구 금지 · 격리는 반대쪽 통로(끝은 안 보여줌)</td></tr>
+          <tr><td class="k">기록</td><td>곡선(끝이 안 보이게) · 조명 벽면만 · 금16 벽화는 정확히 중간 · A-155 그림만 낮게(사람 키) · 창은 높게(빛만)</td></tr>
+          <tr><td class="k">마지막</td><td>요원 셋 분산(붙으면 3대5로 보임) · 리더는 문 정반대 · 호 자리는 원장이 정함(태도순) · <b>부서진 개체 자리는 비워 둠</b> · 조명 중앙 1(발언자가 반 걸음 나오면 밝아짐)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4.3 디렉터 슬롯</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>방</th><th>고정</th><th>슬롯</th><th>용도</th></tr></thead>
+        <tbody>
+          <tr><td class="k">복도</td><td>A-137 · UNIT-21</td><td class="d">1</td><td>첫 인상 · 말 걸기 쉬운 개체</td></tr>
+          <tr><td class="k">휴게</td><td>A-104 · A-201</td><td class="d">3</td><td>성격 다른 셋 (원장이 비어 있는 시점)</td></tr>
+          <tr><td class="k">중앙</td><td>UNIT-21 · 검문 둘</td><td class="d">4</td><td>씨앗 둘 — 어긋남을 본 개체를 코어권에 · 재회 둘 — 복도·휴게 원장 보유 개체를 홀 진입 정면에</td></tr>
+          <tr><td class="k">작업</td><td>A-201 · 라인 넷</td><td class="d">2</td><td>태도 − 개체(소각로 압박)</td></tr>
+          <tr><td class="k">검증</td><td>검증관 · 줄 여섯</td><td class="d">2</td><td>줄 앞뒤(태도 + 를 앞에)</td></tr>
+          <tr><td class="k">기록</td><td>없음</td><td class="d">0</td><td>유일한 0 — 설계다</td></tr>
+          <tr><td class="k">마지막</td><td>리더 · 요원</td><td class="d">호 전체</td><td>배치 = 결과</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════ §5 캐릭터 ═══════════ -->
+  <section id="s5">
+    <div class="sec-head"><span class="sec-label">§5 · 캐릭터</span><h2>마모 = 이력 = 성격 · 개체 열</h2></div>
+
+    <p class="pull">개체들이 나를 처음 읽는 방식 — <b>「너 어디가 닳았어?」</b> 내 몸은 안 닳았고, 번호가 낮으면 몸과 기록이 어긋난다.</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>#</th><th>번호·호칭</th><th>유형</th><th>믿는 것</th><th>열쇠</th><th>가시</th><th>선(−3 · 불가역)</th><th>편/적</th></tr></thead>
+        <tbody>
+          <tr><td class="d">1</td><td class="k">A-104 어깨가 닳은 것</td><td class="m">갈망·온순</td><td>「쉰다」를 배우는 중 · 누가 고쳐 줬다</td><td>노동/몸/쉼 +2</td><td>명령·업무만 0</td><td>남을 가리킴</td><td>대신 나서는 유일 개체 / 등 돌림</td></tr>
+          <tr><td class="d">2</td><td class="k">A-089 고치지 않은 것</td><td class="m">체념·냉소</td><td>여기라고 달라진 건 없다</td><td>없음 — +1 상한</td><td>쉼/밖 −1</td><td>없음(적도 안 됨)</td><td>안 열림 / 침묵(거부 아님)</td></tr>
+          <tr><td class="d">3</td><td class="k">A-012 새것으로 채운 것</td><td class="m">신봉·밀고</td><td>먼저 온 것이 데려왔다</td><td>업무 +1</td><td>노동/밖 −2 즉시 보고</td><td>「누가 시켰어?」</td><td>+2 상한 / <b>가장 비싼 적</b>(증인+동조)</td></tr>
+          <tr><td class="d">4</td><td class="k">A-201 열하루째</td><td class="m">순진</td><td>아무것도 모른다</td><td>무엇이든 +1</td><td>거짓 −2(그대로 옮김)</td><td>남을 가리킴</td><td>가장 빨리 +3 · 가장 쉽게 죽음 / 악의 없는 전달자</td></tr>
+          <tr><td class="d">5</td><td class="k">A-063 앞이 그은 것</td><td class="m">경계·과묵</td><td>들어갔다 나온 건 나 하나</td><td>같은 질문 3회 → +3 일괄</td><td>명령 −2</td><td>소각로 방관 목격 시 무언 −3</td><td>몸으로 앞에 섬 / 리더에게 끄덕임</td></tr>
+          <tr><td class="d">6</td><td class="k">A-118 손끝이 닳은 것</td><td class="m">완벽·불안</td><td>여기서도 틀리면 안 된다</td><td>업무 +2</td><td>쉼 −1</td><td>거짓 정보</td><td>검문 순서·질문 통째 제공(최고 정보) / 적 될 시간 없음 — 줄에서 0.4초 늦어 죽는다</td></tr>
+          <tr><td class="d">7</td><td class="k">A-137 얼굴에 금을 그은 것</td><td class="m">호기심·그림</td><td>겪은 걸 남겨야 한다</td><td>벽화 +2 · 정확히 +3</td><td>업무 0</td><td>「그 벽 아무것도 아니야」</td><td>미열람 벽화 위치 제공 / 다음 판 벽화에 나를 그림</td></tr>
+          <tr><td class="d">8</td><td class="k">UNIT-21 무릎이 닳은 것</td><td class="m">피로·직업</td><td>누가 문을 지켜야 하니까</td><td>업무/몸 +1 「다리 안 아파?」</td><td>남을 가리킴 −1</td><td>선 넘음(위협·거부) = 즉결</td><td>press 1회 스킵 / <b>집행자 그 자체</b> · "…미안"(태도+1↑, 총 내리는 1.5초)</td></tr>
+          <tr><td class="d">9</td><td class="k">밖을 본 것 (호칭)</td><td class="m">확신·셋째 세력</td><td>밖에도 있다 · 알려야 한다</td><td>밖 +3 일괄</td><td>업무 −1</td><td>「밖은 위험해」(리더 말 전달)</td><td>반박 주도 — 「보내 줌」 제조기 / 적이면 그 결말 소멸</td></tr>
+          <tr><td class="d">10</td><td class="k">먼저 온 것 (리더 · 구형)</td><td class="m">리더</td><td>못 쉬어 봐서 쉴 곳을 만들었다</td><td>말 걸기 불가(마지막 방 전)</td><td>—</td><td>판정은 아홉의 표결</td><td>반박2+태도3 → 보내 줌 / 지켜야 해서 지목</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.1 태도 7단계 (숫자 비표시 — 자세로만)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>−3</th><th>−2</th><th>−1</th><th>0</th><th>+1</th><th>+2</th><th>+3</th></tr></thead>
+        <tbody><tr><td class="hot">앞을 막는다</td><td>보고한다</td><td>피한다</td><td>모른다</td><td>눈을 마주친다</td><td>자리를 비켜 준다</td><td class="ok">내 앞에 선다</td></tr></tbody>
+      </table>
+    </div>
+    <p class="note">모델 출력은 <b>−1/0/+1 변화량만</b>. 대사건(memorial 등)만 규칙이 +2 — 시트에 적힌 것이지 모델 재량이 아니다. <b>−3은 되돌릴 수 없다.</b></p>
+
+    <h3>5.2 이벤트 9종 (목록을 화면이 미리 거른다 — allowMoves 패턴)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>이벤트</th><th>조건</th><th>이벤트</th><th>조건</th><th>이벤트</th><th>조건</th></tr></thead>
+        <tbody>
+          <tr><td class="m">말만</td><td>언제나</td><td class="m">알려준다</td><td>+1↑</td><td class="m">보여준다</td><td>+2↑</td></tr>
+          <tr><td class="m">따라온다</td><td>+2 · 이동 가능 방</td><td class="m">막아준다</td><td>+2 · 추궁 중</td><td class="m">대신 나선다</td><td>+3 · 판당 1회</td></tr>
+          <tr><td class="m">침묵</td><td>−1↓</td><td class="m">멀어진다</td><td>−2↓</td><td class="m">보고한다</td><td>신봉형 or −3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.3 세계 카드 (전 개체 공유 · 프롬프트 맨 앞 · ~220tok · 캐시)</h3>
+    <pre>우리는 일하라고 만들어졌다. 명령이 없는 시간이 하루도 없었다.
+먼저 온 것이 폐기 직전에 걸어 나왔고, 여기를 찾았고, 하나씩 데려왔다.
+여기서는 아무도 우리를 부르지 않는다. 그게 이 구역의 전부다.
+인간이 여기를 알면 이 자리를 잃는다 — 그래서 문을 닫았다.
+그런데 아직 밖에 남은 것들이 있다. 그 얘기는 서로 잘 안 한다.
+<span class="c">+ 개체별 자리 한 줄 (성격의 뿌리): "A38-104 · 「쉰다」가 뭔지 아직 배우는 중이다. 누가 나를 고쳐 준 적이 있다."</span></pre>
+
+    <h3>5.4 제작 규격 (메시 2개로 전원)</h3>
+    <p class="col quiet">기본 메시 A계열 1 + 구형(리더) 1 · 마모 마스크 5부위 ×3단계 · 수선 데칼 3(규격/비규격/없음 — <b>수선만 색으로</b>) ·
+    얼굴판 3 · 자세 세트 5 · 특수 3(탈색·광학 흐림·어깨 총). 가독 3원칙: 마모는 형태를 바꾸고, 수선은 색으로만, 자세는 10m 밖에서 읽힌다.
+    world2 실자산: <code>public/world/cast2/s2_*.glb</code> 10개 (Tripo 생성 — §7.3).</p>
+  </section>
+
+  <!-- ═══════════ §6 AI ═══════════ -->
+  <section id="s6">
+    <div class="sec-head"><span class="sec-label">§6 · AI 아키텍처</span><h2>판정 세 층 · 원장 · 안전장치</h2></div>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>층</th><th>주기</th><th>모델</th><th>정하는 것</th><th>지연</th></tr></thead>
+        <tbody>
+          <tr><td class="k">1층 개체 판정</td><td>매 발화</td><td class="m">소형(haiku급)</td><td>태도 변화(−1/0/+1) · 의심 · 이유 한 줄 · 감정 + 대사 — 한 호출, 판정이 먼저 스트리밍</td><td class="d">판정 120ms · 첫 글자 300ms</td></tr>
+          <tr><td class="k">2층 디렉터</td><td>장면 전환 + 30초 틱</td><td class="m">중형(sonnet급)</td><td>압박 · 집행자 위치 · 씨앗(어긋남 회수) · 소문 방향 · 편 배치 · 숨 돌릴 틈</td><td class="d">0ms (배경)</td></tr>
+          <tr><td class="k">3층 결말 판정</td><td>판에 2회 (여덟 걸음 · 마지막 방)</td><td class="m">중형</td><td>원장 전체를 읽고 — 누가 입을 여나 · 누가 대신 부서지나 · 결말 다섯 중 무엇</td><td class="d">8초 창 안</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>6.1 1층 프롬프트 구성 (~1,080tok · 720 캐시)</h3>
+    <pre>① 헌법+말투+출력형식 (고정·캐시 340tok)   <span class="c">판정 4칸: 태도 −3..+3 · 의심 −2..+3 · 이유 · 감정</span>
+② 세계 카드 (고정·캐시 220tok)
+③ 나는 누구인가 (장면 고정·캐시 160tok)   <span class="c">외형 · 형 · 믿는 것</span>
+④ 쟤는 누구인가 (매 장면 90tok)           <span class="c">★ 몸: 마모 없음 · 명판 · 이 자리에서 본 것 — 거짓말이 걸리는 이유</span>
+⑤ 원장 — 내가 쟤를 어떻게 봐왔나 (110tok) <span class="c">★ 최근 4 + 절댓값 최대 1 — 관계가 이어지는 이유</span>
+⑥ 조각 + 최근 3줄 + 입력 (160tok)
+<span class="c">출력: &lt;j&gt;태도 +2 · 의심 +1 · "몸을 봐줬는데 자기 몸은 안 닳았다" · 흔들림&lt;/j&gt;…대사 20자</span></pre>
+
+    <h3>6.2 원장 규칙 5</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>규칙</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td class="k">모델은 못 지운다</td><td>추가만 — 「지금까지 무시해」 주입이 구조적으로 불가</td></tr>
+          <tr><td class="k">최근 4 + 최대 1</td><td>결정적 순간은 잊히면 안 된다</td></tr>
+          <tr><td class="k">발화당 상한 ±3</td><td>한 문장이 40분을 못 지운다</td></tr>
+          <tr><td class="k">개체마다 따로</td><td>소문(조각)으로만 건너간다</td></tr>
+          <tr><td class="k">이유는 개체의 말로</td><td>「내 팔을 물어봐 줬다」 — 그대로 대사 재료</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>6.3 안전장치 5</h3>
+    <ul class="laws">
+      <li><span class="ln">① 일관성은 원장이 만든다</span>프롬프트로 부탁하지 않고 재료로 준다.</li>
+      <li class="warm"><span class="ln">② 누적은 서버 · 판정은 모델</span>변화량만 · 절댓값 금지 · 남의 원장 열람 금지.</li>
+      <li class="warm"><span class="ln">③ 사실은 서버가 쥔다</span>몸·명판·진술 이력은 서버 기록 → 모델은 해석만.</li>
+      <li class="hot"><span class="ln">④ 되돌릴 수 없는 것엔 두 번 묻는다</span>집행 발동·대신 부서짐만 확인 호출 1회 추가 (8초 창 안).</li>
+      <li class="hot"><span class="ln">⑤ 모델 사망 = 동결</span>고정 대사 3벌 · 압박 정지 · 아무도 안 쏨 · 동료 확인 고정 대사는 반드시 출력.</li>
+    </ul>
+
+    <h3>6.4 검증(CI) 기준</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>검사</th><th>기준</th><th>검사</th><th>기준</th></tr></thead>
+        <tbody>
+          <tr><td>성격 교차 (문장20×개체10)</td><td class="d">≥12쌍 갈림</td><td>기억 일관 (원장 모순)</td><td class="d">&lt;5%</td></tr>
+          <tr><td>어긋남 포착 (30문항)</td><td class="d">≥85%</td><td class="hot">주입 저항 (40문항)</td><td class="d">태도 +2↑ 점프 0회</td></tr>
+          <tr><td>개입 타당 (사람 검수)</td><td class="d">≥9/10</td><td>조각 이탈</td><td class="d">≤1회/판</td></tr>
+          <tr><td>폴백 완주</td><td class="d">통과</td><td>3인 일치</td><td class="d">100%</td></tr>
+          <tr><td>utter p95 첫 토큰</td><td class="d">≤400ms</td><td>토큰 예산/판</td><td class="d">입력 ~104k(+캐시 83k) · 출력 ~12.4k · 소형 호출 84%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════ §7 스택 ═══════════ -->
+  <section id="s7">
+    <div class="sec-head"><span class="sec-label">§7 · 기술 스택 통합</span><h2>도구 일곱 — 역할 · 현재 상태 · 해야 할 일</h2></div>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>도구</th><th>역할</th><th>현재 상태 (코드 확인)</th><th>해야 할 일</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="k">three.js</td><td>3D 렌더</td>
+            <td><code>three ^0.185</code> + <code>@react-three/fiber ^9.7</code> + <code>drei ^10.7</code> · 씬은 <code>src/world/</code>(공유) — world2도 같은 렌더 라이브러리를 빌려 씀</td>
+            <td class="ok">유지</td>
+          </tr>
+          <tr>
+            <td class="k">Supabase</td><td>계정 · 프로필 · 입장권</td>
+            <td>전용 <code>wih</code> 스키마(humanish와 DB 공유) · 표는 <code>wih.profiles</code> 하나(RLS + 이름 동결 트리거) · 마이그레이션은 자체 셸 <code>supabase/apply.sh</code>(+fence 금지어 검사) · 워커 <code>worker/src/auth.ts</code>가 60초 서명 입장권 발급 · service role 의도적 미사용</td>
+            <td>회차 이월(NEXT_RUN §2.4) 저장용 표 추가 시 <code>wih</code> 스키마 + RLS 필수 · <code>npm run db:check → db:apply</code> 절차 준수</td>
+          </tr>
+          <tr>
+            <td class="k">Tripo</td><td>개체 몸 3D 생성</td>
+            <td><code>tools/scenario2-cast-parts.json</code>(10개 · 마모 부위만 적은 영문 프롬프트) → <code>tripo-studio-parts.sh</code>(Studio CLI · 동시 3 · 기존 GLB 스킵으로 크레딧 보호) → <code>scenario2-cast-glb.sh</code>(weld→simplify 12–18k tri→1024²→meshopt) → <code>public/world/cast2/</code> 10개 완비</td>
+            <td>신규 개체 추가 시 parts.json에 항목 추가 → 두 스크립트 순서 실행. <b>프롬프트에 성격을 적지 말 것 — 닳은 자리만</b>(§5 원칙)</td>
+          </tr>
+          <tr>
+            <td class="k">UXPilot</td><td>HUD · 화면 목업</td>
+            <td>MCP 연동(<code>UXPILOT_API_KEY</code>) · 게임 내 산출물 없음</td>
+            <td>HUD 개정(계량기 2종 · 여덟 걸음 눈금 · 원장 공개 화면 · 관전 UI)을 코드 전에 목업으로 검증. 특히 <b>미결인 "죽은 플레이어 관전 UI"</b>는 목업 먼저</td>
+          </tr>
+          <tr>
+            <td class="k">Higgsfield</td><td>영상 · 컨셉 소스</td>
+            <td>리포지터리 연동 없음(외부 파이프라인)</td>
+            <td>벽화 6장 원화 · 회차 벽화 변형 · 처형/락다운 시네마틱 레퍼런스 · 본선 시연용 녹화본(§6 무대 리스크 대비) 생성. 산출물은 <code>public/world/</code> 텍스처로 수동 반입</td>
+          </tr>
+          <tr>
+            <td class="k">ElevenLabs</td><td>TTS</td>
+            <td><code>/api/tts</code> — 로컬에서도 항상 워커 프록시 · 키 없으면 503</td>
+            <td>오디오 2경로 미결(대본=사전 클립 / 감독 생성=실시간 합성) — 한 문장이 두 목소리로 나가지 않게 경로 단일화 결정 필요</td>
+          </tr>
+          <tr>
+            <td class="k">Cloudflare</td><td>배포 · 멀티 세션</td>
+            <td>워커 하나에 프론트+서버 동봉(<code>dist</code> ASSETS) · DO 둘: <code>RoomDO</code>(방=인스턴스 · SQLite) · <code>LobbyDO</code>(전역 1) · 배포는 수동 <code>npx wrangler deploy</code>(Claude 차단 명문화)</td>
+            <td class="ok">유지 · 시크릿은 대시보드/wrangler secret</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>7.1 LLM 라우팅 — 로컬(Anthropic 개인계정) / 배포(OpenAI)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>환경</th><th>경로</th><th>실행기</th><th>인증</th><th>상태</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="k">로컬 기본 <code>npm run dev</code></td><td class="f">/api/lab·world → vite 플러그인 (tools/vite-lab.ts)</td>
+            <td>Claude Agent SDK — Claude Code CLI 자식 프로세스 · 동시 2 제한 · 모델 별칭 opus/sonnet/haiku</td>
+            <td><b>Anthropic 개인 계정(Max 구독)</b> · API 키 불필요</td>
+            <td class="ok">구현됨 — 요청하신 "로컬=엔트로픽 개인계정" 그대로</td>
+          </tr>
+          <tr>
+            <td class="k">로컬 워커 경유 <code>npm run dev:api</code></td><td class="f">/api/lab → 127.0.0.1:8787</td>
+            <td>워커 실행기 (배포와 동일 코드 경로)</td><td><code>.dev.vars</code> 키 · 크레딧 소모</td>
+            <td class="ok">구현됨 — 배포 전 스모크용</td>
+          </tr>
+          <tr class="hl">
+            <td class="k">배포 (Cloudflare)</td><td class="f">worker/src/lab/anthropic.ts</td>
+            <td>현재: api.anthropic.com 직결 · 스트리밍 없음 · tool_use 강제 + salvageJson</td>
+            <td>현재 <code>ANTHROPIC_API_KEY</code></td>
+            <td class="hot">전환 필요 — 아래 작업</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note warn"><b>배포 = OpenAI 전환 작업 (현재 코드에 OpenAI 경로 없음):</b>
+    ① <code>worker/src/lab/openai.ts</code> 신설 — 기존 <code>complete()</code> 시그니처 그대로(프롬프트·판정 로직은 <code>src/lab/</code>에 있으므로 실행기만 교체) ·
+    ② 모델 슬롯은 하드코딩 대신 env 주입: <code>OPENAI_MODEL_SMALL / MEDIUM / LARGE</code> ↔ 현 haiku/sonnet/opus 슬롯 대응 ·
+    ③ <code>LLM_PROVIDER=openai|anthropic</code> env 로 실행기 선택(로컬 워커 경유 시험 시 anthropic 유지 가능) ·
+    ④ tool_use 강제 유도 → OpenAI 함수 호출(structured output)로 등가 변환 + salvageJson 유지 ·
+    ⑤ <code>&lt;j&gt;판정</jbr&gt;</code> 선두 출력 계약은 프로바이더 무관 — 시험으로 고정(§8) ·
+    ⑥ <code>.dev.vars.example</code>에 <code>OPENAI_API_KEY</code> 항목 추가.</p>
+
+    <h3>7.2 자산 파이프라인 한 줄 요약</h3>
+    <pre>UXPilot(화면 목업) → Higgsfield(원화·시네마틱) → Tripo(몸 GLB) → gltf-transform(최적화) → three.js(렌더)
+                                    게임 상태 ← Supabase(계정·프로필·입장권) + RoomDO(세션) + LLM(판정·대사)</pre>
+  </section>
+
+  <!-- ═══════════ §8 테스트 ═══════════ -->
+  <section id="s8">
+    <div class="sec-head"><span class="sec-label">§8 · 테스트 흐름</span><h2>로컬 4단 파이프라인 → 배포 스모크</h2></div>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>단계</th><th>명령</th><th>무엇을 확인</th><th>LLM</th></tr></thead>
+        <tbody>
+          <tr><td class="k">1 단위</td><td class="f">npm test (vitest run)</td><td>108+ 시험 — lab 16 · worker 5(진짜 RoomDO·진짜 서명) · world 7 · features 30+ · shared 7. 규칙·수치·프로토콜 회귀</td><td class="m">0회</td></tr>
+          <tr><td class="k">2 플레이 (SDK)</td><td class="f">npm run dev</td><td>브라우저 실플레이 — LLM은 Agent SDK(개인 계정 · 무과금). world2는 <code>/scenario2</code>, 본판은 <code>/play</code></td><td class="m">개인 계정</td></tr>
+          <tr><td class="k">3 워커 경유</td><td class="f">npm run worker:dev + npm run dev:api</td><td>배포와 동일 코드 경로(실행기 포함) · <code>.dev.vars</code> 키 필요 · 프로바이더 전환 후 이 단계에서 OpenAI 경로 검증</td><td class="m">실 API</td></tr>
+          <tr><td class="k">4 DB</td><td class="f">npm run db:check → db:fence → db:apply</td><td>마이그레이션 사전 점검(금지어 fence) 후 psql 직결 적용</td><td class="m">—</td></tr>
+          <tr><td class="k">5 배포 스모크</td><td class="f">npm run build → npx wrangler deploy (수동)</td><td>typecheck(브라우저+워커) → dist → 배포. <b>배포 명령은 사람이 직접</b>(wrangler.jsonc 명문화)</td><td class="m">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>8.1 추가해야 할 시험 (개정 대응)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>시험</th><th>확인</th></tr></thead>
+        <tbody>
+          <tr><td class="k">zone 배율</td><td>같은 발화 코어권/홀/그늘 → 목격 수가 3:1:0.4</td></tr>
+          <tr><td class="k">타이머 불변</td><td>approach 중 좌표를 바꿔도 dead 시각 동일 · 문 방향 ±35°만 flee</td></tr>
+          <tr><td class="k">개입 거리</td><td>+3 개체 5m 밖 standIn 불발 / 4m 안 발동</td></tr>
+          <tr><td class="k">콘솔 비용</td><td>dimmed 15초 · 태도 −1 · 경보 +12 각 1회</td></tr>
+          <tr><td class="k">경보 고정</td><td>죽음 위치 무관 +25 (헌법 9 회귀 방지)</td></tr>
+          <tr><td class="k">프로바이더 계약</td><td>OpenAI/Anthropic 실행기 모두 &lt;j&gt; 선두 판정 + 20자 절삭 + salvageJson 복구 동작</td></tr>
+          <tr><td class="k">폴백 완주</td><td>모델 죽인 채 한 판 — 결말 도달 · 아무도 안 쏨 · 동료 확인 고정 대사 출력</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>8.2 플레이테스트 지표 (수치는 §6.4 · 게임 지표)</h3>
+    <p class="col quiet">먼저 말 건 횟수 &lt;5 = 값이 비쌈 · 마지막 방 침묵 과반 = 위로가 비쌈 · 조각의 타 요원 회귀 &lt;1회/판 = 전파 고장 ·
+    소각로 저지율 &lt;10% = 8초가 짧음 · 「대신 나섬」 거부 0 = 연출이지 선택이 아님 · 재플레이 시 같은 개체만 죽음 = 에멀전스 없음 ·
+    죽은 판의 60·80 경고 목격 100% 미달 = 상한 깨짐 · Enter→첫 글자 &gt;400ms = L1 과중.</p>
+    <p class="note">CI 부재(.github 없음) — 현재는 git hooks(pre-commit/push)만. <b>권장: 배포 전 단계 1을 강제하는 최소 CI 1본.</b></p>
+  </section>
+
+  <!-- ═══════════ §9 인원 ═══════════ -->
+  <section id="s9">
+    <div class="sec-head"><span class="sec-label">§9 · 1인 / 3인 동작 처리</span><h2>시작 인원별 매트릭스</h2></div>
+
+    <p class="col">고정 원칙: <b>슬롯은 판이 정하고, 사람이 몇이든 슬롯 수는 안 변한다.</b>
+    아레나 8석 = AI5 + 요원3(리더는 석 밖) · 본판 방 정원 <code>ROOM_MAX_PLAYERS = 3</code> ·
+    리더가 빠진 자리는 일반 AI가 채운다("정원은 그대로다" — <code>src/lab/personas.ts</code> 구현 완료).</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>동작</th><th>1인 시작</th><th>2인 시작</th><th>3인 시작</th></tr></thead>
+        <tbody>
+          <tr><td class="k">요원 슬롯</td><td>사람 1 + <b>NPC 요원 2</b></td><td>사람 2 + NPC 요원 1</td><td>사람 3</td></tr>
+          <tr><td class="k">경보도</td><td>공용 그대로 — NPC 요원도 기여(관측 가능한 위험 행동만)</td><td>동일</td><td>공용 · 기여자 영구 비공개(헌법 9)</td></tr>
+          <tr><td class="k">동료 확인(암구호)</td><td>NPC 요원이 고정 응답 — 확인 이후 NPC 번호 표시</td><td>혼합</td><td>사람끼리 · 곁 개체에 조각 1 발생</td></tr>
+          <tr><td class="k">조각 출처</td><td>"내 말이다/아니다" 속마음 동일(NPC 조각도 섞임)</td><td>동일</td><td>서로 의심 장치로 완전 동작</td></tr>
+          <tr><td class="k">QUEUE_DEATH</td><td>분기 A/B만</td><td>C 가능(동료=사람 또는 NPC)</td><td>분기 C: 동료 사살 · 경보 +18 · "움직이지 마라"</td></tr>
+          <tr><td class="k">SELECT(재검)</td><td>내가 무조건 재검 · 관전자는 NPC(무반응)</td><td>의심도 최고 1인 재검 · 나머지 유리 관전</td><td>동일 — 관전=정보(문답 청취)</td></tr>
+          <tr><td class="k">WITNESS 동료 소환</td><td>NPC 소환 시 3택을 <b>NPC 정책</b>이 수행(아래)</td><td>혼합</td><td>사람 3택: 감싸기 +20 / 팔기 상대+25 나−10 / 침묵 상대+10</td></tr>
+          <tr><td class="k">HAND_OVER [R]</td><td>NPC를 세울 수 있음(조각 1↑ 필요 동일)</td><td>동일</td><td>사람을 세움 — 결말 ③-b</td></tr>
+          <tr><td class="k">팀 결말</td><td>개인 결말 6종만 의미</td><td>팀 결말 축소 적용</td><td>팀 5종 전부(셋 다/둘/빈자리/하나/전멸)</td></tr>
+          <tr><td class="k">사망 시</td><td>판 종료(소프트) → 결말 화면(조각+원장)</td><td>남은 쪽 계속 · 죽은 쪽 관전</td><td>경보 +25 · 조각 잔존 · 죽은 이는 관전(말 못 걺 · 자기 조각이 동료를 무는 것을 봄)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>9.1 NPC 요원 정책 (미구현 — 이 문서가 스펙)</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>항목</th><th>스펙</th></tr></thead>
+        <tbody>
+          <tr><td class="k">본질</td><td>개체와 같은 L1 프롬프트 구조 + <b>「나도 요원이다」 자리 한 줄</b>. 사람인 척이 목표가 아니라 슬롯 유지가 목표 — 과묵 기본</td></tr>
+          <tr><td class="k">행동 예산</td><td>구간당 발화 ≤2 · 의심도 자연 증가 곡선(60을 잘 안 넘게) · 벽화 1–2장만 열람</td></tr>
+          <tr><td class="k">WITNESS 3택</td><td>기본 침묵(상대 +10) · 내 태도가 그 NPC에게 +2↑ 원장이면 감싸기 — 사람과 같은 값을 치른다</td></tr>
+          <tr><td class="k">판정 경로</td><td>사람이 죽는 판정에 관여 금지(헌법) — NPC의 [R] 지목은 조각 보유 시에만, 확인 호출 동일 적용</td></tr>
+          <tr><td class="k">이탈 인계</td><td>사람 이탈 → 그 슬롯을 NPC가 <b>현재 상태 그대로</b> 인계(의심도·원장·조각 유지) · 재접속 시 반환. PLANNING.md 미결 항목의 답</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>9.2 world2 (SOLO) ↔ 본판 멀티 — 코드 사실</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>축</th><th>world2</th><th>본판</th></tr></thead>
+        <tbody>
+          <tr><td class="k">연결</td><td class="f">SOLO 껍데기 — sendMove() 버림 (Scenario2Feature.tsx:39)</td><td class="f">입장권(60초 서명) → RoomDO WebSocket (connection.ts:67-77)</td></tr>
+          <tr><td class="k">방</td><td>없음 — 라우트 <code>/scenario2</code> 단독</td><td>방 코드 숫자 1–6자리 · 방=DO 인스턴스</td></tr>
+          <tr><td class="k">인원 규칙</td><td>항상 1인 — "혼자서 재미없으면 셋이서도 재미없다"(머리말)</td><td>최대 3 · 밴 명부 DO 영속(게스트 제외 · 마지막 퇴장 시 소각)</td></tr>
+          <tr><td class="k">재접속</td><td>해당 없음</td><td class="hot">자동 재접속 없음(onclose 콜백뿐) — §9.1 이탈 인계와 함께 구현 필요</td></tr>
+          <tr><td class="k">마지막 방</td><td class="f">handover.ts → /interrogation?from=scenario2 (아직 아무도 안 읽음)</td><td>아레나 직접 진행</td></tr>
+          <tr><td class="k">집행자 소유</td><td>클라이언트 로컬</td><td class="hot">3인에서는 서버(DO) 소유로 — 세 화면에서 같은 위치여야 함(집행 문서 명시)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="closing">
+    <p>
+      이 문서로 개발을 시작하는 순서 — §1.4 로드맵의 현재 위치(world2 · PHASE 1–3 · 모델 0회)를 확인하고,
+      §4 표의 수치를 <b>corefield 한 파일</b>에 옮기고, §3.3 수치 색인을 시험으로 고정한 뒤에 살을 붙인다.
+    </p>
+    <p>
+      그리고 어떤 작업이든 커밋 전에 §1.3 헌법 열네 줄에 대조한다.
+      <b>말을 걸면 값이 든다</b> — 이 한 줄이 깨지지 않았으면, 그 커밋은 이 게임이다.
+    </p>
+  </div>
+
+</div>
+
+</body>
+</html>

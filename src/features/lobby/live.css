@@ -1,0 +1,541 @@
+/*
+ * 살아 있는 콘솔의 스타일 — live.tsx 의 부품들만 여기 산다.
+ *
+ * ┌─ 왜 lobby.css 에 안 붙였나 ──────────────────────────────────────────────┐
+ * │ 두 가지다.                                                               │
+ * │ 1. lobby.css 는 이미 1600줄이 넘고, 거기 있는 것은 전부 **모양**이다      │
+ * │    (판 · 테 · 좌석 · 목록). 여기 있는 것은 **움직임**이다 (시계 · 로그 ·  │
+ * │    링크 시퀀스 · 카운트다운). 다른 종류의 규칙이라 파일을 나눈다.         │
+ * │ 2. 2026-08-30 이 저장소는 여러 세션이 동시에 로비를 만지고 있었다. 같은   │
+ * │    파일을 두 세션이 같은 시각에 쓰면 한쪽 변경이 통째로 사라진다          │
+ * │    (docs/DEVELOPMENT.md 「병렬 작업 규칙」). 새 이름은 새 파일에 둔다.    │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * 색·모따기는 lobby.css 가 .bl 에 걸어 둔 변수를 그대로 쓴다 (--bl-line · --bl-cut · .bl-edge).
+ * 여기서 새 색을 만들지 않는다 — 만드는 순간 같은 화면이 두 팔레트를 갖는다.
+ */
+
+/* ══════════════════════════════ 구역 시계 ══════════════════════════════ */
+
+.bl-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: var(--bl-dim);
+  /* 초가 1→2 로 갈 때 글자폭이 흔들리면 머리말 전체가 들썩인다 */
+  font-variant-numeric: tabular-nums;
+}
+/* 도는 표시등 — 시계가 멈추지 않았다는 증거 */
+.bl-clock i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--bl-line);
+  box-shadow: 0 0 8px rgba(111, 211, 255, 0.8);
+  animation: bl-pulse 2s ease-in-out infinite;
+}
+@keyframes bl-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+/* ══════════════════════════════ 구역 로그 ══════════════════════════════ */
+
+.bl-log {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 168px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(111, 211, 255, 0.35) transparent;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+.bl-log__line {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  color: var(--bl-dim);
+  /* 새 줄은 왼쪽에서 밀려 들어온다 — 찍히는 것처럼 보이게 */
+  animation: bl-log-in 0.24s ease-out;
+}
+@keyframes bl-log-in {
+  from { opacity: 0; transform: translateX(-5px); }
+  to { opacity: 1; transform: none; }
+}
+.bl-log__t {
+  flex-shrink: 0;
+  color: var(--bl-faint);
+  font-variant-numeric: tabular-nums;
+}
+.bl-log--go { color: var(--bl-line); }
+.bl-log--warn { color: var(--bl-red); }
+
+/* ══════════════════════════════ 신분증 한 줄 ══════════════════════════════ */
+
+.bl-id__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-top: 1px solid rgba(111, 211, 255, 0.12);
+  font-size: 11.5px;
+  color: var(--bl-ink-2);
+}
+
+/* ══════════════════════════════ 링크 시퀀스 ══════════════════════════════ */
+
+.bl-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(4, 14, 26, 0.86), rgba(2, 8, 15, 0.96));
+  backdrop-filter: blur(2px);
+  animation: bl-fade-in 0.2s ease-out;
+}
+@keyframes bl-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.bl-boot__box {
+  position: relative;
+  overflow: hidden;
+  width: min(420px, 100%);
+  padding: 20px 22px 18px;
+  --bl-cut: polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.9), rgba(63, 143, 194, 0.4));
+}
+/* 훑고 지나가는 빛 — 기다리는 동안 화면이 죽어 있지 않게 */
+.bl-boot__scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(111, 211, 255, 0.9), transparent);
+  animation: bl-scan 1.8s linear infinite;
+}
+@keyframes bl-scan {
+  from { transform: translateY(0); }
+  to { transform: translateY(150px); }
+}
+.bl-boot__steps {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 9px;
+}
+.bl-boot__step {
+  display: grid;
+  grid-template-columns: 9px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--bl-faint);
+  transition: color 0.2s ease;
+}
+.bl-boot__step i {
+  width: 7px;
+  height: 7px;
+  background: rgba(78, 111, 136, 0.5);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.bl-boot__step b {
+  font-size: 11.5px;
+  color: var(--bl-faint);
+  font-weight: 400;
+}
+.bl-boot__step--on {
+  color: var(--bl-ink-2);
+}
+.bl-boot__step--on i {
+  background: var(--bl-line);
+  box-shadow: 0 0 10px rgba(111, 211, 255, 0.8);
+}
+.bl-boot__step--on b {
+  color: var(--bl-line);
+}
+
+/* ══════════════════════════════ 진입 카운트다운 ══════════════════════════════ */
+
+.bl-launch {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(70% 70% at 50% 50%, rgba(6, 20, 34, 0.9), rgba(1, 5, 10, 0.98));
+  animation: bl-fade-in 0.25s ease-out;
+}
+.bl-launch__body {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 0 20px;
+}
+.bl-launch__num {
+  font-size: clamp(72px, 18vw, 148px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bl-line);
+  text-shadow: 0 0 46px rgba(111, 211, 255, 0.55);
+  /* key 가 바뀔 때마다 다시 붙으므로 숫자가 바뀔 때마다 한 번씩 터진다 */
+  animation: bl-count 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes bl-count {
+  0% { opacity: 0; transform: scale(1.5); letter-spacing: 0.2em; }
+  30% { opacity: 1; transform: scale(1); letter-spacing: 0; }
+  100% { opacity: 0.75; }
+}
+.bl-launch__line {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: var(--bl-ink);
+}
+.bl-launch__bar {
+  display: block;
+  width: min(280px, 70vw);
+  height: 2px;
+  margin-top: 6px;
+  background: rgba(111, 211, 255, 0.18);
+  overflow: hidden;
+}
+.bl-launch__bar i {
+  display: block;
+  height: 100%;
+  background: var(--bl-line);
+  box-shadow: 0 0 12px rgba(111, 211, 255, 0.9);
+  transform-origin: left;
+  animation: bl-fill linear forwards;
+}
+@keyframes bl-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ══════════════════════════════ 화면이 켜진다 ══════════════════════════════ */
+
+/*
+ * 판이 한 장씩 순서대로 선다. 게임 화면은 **켜지고**, 웹 페이지는 그냥 거기 있다 —
+ * 0.4초짜리 이 차이가 첫인상의 절반이다. 여섯 장까지만 늦추고 그 뒤는 같이 뜬다
+ * (판이 더 늘면 마지막 장을 기다리는 시간이 된다).
+ */
+.bl-wake > * {
+  animation: bl-wake 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.bl-wake > *:nth-child(2) { animation-delay: 0.07s; }
+.bl-wake > *:nth-child(3) { animation-delay: 0.14s; }
+.bl-wake > *:nth-child(4) { animation-delay: 0.21s; }
+.bl-wake > *:nth-child(5) { animation-delay: 0.28s; }
+.bl-wake > *:nth-child(n + 6) { animation-delay: 0.32s; }
+@keyframes bl-wake {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 자리에 사람이 앉는 순간 — 빈칸 클래스가 떨어지면서 이 애니메이션이 한 번 돈다 */
+.bl-arrive {
+  animation: bl-arrive 0.75s ease-out;
+}
+@keyframes bl-arrive {
+  0% { box-shadow: 0 0 0 0 rgba(111, 211, 255, 0.55); }
+  100% { box-shadow: 0 0 0 14px rgba(111, 211, 255, 0); }
+}
+
+/* ══════════════════════════════ 한 자씩 찍기 ══════════════════════════════ */
+
+/*
+ * 자리를 처음부터 다 잡는 두 겹 (live.tsx 의 Typed 머리말 「글자가 움직이던 것」).
+ *
+ * 유령은 **다 적힌 글 한 벌**이다 — 안 보이지만 자리는 차지한다. 그래서 제목은 첫
+ * 프레임부터 마지막 크기이고, 찍히다가 줄이 접혀도 아래 글이 밀리지 않는다.
+ * 잉크는 그 위에 겹치는 절대 위치다. 같은 폭 · 같은 글꼴이라 같은 자리에서 접힌다.
+ *
+ * ★ display:block 이다 (inline-block 이 아니라). 인라인 덩어리로 만들면 제목이
+ *   부모 폭이 아니라 제 글 폭에서 접혀서, 원래 마크업과 다른 데서 줄이 바뀐다.
+ */
+.bl-typed {
+  position: relative;
+  display: block;
+}
+.bl-typed__ghost {
+  visibility: hidden;
+}
+.bl-typed__ink {
+  position: absolute;
+  inset: 0;
+}
+
+/* ══════════════════════════════ 장면 제목의 강조 ══════════════════════════════ */
+
+/*
+ * 제목 안의 한 낱말만 콘솔의 색으로 (2026-08-30 사용자: "번호에 색 다른걸로").
+ *
+ * ★ 앰버가 아니라 **청록**이다. 이 화면에서 앰버는 「사람」과 「감춰진 것」에만 붙는
+ *   하나뿐인 따뜻한 색인데(lobby.css 의 .bl-hero__title em), 번호는 그 반대다 —
+ *   사람을 지우려고 기계가 붙인 것이다. 그래서 기계의 색을 쓴다. 대기방의 좌석
+ *   번호(01~09)와 코드명(L-00 · A-··)이 도는 색과 같은 색이라, 「번호」 라는 낱말과
+ *   화면에서 실제로 보게 될 번호가 같은 것으로 읽힌다.
+ *
+ * .bl-hero__title em (앰버)과 부딪히지 않는다 — 표지의 제목과 장면의 제목은 다른 선택자다.
+ */
+.bl-scene__h em {
+  font-style: normal;
+  color: var(--bl-line);
+  text-shadow: 0 0 26px rgba(111, 211, 255, 0.45);
+}
+
+/* ══════════════════════════════ 브리핑의 서술 ══════════════════════════════ */
+
+/*
+ * 세 문단짜리 서술. **칸을 나누지 않는다** (2026-08-30 사용자가 준 글).
+ *
+ * 이 글은 줄바꿈이 글쓴이의 것이다 — 「그게 당신이 아니길 바랄 뿐이다.」 가 홀로 한 줄에
+ * 앉는 것이 이 문단의 전부다. 두 칸으로 쪼개면 칸이 좁아 그 줄들이 제멋대로 접히고,
+ * 그 순간 글쓴이가 잡아 둔 박자가 사라진다. 그래서 한 칸으로 두고 폭을 **줄이 안 접힐
+ * 만큼** 준다 (760px — 가장 긴 줄이 44자쯤이다).
+ */
+.bl-narr {
+  display: grid;
+  gap: 22px;
+  max-width: 760px;
+}
+
+/*
+ * 커서 — 찍히는 자리에 선다. 네모 블록이지 세로 막대가 아니다:
+ * 이 화면의 글자는 굵고 크고, 1px 막대는 그 옆에서 먼지처럼 보인다.
+ */
+.bl-caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.92em;
+  margin-left: 0.08em;
+  vertical-align: -0.1em;
+  background: var(--bl-line);
+  box-shadow: 0 0 14px rgba(111, 211, 255, 0.6);
+  animation: bl-caret 1s steps(1) infinite;
+}
+@keyframes bl-caret {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+/*
+ * 낭독기에게만 있는 글. 화면에서는 안 보이되 **트리에는 남아야** 한다 —
+ * display:none 이나 visibility:hidden 으로 지우면 낭독기도 같이 못 읽는다.
+ */
+.bl-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ══════════════════════════════ 표지의 차례 ══════════════════════════════ */
+
+/*
+ * 표지는 **한 줄이 아니라 한 장면으로** 찍힌다.
+ *
+ * 제목만 찍히게 두면 반쯤 적힌 큰 글자 아래에 문장도 버튼도 이미 다 있어서, 효과가 아니라
+ * 「제목이 아직 안 불러와졌다」로 읽힌다 — 첫 화면에서 그건 사고로 보인다. 그래서 제목이
+ * 다 오기 전까지 나머지는 **아직 오지 않은 것**이고, 제목이 앉으면 차례로 올라온다.
+ * 방송이 도착하는 순서다: 호출 → 본문 → 서명 → 문.
+ *
+ * ★ 기다리는 것에만 .bl-hero__late 를 단다. 위의 채널 표시(EP.01)와 제목은 처음부터 있다 —
+ *   화면이 통째로 비어 있다가 차오르면 그건 로딩 화면이지 표지가 아니다.
+ */
+.bl-hero__late {
+  opacity: 0;
+}
+.bl-hero__body--on .bl-hero__late {
+  animation: bl-wake 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* 방송 순서: 부제 → 본문 두 줄 → 서명 → **문**. 누를 것이 제일 늦게 열린다 */
+.bl-hero__body--on .bl-hero__late:nth-child(4) { animation-delay: 0.07s; }
+.bl-hero__body--on .bl-hero__late:nth-child(5) { animation-delay: 0.15s; }
+.bl-hero__body--on .bl-hero__late:nth-child(6) { animation-delay: 0.22s; }
+.bl-hero__body--on .bl-hero__late:nth-child(n + 7) { animation-delay: 0.28s; }
+
+/*
+ * 모션을 꺼 둔 사람 — **정보는 남기고 움직임만 뺀다.** 시퀀스도 카운트다운도 그대로 뜨고
+ * 숫자도 그대로 세지만, 훑고 터지고 밀려 들어오는 것이 멎는다.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .bl-clock i,
+  .bl-boot__scan,
+  .bl-log__line,
+  .bl-launch__num,
+  .bl-launch__bar i,
+  .bl-wake > *,
+  .bl-arrive,
+  .bl-caret {
+    animation: none;
+  }
+  /* 제목이 즉시 다 찍히니 --on 도 곧바로 붙는다. 움직임만 빼고 글은 그대로 둔다 */
+  .bl-hero__body--on .bl-hero__late {
+    animation: none;
+    opacity: 1;
+  }
+  .bl-launch__bar i { transform: scaleX(1); }
+}
+
+/* 오래 걸릴 때만 열리는 길 — 막이 사람을 가두지 않게 (live.tsx 의 BOOT_SLOW_MS) */
+.bl-boot__slow {
+  display: grid;
+  gap: 9px;
+  justify-items: start;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(111, 211, 255, 0.16);
+}
+.bl-boot__slow code {
+  color: var(--bl-line);
+}
+
+/* ══════════════════════════════ 조용한 묶음 ══════════════════════════════ */
+
+/*
+ * 곁다리에서 테를 걷는다 (live.tsx 의 Quiet 머리말).
+ *
+ * 판을 넷에서 하나로 줄이는 것이 이 파일에서 제일 큰 변화다. 왼쪽 기둥은 이제 상자가
+ * 아니라 **글 묶음**이고, 위쪽 가는 선 하나가 묶음의 경계를 말한다. 첫 묶음에는 선이
+ * 없다 — 머리말 아래에 또 선을 그으면 그게 둘째 머리말처럼 보인다.
+ */
+.bl-quiet {
+  display: grid;
+  gap: 9px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(111, 211, 255, 0.14);
+}
+.bl-quiet:first-child {
+  padding-top: 2px;
+  border-top: 0;
+}
+.bl-quiet__tab {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bl-faint);
+}
+
+/*
+ * 조용한 묶음 안의 한 줄 — 누를 수 있지만 **케이스는 아니다.**
+ * 최근 방 다섯 줄이 저마다 테를 두르고 있으면, 곁다리에 케이스가 다섯 개 더 생기는 꼴이다.
+ * 밑줄만 남기고 눌리는 것은 색이 밝아지는 것으로 말한다.
+ */
+.bl-quiet__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 2px;
+  border: 0;
+  border-bottom: 1px solid rgba(111, 211, 255, 0.1);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--bl-ink-2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  transform: none;
+}
+.bl-quiet__row:last-child {
+  border-bottom: 0;
+}
+/*
+ * ★ box-shadow 를 **여기서도 꺼야 한다.** 전역 button:hover(global.css)가 그림자와 빛무리를
+ *   얹는데, 기본 상태에서 한 번 껐다고 얹히지 않는 것이 아니다 — hover 규칙이 따로 있다.
+ *   테를 걷은 줄에 그림자만 남으면, 아무 상자도 없는 글자 뒤에서 빛이 뜨는 꼴이 된다.
+ *   transform 도 같은 이유로 끈다 (전역은 -2px 떠오른다).
+ */
+.bl-quiet__row:hover:not(:disabled) {
+  color: var(--bl-line);
+  border-color: rgba(111, 211, 255, 0.4);
+  transform: none;
+  box-shadow: none;
+}
+
+/* ══════════════════════════════ 목록 안의 위계 ══════════════════════════════ */
+
+/*
+ * 하나 남은 판 안에서 **무엇이 주인공인지**를 크기로 말한다 (.bl-lift 를 그 판에만 붙인다).
+ *
+ * 전에는 방 제목 14px · 태그 9.5px · 라벨 10px · 등폭 12px 였다 — 전부 작고 비슷해서
+ * 목록이 회색 벽으로 읽혔고, 이 화면에서 제일 중요한 값(방 제목과 인원)이 곁다리보다
+ * 겨우 2px 컸다. 두 값만 키우고 나머지는 그대로 둔다: 다 키우면 아무것도 안 키운 것이다.
+ *
+ * 클래스 둘을 겹쳐 쓴다(.bl-lift .bl-title) — 한 클래스짜리 lobby.css 규칙보다 세서
+ * 파일이 어느 순서로 불려도 이긴다.
+ */
+.bl-lift .bl-title {
+  font-size: 16px;
+}
+.bl-lift .bl-row {
+  padding: 13px 14px;
+}
+/* 인원은 이 목록을 훑는 이유다 — 등폭으로 두되 크기를 준다 */
+.bl-lift .bl-row .bl-mono:last-of-type {
+  font-size: 14px;
+}
+
+/* ══════════════════════════════ 빈 자리를 훑는 빛 ══════════════════════════════ */
+
+/*
+ * 아직 아무도 안 앉은 자리 위로 가는 빛이 내려간다 (2026-08-31 사용자: "안에도 좀 꾸며줘").
+ *
+ * 대기방의 절반은 **기다리는 시간**인데, 그 동안 화면에서 움직이는 것이 하나도 없었다 —
+ * 좌석 셋이 격자에 가만히 떠 있을 뿐이었다. 빈 자리만 훑게 두는 것이 요점이다:
+ * 사람이 앉으면 빛이 멎으므로, **차 가는 것이 눈에 보인다.** 다 차면 방이 조용해진다.
+ *
+ * ★ .bl-seat 는 이미 .bl-edge 라 ::before · ::after 를 둘 다 쓴다 (테 두 겹) — 그래서
+ *   가짜 요소가 아니라 진짜 span 하나를 넣는다. 자리는 position: relative · overflow: hidden
+ *   이라 빛이 카드 밖으로 새지 않는다 (lobby.css 의 .bl-seat).
+ * ★ transform 이 아니라 top 을 움직인다. 높이 2px 짜리를 translateY(100%) 해 봐야 2px 이고,
+ *   카드 높이는 화면 폭에 따라 달라져서 px 로 박을 수 없다 — % 가 먹는 것은 top 쪽이다.
+ */
+.bl-scan {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 0;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(111, 211, 255, 0.5), transparent);
+  animation: bl-seatscan 3.2s ease-in-out infinite;
+}
+@keyframes bl-seatscan {
+  0% { top: 0; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { top: calc(100% - 2px); opacity: 0; }
+}
+/* 셋이 한 몸처럼 내려가면 그건 화면 전체의 주사선이지 자리의 표시가 아니다 — 흩어 놓는다 */
+.bl-seat:nth-child(2) .bl-scan { animation-delay: 1.05s; }
+.bl-seat:nth-child(3) .bl-scan { animation-delay: 2.1s; }
+.bl-seat:nth-child(n + 4) .bl-scan { animation-delay: 0.5s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bl-scan { animation: none; opacity: 0.35; }
+}

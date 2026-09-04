@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.DS_Store
+
+# 시크릿 — 절대 커밋 금지
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+
+# Claude Code 개인 설정
+.claude/settings.local.json
+
+# Cloudflare 워커 로컬 상태
+.wrangler/
+
+# Tripo MCP 로컬 상태 · 원본 GLB 출력 — 웹용은 public/world/* 로 줄여서 커밋한다
+.tripo/
+tripo-out/
+
+# Claude Code 워크트리 (세션이 만들고 지운다)
+.claude/worktrees/

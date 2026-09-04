@@ -1,0 +1,201 @@
+/*
+ * 오프닝 영상 화면 — 화면을 통째로 덮는 검은 판 하나 (shared/OpeningVideo.tsx).
+ *
+ * 여기 있는 것은 **덮개와 두 단추**뿐이다. 영상 자체의 겉모습은 유튜브 것이고
+ * 우리가 손댈 수 없다. 그래서 이 파일이 지키는 것은 하나다: 영상 위에 얹은
+ * 우리 단추가 어떤 화면에서도 영상에 먹히지 않는 것 (z-index · 안전 여백).
+ */
+
+.ov {
+  position: fixed;
+  inset: 0;
+  z-index: 9000; /* 방송 띠·메모장보다 위 — 이 화면이 떠 있는 동안은 이것만 보인다 */
+  background: #000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/*
+ * 영상은 화면을 다 쓴다. 비율이 안 맞으면 남는 쪽이 검게 남는다 —
+ * cover 로 채우면 잘려 나가는 쪽에 글자가 있을 수 있다 (이 영상은 글자가 많다).
+ */
+.ov__frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  object-fit: contain;
+  background: #000;
+}
+
+/*
+ * 파일을 못 받아 온 판. 검은 화면만 남으면 사람은 기다려야 하는지 고장인지 모른다 —
+ * 한 줄 적고, 나가는 길(건너뛰기)이 어디인지 가리킨다.
+ */
+.ov-broken {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12%;
+  z-index: 2;
+  margin: 0;
+  text-align: center;
+  font: 400 13px/1.7 system-ui, sans-serif;
+  color: #9db4c6;
+}
+.ov-broken b {
+  color: #cfe6f5;
+}
+
+/*
+ * 받아 오는 중. 고장 안내와 **같은 줄에 선다** — 화면 아래 한 자리에 한 마디만.
+ * 숨을 쉬듯 흐려졌다 진해진다: 멈춘 그림 위에 정지한 글자가 있으면 그것도 멈춘 것처럼 보인다.
+ */
+.ov-wait {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12%;
+  z-index: 2;
+  margin: 0;
+  text-align: center;
+  font: 400 12.5px/1.7 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  color: #7f97aa;
+  animation: ov-breathe 1.6s ease-in-out infinite;
+}
+@keyframes ov-breathe {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+
+/*
+ * ← → 로 10초 뛰었을 때 잠깐 뜨는 신호 (OpeningVideo 의 seek).
+ * 뛴 **방향 쪽**에 선다 — 가운데에 뜨면 어느 쪽으로 갔는지 글자를 읽어야 안다.
+ * 700ms 뒤에 사라지므로 여기 애니메이션은 나타나는 쪽만 맡는다.
+ */
+.ov-seek {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  padding: 10px 16px;
+  font: 600 13px/1 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  color: #eaf7ff;
+  background: rgba(6, 14, 22, 0.66);
+  border: 1px solid rgba(111, 211, 255, 0.3);
+  border-radius: 2px;
+  backdrop-filter: blur(3px);
+  pointer-events: none; /* 영상 자리를 눌러 멈추는 길을 막지 않는다 */
+  animation: ov-pop 0.18s ease-out both;
+}
+.ov-seek--fwd { right: 12%; }
+.ov-seek--back { left: 12%; }
+
+@keyframes ov-pop {
+  from { opacity: 0; transform: translateY(-50%) scale(0.92); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+/*
+ * 건너뛰기 — 오른쪽 위. **늘 보인다.**
+ * 영상이 안 뜨든 소리가 안 나든 로그인이 꺼져 있든, 이 단추 하나로 게임에 들어갈 수 있어야 한다.
+ * safe-area 를 더하는 이유는 노치 있는 기기에서 이 단추가 상태 표시줄 밑으로 들어가서다.
+ */
+.ov-skip {
+  position: absolute;
+  top: calc(18px + env(safe-area-inset-top, 0px));
+  right: calc(18px + env(safe-area-inset-right, 0px));
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  font: 600 12.5px/1 system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  color: #cfe6f5;
+  background: rgba(6, 14, 22, 0.62);
+  border: 1px solid rgba(111, 211, 255, 0.32);
+  border-radius: 2px;
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.ov-skip:hover {
+  color: #eaf7ff;
+  background: rgba(10, 24, 36, 0.82);
+  border-color: rgba(111, 211, 255, 0.6);
+}
+
+/* 왼쪽 위 — 전체화면. 브라우저가 저절로 전체화면에 들어가 주지 않은 판에서만 뜬다 */
+.ov-full {
+  position: absolute;
+  top: calc(18px + env(safe-area-inset-top, 0px));
+  left: calc(18px + env(safe-area-inset-left, 0px));
+  z-index: 2;
+  padding: 9px 13px;
+  font: 600 12.5px/1 system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  color: #9db4c6;
+  background: rgba(6, 14, 22, 0.5);
+  border: 1px solid rgba(157, 180, 198, 0.24);
+  border-radius: 2px;
+  cursor: pointer;
+}
+.ov-full:hover {
+  color: #eaf7ff;
+  border-color: rgba(111, 211, 255, 0.5);
+}
+
+/*
+ * 가운데 재생 단추 — **소리 있는 자동재생이 막힌 판**에서만 뜬다.
+ * 브라우저 대부분이 막으므로 이게 보통의 첫 화면이라고 생각하는 게 맞다.
+ * 그래서 크게, 한가운데. 누르면 전체화면 + 처음부터 소리와 함께 재생이다.
+ */
+.ov-tap {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  justify-items: center;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(4, 12, 20, 0.55), rgba(0, 0, 0, 0.88));
+  border: 0;
+  cursor: pointer;
+  color: #eaf7ff;
+  font-family: system-ui, sans-serif;
+  animation: ov-in 0.35s ease-out both;
+}
+@keyframes ov-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.ov-tap__ring {
+  width: 84px;
+  height: 84px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(111, 211, 255, 0.55);
+  background: rgba(8, 20, 30, 0.7);
+  box-shadow: 0 0 40px -12px rgba(111, 211, 255, 0.7);
+}
+.ov-tap:hover .ov-tap__ring {
+  border-color: rgba(111, 211, 255, 0.9);
+  background: rgba(12, 30, 44, 0.85);
+}
+.ov-tap__label {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #cfe6f5;
+}
+.ov-tap__sub {
+  font-size: 11.5px;
+  color: #7f97aa;
+  letter-spacing: 0.04em;
+}

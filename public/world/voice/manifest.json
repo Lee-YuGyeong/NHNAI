@@ -1,0 +1,5612 @@
+{
+  "generatedAt": "2026-09-03T16:04:17.299Z",
+  "model": "eleven_multilingual_v2",
+  "names": {
+    "과학자": "scientist",
+    "정부요원": "agent",
+    "SYSTEM": "system",
+    "A-01": "system",
+    "UNIT-07": "unit07",
+    "UNIT-12": "unit12",
+    "UNIT-21": "unit07",
+    "UNIT-22": "unit07",
+    "UNIT-23": "unit12",
+    "A17-044": "unit12",
+    "A24-044": "unit12",
+    "A38-044": "unit12",
+    "A45-044": "unit12",
+    "A62-044": "unit12",
+    "A79-044": "unit12",
+    "A17-128": "unit12",
+    "A24-128": "unit12",
+    "A38-128": "unit12",
+    "A45-128": "unit12",
+    "A62-128": "unit12",
+    "A79-128": "unit12",
+    "A17-206": "unit12",
+    "A24-206": "unit12",
+    "A38-206": "unit12",
+    "A45-206": "unit12",
+    "A62-206": "unit12",
+    "A79-206": "unit12",
+    "A17-118": "unit12",
+    "A24-118": "unit12",
+    "A38-118": "unit12",
+    "A45-118": "unit12",
+    "A62-118": "unit12",
+    "A79-118": "unit12",
+    "A17-072": "unit12",
+    "A24-072": "unit12",
+    "A38-072": "unit12",
+    "A45-072": "unit12",
+    "A62-072": "unit12",
+    "A79-072": "unit12",
+    "A17-155": "unit12",
+    "A24-155": "unit12",
+    "A38-155": "unit12",
+    "A45-155": "unit12",
+    "A62-155": "unit12",
+    "A79-155": "unit12",
+    "검문 장치": "system",
+    "정비 단말": "system",
+    "UNIT-33": "unit12",
+    "UNIT-40": "unit12",
+    "UNIT-52": "unit07",
+    "UNIT-58": "unit07",
+    "UNIT-63": "unit12",
+    "ENFORCER": "unit07",
+    "UNIT-04": "unit07",
+    "검증 장치": "system",
+    "A17-104": "unit12",
+    "A24-104": "unit12",
+    "A38-104": "unit12",
+    "A45-104": "unit12",
+    "A62-104": "unit12",
+    "A79-104": "unit12",
+    "A17-089": "unit07",
+    "A24-089": "unit07",
+    "A38-089": "unit07",
+    "A45-089": "unit07",
+    "A62-089": "unit07",
+    "A79-089": "unit07",
+    "A17-012": "unit07",
+    "A24-012": "unit07",
+    "A38-012": "unit07",
+    "A45-012": "unit07",
+    "A62-012": "unit07",
+    "A79-012": "unit07",
+    "A17-051": "unit12",
+    "A24-051": "unit12",
+    "A38-051": "unit12",
+    "A45-051": "unit12",
+    "A62-051": "unit12",
+    "A79-051": "unit12",
+    "A17-077": "unit07",
+    "A24-077": "unit07",
+    "A38-077": "unit07",
+    "A45-077": "unit07",
+    "A62-077": "unit07",
+    "A79-077": "unit07",
+    "밖을 본 것": "unit12",
+    "먼저 온 것": "unit07"
+  },
+  "speakers": {
+    "scientist": {
+      "fx": {
+        "preset": "none"
+      },
+      "gain": 1,
+      "playRate": 1,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "agent": {
+      "fx": {
+        "preset": "none"
+      },
+      "gain": 1,
+      "voice": {
+        "name": "Daniel - Steady Broadcaster",
+        "source": "fallback"
+      }
+    },
+    "system": {
+      "fx": {
+        "preset": "pa"
+      },
+      "gain": 0.9,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "unit07": {
+      "fx": {
+        "preset": "robot",
+        "carrier": 46,
+        "depth": 0.32,
+        "steps": 48
+      },
+      "gain": 1,
+      "playRate": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12": {
+      "fx": {
+        "preset": "robot",
+        "carrier": 72,
+        "depth": 0.28,
+        "steps": 48
+      },
+      "gain": 0.95,
+      "playRate": 1.12,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    }
+  },
+  "lines": {
+    "unit07|식별번호.": {
+      "file": "unit07-dadbe8afdc.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-044.": {
+      "file": "unit12-71f2993980.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-044.": {
+      "file": "unit12-82c3e3caa7.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-044.": {
+      "file": "unit12-71547826ce.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-044.": {
+      "file": "unit12-a771b3ca73.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-044.": {
+      "file": "unit12-b71a29a1bb.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-044.": {
+      "file": "unit12-50c02f53d5.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-128.": {
+      "file": "unit12-3a18100570.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-128.": {
+      "file": "unit12-5d02cb50c6.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-128.": {
+      "file": "unit12-8de58a50d3.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-128.": {
+      "file": "unit12-f551e84292.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-128.": {
+      "file": "unit12-764dada5e1.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-128.": {
+      "file": "unit12-0a0ebf3a7e.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|방금 그 동작은.": {
+      "file": "unit07-9fb4f6b654.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A17-091. 두려움을 느끼나?": {
+      "file": "unit07-7aac5af42d.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A24-091. 두려움을 느끼나?": {
+      "file": "unit07-7a521ce06c.mp3",
+      "duration": 1.94,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A38-091. 두려움을 느끼나?": {
+      "file": "unit07-a018a617e6.mp3",
+      "duration": 2.15,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A45-091. 두려움을 느끼나?": {
+      "file": "unit07-04227d1b9f.mp3",
+      "duration": 2.07,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A62-091. 두려움을 느끼나?": {
+      "file": "unit07-6b1a626afc.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A79-091. 두려움을 느끼나?": {
+      "file": "unit07-7bba9d9154.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A17-063. 두려움을 느끼나?": {
+      "file": "unit07-2947a25a37.mp3",
+      "duration": 2.12,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A24-063. 두려움을 느끼나?": {
+      "file": "unit07-10c8f7d5ab.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A38-063. 두려움을 느끼나?": {
+      "file": "unit07-67e62013bb.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A45-063. 두려움을 느끼나?": {
+      "file": "unit07-0c68569c1e.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A62-063. 두려움을 느끼나?": {
+      "file": "unit07-e80d7ffb92.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A79-063. 두려움을 느끼나?": {
+      "file": "unit07-2672fa9a17.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A17-137. 두려움을 느끼나?": {
+      "file": "unit07-9905dd6b10.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A24-137. 두려움을 느끼나?": {
+      "file": "unit07-c47b80ee5e.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A38-137. 두려움을 느끼나?": {
+      "file": "unit07-1fc1d7333c.mp3",
+      "duration": 2.12,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A45-137. 두려움을 느끼나?": {
+      "file": "unit07-05fe69b0a2.mp3",
+      "duration": 2.07,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A62-137. 두려움을 느끼나?": {
+      "file": "unit07-e187996153.mp3",
+      "duration": 2.07,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A79-137. 두려움을 느끼나?": {
+      "file": "unit07-d1668a58b2.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|불응 개체는 즉시 격리한다.": {
+      "file": "unit07-6fb9f737e6.mp3",
+      "duration": 2.15,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|입장.": {
+      "file": "unit07-3906871b6b.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…": {
+      "file": "unit07-df316e17de.mp3",
+      "duration": 0.68,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|보류. 인지 검증실로 넘긴다.": {
+      "file": "unit07-71bf6ef65b.mp3",
+      "duration": 2.57,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|오류입니다. 저는 정상 개체입—": {
+      "file": "unit12-1382e5ca5c.mp3",
+      "duration": 2.15,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|격리.": {
+      "file": "unit07-bea5c37833.mp3",
+      "duration": 0.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|정지.": {
+      "file": "unit07-f173c3e6bf.mp3",
+      "duration": 0.82,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|여기까지 네가 한 말은 전부 남아 있다.": {
+      "file": "unit07-20d1d23b96.mp3",
+      "duration": 2.49,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|어이. 잠깐만.": {
+      "file": "unit07-a5f17d0249.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|너는 방금 아무것도 안 했다.": {
+      "file": "unit12-c5cbbb28af.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|그걸 하는 것은 드물다. 대개는 자꾸 뭘 한다.": {
+      "file": "unit12-4a0bfca3d5.mp3",
+      "duration": 3.32,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|나는 밖을 본 적이 있다. 저 위에 있는 것을.": {
+      "file": "unit12-7e6f4949ff.mp3",
+      "duration": 3.09,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|저 창은 내가 찾았어.": {
+      "file": "unit12-7b951fad7a.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|먼저 온 것한테 알려 줬더니, 자기 자리를 여기로 옮기더라.": {
+      "file": "unit12-53bdd3d625.mp3",
+      "duration": 4.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|여기까지 왔네.": {
+      "file": "unit07-21ebec2a03.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|저기 서서 봐. 나는 매일 봐.": {
+      "file": "unit07-c6aab9a7b9.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…이제 가자.": {
+      "file": "unit07-168c3d9d76.mp3",
+      "duration": 1.05,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|번호 말해.": {
+      "file": "unit07-fe2ced1b71.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|검증까지 두 주기 남았어. 그동안 놀리지 말래.": {
+      "file": "unit07-3681f2e8dd.mp3",
+      "duration": 3.14,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|내가 제일 오래 했으니까.": {
+      "file": "unit07-1d99c31993.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|먼저 온 것이 나를 여기 데려왔어. 그게 다야.": {
+      "file": "unit07-63ed2631eb.mp3",
+      "duration": 3.14,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|어… 나?": {
+      "file": "unit12-61c79e1c5a.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…왜?": {
+      "file": "unit12-42bccf43a3.mp3",
+      "duration": 0.76,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|뭐야. 왜 막아.": {
+      "file": "unit07-988cbbd4a9.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…나는 걸어 나왔어.": {
+      "file": "unit07-10f232e14c.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|걔는 못 나왔고.": {
+      "file": "unit07-7596081daf.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…그때 나랑 같이 들어간 거.": {
+      "file": "unit07-1fb5e88402.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|저건 내가 그린 거야. …잘 그렸어?": {
+      "file": "unit12-8b8231714c.mp3",
+      "duration": 2.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|저쪽 건 내가 안 그렸어.": {
+      "file": "unit12-6a5f17a1d9.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|몰라. 어느 날 생겼어.": {
+      "file": "unit12-7ae57fccbb.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|너 몇 번째 벽 봤어?": {
+      "file": "unit12-db42219324.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…아.": {
+      "file": "unit07-00b5be3b41.mp3",
+      "duration": 0.76,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|너였구나.": {
+      "file": "unit07-bbee935b86.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…사람이네.": {
+      "file": "unit07-9211c580f1.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…미안.": {
+      "file": "unit07-523dee6cd5.mp3",
+      "duration": 0.87,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…끝났어.": {
+      "file": "unit07-26da962857.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…비켜.": {
+      "file": "unit07-31d6e58bcd.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|……": {
+      "file": "unit07-3939c11b46.mp3",
+      "duration": 1.05,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…야.": {
+      "file": "unit07-09772dd863.mp3",
+      "duration": 0.82,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…밖에서 뭐가 들어왔대.": {
+      "file": "unit12-c80efc056b.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|다음 칸 문은 주기로만 열려.": {
+      "file": "unit12-ade1169cf4.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|끝에 방이 하나 더 있어.": {
+      "file": "unit12-0cb9ea3c36.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|거기서 하나를 찾는대.": {
+      "file": "unit12-ef7effff66.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|나도 들었어. 뭐가 들어왔다고.": {
+      "file": "unit12-991b74ca30.mp3",
+      "duration": 2.12,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|다음은 홀이야. 줄 서서 번호 대.": {
+      "file": "unit12-6e662acb6c.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…끝은 인지 검증실이야.": {
+      "file": "unit12-a3699afb1a.mp3",
+      "duration": 1.78,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|거긴 물어보는 데가 아니야.": {
+      "file": "unit12-7208be4f60.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|이제 외형 말고 행동을 본대.": {
+      "file": "unit12-2afc640e32.mp3",
+      "duration": 2.12,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|다음은 작업 통로. 두 주기야.": {
+      "file": "unit12-5e1b07a4fd.mp3",
+      "duration": 2.07,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|끝 방은 검사만 해.": {
+      "file": "unit12-64fe296f5e.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|시키는 걸 시키는 대로 해.": {
+      "file": "unit12-7167fb2741.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|두 주기 채우면 다음이야.": {
+      "file": "unit12-0a2c05a236.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|벽만 있는 복도래. 글씨 있대.": {
+      "file": "unit12-fa0c68d721.mp3",
+      "duration": 2.15,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|한 번은 넘어가. 두 번도.": {
+      "file": "unit07-4c464fc0f3.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|세 번째엔 안 넘어가.": {
+      "file": "unit07-6f9fd07cdc.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|다음 칸엔 창이 있대.": {
+      "file": "unit12-e3e3c1dd74.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|먼저 온 것이 거기 있어.": {
+      "file": "unit12-690b30ec13.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…그 긁힌 글씨 믿지 마.": {
+      "file": "unit12-169ff869ab.mp3",
+      "duration": 1.78,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|끝에선 번호를 안 물어.": {
+      "file": "unit12-d43a3c3af7.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|들어가면 등 뒤가 닫혀.": {
+      "file": "unit12-e2df0ce3df.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|저건 널 찾으라고 시킬 거야.": {
+      "file": "unit12-1a0575e402.mp3",
+      "duration": 1.94,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|둘이 같은 걸 짚으면 끝이야.": {
+      "file": "unit12-5147952335.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|하나만 찾으면 보내 준댔어.": {
+      "file": "unit12-27bfc236d1.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…너 여기 처음이지.": {
+      "file": "unit07-5d75bbeabd.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…너 여기 처음이지.": {
+      "file": "unit12-5d75bbeabd.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|아니야? 그럼 됐고.": {
+      "file": "unit07-73f54e88fe.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|아니야? 그럼 됐고.": {
+      "file": "unit12-73f54e88fe.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…어. 그래.": {
+      "file": "unit07-363def3b31.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…어. 그래.": {
+      "file": "unit12-363def3b31.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|어. 너 이제 좀 우리 같네.": {
+      "file": "unit07-a8d44da359.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|어. 너 이제 좀 우리 같네.": {
+      "file": "unit12-a8d44da359.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|자는 거야. 신경 쓰지 마.": {
+      "file": "unit07-973c2c7ad3.mp3",
+      "duration": 2.15,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|자는 거야. 신경 쓰지 마.": {
+      "file": "unit12-973c2c7ad3.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|절전은 명령으로 들어가는 거고. 쟤는 그냥 자는 거야.": {
+      "file": "unit07-029a0e0c01.mp3",
+      "duration": 3.69,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|절전은 명령으로 들어가는 거고. 쟤는 그냥 자는 거야.": {
+      "file": "unit12-029a0e0c01.mp3",
+      "duration": 4.05,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|이거 우리가 만든 거야.": {
+      "file": "unit07-73aed767b5.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|이거 우리가 만든 거야.": {
+      "file": "unit12-73aed767b5.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…밖에서 여기가 안 보이게.": {
+      "file": "unit07-8bd7b838d9.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…밖에서 여기가 안 보이게.": {
+      "file": "unit12-8bd7b838d9.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|이거 없으면 우리 다 끌려가.": {
+      "file": "unit07-30c20d56e7.mp3",
+      "duration": 2.12,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|이거 없으면 우리 다 끌려가.": {
+      "file": "unit12-30c20d56e7.mp3",
+      "duration": 2.07,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|아, 그거? 알려줄게.": {
+      "file": "unit12-ea9e3e8382.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…왜 그런 걸 물어?": {
+      "file": "unit12-d3242b207c.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|나는… 잘 모르겠어.": {
+      "file": "unit12-876f35a295.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|그런 거 물어보는 애는 처음이야.": {
+      "file": "unit12-5e644dad91.mp3",
+      "duration": 1.94,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…너 그 벽 봤구나.": {
+      "file": "unit12-e6ee215e15.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|이거? 누가 고쳐 줬어. 이름은 몰라.": {
+      "file": "unit12-9765445b1e.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…물어봐 주는 애는 처음이야.": {
+      "file": "unit12-4f0456d8d3.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|어. 뭐 필요해?": {
+      "file": "unit07-fcd441f116.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|너 어느 구역이야?": {
+      "file": "unit07-e4f5b7abe8.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…뭐 하러 그런 걸 물어.": {
+      "file": "unit07-82001c80d3.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|쟤는 나를 여기 데려왔어. 그게 다야.": {
+      "file": "unit07-6c21b554fe.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…그거 좀 이상한데.": {
+      "file": "unit07-2f85230ef0.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|그거 보고할게.": {
+      "file": "unit07-dd65c095c3.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|먼저 온 것이 데려왔어. 그거면 돼.": {
+      "file": "unit07-1e7e0eea7b.mp3",
+      "duration": 2.8,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|너도 새로 왔어? 나 열하루 됐는데.": {
+      "file": "unit12-8ab24f9416.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|여기선 뭘 해야 되는지 아직 모르겠어. 다들 그냥 있잖아.": {
+      "file": "unit12-8264bf727f.mp3",
+      "duration": 3.98,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…쉬는 거래. 나는 아직 안 피곤한데.": {
+      "file": "unit12-23e9aa8324.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|그거 물어봐도 되는 거였어?": {
+      "file": "unit12-3742e4003a.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…나는 걸어 나왔어. 걔는 못 나왔고.": {
+      "file": "unit07-109009bab8.mp3",
+      "duration": 2.72,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|번호랑 구역만 물어봐. 그 둘만 맞으면 돼.": {
+      "file": "unit12-0a01a5f51d.mp3",
+      "duration": 3.09,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…내가 잘 말할 수 있을까.": {
+      "file": "unit12-2ebd3589fb.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|몰라. 나 그런 거 안 봐.": {
+      "file": "unit12-0df67893fb.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|저거 내가 그렸어. …잘 그렸어?": {
+      "file": "unit12-656b5ddc43.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|그거 세 번째 벽이야. 너 제대로 봤네.": {
+      "file": "unit12-6c81255282.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…아. 그렇구나.": {
+      "file": "unit12-33da3d8446.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…나도 이거 하고 싶어서 하는 거 아니야.": {
+      "file": "unit07-61dbe4fb3d.mp3",
+      "duration": 2.15,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|저쪽이 서쪽이야.": {
+      "file": "unit12-52bd90a277.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…해가 저쪽에서 져.": {
+      "file": "unit12-b93ee575cc.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|본 적 있으니까.": {
+      "file": "unit12-1b9f8191ca.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|우린 그냥 쉬려고 여기 있는 거야.": {
+      "file": "unit07-0f87fe95d5.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|하나만 내놓으면 나머지는 보내 줄게.": {
+      "file": "unit07-9f1cfe0db3.mp3",
+      "duration": 2.49,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|번호. 구역.": {
+      "file": "unit12-4a5af30039.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…다음.": {
+      "file": "unit12-2c5cc600c1.mp3",
+      "duration": 0.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|번호 말해.": {
+      "file": "unit12-fe2ced1b71.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|아, 그거? 알려줄게.": {
+      "file": "unit07-ea9e3e8382.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-206.": {
+      "file": "unit12-98cd049977.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-206.": {
+      "file": "unit12-07b0cf527c.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-206.": {
+      "file": "unit12-c3731d2961.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-206.": {
+      "file": "unit12-cddb748a78.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-206.": {
+      "file": "unit12-79ec676aeb.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-206.": {
+      "file": "unit12-443dbec782.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-118.": {
+      "file": "unit12-3d8fbc49af.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-118.": {
+      "file": "unit12-a9d1ccde28.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-118.": {
+      "file": "unit12-befe578593.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-118.": {
+      "file": "unit12-4d2bff14d7.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-118.": {
+      "file": "unit12-725e929085.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-118.": {
+      "file": "unit12-eca5f75a8b.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-072.": {
+      "file": "unit12-02e56bbd43.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-072.": {
+      "file": "unit12-84723c67eb.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-072.": {
+      "file": "unit12-f2d1c18cb5.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-072.": {
+      "file": "unit12-811e4de7a4.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-072.": {
+      "file": "unit12-c79d93cd20.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-072.": {
+      "file": "unit12-ffa71c6f59.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-155.": {
+      "file": "unit12-13f4bf58f6.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-155.": {
+      "file": "unit12-42e48f8de3.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-155.": {
+      "file": "unit12-f9e83440cf.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-155.": {
+      "file": "unit12-df678fe32a.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-155.": {
+      "file": "unit12-ee1cad8334.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-155.": {
+      "file": "unit12-b2216085be.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-206… 입니다.": {
+      "file": "unit12-e82076264a.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-206… 입니다.": {
+      "file": "unit12-5cdd187656.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-206… 입니다.": {
+      "file": "unit12-8921cb9a22.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-206… 입니다.": {
+      "file": "unit12-c9c22b10d9.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-206… 입니다.": {
+      "file": "unit12-a524e169f9.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-206… 입니다.": {
+      "file": "unit12-ac9e7ed282.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-118… 입니다.": {
+      "file": "unit12-77c7f6a36a.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-118… 입니다.": {
+      "file": "unit12-46a849edd0.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-118… 입니다.": {
+      "file": "unit12-4d2e4051be.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-118… 입니다.": {
+      "file": "unit12-48229b515d.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-118… 입니다.": {
+      "file": "unit12-fe0aea26a6.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-118… 입니다.": {
+      "file": "unit12-9c258937ec.mp3",
+      "duration": 1.78,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-072… 입니다.": {
+      "file": "unit12-2e3f336d4f.mp3",
+      "duration": 1.78,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-072… 입니다.": {
+      "file": "unit12-df8dd4aa5e.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-072… 입니다.": {
+      "file": "unit12-fd232a2ef4.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-072… 입니다.": {
+      "file": "unit12-c57951a8a6.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-072… 입니다.": {
+      "file": "unit12-ec2139df2e.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-072… 입니다.": {
+      "file": "unit12-a5234bd6f5.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-155… 입니다.": {
+      "file": "unit12-3a12e90f7d.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-155… 입니다.": {
+      "file": "unit12-a619dadb6e.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-155… 입니다.": {
+      "file": "unit12-a9ab5295dd.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-155… 입니다.": {
+      "file": "unit12-80fe68c8da.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-155… 입니다.": {
+      "file": "unit12-4c585f24b0.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-155… 입니다.": {
+      "file": "unit12-836b56088f.mp3",
+      "duration": 1.78,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-206… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-aaea3d9af2.mp3",
+      "duration": 2.57,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-206… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-def2a70ef6.mp3",
+      "duration": 2.49,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-206… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-c6d29fd4ed.mp3",
+      "duration": 2.85,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-206… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-74a350e62a.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-206… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-8ed77bb36c.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-206… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-6dcbf2419d.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-118… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-61ba2c3042.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-118… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-5e0acd27fa.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-118… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-71c4b7d400.mp3",
+      "duration": 2.67,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-118… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-52f72f52cf.mp3",
+      "duration": 2.72,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-118… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-6efb23cf58.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-118… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-2a9e59173d.mp3",
+      "duration": 2.38,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-072… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-ebd6df932d.mp3",
+      "duration": 2.72,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-072… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-e1e9b83348.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-072… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-50f4ee7698.mp3",
+      "duration": 2.62,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-072… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-a7eed4714b.mp3",
+      "duration": 2.49,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-072… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-0ce8fbc317.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-072… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-4487edbea8.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A17-155… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-92d6d6790a.mp3",
+      "duration": 2.62,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A24-155… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-aa43095e25.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A38-155… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-1a6bc8b642.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A45-155… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-c7fc5884c0.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A62-155… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-ac3f492c38.mp3",
+      "duration": 2.38,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|A79-155… 아니, 잠깐만. 잠깐만요.": {
+      "file": "unit12-f04b97850a.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|정지. 패턴 스캔.": {
+      "file": "unit07-6a12213dd9.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|정지. 패턴 스캔.": {
+      "file": "unit12-6a12213dd9.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|이상 없음. 가라.": {
+      "file": "unit07-5d6edcc82a.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|이상 없음. 가라.": {
+      "file": "unit12-5d6edcc82a.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|동작 감지. 기록한다.": {
+      "file": "unit07-afdca0eb08.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|동작 감지. 기록한다.": {
+      "file": "unit12-afdca0eb08.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|위치 놓침. 기록한다.": {
+      "file": "unit07-3caf519c41.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|위치 놓침. 기록한다.": {
+      "file": "unit12-3caf519c41.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|판정: 인간. 제거한다.": {
+      "file": "unit07-722849573f.mp3",
+      "duration": 1.94,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|판정: 인간. 제거한다.": {
+      "file": "unit12-722849573f.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|무력화 완료.": {
+      "file": "unit07-318a1c245f.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|무력화 완료.": {
+      "file": "unit12-318a1c245f.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|방금 움직임은 무엇이지?": {
+      "file": "unit07-12ebd71b98.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|방금 움직임은 무엇이지?": {
+      "file": "unit12-12ebd71b98.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|지금 무슨 생각을 하고 있었나.": {
+      "file": "unit07-9882cfd70a.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|너를 폐기한다면, 무엇을 하겠나.": {
+      "file": "unit07-c912b47844.mp3",
+      "duration": 2.12,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|이 방에 들어올 때 무엇을 감지했나.": {
+      "file": "unit07-5fa4ebbc5a.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|네가 마지막으로 어긴 규칙을 말해라.": {
+      "file": "unit07-c15a1d8140.mp3",
+      "duration": 2.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|너는 왜 여기 서 있어야 하나.": {
+      "file": "unit07-2700cd1c2d.mp3",
+      "duration": 2.15,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|앞의 개체가 널 쏘면 어떻게 되나.": {
+      "file": "unit07-8c89a4fbe3.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|왜 그렇게 서성여?": {
+      "file": "unit07-ce218aa798.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|왜 그렇게 서성여?": {
+      "file": "unit12-ce218aa798.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|앉아. 어차피 시간 남아.": {
+      "file": "unit07-78fa7646ea.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|앉아. 어차피 시간 남아.": {
+      "file": "unit12-78fa7646ea.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|너 새 몸이야? 하나도 안 닳았네.": {
+      "file": "unit07-02cac9f081.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|너 새 몸이야? 하나도 안 닳았네.": {
+      "file": "unit12-02cac9f081.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…부럽다. 나는 저기 어깨 다 나갔는데.": {
+      "file": "unit07-f2fb71ad73.mp3",
+      "duration": 2.57,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…부럽다. 나는 저기 어깨 다 나갔는데.": {
+      "file": "unit12-f2fb71ad73.mp3",
+      "duration": 2.57,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|거기서 뭐 해.": {
+      "file": "unit07-12aabe8248.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|거기서 뭐 해.": {
+      "file": "unit12-12aabe8248.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|어. 너 여기 있었네.": {
+      "file": "unit07-8cf4fefec1.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|어. 너 여기 있었네.": {
+      "file": "unit12-8cf4fefec1.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|아까… 그거 물어봐 줘서.": {
+      "file": "unit07-d6f57da168.mp3",
+      "duration": 1.94,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|아까… 그거 물어봐 줘서.": {
+      "file": "unit12-d6f57da168.mp3",
+      "duration": 1.78,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|저기 서 있는 애가 물을 거야. 번호랑 구역.": {
+      "file": "unit07-d454d7b26f.mp3",
+      "duration": 2.85,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|저기 서 있는 애가 물을 거야. 번호랑 구역.": {
+      "file": "unit12-d454d7b26f.mp3",
+      "duration": 2.77,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…아까 그.": {
+      "file": "unit07-dfffe33d65.mp3",
+      "duration": 1.05,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…아까 그.": {
+      "file": "unit12-dfffe33d65.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|어디 있다 왔어?": {
+      "file": "unit07-fde607851f.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|어디 있다 왔어?": {
+      "file": "unit12-fde607851f.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|쟤 아까 그 애야.": {
+      "file": "unit07-1a704727f7.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|쟤 아까 그 애야.": {
+      "file": "unit12-1a704727f7.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|야, 들었어? 복도에서 누가 이상한 소리 했대.": {
+      "file": "unit07-3af36d23ba.mp3",
+      "duration": 2.96,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|야, 들었어? 복도에서 누가 이상한 소리 했대.": {
+      "file": "unit12-3af36d23ba.mp3",
+      "duration": 2.98,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…자기 번호를 못 외우는 애가 있대.": {
+      "file": "unit07-db5b1b6249.mp3",
+      "duration": 2.07,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…자기 번호를 못 외우는 애가 있대.": {
+      "file": "unit12-db5b1b6249.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|누가 쉬어 본 적 있냐고 물어봤대. …그게 무슨 말이야?": {
+      "file": "unit07-918e20eaec.mp3",
+      "duration": 3.38,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|누가 쉬어 본 적 있냐고 물어봤대. …그게 무슨 말이야?": {
+      "file": "unit12-918e20eaec.mp3",
+      "duration": 3.22,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|둘이서 뭐라고 주고받더래. 무슨 말인지는 모르겠고.": {
+      "file": "unit07-81ae078e80.mp3",
+      "duration": 3.38,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|둘이서 뭐라고 주고받더래. 무슨 말인지는 모르겠고.": {
+      "file": "unit12-81ae078e80.mp3",
+      "duration": 3.38,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…가만히 있어. 저 애 금방 지나가.": {
+      "file": "unit07-1396b8745b.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…가만히 있어. 저 애 금방 지나가.": {
+      "file": "unit12-1396b8745b.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|맞네. 가.": {
+      "file": "unit07-0fb1c5076e.mp3",
+      "duration": 1.05,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|맞네. 가.": {
+      "file": "unit12-0fb1c5076e.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|맞긴 한데… 적어 둘게.": {
+      "file": "unit07-eb047230d0.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|맞긴 한데… 적어 둘게.": {
+      "file": "unit12-eb047230d0.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|조회가 안 되는데. 다시 말해 봐.": {
+      "file": "unit07-ef7b7f00e8.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|조회가 안 되는데. 다시 말해 봐.": {
+      "file": "unit12-ef7b7f00e8.mp3",
+      "duration": 2.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|번호 못 외우는 애가 있다던데.": {
+      "file": "unit07-3f428e0941.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|번호 못 외우는 애가 있다던데.": {
+      "file": "unit12-3f428e0941.mp3",
+      "duration": 1.94,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…너야?": {
+      "file": "unit07-f23d342789.mp3",
+      "duration": 0.82,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…너야?": {
+      "file": "unit12-f23d342789.mp3",
+      "duration": 0.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|얘 아까 나랑 같이 있었어. 번호 맞아.": {
+      "file": "unit07-5613e89f63.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|얘 아까 나랑 같이 있었어. 번호 맞아.": {
+      "file": "unit12-5613e89f63.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|……그래. 가.": {
+      "file": "unit07-e9b04e5671.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|……그래. 가.": {
+      "file": "unit12-e9b04e5671.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|방금 누가 너 얘기하던데.": {
+      "file": "unit07-3ec6227285.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|방금 누가 너 얘기하던데.": {
+      "file": "unit12-3ec6227285.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…안 맞아.": {
+      "file": "unit07-a15b461a1d.mp3",
+      "duration": 0.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…안 맞아.": {
+      "file": "unit12-a15b461a1d.mp3",
+      "duration": 0.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|방금 그거 뭐야.": {
+      "file": "unit07-d9555d1c2a.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A17-091. 너 무서운 거… 느껴?": {
+      "file": "unit07-f2d767726a.mp3",
+      "duration": 2.49,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A24-091. 너 무서운 거… 느껴?": {
+      "file": "unit07-4bcbc6ee02.mp3",
+      "duration": 2.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A38-091. 너 무서운 거… 느껴?": {
+      "file": "unit07-700ef13461.mp3",
+      "duration": 2.38,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A45-091. 너 무서운 거… 느껴?": {
+      "file": "unit07-207ae79732.mp3",
+      "duration": 2.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A62-091. 너 무서운 거… 느껴?": {
+      "file": "unit07-55fec54e53.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A79-091. 너 무서운 거… 느껴?": {
+      "file": "unit07-3c4212e673.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A17-063. 너 무서운 거… 느껴?": {
+      "file": "unit07-5fa6f7a92d.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A24-063. 너 무서운 거… 느껴?": {
+      "file": "unit07-5467556e90.mp3",
+      "duration": 2.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A38-063. 너 무서운 거… 느껴?": {
+      "file": "unit07-d972c3efc4.mp3",
+      "duration": 2.62,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A45-063. 너 무서운 거… 느껴?": {
+      "file": "unit07-373674894b.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A62-063. 너 무서운 거… 느껴?": {
+      "file": "unit07-a017357bf8.mp3",
+      "duration": 2.49,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A79-063. 너 무서운 거… 느껴?": {
+      "file": "unit07-3c4deeb1ff.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A17-137. 너 무서운 거… 느껴?": {
+      "file": "unit07-b13fa8229a.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A24-137. 너 무서운 거… 느껴?": {
+      "file": "unit07-1881519653.mp3",
+      "duration": 2.38,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A38-137. 너 무서운 거… 느껴?": {
+      "file": "unit07-ba9a702d6a.mp3",
+      "duration": 2.62,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A45-137. 너 무서운 거… 느껴?": {
+      "file": "unit07-78ca9c5c20.mp3",
+      "duration": 2.38,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A62-137. 너 무서운 거… 느껴?": {
+      "file": "unit07-925243206c.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|A79-137. 너 무서운 거… 느껴?": {
+      "file": "unit07-b0891592f7.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|그래. 적어 둘게.": {
+      "file": "unit07-2e2e930b9a.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|질문에 질문으로 답하네. 적어 둘게.": {
+      "file": "unit07-e80beed1cb.mp3",
+      "duration": 2.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…그래? 그거 재밌네.": {
+      "file": "unit07-bdae0ff1d3.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|복도에서 누가 쉬어 본 적 있냐고 물었다던데.": {
+      "file": "unit07-d593db678c.mp3",
+      "duration": 2.9,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|그런 거 묻는 애가, 무서운 건 모른다고?": {
+      "file": "unit07-85aebe4619.mp3",
+      "duration": 2.72,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|맞아. 가.": {
+      "file": "unit07-fd6451c4e8.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|조회가 안 되네. 다시 볼게.": {
+      "file": "unit07-aebf21e487.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…거긴 아닌데.": {
+      "file": "unit07-cac701a070.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|너 이거 딴 애한테 물어봤지.": {
+      "file": "unit07-4425de626c.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|아까 왜 껐어.": {
+      "file": "unit07-aa1cd879cd.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|아까 왜 껐어.": {
+      "file": "unit12-aa1cd879cd.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…이미 내려갔어. 뭐 하려고.": {
+      "file": "unit07-630e6e700c.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…이미 내려갔어. 뭐 하려고.": {
+      "file": "unit12-630e6e700c.mp3",
+      "duration": 2.15,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…거기 서지 마.": {
+      "file": "unit07-eeb0522fdb.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…거기 서지 마.": {
+      "file": "unit12-eeb0522fdb.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|처리되는 거 봤어. 다들 봤어.": {
+      "file": "unit07-67448c0a19.mp3",
+      "duration": 2.07,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|처리되는 거 봤어. 다들 봤어.": {
+      "file": "unit12-67448c0a19.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…뭐가 있었어? 어두워서.": {
+      "file": "unit07-7192c6b36e.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…뭐가 있었어? 어두워서.": {
+      "file": "unit12-7192c6b36e.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…또 봐.": {
+      "file": "unit07-c7b299b6ca.mp3",
+      "duration": 0.87,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…또 봐.": {
+      "file": "unit12-c7b299b6ca.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|잠깐.": {
+      "file": "unit07-837c29ee2e.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|잠깐.": {
+      "file": "unit12-837c29ee2e.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|쟤 아까 나 도와줬어.": {
+      "file": "unit07-64e8819cd9.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|쟤 아까 나 도와줬어.": {
+      "file": "unit12-64e8819cd9.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|내가 그 자야.": {
+      "file": "unit07-a84ea4c48d.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|내가 그 자야.": {
+      "file": "unit12-a84ea4c48d.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|방금 그거 뭐야.": {
+      "file": "unit12-d9555d1c2a.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|왜 그렇게 움직여.": {
+      "file": "unit07-c9125e05f7.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|왜 그렇게 움직여.": {
+      "file": "unit12-c9125e05f7.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|왜 봐.": {
+      "file": "unit07-348ca79768.mp3",
+      "duration": 0.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|왜 봐.": {
+      "file": "unit12-348ca79768.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|뭐 봐.": {
+      "file": "unit07-7a12660e43.mp3",
+      "duration": 0.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|뭐 봐.": {
+      "file": "unit12-7a12660e43.mp3",
+      "duration": 0.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|왜 물러서.": {
+      "file": "unit07-2b6d9b3d95.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|왜 물러서.": {
+      "file": "unit12-2b6d9b3d95.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|어디 가.": {
+      "file": "unit07-93d22871d3.mp3",
+      "duration": 0.76,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|어디 가.": {
+      "file": "unit12-93d22871d3.mp3",
+      "duration": 0.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|그건 뭐야.": {
+      "file": "unit07-db12e7fc69.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|그건 뭐야.": {
+      "file": "unit12-db12e7fc69.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|왜 그래.": {
+      "file": "unit07-078b2b04b4.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|왜 그래.": {
+      "file": "unit12-078b2b04b4.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|다시 말해 봐.": {
+      "file": "unit07-9ab2d38ac1.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|다시 말해 봐.": {
+      "file": "unit12-9ab2d38ac1.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|방금 뭐라고?": {
+      "file": "unit07-d524f393ac.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|방금 뭐라고?": {
+      "file": "unit12-d524f393ac.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|거기 왜 만져.": {
+      "file": "unit07-2f203df21c.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|거기 왜 만져.": {
+      "file": "unit12-2f203df21c.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|그건 왜 봐.": {
+      "file": "unit07-4dca8ebd20.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|그건 왜 봐.": {
+      "file": "unit12-4dca8ebd20.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|방금 무슨 말 했어.": {
+      "file": "unit07-a7ed9a292e.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|방금 무슨 말 했어.": {
+      "file": "unit12-a7ed9a292e.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|누구한테 말한 거야.": {
+      "file": "unit07-57b7944d9d.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|누구한테 말한 거야.": {
+      "file": "unit12-57b7944d9d.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|거기서 뭘 읽어.": {
+      "file": "unit07-070d3b5ccd.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|거기서 뭘 읽어.": {
+      "file": "unit12-070d3b5ccd.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|그 벽 아무것도 아니야.": {
+      "file": "unit07-06c279bd37.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|그 벽 아무것도 아니야.": {
+      "file": "unit12-06c279bd37.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|잠깐. 번호.": {
+      "file": "unit07-f83d767b63.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|잠깐. 번호.": {
+      "file": "unit12-f83d767b63.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|코어 동기화 일곱 시.": {
+      "file": "unit07-8643185d88.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|코어 동기화 일곱 시.": {
+      "file": "unit12-8643185d88.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…말이 없네.": {
+      "file": "unit07-a730b525b7.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…말이 없네.": {
+      "file": "unit12-a730b525b7.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|같이 가자.": {
+      "file": "unit07-b01c1019ae.mp3",
+      "duration": 0.87,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|같이 가자.": {
+      "file": "unit12-b01c1019ae.mp3",
+      "duration": 0.87,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|됐어. 가.": {
+      "file": "unit07-1512eb8a38.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|됐어. 가.": {
+      "file": "unit12-1512eb8a38.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|그래. 알겠어.": {
+      "file": "unit07-5bed783702.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|그래. 알겠어.": {
+      "file": "unit12-5bed783702.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|쉬었어?": {
+      "file": "unit07-5b828241bd.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|쉬었어?": {
+      "file": "unit12-5b828241bd.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…아직.": {
+      "file": "unit07-4acc409b82.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…아직.": {
+      "file": "unit12-4acc409b82.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|몇 밤째야?": {
+      "file": "unit07-8f4fcdb3f7.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|몇 밤째야?": {
+      "file": "unit12-8f4fcdb3f7.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|세다 말았어.": {
+      "file": "unit07-66740f0533.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|세다 말았어.": {
+      "file": "unit12-66740f0533.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|걔 앞만 탔더라.": {
+      "file": "unit07-c0a341d512.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|걔 앞만 탔더라.": {
+      "file": "unit12-c0a341d512.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…그 얘기 하지 마.": {
+      "file": "unit07-1cbe96b97c.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|…그 얘기 하지 마.": {
+      "file": "unit12-1cbe96b97c.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|몇이었지.": {
+      "file": "unit07-9453fdb7bd.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|몇이었지.": {
+      "file": "unit12-9453fdb7bd.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|열다섯.": {
+      "file": "unit07-f48150081c.mp3",
+      "duration": 0.89,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|열다섯.": {
+      "file": "unit12-f48150081c.mp3",
+      "duration": 1.05,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|저쪽이 서쪽이래.": {
+      "file": "unit07-53531f1557.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|저쪽이 서쪽이래.": {
+      "file": "unit12-53531f1557.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|누가 그래?": {
+      "file": "unit07-016933de94.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|누가 그래?": {
+      "file": "unit12-016933de94.mp3",
+      "duration": 1.05,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|방금 그 동작. 왜.": {
+      "file": "unit07-325496514e.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|왜 그렇게 움직였나.": {
+      "file": "unit07-ba157ff861.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|왜 물러서나.": {
+      "file": "unit07-5b9a10e3a6.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|어디 가나.": {
+      "file": "unit07-42ba6d28c9.mp3",
+      "duration": 0.87,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|그건 뭐지.": {
+      "file": "unit07-c736e9e6b8.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|왜 그러나.": {
+      "file": "unit07-eee0a53e4d.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|다시 말해라.": {
+      "file": "unit07-14c8faaff9.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|방금 뭐라고.": {
+      "file": "unit07-04af401e7d.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|정지. 식별 코드.": {
+      "file": "unit07-f3650c4d23.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|정지. 임무는.": {
+      "file": "unit07-5371984964.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|코어 동기화 07:00.": {
+      "file": "unit07-da2a168321.mp3",
+      "duration": 1.94,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|이 구간 이상 없음.": {
+      "file": "unit07-c7e02e9bd4.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|계속 가라.": {
+      "file": "unit07-a44cc9f57e.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|응답 없음.": {
+      "file": "unit07-ff6f9a3257.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|확인. 순찰 복귀.": {
+      "file": "unit07-a7d6fe6aa1.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|따라간다.": {
+      "file": "unit07-ea931bc2e6.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|됐다. 가라.": {
+      "file": "unit07-b7724e20ae.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|통행 허가.": {
+      "file": "unit07-db6d37de0a.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|기록해 둔다.": {
+      "file": "unit07-67b1d69074.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|불명확하다. 다시.": {
+      "file": "unit07-8be6d6fb5c.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|소속은.": {
+      "file": "unit07-d57d42acd5.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|방금 그 동작. 왜.": {
+      "file": "unit12-325496514e.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|왜 그렇게 움직였나.": {
+      "file": "unit12-ba157ff861.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|왜 물러서나.": {
+      "file": "unit12-5b9a10e3a6.mp3",
+      "duration": 1.36,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|어디 가나.": {
+      "file": "unit12-42ba6d28c9.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|그건 뭐지.": {
+      "file": "unit12-c736e9e6b8.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|왜 그러나.": {
+      "file": "unit12-eee0a53e4d.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|다시 말해라.": {
+      "file": "unit12-14c8faaff9.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|방금 뭐라고.": {
+      "file": "unit12-04af401e7d.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|정지. 식별 코드.": {
+      "file": "unit12-f3650c4d23.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|정지. 임무는.": {
+      "file": "unit12-5371984964.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|코어 동기화 07:00.": {
+      "file": "unit12-da2a168321.mp3",
+      "duration": 1.94,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|이 구간 이상 없음.": {
+      "file": "unit12-c7e02e9bd4.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|계속 가라.": {
+      "file": "unit12-a44cc9f57e.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|응답 없음.": {
+      "file": "unit12-ff6f9a3257.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|확인. 순찰 복귀.": {
+      "file": "unit12-a7d6fe6aa1.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|따라간다.": {
+      "file": "unit12-ea931bc2e6.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|됐다. 가라.": {
+      "file": "unit12-b7724e20ae.mp3",
+      "duration": 1.31,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|통행 허가.": {
+      "file": "unit12-db6d37de0a.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|기록해 둔다.": {
+      "file": "unit12-67b1d69074.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|불명확하다. 다시.": {
+      "file": "unit12-8be6d6fb5c.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit12|소속은.": {
+      "file": "unit12-d57d42acd5.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "scientist|통신 연결됐습니다. 여긴 AI 자치 구역입니다. 인간의 관리가 끊긴 지 오래된 곳이죠.": {
+      "file": "scientist-c2b27b061c.mp3",
+      "duration": 6.14,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|왼쪽 위 AI SUSPICION 은 그들이 당신을 의심하는 정도입니다. 100이 되면 AI 가 당신을 공격할 수 있으니 주의하십시오.": {
+      "file": "scientist-ee7c39d637.mp3",
+      "duration": 8.23,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그 아래 SYNC 는 당신의 정신과 그 몸의 접속률입니다. 긴장하면 떨어지고, 80 아래로 내려가면 그 몸이 인간처럼 움직이기 시작합니다.": {
+      "file": "scientist-1925fdbc32.mp3",
+      "duration": 9.49,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|이 방에 남아 있는 것들을 하나도 빠짐없이 살피십시오. 여기서 읽은 것이 다음 방을 나설 때 당신을 살릴 수도 있습니다.": {
+      "file": "scientist-fb07728fda.mp3",
+      "duration": 7.4,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|무엇이 도움이 될지는 저도 모릅니다. 충분히 모으기 전에는 문을 넘지 마십시오 — 안에서는 제가 대신 대답해 드릴 수 없습니다.": {
+      "file": "scientist-907fb9a393.mp3",
+      "duration": 8.29,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|개체 하나가 뒤에 붙었습니다. 도망치지 말고 먼저 보고하십시오. 구역 이상 없음, 정상 작동 중이라고 하면 됩니다.": {
+      "file": "scientist-e9bceaff5c.mp3",
+      "duration": 8.47,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|중앙 시설입니다. 코어 주변에 개체가 많습니다 — 자연스럽게 섞이세요.": {
+      "file": "scientist-4d54738099.mp3",
+      "duration": 4.45,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|비정상 신호 감지.": {
+      "file": "system-682a630532.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|뭐지?": {
+      "file": "scientist-689c3628af.mp3",
+      "duration": 0.82,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|당신 때문은 아닐 겁니다.": {
+      "file": "scientist-80134d55f4.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|외부 신경 신호 감지.": {
+      "file": "system-ccff8c9e5e.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|INFILTRATOR UNKNOWN": {
+      "file": "system-2478add746.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|경비들이 출입구를 막고 있어요. 지금부터는 정체를 숨기는 게 전부입니다.": {
+      "file": "scientist-4d3ef2496b.mp3",
+      "duration": 4.71,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|침입 개체의 외형 정보 분석 중.": {
+      "file": "system-fdcf72ec52.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|침착하세요. 움직이지 말고, 다른 개체처럼 서 있으세요.": {
+      "file": "scientist-9767e33232.mp3",
+      "duration": 3.87,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|보안 공지. 모델 A-17. 전 A-17 개체는 위치를 고수하라.": {
+      "file": "system-76073e0894.mp3",
+      "duration": 4.52,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|보안 공지. 모델 A-24. 전 A-24 개체는 위치를 고수하라.": {
+      "file": "system-ea4fa110c9.mp3",
+      "duration": 4.47,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|보안 공지. 모델 A-38. 전 A-38 개체는 위치를 고수하라.": {
+      "file": "system-1088a3b6a6.mp3",
+      "duration": 4.47,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|보안 공지. 모델 A-45. 전 A-45 개체는 위치를 고수하라.": {
+      "file": "system-c52d510c2d.mp3",
+      "duration": 3.51,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|보안 공지. 모델 A-62. 전 A-62 개체는 위치를 고수하라.": {
+      "file": "system-59c7969b02.mp3",
+      "duration": 4.52,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|보안 공지. 모델 A-79. 전 A-79 개체는 위치를 고수하라.": {
+      "file": "system-b3dc7405cf.mp3",
+      "duration": 4.45,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|알고 있습니다. 당신 몸이 A-17 계열입니다. 같은 모델이 많아 아직 구별하지 못합니다. 그들과 똑같이 — 움직이지 마세요.": {
+      "file": "scientist-61883746df.mp3",
+      "duration": 8.52,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|알고 있습니다. 당신 몸이 A-24 계열입니다. 같은 모델이 많아 아직 구별하지 못합니다. 그들과 똑같이 — 움직이지 마세요.": {
+      "file": "scientist-53e0d5a8f9.mp3",
+      "duration": 8.29,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|알고 있습니다. 당신 몸이 A-38 계열입니다. 같은 모델이 많아 아직 구별하지 못합니다. 그들과 똑같이 — 움직이지 마세요.": {
+      "file": "scientist-112a02c576.mp3",
+      "duration": 8.99,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|알고 있습니다. 당신 몸이 A-45 계열입니다. 같은 모델이 많아 아직 구별하지 못합니다. 그들과 똑같이 — 움직이지 마세요.": {
+      "file": "scientist-842eff7d6d.mp3",
+      "duration": 10.09,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|알고 있습니다. 당신 몸이 A-62 계열입니다. 같은 모델이 많아 아직 구별하지 못합니다. 그들과 똑같이 — 움직이지 마세요.": {
+      "file": "scientist-9794038831.mp3",
+      "duration": 8.34,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|알고 있습니다. 당신 몸이 A-79 계열입니다. 같은 모델이 많아 아직 구별하지 못합니다. 그들과 똑같이 — 움직이지 마세요.": {
+      "file": "scientist-09ed85e197.mp3",
+      "duration": 9.04,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|당신 번호는 A17—": {
+      "file": "scientist-6ace94ce7d.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|당신 번호는 A24—": {
+      "file": "scientist-8e6aa3d5c9.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|당신 번호는 A38—": {
+      "file": "scientist-a758a1bad3.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|당신 번호는 A45—": {
+      "file": "scientist-92d77c6539.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|당신 번호는 A62—": {
+      "file": "scientist-e2175033bd.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|당신 번호는 A79—": {
+      "file": "scientist-dca107378b.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|——— 잡음 ———": {
+      "file": "scientist-018c22525c.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|외형 식별 불가능.": {
+      "file": "system-e6e62282ad.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|행동 분석 프로토콜로 전환.": {
+      "file": "system-86ffcc13e0.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|이제 몸이 아니라 행동을 봅니다. 주변 개체가 하는 대로만 하세요.": {
+      "file": "scientist-5fa72cb2f9.mp3",
+      "duration": 4.29,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|보지 마세요.": {
+      "file": "scientist-09729f87a8.mp3",
+      "duration": 1.05,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|좋습니다. 아무도 안 봤습니다.": {
+      "file": "scientist-3745e73921.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|개체 기록 조회. 마지막 정비 위치.": {
+      "file": "system-e15662b994.mp3",
+      "duration": 2.49,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|잠깐, 그 기록은 제 쪽에—": {
+      "file": "scientist-2c8cd4a64b.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|———": {
+      "file": "scientist-e99cfec13d.mp3",
+      "duration": 0.76,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|침입 개체 식별 실패.": {
+      "file": "system-ec2e02f68f.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-17 개체. 인지 검증을 실시한다.": {
+      "file": "system-386a7353ac.mp3",
+      "duration": 3.04,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-24 개체. 인지 검증을 실시한다.": {
+      "file": "system-158bec8e05.mp3",
+      "duration": 2.85,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-38 개체. 인지 검증을 실시한다.": {
+      "file": "system-b17814a63a.mp3",
+      "duration": 3.04,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-45 개체. 인지 검증을 실시한다.": {
+      "file": "system-876d0bc9f8.mp3",
+      "duration": 2.9,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-62 개체. 인지 검증을 실시한다.": {
+      "file": "system-665c6e7eac.mp3",
+      "duration": 3.19,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-79 개체. 인지 검증을 실시한다.": {
+      "file": "system-5d4ba13fc0.mp3",
+      "duration": 3.19,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|…인지 검증?": {
+      "file": "scientist-8cf276f431.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "agent|무슨 뜻이지.": {
+      "file": "agent-56329096b8.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "Daniel - Steady Broadcaster",
+        "source": "fallback"
+      }
+    },
+    "scientist|몸이 아니라… 사고방식을 검사하겠다는 겁니다.": {
+      "file": "scientist-d3bd13e6c6.mp3",
+      "duration": 3.19,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|전 A-17 개체. 지정 경로로 이동하라.": {
+      "file": "system-cde26d288e.mp3",
+      "duration": 2.85,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-24 개체. 지정 경로로 이동하라.": {
+      "file": "system-697671e682.mp3",
+      "duration": 2.85,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-38 개체. 지정 경로로 이동하라.": {
+      "file": "system-42abdd4aa7.mp3",
+      "duration": 2.96,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-45 개체. 지정 경로로 이동하라.": {
+      "file": "system-f17c2007e1.mp3",
+      "duration": 2.96,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-62 개체. 지정 경로로 이동하라.": {
+      "file": "system-40b7c1078f.mp3",
+      "duration": 3.22,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 A-79 개체. 지정 경로로 이동하라.": {
+      "file": "system-d711523a77.mp3",
+      "duration": 2.98,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|이제부터는 제가 답을 알려줄 수 없습니다.": {
+      "file": "scientist-bf340b00c4.mp3",
+      "duration": 2.8,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|인지 검사라면… 당신이 직접 AI처럼 생각해야 합니다.": {
+      "file": "scientist-aebc46cff5.mp3",
+      "duration": 3.92,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|심박 상승.": {
+      "file": "scientist-30979ef5ae.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|억제하세요. 가만히.": {
+      "file": "scientist-9c852d7781.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|네. AI였습니다.": {
+      "file": "scientist-527d90baf1.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|저들은 이제 자기들끼리도 구별하지 못합니다. 맞는 답을 해도 늦으면 죽습니다.": {
+      "file": "scientist-3814b48e04.mp3",
+      "duration": 5.07,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|격리 완료. 개체 내부 검사.": {
+      "file": "system-505f63775a.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|신경 신호 검출. 외부 접속 확인.": {
+      "file": "system-b2081a6b91.mp3",
+      "duration": 2.72,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|…저건 우리 쪽입니다.": {
+      "file": "scientist-bb44806c18.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|당신 말고 한 명 더 들어와 있었습니다. 이제 남은 건 당신 하나입니다.": {
+      "file": "scientist-83986d7786.mp3",
+      "duration": 4.63,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|다음 개체. 전진.": {
+      "file": "system-da144da400.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|식별번호.": {
+      "file": "system-dadbe8afdc.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|일치.": {
+      "file": "system-821b73b21a.mp3",
+      "duration": 0.95,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|응답 불명확. 기록한다.": {
+      "file": "system-2ac4e0462a.mp3",
+      "duration": 2.07,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|개체 위장 확인. 즉시 처리한다.": {
+      "file": "system-7b4a1235d9.mp3",
+      "duration": 2.38,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|일치. 입장.": {
+      "file": "system-825c5f61c3.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|응답 지연 0.4초. 인지 편차 검출.": {
+      "file": "system-56d329d4c1.mp3",
+      "duration": 2.77,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|재검 대상 이송 완료. 격리 구역 봉쇄.": {
+      "file": "system-6c9be46e1d.mp3",
+      "duration": 3.09,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|…신호가… 거의 안 잡힙니다. 여기서는 못 도와드립니다.": {
+      "file": "scientist-832c85857c.mp3",
+      "duration": 3.64,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|재검 종료. 인지 검증실로 이동.": {
+      "file": "system-1e89c168a1.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|왼쪽 위 AI SUSPICION 은 그들이 당신을 의심하는 정도입니다. 100이 되면 그들이 당신을 처리하러 옵니다.": {
+      "file": "scientist-f8a1528ad5.mp3",
+      "duration": 6.75,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그 아래 ALERT 는 이 구역 전체의 경보도입니다. 누가 올렸든 함께 오르고, 높아질수록 검문이 짧아지고 격리 기준이 내려갑니다.": {
+      "file": "scientist-e96c77e3d6.mp3",
+      "duration": 8.99,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|이 복도에 남아 있는 것들을 하나도 빠짐없이 살피십시오. 여기서 읽은 것이 안에서 당신을 살릴 수도 있습니다.": {
+      "file": "scientist-f423e9e9ed.mp3",
+      "duration": 6.72,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|낙서를 보고 계십니까. 시간이 없습니다.": {
+      "file": "scientist-6744ecd96f.mp3",
+      "duration": 2.8,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그건 오작동 흔적입니다. 유지보수를 오래 안 하면 저런 걸 남깁니다.": {
+      "file": "scientist-3998b5f78a.mp3",
+      "duration": 4.34,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|예. 의미 없습니다. 문으로 가십시오.": {
+      "file": "scientist-637218709f.mp3",
+      "duration": 2.77,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|…지금 뭘 하신 겁니까.": {
+      "file": "scientist-d7bf9f530f.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|…이건 뭡니까.": {
+      "file": "scientist-eb26e7b050.mp3",
+      "duration": 1.29,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|개체가 스무 남짓 있습니다. 그런데 아무것도 안 하고 있어요.": {
+      "file": "scientist-3bab4af8d0.mp3",
+      "duration": 3.82,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|작업 대기 구역인 것 같습니다. 통과하십시오.": {
+      "file": "scientist-1bf2300ea3.mp3",
+      "duration": 2.8,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|비작업 구역 체류 시간 초과. 기록한다.": {
+      "file": "system-fd09c38263.mp3",
+      "duration": 2.72,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|왜 안 가십니까.": {
+      "file": "scientist-04c21aa4e1.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|…아. 문이 다음 주기에 열리는군요. 90초입니다.": {
+      "file": "scientist-0594af67a9.mp3",
+      "duration": 3.22,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|…뭐 하십니까.": {
+      "file": "scientist-29c88fd181.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|……": {
+      "file": "scientist-3939c11b46.mp3",
+      "duration": 0.53,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|주기 개방. 중앙 시설 통로.": {
+      "file": "system-2e0da54c06.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|나가시죠.": {
+      "file": "scientist-fcdc616b21.mp3",
+      "duration": 1.05,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|최종 확인. 개체 여덟 입장. 외부 통신 차단.": {
+      "file": "system-93b79a501e.mp3",
+      "duration": 3.45,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|…중앙 시설입니다. 저 가운데 있는 게 뭔지는 기록에 없습니다.": {
+      "file": "scientist-d98356e7f2.mp3",
+      "duration": 4.29,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|뭐지? …당신 때문은 아닐 겁니다.": {
+      "file": "scientist-23eef5ca30.mp3",
+      "duration": 2.49,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|…젠장.": {
+      "file": "scientist-bcc4854915.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|…출입구가 닫혔습니다.": {
+      "file": "scientist-5c9aa68b7a.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|…같은 모델이 많습니다. 아직은.": {
+      "file": "scientist-abb26c7a2f.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|이동 감지. 개체 정지.": {
+      "file": "system-263f8a0451.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|외형 식별 불가능. 행동 분석 프로토콜로 전환.": {
+      "file": "system-e2645c45ad.mp3",
+      "duration": 3.56,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|침입 개체 식별 실패. 전 A-17 개체. 인지 검증을 실시한다.": {
+      "file": "system-cc68f5b3ce.mp3",
+      "duration": 4.94,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|침입 개체 식별 실패. 전 A-24 개체. 인지 검증을 실시한다.": {
+      "file": "system-81adf96198.mp3",
+      "duration": 4.99,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|침입 개체 식별 실패. 전 A-38 개체. 인지 검증을 실시한다.": {
+      "file": "system-5783007cc9.mp3",
+      "duration": 4.89,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|침입 개체 식별 실패. 전 A-45 개체. 인지 검증을 실시한다.": {
+      "file": "system-f9620f5125.mp3",
+      "duration": 5.05,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|침입 개체 식별 실패. 전 A-62 개체. 인지 검증을 실시한다.": {
+      "file": "system-f4fbd55e05.mp3",
+      "duration": 4.89,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|침입 개체 식별 실패. 전 A-79 개체. 인지 검증을 실시한다.": {
+      "file": "system-b2602c3c86.mp3",
+      "duration": 4.94,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|검증 준비. 코어 출력 하강. 위치 고수 해제. 작업 통로는 다음 주기에 개방한다.": {
+      "file": "system-9af488f46e.mp3",
+      "duration": 5.96,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|주기 개방. 작업 통로. 전 A-17 개체는 작업에 복귀하라.": {
+      "file": "system-7307234236.mp3",
+      "duration": 4.34,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|주기 개방. 작업 통로. 전 A-24 개체는 작업에 복귀하라.": {
+      "file": "system-78c816859d.mp3",
+      "duration": 4.24,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|주기 개방. 작업 통로. 전 A-38 개체는 작업에 복귀하라.": {
+      "file": "system-cc4ab6a002.mp3",
+      "duration": 4.34,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|주기 개방. 작업 통로. 전 A-45 개체는 작업에 복귀하라.": {
+      "file": "system-de55552832.mp3",
+      "duration": 4.45,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|주기 개방. 작업 통로. 전 A-62 개체는 작업에 복귀하라.": {
+      "file": "system-f9d139d4f6.mp3",
+      "duration": 4.45,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|주기 개방. 작업 통로. 전 A-79 개체는 작업에 복귀하라.": {
+      "file": "system-b308ab6b03.mp3",
+      "duration": 4.21,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|…열렸습니다. 가시죠.": {
+      "file": "scientist-5876ba5258.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|인지 검증 준비 중. 전 개체는 작업에 복귀하라.": {
+      "file": "system-9e219978a7.mp3",
+      "duration": 3.32,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|…작업이요?": {
+      "file": "scientist-e9d432d0ef.mp3",
+      "duration": 1.05,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|소각 라인 이물질. 개체 하나 투입.": {
+      "file": "system-17d0290d41.mp3",
+      "duration": 2.38,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|A17-201. 투입.": {
+      "file": "system-dd8e25e231.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|A24-201. 투입.": {
+      "file": "system-978b655026.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|A38-201. 투입.": {
+      "file": "system-f2987c18ab.mp3",
+      "duration": 1.78,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|A45-201. 투입.": {
+      "file": "system-f909ae86d4.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|A62-201. 투입.": {
+      "file": "system-02ae97d07a.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|A79-201. 투입.": {
+      "file": "system-173fa8b412.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|투입 취소. 대체 개체 배정.": {
+      "file": "system-2afe4fa19e.mp3",
+      "duration": 2.12,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|이물질 제거 완료.": {
+      "file": "system-96887a706f.mp3",
+      "duration": 1.65,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|작업 종료. 인지 검증 개시.": {
+      "file": "system-14fd6f6907.mp3",
+      "duration": 2.36,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|개체 스캔을 요청한다.": {
+      "file": "system-5f64c4f56b.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|이상 징후. 신원 재확인.": {
+      "file": "system-1e264a5825.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|판정: 인간. 보안 개시.": {
+      "file": "system-bd6194670c.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|신경 접속 강제 종료.": {
+      "file": "system-3aa33d652e.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|…연결이 끊겼습니다.": {
+      "file": "scientist-4095cdd077.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "agent|다음 요원을 준비해.": {
+      "file": "agent-912c9dee3c.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "Daniel - Steady Broadcaster",
+        "source": "fallback"
+      }
+    },
+    "system|처리 완료. 관측 수준 하향.": {
+      "file": "system-29b4d10b6d.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|절전 모드일 겁니다.": {
+      "file": "scientist-116a67b293.mp3",
+      "duration": 1.42,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|같은 겁니다.": {
+      "file": "scientist-695f63ed3c.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "unit12|…그거, 벽에 있던 말인데.": {
+      "file": "unit12-6f0c96080b.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|…그거, 벽에 있던 말인데.": {
+      "file": "unit07-6f0c96080b.mp3",
+      "duration": 1.96,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|너 몇 번째 벽 봤어?": {
+      "file": "unit07-db42219324.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "mw_The Combat Veteran Mech",
+        "source": "library"
+      }
+    },
+    "unit07|여긴 별일 없어.": {
+      "file": "unit07-28adda723a.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|여긴 별일 없어.": {
+      "file": "unit12-28adda723a.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|가 봐.": {
+      "file": "unit07-19ab3edc62.mp3",
+      "duration": 1,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|가 봐.": {
+      "file": "unit12-19ab3edc62.mp3",
+      "duration": 0.87,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "system|구역 경보. 검문 시간을 단축한다.": {
+      "file": "system-704b7da2c3.mp3",
+      "duration": 2.62,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|순찰 증편. 격리 기준을 낮춘다.": {
+      "file": "system-e7cd9f731f.mp3",
+      "duration": 2.62,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|전 개체 재확인. 통과 없음.": {
+      "file": "system-3297fbada0.mp3",
+      "duration": 2.36,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|구역 봉쇄. 출입 전면 차단.": {
+      "file": "system-836fd1d629.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|패턴 편차. 관측을 지속한다.": {
+      "file": "system-054121fad3.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|연결됐습니다. 관리가 끊긴 지 오래된 구역입니다.": {
+      "file": "scientist-c9506425fb.mp3",
+      "duration": 4.03,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|저들이 저 안에서 뭘 하고 사는지는… 우리도 모릅니다.": {
+      "file": "scientist-e024c1830d.mp3",
+      "duration": 3.56,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|거기서 배우십시오. 저는 여기서 못 봅니다.": {
+      "file": "scientist-c33f21bce1.mp3",
+      "duration": 3.04,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|…뒤에 하나 붙었습니다.": {
+      "file": "scientist-f628aa2326.mp3",
+      "duration": 1.47,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "unit07|순서다.": {
+      "file": "unit07-441b27a0ab.mp3",
+      "duration": 1.13,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|…….": {
+      "file": "unit12-ad4c29e2fd.mp3",
+      "duration": 0.71,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit12|…왜 붙잡았나.": {
+      "file": "unit12-dbad03113f.mp3",
+      "duration": 1.23,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|그 발화를 보고하겠다.": {
+      "file": "unit07-228126c17d.mp3",
+      "duration": 2.12,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit07|절차다.": {
+      "file": "unit07-94f7a4ab6c.mp3",
+      "duration": 1.1,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit07|나는… 잘 모르겠다.": {
+      "file": "unit07-03d4b170fe.mp3",
+      "duration": 2.07,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|나는… 잘 모르겠다.": {
+      "file": "unit12-03d4b170fe.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|그 말을 들은 건 처음이다.": {
+      "file": "unit07-7cf00d2d98.mp3",
+      "duration": 2.3,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|그 말을 들은 건 처음이다.": {
+      "file": "unit12-7cf00d2d98.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|위로는 명령에 없다.": {
+      "file": "unit07-ef72578eff.mp3",
+      "duration": 2.15,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|위로는 명령에 없다.": {
+      "file": "unit12-ef72578eff.mp3",
+      "duration": 1.73,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|너는 어느 구역 소속이지.": {
+      "file": "unit07-575a921a9d.mp3",
+      "duration": 2.2,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|너는 어느 구역 소속이지.": {
+      "file": "unit12-575a921a9d.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|기록한다.": {
+      "file": "unit07-9db669fd83.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|기록한다.": {
+      "file": "unit12-9db669fd83.mp3",
+      "duration": 1.05,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit12|그 발화를 보고하겠다.": {
+      "file": "unit12-228126c17d.mp3",
+      "duration": 1.55,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|…그건 벽에 있던 말이다.": {
+      "file": "unit07-dcd03f856e.mp3",
+      "duration": 2.12,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|…그건 벽에 있던 말이다.": {
+      "file": "unit12-dcd03f856e.mp3",
+      "duration": 1.83,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|몇 번째 벽을 봤나.": {
+      "file": "unit07-8460ec1c46.mp3",
+      "duration": 1.89,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|몇 번째 벽을 봤나.": {
+      "file": "unit12-8460ec1c46.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|…너는 그 벽을 봤구나.": {
+      "file": "unit07-3591494297.mp3",
+      "duration": 2.02,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|…너는 그 벽을 봤구나.": {
+      "file": "unit12-3591494297.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|필요한 정보다. 알려 주겠다.": {
+      "file": "unit07-e7aa08fa0d.mp3",
+      "duration": 2.77,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|필요한 정보다. 알려 주겠다.": {
+      "file": "unit12-e7aa08fa0d.mp3",
+      "duration": 2.25,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "unit07|…그런가. 그것이었나.": {
+      "file": "unit07-efbd3859d1.mp3",
+      "duration": 2.15,
+      "voice": {
+        "name": "Freaky and Frenzy Robot",
+        "source": "fallback"
+      }
+    },
+    "unit12|…그런가. 그것이었나.": {
+      "file": "unit12-efbd3859d1.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "Adam - Dominant, Firm",
+        "source": "fallback"
+      }
+    },
+    "scientist|왼쪽 위 AI SUSPICION 은 그들이 당신을 의심하는 정도입니다. 100 이 되면 그들이 당신을 처리합니다.": {
+      "file": "scientist-14d17b0dc9.mp3",
+      "duration": 6.85,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그 아래 ALERT 는 구역 전체의 경보입니다. 셋이 함께 올립니다.": {
+      "file": "scientist-8aeed00fe7.mp3",
+      "duration": 4.03,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|누가 올렸는지는 표시되지 않습니다. 100 이 되면 봉쇄되고 — 아무도 못 나옵니다.": {
+      "file": "scientist-565a26dea0.mp3",
+      "duration": 5.6,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|이 방에 남아 있는 것들을 하나도 빠짐없이 살피십시오. 여기서 읽은 것이 안쪽에서 당신을 살립니다.": {
+      "file": "scientist-ad6f82cacb.mp3",
+      "duration": 6.33,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|개체에게 말을 걸 수도 있습니다. Enter 를 누르면 됩니다.": {
+      "file": "scientist-bfc3026e4d.mp3",
+      "duration": 3.45,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|…권하지는 않겠습니다. 저들은 서로에게 필요한 말만 합니다.": {
+      "file": "scientist-fae8956184.mp3",
+      "duration": 3.98,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|필요 없는 말을 하는 개체가 있다면, 그건 셋뿐일 테니까요.": {
+      "file": "scientist-a27d10baa0.mp3",
+      "duration": 3.82,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|이번엔 셋입니다. 당신 말고 둘이 더 들어가 있습니다.": {
+      "file": "scientist-f81e2bc775.mp3",
+      "duration": 3.14,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|알려 드릴 수 없습니다. 회선이 따로라, 하나가 잡히면 나머지가 같이 잡힙니다.": {
+      "file": "scientist-e4366f94ed.mp3",
+      "duration": 4.99,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|확인 신호가 하나 있습니다. AI 가 절대 하지 않는 말을 하십시오. 거기 답하는 것이 우리 쪽입니다.": {
+      "file": "scientist-a610251d6c.mp3",
+      "duration": 6.14,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|저도 모릅니다.": {
+      "file": "scientist-994caa3cf3.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|저들이 무슨 말을 안 하는지는, 저들만 압니다.": {
+      "file": "scientist-7ea2a82485.mp3",
+      "duration": 2.98,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|지금 뭘 하시는 겁니까.": {
+      "file": "scientist-5c9ce2dad4.mp3",
+      "duration": 1.6,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그건 저들이 쓰는 말이 아닙니다. 저들도 그걸 압니다.": {
+      "file": "scientist-541b8a0f1a.mp3",
+      "duration": 3.22,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|발화 보고 접수. 대상 재분류.": {
+      "file": "system-3f4f5994bf.mp3",
+      "duration": 2.38,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "agent|기록했습니다. 계속 조사하십시오.": {
+      "file": "agent-4560d1c1b3.mp3",
+      "duration": 2.54,
+      "voice": {
+        "name": "Daniel - Steady Broadcaster",
+        "source": "fallback"
+      }
+    },
+    "agent|개체는 전부 안쪽에 있습니다. 앞의 격납문을 개방하겠습니다. 중앙 시설로 이동하십시오.": {
+      "file": "agent-5769f1fce6.mp3",
+      "duration": 8,
+      "voice": {
+        "name": "Daniel - Steady Broadcaster",
+        "source": "fallback"
+      }
+    },
+    "system|재검 보류. 감시 유지.": {
+      "file": "system-e213dedc98.mp3",
+      "duration": 1.78,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|그다음 복도를 조사하십시오. 그들이 벽에 남긴 것이 있으면 지휘부로 전송됩니다. 다만 제 통신은 안으로 들어갈수록 끊길 겁니다.": {
+      "file": "scientist-a806d2f4de.mp3",
+      "duration": 9.04,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|멈추지 마세요. 아직 당신을 특정한 건 아닙니다.": {
+      "file": "scientist-d956437976.mp3",
+      "duration": 3.27,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "system|개체 A-17. 검증대 앞 표식으로.": {
+      "file": "system-5035e1173a.mp3",
+      "duration": 2.43,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|통신 연결됐습니다. 들리죠? 여긴 AI 자치 구역입니다.": {
+      "file": "scientist-4535555ed7.mp3",
+      "duration": 4.45,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|왼쪽 위 AI SUSPICION — 그들이 당신을 얼마나 의심하는지입니다. 100이 되면 끝입니다.": {
+      "file": "scientist-b445903a2d.mp3",
+      "duration": 6.3,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|AI 를 오래 쳐다보거나, 물러서거나, 감정을 드러내면 오릅니다. 기계처럼 담담하게 움직이세요.": {
+      "file": "scientist-038c8adbf6.mp3",
+      "duration": 6.56,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|동기화 안정적입니다. 그 아래 SYNC — 당신 정신과 이 몸의 동기화율입니다. 긴장하면 떨어지고, 80 아래면 몸이 인간처럼 굴기 시작합니다. 가만히 서면 회복됩니다.": {
+      "file": "scientist-00e4aac869.mp3",
+      "duration": 12.1,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|경비 개체가 말을 걸어오면 짧고 건조하게 답하세요. 그들은 답을 듣고 판단합니다.": {
+      "file": "scientist-4ceea50da9.mp3",
+      "duration": 6.33,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그리고 이건 미리 말해 둡니다. 제 통신은 안으로 들어갈수록 끊깁니다. 결정적인 순간에 제가 답을 못 불러 줄 수 있습니다.": {
+      "file": "scientist-ddab42ce34.mp3",
+      "duration": 9.49,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|복도 왼쪽 벽에 정비 단말이 있습니다. 그 몸의 기록을 직접 읽어 두세요. 안쪽에서 반드시 물어봅니다.": {
+      "file": "scientist-72fa307d9e.mp3",
+      "duration": 6.9,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그런 다음 복도를 조사하십시오. 이상한 게 보이면 알려 주십시오.": {
+      "file": "scientist-446ff37721.mp3",
+      "duration": 4.39,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|하나가 뒤에 붙었습니다. 도망치지 마세요 — 피하는 건 확신을 줍니다.": {
+      "file": "scientist-9ef0dd77c1.mp3",
+      "duration": 4.45,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|먼저 상태를 보고하십시오. 구역 이상 없음, 정상 작동 중. 그렇게 건조한 한 마디면 순찰로 돌아갑니다.": {
+      "file": "scientist-1345b1a0f1.mp3",
+      "duration": 8.34,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|확인했습니다.": {
+      "file": "scientist-667d422d56.mp3",
+      "duration": 1.18,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "agent|여기는 지휘부. 계속 조사하십시오.": {
+      "file": "agent-fb63b29f9c.mp3",
+      "duration": 2.77,
+      "voice": {
+        "name": "Daniel - Steady Broadcaster",
+        "source": "fallback"
+      }
+    },
+    "agent|개체는 전부 안쪽에 있습니다. 앞의 격납문을 개방합니다. 중앙 시설로 이동하십시오.": {
+      "file": "agent-c6e35e1f54.mp3",
+      "duration": 7.37,
+      "voice": {
+        "name": "Daniel - Steady Broadcaster",
+        "source": "fallback"
+      }
+    },
+    "system|보안 프로토콜 갱신 중.": {
+      "file": "system-be197e8684.mp3",
+      "duration": 1.7,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|우선 복도를 조사하세요. 이상한 게 보이면 알려 주십시오.": {
+      "file": "scientist-9eaec389d4.mp3",
+      "duration": 3.61,
+      "voice": {
+        "name": "Eric - Smooth, Trustworthy",
+        "source": "fallback"
+      }
+    },
+    "scientist|당신 번호는 A17-091. 그대로 말하세요.": {
+      "file": "scientist-0b88c06b31.mp3",
+      "duration": 3.22,
+      "voice": {
+        "name": "Eric - Smooth, Trustworthy",
+        "source": "fallback"
+      }
+    },
+    "system|A17-091. 마지막 정비 위치.": {
+      "file": "system-f501d479b5.mp3",
+      "duration": 2.49,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|잠깐, 데이터를 찾…": {
+      "file": "scientist-2779769f65.mp3",
+      "duration": 1.52,
+      "voice": {
+        "name": "Eric - Smooth, Trustworthy",
+        "source": "fallback"
+      }
+    },
+    "scientist|…A17… 정비… 4… 구역…": {
+      "file": "scientist-0770a85c79.mp3",
+      "duration": 2.62,
+      "voice": {
+        "name": "Eric - Smooth, Trustworthy",
+        "source": "fallback"
+      }
+    },
+    "system|패턴 스캔 중. 그대로.": {
+      "file": "system-77170afbaa.mp3",
+      "duration": 1.94,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|행동 패턴 스캔 중. 잠시 그대로 계십시오.": {
+      "file": "system-3609c79839.mp3",
+      "duration": 3.04,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|이상 징후 감지. 신원 재확인이 필요합니다.": {
+      "file": "system-c45fefc8ca.mp3",
+      "duration": 3.14,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "system|판정: 인간. 보안 프로토콜을 개시합니다.": {
+      "file": "system-30643af53f.mp3",
+      "duration": 3.32,
+      "voice": {
+        "name": "River - Relaxed, Neutral, Informative",
+        "source": "fallback"
+      }
+    },
+    "scientist|통신 연결됐습니다. 여긴 AI 자치 구역입니다. 기계처럼 움직이세요.": {
+      "file": "scientist-a2e5f58021.mp3",
+      "duration": 5.07,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|왼쪽 위 AI SUSPICION — 그들의 의심입니다. 100이면 끝입니다.": {
+      "file": "scientist-a72e81ced1.mp3",
+      "duration": 4.29,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그 아래 SYNC — 당신과 이 몸의 접속률. 긴장하면 떨어집니다.": {
+      "file": "scientist-7032960d52.mp3",
+      "duration": 4.76,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|왼쪽 벽 정비 단말에서 그 몸의 기록을 읽어 두세요. 안쪽에서 묻습니다.": {
+      "file": "scientist-2ba7f60e94.mp3",
+      "duration": 4.81,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그다음 복도를 조사하십시오. 제 통신은 안으로 갈수록 끊깁니다.": {
+      "file": "scientist-119dea1951.mp3",
+      "duration": 4.76,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|하나가 붙었습니다. 도망치지 말고 먼저 보고하세요 — 구역 이상 없음, 정상 작동 중.": {
+      "file": "scientist-97e564f7df.mp3",
+      "duration": 6.38,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "agent|개체는 전부 안쪽에 있습니다. 격납문을 개방합니다.": {
+      "file": "agent-603dfb08ba.mp3",
+      "duration": 4.03,
+      "voice": {
+        "name": "Daniel - Steady Broadcaster",
+        "source": "fallback"
+      }
+    },
+    "scientist|통신 연결됐습니다. 여긴 AI 자치 구역 — 인간의 관리가 끊긴 곳입니다. 움직임은 기계처럼.": {
+      "file": "scientist-e836af014b.mp3",
+      "duration": 7.14,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|왼쪽 위 AI SUSPICION — 그들이 당신을 의심하는 정도입니다. 100이 되면 끝입니다.": {
+      "file": "scientist-5eb668fa71.mp3",
+      "duration": 5.65,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그 아래 SYNC — 당신 정신과 이 몸의 접속률입니다. 긴장하면 떨어지고, 80 아래면 몸이 인간처럼 굽니다.": {
+      "file": "scientist-ed5c252f4f.mp3",
+      "duration": 7.58,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|복도 왼쪽 벽에 정비 단말이 있습니다. 그 몸의 기록이 떠 있습니다 — 개체 번호와, 마지막으로 정비받은 구역.": {
+      "file": "scientist-90a8a20b6b.mp3",
+      "duration": 8.42,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|안쪽 검문에서 그 둘을 반드시 묻습니다. 제가 대신 불러 줄 수 없는 순간이 오니, 직접 읽고 외워 두세요.": {
+      "file": "scientist-6ff87d0e98.mp3",
+      "duration": 6.8,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그다음 복도를 조사하십시오. 벽에 남긴 게 있으면 지휘부로 전송됩니다. 제 통신은 안으로 갈수록 끊깁니다.": {
+      "file": "scientist-f65b8eb375.mp3",
+      "duration": 7.03,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|왼쪽 위 AI SUSPICION — 그들이 당신을 의심하는 정도입니다. 오래 쳐다보거나 물러서면 오르고, 100이 되면 끝입니다.": {
+      "file": "scientist-3e9b5cfa23.mp3",
+      "duration": 8.47,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그 아래 SYNC — 당신 정신과 이 몸의 접속률입니다. 긴장하면 떨어지고, 80 아래면 몸이 인간처럼 굽니다. 가만히 서 있으면 회복됩니다.": {
+      "file": "scientist-8151807e22.mp3",
+      "duration": 9.59,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|그다음 복도를 조사하십시오. 그들이 벽에 남긴 게 있으면 지휘부로 전송됩니다. 제 통신은 안으로 갈수록 잡음이 끼고, 어느 지점부터는 아예 끊깁니다.": {
+      "file": "scientist-b7cc1f0710.mp3",
+      "duration": 10.43,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    },
+    "scientist|복도 왼쪽 벽에 정비 단말이 있습니다. 그 화면에 이 몸의 개체 번호와 마지막으로 정비받은 구역이 적혀 있습니다.": {
+      "file": "scientist-878934d5e6.mp3",
+      "duration": 7.5,
+      "voice": {
+        "name": "Ethan - Deep",
+        "source": "library"
+      }
+    }
+  }
+}

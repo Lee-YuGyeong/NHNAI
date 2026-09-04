@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>빌리되 건드리지 않는다</title>
+
+<style>
+  :root {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+    --display:'Hahmlet','Nanum Myeongjo','Noto Serif KR','Apple SD Gothic Neo',serif;
+    --body:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',monospace;
+    --measure:40rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+      --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+      --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+      --halt:#D4796C; --halt-soft:#2B1C1A;
+      --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+    --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+    --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+    --halt:#D4796C; --halt-soft:#2B1C1A;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+  }
+  :root[data-theme="light"] {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.7; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:64rem; margin:0 auto; padding:4.5rem 1.5rem 7rem; display:flex; flex-direction:column; gap:4.2rem; }
+  .col { max-width:var(--measure); }
+
+  .eyebrow { margin:0 0 1.3rem; font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; color:var(--dim); }
+  h1 { margin:0 0 1.3rem; font-family:var(--display); font-weight:700; font-size:clamp(2.3rem,6vw,3.4rem); line-height:1.16; letter-spacing:-.02em; }
+  .lede { margin:0; max-width:var(--measure); font-size:1.05rem; font-weight:300; line-height:1.78; }
+  .lede + .lede { margin-top:.9rem; }
+  .lede b { font-weight:700; }
+
+  section { display:flex; flex-direction:column; gap:1.4rem; }
+  .sec-head { display:flex; flex-direction:column; gap:.4rem; }
+  .sec-label { font-family:var(--mono); font-size:.7rem; letter-spacing:.18em; color:var(--signal); }
+  h2 { margin:0; font-family:var(--display); font-weight:700; font-size:clamp(1.5rem,3.4vw,2rem); letter-spacing:-.015em; text-wrap:balance; }
+  h3 { margin:0; font-family:var(--display); font-weight:700; font-size:1.12rem; }
+  p { margin:0; max-width:var(--measure); }
+  p + p { margin-top:.9rem; }
+  .quiet { color:var(--dim); font-weight:300; }
+  code { font-family:var(--mono); font-size:.84em; background:var(--sunk); padding:.08em .35em; }
+
+  .pull { max-width:var(--measure); border-left:2px solid var(--trace); padding:.2rem 0 .2rem 1.4rem;
+    font-family:var(--display); font-weight:500; font-size:1.28rem; line-height:1.55; }
+  .pull b { color:var(--trace); font-weight:700; }
+
+  .cite { max-width:var(--measure); background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--trace); padding:.95rem 1.15rem 1.05rem; }
+  .cite .q { display:block; font-family:var(--display); font-weight:500; font-size:1.02rem; line-height:1.6; }
+  .cite .src { display:block; margin-top:.45rem; font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; color:var(--dim); }
+
+  .table-scroll { overflow-x:auto; border:1px solid var(--line); }
+  table { border-collapse:collapse; width:100%; min-width:38rem; background:var(--panel); font-size:.92rem; }
+  th,td { text-align:left; padding:.72rem .9rem; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.58; }
+  thead th { font-family:var(--mono); font-weight:500; font-size:.66rem; letter-spacing:.1em; color:var(--dim); background:var(--sunk); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.k { font-family:var(--display); font-weight:700; color:var(--signal); white-space:nowrap; }
+  td.m { font-family:var(--mono); font-size:.78rem; color:var(--signal); white-space:nowrap; }
+  td.f { font-family:var(--mono); font-size:.78rem; color:var(--trace); }
+  td.hot { color:var(--halt); font-weight:500; }
+
+  pre { margin:0; background:var(--sunk); border:1px solid var(--line); padding:1.1rem 1.2rem; overflow-x:auto;
+    font-family:var(--mono); font-size:.8rem; line-height:1.85; max-width:52rem; }
+  pre .c { color:var(--faint); }
+  pre .g { color:var(--signal); }
+  pre .t { color:var(--trace); }
+  pre b { font-weight:500; color:var(--ink); }
+
+  .phases { list-style:none; margin:0; padding:0; counter-reset:p; display:grid; grid-template-columns:repeat(auto-fit,minmax(14rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .phases li { counter-increment:p; background:var(--panel); padding:1.1rem 1.15rem 1.25rem; }
+  .phases li::before { content:"단계 " counter(p); display:block; font-family:var(--mono); font-size:.64rem; letter-spacing:.12em; color:var(--trace); margin-bottom:.45rem; }
+  .phases .pt { display:block; font-family:var(--display); font-weight:700; font-size:1.02rem; margin-bottom:.28rem; }
+  .phases p { font-size:.87rem; font-weight:300; line-height:1.6; }
+  .phases .no { display:block; margin-top:.4rem; font-family:var(--mono); font-size:.66rem; color:var(--faint); }
+
+  .laws { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.9rem; max-width:var(--measure); }
+  .laws li { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--signal); padding:1rem 1.15rem; font-size:.95rem; font-weight:300; line-height:1.66; }
+  .laws .ln { display:block; font-family:var(--display); font-weight:700; font-size:1rem; color:var(--signal); margin-bottom:.25rem; }
+  .laws li.warm { border-left-color:var(--trace); }
+  .laws li.warm .ln { color:var(--trace); }
+  .laws li.hot { border-left-color:var(--halt); background:var(--halt-soft); }
+  .laws li.hot .ln { color:var(--halt); }
+
+  .closing { border-top:2px solid var(--rail); padding-top:1.9rem; max-width:var(--measure); }
+  .closing p { font-family:var(--display); font-weight:500; font-size:1.18rem; line-height:1.65; }
+  .closing b { color:var(--trace); font-weight:700; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Who is human · 코드 처리 기획서 · world2 집행 개정 v1 · 자매 문서: 게임 개발 · 전체 흐름</p>
+    <h1>빌리되 건드리지 않는다</h1>
+    <p class="lede">
+      world2 의 격리는 이미 코드에 원칙으로 박혀 있다 — 자체 맵 등록부(<code>MAPS2</code>),
+      아무 데도 안 보내는 가짜 연결(<code>SOLO</code>), Redux 미등록, 자체 대본 엔진.
+      본판과의 실질 결합은 딱 둘: 의심도 싱글턴의 <code>bindCross</code> 슬롯과,
+      아직 아무도 안 읽는 아레나 인계(<code>handover.ts</code>).
+    </p>
+    <p class="lede">
+      이 문서는 게임 개발 기획서(「어디서 죽을 것인가」)의 개정 다섯을
+      <b>그 격리를 깨지 않고</b> 얹는 방법을 파일 단위로 적는다.
+      원칙은 제목 그대로다 — 본판의 기하와 컴포넌트는 빌리고, 본판의 등록부와 루프는 건드리지 않는다.
+    </p>
+  </header>
+
+  <!-- ═══ 현재 구조 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">현재</span>
+      <h2>무엇이 어디에 있나 — 탐색으로 확인한 사실</h2>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>자산</th><th>파일</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td class="k">코어 탑 기하</td><td class="f">src/world/map/central.tsx (L190–244 코어 탑)</td><td>8각 홀 + 원형 단 + 콘솔 링 + 발광 띠. 본판 등록부 소속</td></tr>
+          <tr><td class="k">치수 단일 출처</td><td class="f">src/world/map/central/layout.ts</td><td>dais r4.5 · <code>CORE_KEEPOUT</code> r5.9 — 동심원 안쪽 반경이 이미 있다</td></tr>
+          <tr><td class="k">락다운 조명</td><td class="f">src/features/world/CentralChapterScene.tsx:61-81</td><td>전역 재질 색 교체 + 언마운트 복구 + 맥동 광원 — 재사용할 패턴</td></tr>
+          <tr><td class="k">world2 집행</td><td class="f">src/features/world2/execution.ts (203줄)</td><td><code>posted→watch→approach→unsling→aim→dead/blocked/spared</code> + 개입 3종 구현 완료</td></tr>
+          <tr><td class="k">집행자 몸</td><td class="f">src/features/world2/Executioner.tsx</td><td>새 모델 없음 — 순찰과 같은 <code>s2_guard21</code> GLB</td></tr>
+          <tr><td class="k">조각 전파</td><td class="f">src/features/world2/fragments.ts</td><td>신뢰도 감쇠 · 출처 소실 0.3 · hop 뒤틀림</td></tr>
+          <tr><td class="k">경보도</td><td class="f">src/features/world2/alert.ts</td><td>SYNC 자리를 대신하는 셋 공용 계량기</td></tr>
+          <tr><td class="k">아레나 인계</td><td class="f">src/features/world2/handover.ts</td><td class="hot">write-only — 아레나가 아직 안 읽는다 (파일 스스로 L16-17 에 기록)</td></tr>
+          <tr><td class="k">의심도 싱글턴</td><td class="f">src/world/mp/suspicion.ts</td><td class="hot"><code>bindCross</code> 단일 슬롯 — 두 판이 공유하는 유일한 진짜 결합점</td></tr>
+          <tr><td class="k">시험</td><td class="f">tests/features/world2/scenario2.test.ts</td><td>태그 · 성격 · 간격 · 조각 · 집행 문턱</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cite">
+      <span class="q">"본판 등록부를 건드리지 않는다. 복도조차 본판 복도를 안 빌리고 새로 지었다."</span>
+      <span class="src">src/world2/map/index.ts 머리말 — 코드에 이미 적힌 격리 원칙</span>
+    </div>
+  </section>
+
+  <!-- ═══ 작업 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">작업</span>
+      <h2>일곱 개의 손질 — 개정 다섯을 코드에 대응시킨다</h2>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>#</th><th>작업</th><th>파일</th><th>무엇을 · 왜</th><th>대응 개정</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="m">1</td><td class="k">CoreTower 추출</td>
+            <td class="f">src/world/map/central/CoreTower.tsx <span class="quiet">(신설)</span><br>src/world/map/central.tsx <span class="quiet">(사용처로 축소)</span></td>
+            <td>코어 탑 메시를 공유 컴포넌트로 뽑는다. 본판 <code>central.tsx</code> 는 그걸 import 하는 첫 사용처가 된다 — 렌더 결과 불변.</td>
+            <td class="m">1 · 4</td>
+          </tr>
+          <tr>
+            <td class="m">2</td><td class="k">central2 방 신설</td>
+            <td class="f">src/world2/map/central2.tsx <span class="quiet">(신설)</span><br>src/world2/map/index.ts <span class="quiet">(MAPS2 등록)</span></td>
+            <td>CoreTower + 8각 홀을 조합해 world2 전용 방을 짓는다. 치수는 <code>layout.ts</code> 의 dais r4.5 / keepout r5.9 를 읽어 온다. 콘솔 히트박스 포함. <b>본판 <code>MAPS</code> 는 안 건드린다.</b></td>
+            <td class="m">1 – 4</td>
+          </tr>
+          <tr>
+            <td class="m">3</td><td class="k">동심원 필드</td>
+            <td class="f">src/features/world2/corefield.ts <span class="quiet">(신설)</span></td>
+            <td><code>zone(pos) → 'core'|'hall'|'shadow'</code> + 배율표(전파 ×3/×1/×0.4 · 판독 · 조명 · 개입 반경). <b>순수 데이터 모듈</b> — 값의 단일 출처. 렌더도 네트워크도 모른다.</td>
+            <td class="m">2 · 3</td>
+          </tr>
+          <tr>
+            <td class="m">4</td><td class="k">집행 확장</td>
+            <td class="f">src/features/world2/execution.ts<br>src/features/world2/Executioner.tsx<br>src/features/world2/Hud2.tsx</td>
+            <td>
+              ① <code>approach</code> 중 이동 허용 — 문 방향 ±35° 만 <code>flee()</code> 판정, 도달 타이머는 위치 무관 고정.<br>
+              ② <code>cover</code> · <code>standIn</code> 발동에 거리 조건(4 m) — corefield 의 개입 반경을 읽는다.<br>
+              ③ 콘솔 → <code>dimmed</code> 15 초 플래그. 비용은 기존 콘솔 규칙 그대로(<code>units</code> 전원 −1 · <code>alert</code> +12).<br>
+              ④ 조명 국면 — <code>CentralChapterScene.tsx:61-81</code> 의 재질 교체 + 복구 패턴을 그대로 이식한 <code>CoreLight</code>.
+            </td>
+            <td class="m">1 · 3 · 4</td>
+          </tr>
+          <tr>
+            <td class="m">5</td><td class="k">죽음의 목격 조각</td>
+            <td class="f">src/features/world2/fragments.ts<br>src/features/world2/execution.ts</td>
+            <td><code>dead</code> · <code>spared</code> 전이 시 zone 배율 반경 안 개체 전원에게 「처리되는 걸 봤다」 조각 생성(신뢰도 1.00, 기존 감쇠 규칙에 태운다). <b>경보도는 위치 무관 고정 +25</b> — 헌법 9 조.</td>
+            <td class="m">2</td>
+          </tr>
+          <tr>
+            <td class="m">6</td><td class="k">인계 확장</td>
+            <td class="f">src/features/world2/handover.ts</td>
+            <td>처형 결과(위치 zone · 목격 수 · 대신 부서진 개체 id)를 <code>scenario2:verdict</code> 에 추가. 아레나가 읽는 건 후속 작업이지만, <b>「빈 자리」 연출(미결 P2)의 데이터가 여기서 준비된다.</b></td>
+            <td class="m">5</td>
+          </tr>
+          <tr>
+            <td class="m">7</td><td class="k">결합점 가드</td>
+            <td class="f">src/world/mp/suspicion.ts</td>
+            <td><code>bindCross(fn, owner)</code> 에 소유자 태그를 받아, 이미 다른 소유자가 걸려 있으면 <code>console.warn</code>. 동작 불변 — 규약뿐이던 방어를 로그로 승격.</td>
+            <td class="m">공통</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="col">corefield 의 모양 — 이 파일이 값의 전부를 쥔다</h3>
+    <pre><span class="c">// src/features/world2/corefield.ts — 순수 데이터. 렌더·네트워크·모델을 모른다.</span>
+<span class="g">export type</span> Zone = <span class="t">'core'</span> | <span class="t">'hall'</span> | <span class="t">'shadow'</span>
+
+<span class="g">export const</span> FIELD = {
+  core:   { r: <span class="t">6</span>,  spread: <span class="t">3</span>,   read: <span class="t">'max'</span>,  light: <span class="t">'max'</span>,  reach: <span class="t">6</span> },  <span class="c">// 개입 가능 6+</span>
+  hall:   { r: <span class="t">10</span>, spread: <span class="t">1</span>,   read: <span class="t">'base'</span>, light: <span class="t">'base'</span>, reach: <span class="t">3</span> },
+  shadow: {        spread: <span class="t">0.4</span>, read: <span class="t">'none'</span>, light: <span class="t">'dim'</span>,  reach: <span class="t">1</span> },
+} <span class="g">as const</span>
+
+<span class="g">export function</span> zone(pos: Vec2): Zone  <span class="c">// 코어 중심 거리로만 판정</span>
+<span class="g">export function</span> witnessRadius(z: Zone): number  <span class="c">// fragments 가 부른다</span>
+<span class="g">export function</span> interveneRadius(z: Zone): number <span class="c">// execution 이 부른다</span></pre>
+  </section>
+
+  <!-- ═══ 순서 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">순서</span>
+      <h2>다섯 단계 — 매 단계가 그 자체로 돌아간다</h2>
+    </div>
+
+    <div class="cite">
+      <span class="q">"순서의 원칙은 하나다 — 모델은 네 번째다. 규칙만으로 소문이 돌고 태도가 움직이고 사람이 죽기까지 하는 뼈대가 먼저 서야 한다."</span>
+      <span class="src">「한 마디의 값」 · 로드맵 — 이 작업 전체가 모델 0 회이므로 이 원칙과 정합한다</span>
+    </div>
+
+    <ol class="phases">
+      <li>
+        <span class="pt">기하</span>
+        <p>CoreTower 추출 → 본판 렌더 회귀 확인 → central2 신축 + MAPS2 등록. 이 단계 끝에 world2 에서 코어가 서 있는 방을 걸어 다닐 수 있다.</p>
+        <span class="no">작업 1 · 2 — 렌더만</span>
+      </li>
+      <li>
+        <span class="pt">필드</span>
+        <p>corefield.ts + fragments 연결. 코어권에서 건 말이 방 전체에 퍼지는 것부터 확인한다 — 집행 없이도 이 방이 이미 다르게 논다.</p>
+        <span class="no">작업 3 · 5 전반 — 시험 먼저</span>
+      </li>
+      <li>
+        <span class="pt">집행</span>
+        <p>execution.ts 확장 — 이동 · 거리 조건 · 콘솔 · 조명. HUD 에 「[이동] 누구 곁으로」 한 줄.</p>
+        <span class="no">작업 4 — MIN_WALK_MS 불변 확인</span>
+      </li>
+      <li>
+        <span class="pt">연결</span>
+        <p>죽음의 목격 조각 + handover 확장 + bindCross 가드. central2 어둠 국면(EMPTY_SEAT) · 아레나가 나중에 읽을 데이터가 여기서 쌓이기 시작한다.</p>
+        <span class="no">작업 5 후반 · 6 · 7</span>
+      </li>
+      <li>
+        <span class="pt">시험 · 문서</span>
+        <p>scenario2.test.ts 에 세 시험 추가, 기획서 6종 + 이 3종을 docs/design/ 에 마크다운으로 내려둔다.</p>
+        <span class="no">아래 표 참조</span>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ═══ 지키는 선 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">지키는 선</span>
+      <h2>이 작업에서 어기면 안 되는 것</h2>
+    </div>
+
+    <ul class="laws">
+      <li class="hot">
+        <span class="ln">사람이 죽는 판정에 모델을 부르지 않는다</span>
+        <code>execution.ts</code> 머리말에 이미 적혀 있는 선이다. 이번 확장은 전부 규칙 · 위치 기반 —
+        zone 판정, 거리 조건, 콘솔 플래그. <b>모델 호출 0 회를 유지한다.</b>
+      </li>
+      <li class="warm">
+        <span class="ln">MIN_WALK_MS 는 어떤 경로로도 줄지 않는다</span>
+        이동을 허용해도 도달 타이머는 시작 시점에 방 값으로 고정. 플레이어가 다가가도, 물러나도,
+        콘솔을 눌러도 시간은 그대로다 — 헌법 14 조 「집행은 걸어온다 · 최소 8 초」.
+      </li>
+      <li class="warm">
+        <span class="ln">본판 등록부 · 본판 루프에 쓰기 금지</span>
+        건드려도 되는 본판 파일은 둘뿐이다 — <code>central.tsx</code> (CoreTower 추출의 사용처 정리),
+        <code>suspicion.ts</code> (가드 추가, 동작 불변). 나머지는 전부 world2 신설 · 수정.
+      </li>
+      <li>
+        <span class="ln">값은 corefield 한 곳에만 적는다</span>
+        배율 · 반경이 execution 과 fragments 에 따로 적히는 순간 밸런싱이 두 곳을 쫓아다니게 된다.
+        레벨 문서가 수치의 기준이듯(「한 마디의 값」 · 문서 지도), 코드에서는 corefield 가 기준이다.
+      </li>
+    </ul>
+  </section>
+
+  <!-- ═══ 시험 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">시험</span>
+      <h2>tests/features/world2/scenario2.test.ts 에 더하는 것</h2>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>시험</th><th>무엇을 확인하나</th></tr></thead>
+        <tbody>
+          <tr><td class="k">zone 배율</td><td>같은 발화를 코어권 / 홀 / 그늘에서 → 목격 개체 수가 배율대로 갈리는가</td></tr>
+          <tr><td class="k">타이머 불변</td><td><code>approach</code> 중 플레이어 좌표를 아무리 바꿔도 <code>dead</code> 도달 시각이 같은가 · 문 방향 이동만 <code>flee</code> 가 되는가</td></tr>
+          <tr><td class="k">개입 거리</td><td>태도 +3 개체가 5 m 밖이면 <code>standIn</code> 이 안 나오고, 4 m 안이면 나오는가</td></tr>
+          <tr><td class="k">콘솔 비용</td><td><code>dimmed</code> 15 초 동안 목격 반경 ×0.4 · 태도 −1 · 경보 +12 가 정확히 한 번씩 찍히는가</td></tr>
+          <tr><td class="k">경보 고정</td><td>죽음 위치가 어디든 경보도 증가가 +25 로 같은가 (헌법 9 조 회귀 방지)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col quiet">
+      기존 시험(태그 · 성격 · 간격 · 조각 · 집행 문턱)과 같은 파일, 같은 결. 본판 쪽은
+      CoreTower 추출 후 <code>/central</code> 렌더 회귀만 눈으로 확인하면 된다 — 로직 변화가 없다.
+    </p>
+  </section>
+
+  <!-- ═══ 문서 정리 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">정리</span>
+      <h2>문서가 코드보다 몇 세대 뒤처져 있다</h2>
+    </div>
+
+    <p class="col">
+      기획서 6종(「걸어오는 것」 「누가 듣고 있나」 등)은 리포지터리에 파일로 존재하지 않고
+      <b>소스 주석에만 인용</b>돼 있다. 이 작업과 함께 정리한다:
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>할 일</th><th>내용</th></tr></thead>
+        <tbody>
+          <tr><td class="k">docs/design/ 신설</td><td>기획서 6종 + 이번 3종을 마크다운으로 내려 코드와 같이 버전 관리한다</td></tr>
+          <tr><td class="k">README.md L174</td><td class="hot">"/central = 3D 맵 단독 확인" — 실제(챕터 1 후반 + 챕터 2 본 무대)와 다르다. 고친다</td></tr>
+          <tr><td class="k">docs/DEVELOPMENT.md</td><td class="hot">같은 stale 서술 + world2 언급 0 건. §구조 표에 scenario2 행을 더한다</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="closing">
+    <p>
+      이 작업이 끝나면 world2 는 방 하나(<b>central2</b>)와 모듈 하나(<b>corefield</b>)를 얻고,
+      본판은 아무것도 잃지 않는다 — 바뀐 본판 파일은 컴포넌트 추출 하나와 경고 로그 하나뿐이다.
+    </p>
+    <p>
+      그리고 값이 한 곳에 모인다. 코어의 배율을 바꾸고 싶으면 <b>corefield.ts 한 파일</b>이다 —
+      레벨 문서가 수치의 기준이듯, 코드에서는 이 파일이 기준이다.
+    </p>
+  </div>
+
+</div>
+
+</body>
+</html>

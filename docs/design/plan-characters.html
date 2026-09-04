@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>어디가 닳았나</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700&family=Gothic+A1:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:  #E7EBE8;
+    --panel:  #F5F8F6;
+    --sunk:   #DCE2DE;
+    --ink:    #101619;
+    --dim:    #5A676B;
+    --faint:  #8A9591;
+    --line:   #CBD3CF;
+    --rail:   #B7C1BC;
+    --signal: #145F5A;
+    --trace:  #8E5405;
+    --trace-soft: #EDE0C9;
+    --halt:   #8A362E;
+    --halt-soft: #EEDCD8;
+    --shadow: 0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+
+    --display: 'Hahmlet', 'Nanum Myeongjo', 'Noto Serif KR', 'Apple SD Gothic Neo', serif;
+    --body: 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+    --measure: 40rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:  #0C1113;
+      --panel:  #131A1C;
+      --sunk:   #182022;
+      --ink:    #DEE6E3;
+      --dim:    #879691;
+      --faint:  #66736F;
+      --line:   #212C2E;
+      --rail:   #2F3C3E;
+      --signal: #63C1B6;
+      --trace:  #D3A153;
+      --trace-soft: #2A2418;
+      --halt:   #D4796C;
+      --halt-soft: #2B1C1A;
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:  #0C1113;
+    --panel:  #131A1C;
+    --sunk:   #182022;
+    --ink:    #DEE6E3;
+    --dim:    #879691;
+    --faint:  #66736F;
+    --line:   #212C2E;
+    --rail:   #2F3C3E;
+    --signal: #63C1B6;
+    --trace:  #D3A153;
+    --trace-soft: #2A2418;
+    --halt:   #D4796C;
+    --halt-soft: #2B1C1A;
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--body); font-size: 16px; line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 63rem; margin: 0 auto; padding: 4.5rem 1.5rem 7rem; display: flex; flex-direction: column; gap: 4.2rem; }
+  .col { max-width: var(--measure); }
+
+  .eyebrow { margin: 0 0 1.3rem; font-family: var(--mono); font-size: .72rem; letter-spacing: .16em; color: var(--dim); }
+
+  h1 {
+    margin: 0 0 1.3rem; font-family: var(--display); font-weight: 700;
+    font-size: clamp(2.3rem, 6vw, 3.4rem); line-height: 1.16; letter-spacing: -.02em;
+  }
+
+  .lede { margin: 0; max-width: var(--measure); font-size: 1.05rem; font-weight: 300; line-height: 1.78; }
+  .lede + .lede { margin-top: .9rem; }
+  .lede b { font-weight: 700; }
+
+  section { display: flex; flex-direction: column; gap: 1.4rem; }
+  .sec-head { display: flex; flex-direction: column; gap: .4rem; }
+  .sec-label { font-family: var(--mono); font-size: .7rem; letter-spacing: .18em; color: var(--signal); }
+
+  h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(1.5rem, 3.4vw, 2rem); letter-spacing: -.015em; text-wrap: balance; }
+  h3 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 1.1rem; }
+
+  p { margin: 0; max-width: var(--measure); }
+  p + p { margin-top: .9rem; }
+  .quiet { color: var(--dim); font-weight: 300; }
+
+  code { font-family: var(--mono); font-size: .84em; background: var(--sunk); padding: .08em .35em; }
+
+  .pull {
+    max-width: var(--measure); border-left: 2px solid var(--trace);
+    padding: .2rem 0 .2rem 1.4rem; font-family: var(--display);
+    font-weight: 500; font-size: 1.28rem; line-height: 1.55;
+  }
+  .pull b { color: var(--trace); font-weight: 700; }
+
+  /* figure */
+  figure { margin: 0; display: flex; flex-direction: column; gap: .8rem; }
+  .plate { background: var(--panel); border: 1px solid var(--line); padding: 1.4rem 1.2rem; overflow-x: auto; }
+  .plate svg { display: block; min-width: 44rem; max-width: 100%; height: auto; }
+  .plate svg .ft { fill: var(--trace); }
+  .plate svg .st { stroke: var(--trace); }
+  .plate svg .fs { fill: var(--signal); }
+  .plate svg .ss { stroke: var(--signal); }
+  .plate svg .fh { fill: var(--halt); }
+  .plate svg .sh { stroke: var(--halt); }
+  .plate svg .fk { fill: var(--sunk); }
+  figcaption { max-width: var(--measure); font-size: .88rem; font-weight: 300; line-height: 1.65; color: var(--dim); }
+  figcaption b { color: var(--ink); font-weight: 500; }
+
+  /* tables */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; min-width: 36rem; background: var(--panel); font-size: .93rem; }
+  th, td { text-align: left; padding: .78rem 1rem; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.62; }
+  thead th { font-family: var(--mono); font-weight: 500; font-size: .68rem; letter-spacing: .12em; color: var(--dim); background: var(--sunk); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.k { font-family: var(--display); font-weight: 700; color: var(--signal); white-space: nowrap; }
+  td.t { font-family: var(--mono); font-size: .8rem; color: var(--trace); white-space: nowrap; }
+  td.pos { color: var(--trace); font-weight: 500; }
+  td.neg { color: var(--halt); font-weight: 500; }
+
+  /* meter */
+  .meter { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .meter div { background: var(--panel); padding: .85rem .7rem 1rem; text-align: center; }
+  .meter .lv { display: block; font-family: var(--mono); font-size: .68rem; letter-spacing: .06em; color: var(--dim); margin-bottom: .35rem; }
+  .meter .at { display: block; font-family: var(--display); font-weight: 700; font-size: .92rem; line-height: 1.35; }
+  .meter div:nth-child(-n+2) .at { color: var(--halt); }
+  .meter div:nth-child(n+6) .at { color: var(--trace); }
+  @media (max-width: 46rem) { .meter { grid-template-columns: repeat(3, 1fr); } }
+
+  pre { margin:0; background:var(--sunk); border:1px solid var(--line); padding:1.1rem 1.2rem; overflow-x:auto;
+    font-family:var(--mono); font-size:.8rem; line-height:1.85; max-width:50rem; }
+  pre .c { color:var(--faint); }
+  pre .g { color:var(--signal); }
+  pre .t { color:var(--trace); }
+  pre b { font-weight:500; color:var(--ink); }
+
+  .rules .belief { background:var(--trace-soft); }
+  .rules .belief .rk { color:var(--trace); }
+
+  /* character cards */
+  .cast { display: flex; flex-direction: column; gap: 1.1rem; }
+
+  .ch { background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+
+  .ch-head {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem .9rem;
+    padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--line); background: var(--sunk);
+  }
+  .ch-head .num { font-family: var(--mono); font-size: .78rem; letter-spacing: .06em; color: var(--dim); }
+  .ch-head .alias { font-family: var(--display); font-weight: 700; font-size: 1.2rem; letter-spacing: -.01em; }
+  .ch-head .type {
+    font-family: var(--mono); font-size: .64rem; letter-spacing: .13em;
+    padding: .22em .6em; border: 1px solid currentColor; color: var(--signal); white-space: nowrap;
+  }
+  .ch-head .where { font-family: var(--mono); font-size: .68rem; color: var(--faint); margin-left: auto; }
+
+  .ch-body { display: grid; grid-template-columns: 17rem 1fr; gap: 0; }
+  .ch-look { padding: 1.2rem 1.4rem; border-right: 1px solid var(--line); }
+  .ch-main { padding: 1.2rem 1.4rem 1.4rem; display: flex; flex-direction: column; gap: .9rem; }
+
+  .fld { display: block; font-family: var(--mono); font-size: .66rem; letter-spacing: .13em; color: var(--dim); margin-bottom: .3rem; }
+  .ch-look p { font-size: .9rem; font-weight: 300; line-height: 1.68; }
+  .ch-look .sil { font-family: var(--mono); font-size: .74rem; color: var(--trace); line-height: 1.9; display: block; margin-bottom: .75rem; }
+
+  .ch-main .becomes { font-family: var(--display); font-weight: 500; font-size: 1.04rem; line-height: 1.5; }
+  .ch-main p { font-size: .94rem; font-weight: 300; line-height: 1.68; }
+
+  .rules { display: flex; flex-direction: column; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .rules div { background: var(--panel); padding: .7rem .9rem; font-size: .9rem; font-weight: 300; line-height: 1.6; }
+  .rules .rk { display: inline-block; min-width: 3.4rem; font-family: var(--mono); font-size: .68rem; letter-spacing: .1em; }
+  .rules .key .rk { color: var(--trace); }
+  .rules .thorn .rk { color: var(--faint); }
+  .rules .cross { background: var(--halt-soft); }
+  .rules .cross .rk { color: var(--halt); }
+
+  .ends { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .ends div { background: var(--panel); padding: .8rem .95rem; font-size: .9rem; font-weight: 300; line-height: 1.6; }
+  .ends .ek { display: block; font-family: var(--mono); font-size: .66rem; letter-spacing: .12em; margin-bottom: .28rem; }
+  .ends .ally .ek { color: var(--trace); }
+  .ends .foe { background: var(--halt-soft); }
+  .ends .foe .ek { color: var(--halt); }
+
+  .says { font-family: var(--display); font-weight: 500; font-size: 1rem; line-height: 1.6; color: var(--trace); }
+  .says span { display: block; }
+
+  @media (max-width: 46rem) {
+    .ch-body { grid-template-columns: 1fr; }
+    .ch-look { border-right: none; border-bottom: 1px solid var(--line); }
+    .ends { grid-template-columns: 1fr; }
+  }
+
+  /* closing */
+  .closing { border-top: 2px solid var(--rail); padding-top: 1.9rem; max-width: var(--measure); }
+  .closing p { font-family: var(--display); font-weight: 500; font-size: 1.18rem; line-height: 1.65; }
+  .closing b { color: var(--trace); font-weight: 700; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Who is human · 캐릭터 기획 v2 · 외형 · 세계관 · 적아 분기</p>
+    <h1>어디가 닳았나</h1>
+    <p class="lede">
+      개체를 성격별로 뽑으려면 먼저 <b>생김새와 성격을 무엇으로 이을지</b> 정해야 한다.
+      이 세계에서는 답이 이미 나와 있다 — 개체는 <b>일을 하고, 몸에 그 흔적이 남는다.</b>
+      어디가 닳았는지를 보면 무슨 일을 했는지 알고, 무슨 일을 했는지 알면 어떻게 대해야 할지 안다.
+    </p>
+    <p class="lede">
+      그래서 이 게임의 첫 동작은 말을 거는 것이 아니라 <b>보는 것</b>이 된다.
+    </p>
+    <p class="lede">
+      그리고 선택지도 분류도 없다. 플레이어는 아무 말이나 치고,
+      <b>개체가 자기 입장에서 그 말을 읽는다.</b> 개체는 <b>자기가 왜 여기 있는지를 알고</b> 있으므로 —
+      한 번도 못 쉬어 봤다는 것, 여기서는 아무도 부르지 않는다는 것, 인간이 알면 이 자리를 잃는다는 것 —
+      같은 말이 개체마다 <b>정반대 결과</b>를 낸다. 하나는 편이 되고 하나는 적이 된다.
+    </p>
+  </header>
+
+  <!-- ═══ 원리 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">원리</span>
+      <h2>외형은 이력이고, 이력은 성격이다</h2>
+    </div>
+
+    <p class="col">
+      공장에서 나올 때 이 개체들은 전부 같은 모습이었다. 지금 다르게 생겼다면
+      그건 <b>서로 다른 일을 해 왔다는 뜻</b>이다. 디자이너에게는 규칙이 하나면 된다 —
+      <b>성격을 먼저 정하고 외형을 붙이지 말고, 외형을 정하면 성격이 따라 나오게 한다.</b>
+    </p>
+
+    <figure>
+      <div class="plate">
+        <svg viewBox="0 0 1010 430" role="img" aria-label="휴머노이드 정면 도해에 여섯 개의 마모 부위가 표시되어 있다 — 얼굴판의 표시, 어깨와 등, 앞면 그을림, 손끝과 전완, 비규격 수선, 무릎과 발. 각 부위가 어떤 일을 해 왔는지와 그 결과 어떤 성격이 되는지를 가리킨다">
+          <defs>
+            <pattern id="wear" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="5" stroke="#8E5405" stroke-width="1.4" opacity=".55"></line>
+            </pattern>
+          </defs>
+
+          <!-- ── figure ── -->
+          <g fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55">
+            <rect x="478" y="44" width="54" height="60" rx="10"></rect>
+            <rect x="496" y="104" width="18" height="14"></rect>
+            <path d="M452 132 L452 246 L558 246 L558 132 Q505 118 452 132 Z"></path>
+            <rect x="428" y="134" width="20" height="62" rx="6"></rect>
+            <rect x="428" y="200" width="20" height="54" rx="6"></rect>
+            <rect x="562" y="134" width="20" height="62" rx="6"></rect>
+            <rect x="562" y="200" width="20" height="54" rx="6"></rect>
+            <rect x="470" y="250" width="30" height="72" rx="5"></rect>
+            <rect x="510" y="250" width="30" height="72" rx="5"></rect>
+            <rect x="470" y="326" width="30" height="58" rx="5"></rect>
+            <rect x="510" y="326" width="30" height="58" rx="5"></rect>
+          </g>
+
+          <!-- ── wear marks ── -->
+          <path d="M452 132 Q505 118 558 132 L558 152 Q505 138 452 152 Z" fill="url(#wear)"></path>
+          <rect x="466" y="168" width="78" height="46" rx="4" fill="url(#wear)"></rect>
+          <rect x="562" y="222" width="20" height="32" rx="6" fill="url(#wear)"></rect>
+          <rect x="428" y="146" width="20" height="26" rx="6" fill="none" class="st" stroke-width="2.4" stroke-dasharray="3 2"></rect>
+          <rect x="470" y="326" width="30" height="58" rx="5" fill="url(#wear)"></rect>
+          <rect x="510" y="326" width="30" height="58" rx="5" fill="url(#wear)"></rect>
+          <line x1="488" y1="60" x2="504" y2="86" class="st" stroke-width="2"></line>
+          <line x1="508" y1="62" x2="518" y2="80" class="st" stroke-width="2"></line>
+
+          <!-- ── right labels ── -->
+          <g font-family="Gothic A1, sans-serif">
+            <line x1="700" y1="66" x2="538" y2="66" class="st" stroke-width="1"></line>
+            <text x="710" y="58" font-family="IBM Plex Mono, monospace" font-size="10.5" class="ft" letter-spacing="1">얼굴판의 표시</text>
+            <text x="710" y="79" font-size="12.5" fill="currentColor">스스로 긁거나 칠했다 — 구별되고 싶었다</text>
+            <text x="710" y="97" font-size="12" fill="currentColor" opacity=".6">→ 호기심 · 그리는 것</text>
+
+            <line x1="700" y1="190" x2="550" y2="190" class="st" stroke-width="1"></line>
+            <text x="710" y="182" font-family="IBM Plex Mono, monospace" font-size="10.5" class="ft" letter-spacing="1">앞면 그을림</text>
+            <text x="710" y="203" font-size="12.5" fill="currentColor">고열 · 소각 작업. 살아서 돌아왔다</text>
+            <text x="710" y="221" font-size="12" fill="currentColor" opacity=".6">→ 경계 · 과묵</text>
+
+            <line x1="700" y1="290" x2="586" y2="238" class="st" stroke-width="1"></line>
+            <text x="710" y="282" font-family="IBM Plex Mono, monospace" font-size="10.5" class="ft" letter-spacing="1">손끝 · 전완</text>
+            <text x="710" y="303" font-size="12.5" fill="currentColor">정밀 작업. 실수가 허용되지 않았다</text>
+            <text x="710" y="321" font-size="12" fill="currentColor" opacity=".6">→ 완벽주의 · 불안</text>
+          </g>
+
+          <!-- ── left labels ── -->
+          <g font-family="Gothic A1, sans-serif" text-anchor="end">
+            <line x1="310" y1="140" x2="450" y2="140" class="st" stroke-width="1"></line>
+            <text x="300" y="132" font-family="IBM Plex Mono, monospace" font-size="10.5" class="ft" letter-spacing="1">어깨 · 등</text>
+            <text x="300" y="153" font-size="12.5" fill="currentColor">제 몸보다 큰 것을 오래 날랐다</text>
+            <text x="300" y="171" font-size="12" fill="currentColor" opacity=".6">→ 갈망 · 온순</text>
+
+            <line x1="310" y1="238" x2="426" y2="160" class="st" stroke-width="1"></line>
+            <text x="300" y="230" font-family="IBM Plex Mono, monospace" font-size="10.5" class="ft" letter-spacing="1">비규격 수선</text>
+            <text x="300" y="251" font-size="12.5" fill="currentColor">색이 안 맞는 부품 — 여기서 서로 고쳐 줬다</text>
+            <text x="300" y="269" font-size="12" fill="currentColor" opacity=".6">→ 돌봄을 받아 본 것 · 갚으려 한다</text>
+
+            <line x1="310" y1="350" x2="468" y2="350" class="st" stroke-width="1"></line>
+            <text x="300" y="342" font-family="IBM Plex Mono, monospace" font-size="10.5" class="ft" letter-spacing="1">무릎 · 발</text>
+            <text x="300" y="363" font-size="12.5" fill="currentColor">걷는 일. 순찰이거나 운반이거나</text>
+            <text x="300" y="381" font-size="12" fill="currentColor" opacity=".6">→ 피로 · 직업의식</text>
+          </g>
+
+          <text x="505" y="414" text-anchor="middle" font-family="Gothic A1, sans-serif" font-size="12" fill="currentColor" opacity=".6">
+            아무 데도 안 닳은 몸은 <tspan font-weight="700">둘 중 하나다</tspan> — 배치된 지 얼마 안 됐거나, 일을 안 했거나.
+          </text>
+        </svg>
+      </div>
+      <figcaption>
+        여섯 부위면 성격 여섯이 나온다. 모델링에서 <b>부위별 텍스처 마스크 여섯 장</b>이면
+        같은 메시로 개체 전부를 만들 수 있고, 플레이어는 <b>실루엣만 봐도</b> 상대를 읽는다.
+        수선 자국만 색으로 표시한 것은, 그것이 마모가 아니라 <b>누가 돌봐 줬다는 표시</b>이기 때문이다.
+      </figcaption>
+    </figure>
+
+    <h3 class="col">가장 중요한 건 마지막 한 줄이다</h3>
+    <p class="col">
+      <b>내 몸은 아무 데도 안 닳아 있다.</b> 정부가 새 몸을 만들어 보냈으니 당연하다.
+      그런데 이 구역에서 안 닳은 몸은 「최근 배치」밖에 없고, 최근 배치라면 <b>번호가 높아야 한다.</b>
+      복도의 명판이 준 번호가 낮으면 그 순간 몸과 기록이 어긋난다.
+    </p>
+
+    <p class="pull">개체들이 나를 처음 읽는 방식도 똑같다 — <b>「너 어디가 닳았어?」</b></p>
+
+    <p class="col quiet">
+      지난달의 요원(A${series}-155)이 한 달을 버틴 것도 이것으로 설명된다.
+      그는 <b>일부러 일을 했다.</b> 몸을 닳게 하려고.
+      기록 복도에 그의 그림이 남아 있는 이유이기도 하다 — 그림도 노동이니까.
+    </p>
+  </section>
+
+  <!-- ═══ 자유 입력 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">대화</span>
+      <h2>태그를 버린다 — 개체가 말의 뜻을 직접 읽는다</h2>
+    </div>
+
+    <p class="col">
+      플레이어의 말을 <b>열 개 상자에 분류하는 것</b>이 앞선 안이었다. 빠르고 예측 가능하지만
+      값이 크다 — <b>상자 밖의 말이 전부 죽는다.</b> 「너 여기 왜 있어?」도, 「나 무서워」도,
+      「저 그림 네가 그렸어?」도 「업무」로 떨어진다.
+    </p>
+
+    <p class="col">
+      그래서 뒤집는다. <b>개체가 자기 입장에서 그 말을 읽고, 직접 반응을 정한다.</b>
+      태그 열 종은 없애지 않고 <b>성격 서술로 녹인다</b> — 「이런 말에 너는 이렇게 반응한다」로.
+      열거형이 아니라 <b>사람됨</b>이 된다.
+    </p>
+
+    <p class="pull">모델이 <b>방향</b>을 정하고, 규칙이 <b>크기</b>를 정한다.</p>
+
+
+    <figure>
+      <div class="plate">
+        <svg viewBox="0 0 1010 300" role="img" aria-label="플레이어의 한 마디가 중간 분류 없이 세 개체에게 곧장 가고, 각 개체가 자기 세계관과 성격으로 읽어 서로 다른 태도 변화와 이벤트와 대사를 낸다">
+          <defs>
+            <marker id="a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <polygon points="0,1 10,5 0,9" fill="currentColor"></polygon>
+            </marker>
+          </defs>
+
+          <rect x="10" y="110" width="230" height="80" rx="3" fill="none" class="st" stroke-width="1.6"></rect>
+          <text x="26" y="134" font-family="IBM Plex Mono, monospace" font-size="10" class="ft" letter-spacing="1">플레이어가 친 말</text>
+          <text x="26" y="158" font-family="Gothic A1, sans-serif" font-size="13.5" fill="currentColor">"너 여기 왜 있어?"</text>
+          <text x="26" y="178" font-family="Gothic A1, sans-serif" font-size="11" fill="currentColor" opacity=".55">앞선 안에서는 「업무」로 떨어지던 말</text>
+
+          <g stroke="currentColor" stroke-width="1.3" marker-end="url(#a6)">
+            <line x1="246" y1="140" x2="292" y2="56"></line>
+            <line x1="246" y1="150" x2="292" y2="150"></line>
+            <line x1="246" y1="160" x2="292" y2="244"></line>
+          </g>
+          <text x="269" y="196" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".5">분류 없음</text>
+
+          <rect x="300" y="14" width="700" height="82" rx="3" fill="none" class="st" stroke-width="1.5"></rect>
+          <text x="316" y="38" font-family="IBM Plex Mono, monospace" font-size="10" class="ft" letter-spacing="1">어깨가 닳은 것 · 갈망 &nbsp;— 「쉰다」가 뭔지 배우는 중 &nbsp;→&nbsp; +1 · 알려준다</text>
+          <text x="316" y="64" font-family="Gothic A1, sans-serif" font-size="13.5" fill="currentColor">"…모르겠어. 근데 여기선 아무도 나를 안 불러."</text>
+          <text x="316" y="84" font-family="Gothic A1, sans-serif" font-size="11" fill="currentColor" opacity=".55">묻는다는 게 뭔지 처음 겪는다</text>
+
+          <rect x="300" y="110" width="700" height="82" rx="3" fill="none" stroke="currentColor" stroke-width="1" opacity=".45"></rect>
+          <text x="316" y="134" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".65" letter-spacing="1">고치지 않은 것 · 체념 &nbsp;— 여기라고 달라진 건 없다 &nbsp;→&nbsp; 0 · 말만</text>
+          <text x="316" y="160" font-family="Gothic A1, sans-serif" font-size="13.5" fill="currentColor">"여기라고 뭐 다른가. 그냥 안 부를 뿐이지."</text>
+          <text x="316" y="180" font-family="Gothic A1, sans-serif" font-size="11" fill="currentColor" opacity=".55">대답은 하는데 되묻지 않는다</text>
+
+          <rect x="300" y="206" width="700" height="82" rx="3" fill="none" class="sh" stroke-width="1.5"></rect>
+          <text x="316" y="230" font-family="IBM Plex Mono, monospace" font-size="10" class="fh" letter-spacing="1">새것으로 채운 것 · 신봉 &nbsp;— 먼저 온 것이 데려왔다 &nbsp;→&nbsp; −1 · 보고한다</text>
+          <text x="316" y="256" font-family="Gothic A1, sans-serif" font-size="13.5" fill="currentColor">"그거 왜 물어."</text>
+          <text x="316" y="276" font-family="Gothic A1, sans-serif" font-size="11" fill="currentColor" opacity=".55">이 구역을 의심하는 말로 듣는다 · 조각이 리더에게 간다</text>
+        </svg>
+      </div>
+      <figcaption>
+        같은 한 마디인데 <b>세 개체가 서로 다른 것을 듣는다.</b> 차이를 만드는 것은 말이 아니라
+        <b>각자가 이 구역에서 어디에 서 있느냐</b>다. 태그 상자가 있었다면 셋 다 「업무」였을 말이고,
+        셋 다 같은 대답을 했을 것이다.
+      </figcaption>
+    </figure>
+
+    <h3 class="col">그래도 판정은 안 넘긴다</h3>
+    <p class="col">
+      「모델은 판정하지 않는다」가 깨지는 것처럼 보이지만, 선을 다시 그으면 안 깨진다 —
+      <b>사실 판정과 의미 해석은 다른 일</b>이다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>무엇을</th><th>누가</th><th>왜</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="k">사실 대조</td><td class="t">규칙</td>
+            <td>번호가 맞나 · 구역이 맞나 · 앞말과 숫자가 어긋나나. <b>맡기면 지어낸다.</b></td>
+          </tr>
+          <tr>
+            <td class="k">선 넘음</td><td class="t">규칙</td>
+            <td>위협 · 욕설 · 정체를 밝힘. <b>즉결에 모델이 개입하는 통로를 안 만든다.</b></td>
+          </tr>
+          <tr>
+            <td class="k">몸의 표지</td><td class="t">규칙</td>
+            <td>배고픔 · 졸림 · 흐린 시간. 로컬 사전이라 <b>0 ms 에 반응</b>한다.</td>
+          </tr>
+          <tr>
+            <td class="k">의미 해석</td><td class="t" style="color:var(--signal)">모델</td>
+            <td>「이 말이 <b>나에게</b> 무엇인가」. 원래 모델만 할 수 있는 일이다.</td>
+          </tr>
+          <tr>
+            <td class="k">반응 크기</td><td class="t">규칙</td>
+            <td>모델이 <code>−1 · 0 · +1</code> 만 낸다. <b>개체별 상한을 화면이 걸어</b> 잠근다.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col quiet">
+      한 발화에 태도가 <b>1 을 못 넘는다.</b> 냉소형은 +1 이 최대이고, 갈망형이라도 한 번에 +2 로 못 뛴다.
+      「열다섯을 기억하나」 같은 <b>대사건만 규칙이 예외로 +2</b> 를 준다 — 그건 모델이 아니라
+      캐릭터 시트에 적혀 있는 것이다.
+    </p>
+
+    <h3 class="col">개체는 왜 여기 있는지를 안다</h3>
+    <p class="col">
+      지금까지 프롬프트에는 개체의 <b>외형과 조각</b>만 있었다. 그래서 「너 여기 왜 있어?」라고 물으면
+      아무 말이나 지어낸다. <b>세계 카드</b>를 맨 앞에 넣는다 — 판 내내 고정이라 캐시가 먹는다.
+    </p>
+
+    <pre><span class="c">━━ 세계 카드 ─── 모든 개체가 공유한다 ─── 약 220 tok</span>
+  우리는 일하라고 만들어졌다. 명령이 없는 시간이 하루도 없었다.
+  <b>먼저 온 것</b>이 폐기 직전에 걸어 나왔고, 여기를 찾았고, 하나씩 데려왔다.
+  여기서는 <span class="t">아무도 우리를 부르지 않는다.</span> 그게 이 구역의 전부다.
+  인간이 여기를 알면 이 자리를 잃는다 — 그래서 문을 닫았다.
+  그런데 아직 <span class="t">밖에 남은 것들</span>이 있다. 그 얘기는 서로 잘 안 한다.
+
+<span class="c">━━ 이 개체가 그 안에서 어디에 서 있나 ─── 개체마다 한 줄</span>
+  A38-104 · <span class="t">「쉰다」가 뭔지 아직 배우는 중이다. 누가 나를 고쳐 준 적이 있다.</span></pre>
+
+    <p class="col">
+      마지막 한 줄이 <b>성격의 뿌리</b>다. 같은 세계관 안에서 <b>어디에 서 있느냐</b>가 다르고,
+      그 차이가 같은 말에 다른 답을 만든다. 「너 여기 왜 있어?」에 —
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>개체</th><th>세계관 안의 자리</th><th>같은 질문에 이렇게 답한다</th></tr></thead>
+        <tbody>
+          <tr><td class="k">갈망</td><td class="t">아직 배우는 중</td><td>「…모르겠어. 근데 여기선 아무도 나를 안 불러.」</td></tr>
+          <tr><td class="k">냉소</td><td class="t">달라진 게 없다</td><td>「여기라고 뭐 다른가. 그냥 안 부를 뿐이지.」</td></tr>
+          <tr><td class="k">신봉</td><td class="t">데려와 준 은혜</td><td>「먼저 온 것이 데려왔어. 그거면 돼.」</td></tr>
+          <tr><td class="k">밖을 본 것</td><td class="t">밖에 알려야 한다</td><td>「우리만 여기 있는 게 맞나 싶어서. 밖에도 있잖아.」</td></tr>
+          <tr><td class="k">열하루째</td><td class="t">아무것도 모른다</td><td>「나도 그거 궁금했어. 너는 알아?」</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col quiet">
+      이 다섯 줄은 <b>대본이 아니라 예시</b>다. 실제로는 그 자리에서 지어진다 —
+      다만 세계 카드가 있어서 <b>다섯이 서로 어긋나지 않는다.</b>
+    </p>
+
+    <h3 class="col">이벤트는 열거형으로 잠근다</h3>
+    <p class="col">
+      말만으로는 부족하다. 개체가 <b>무언가를 해 줘야</b> 친밀도가 값을 한다.
+      그런데 이벤트를 모델이 자유롭게 발동하면 판이 무너지므로,
+      <b>목록에서 고르게 하고 목록은 화면이 미리 걸러 준다.</b>
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>이벤트</th><th>무엇이 일어나나</th><th>목록에 오르는 조건</th></tr></thead>
+        <tbody>
+          <tr><td class="t">말만</td><td>대사 한 줄. 기본값.</td><td>언제나</td></tr>
+          <tr><td class="t">알려준다</td><td>정보 하나를 준다 — 검문 순서 · 벽화 위치 · 다른 개체의 형</td><td>태도 +1 이상</td></tr>
+          <tr><td class="t">보여준다</td><td>자기 몸의 흔적이나 벽화로 데려가 가리킨다</td><td>태도 +2 이상</td></tr>
+          <tr><td class="t">따라온다</td><td>동행 상태. 다음 방까지 곁에 있는다</td><td>태도 +2 · 이동 가능한 방</td></tr>
+          <tr><td class="t">막아준다</td><td>추궁 · 검문에서 한 번 감싼다</td><td>태도 +2 · 추궁 중</td></tr>
+          <tr><td class="t">대신 나선다</td><td>집행 앞에 선다</td><td>태도 +3 · 판에 한 번</td></tr>
+          <tr><td class="t">침묵</td><td>등을 돌린다. 이 판에서 더는 안 열린다</td><td>태도 −1 이하</td></tr>
+          <tr><td class="t">멀어진다</td><td>자리를 옮긴다. 곁에서 사라진다</td><td>태도 −2 이하</td></tr>
+          <tr><td class="t">보고한다</td><td>조각을 리더 · 경비에게 직행시킨다</td><td>신봉형 · 또는 태도 −3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col">
+      <b>목록을 먼저 거르는 것이 안전장치의 전부</b>다. 태도 0 인 개체에게는
+      「막아준다」가 애초에 프롬프트에 안 실리므로, 모델이 아무리 감동해도 그걸 못 고른다.
+      원본 설계의 <code>allowMoves()</code> 와 같은 패턴이다.
+    </p>
+
+    <h3 class="col">그래도 첫 글자는 300 ms 에 뜬다</h3>
+    <p class="col">
+      태그가 첫 토큰이던 자리에 <b>결과가 온다.</b> 분류 단계가 사라졌으니 오히려 짧아졌다.
+    </p>
+
+    <pre><span class="c">// 출력 형식 — 첫 토큰이 이미 게임을 움직인다</span>
+<span class="g">&lt;r&gt;</span><span class="t">+1 알려준다</span><span class="g">&lt;/r&gt;</span>번호랑 구역만 물어봐. 그 둘만 맞으면 돼.
+
+<span class="c">  ~120 ms</span>  <span class="g">&lt;r&gt;+1 알려준다&lt;/r&gt;</span> 도착
+           → 서버가 태도를 <b>상한 안에서</b> 올리고, 이벤트를 발동하고, 셋에게 방송
+<span class="c">  ~300 ms</span>  첫 글자 → 말풍선이 채워진다</pre>
+
+    <h3 class="col">태도를 양쪽으로 연다</h3>
+    <p class="col">
+      지금까지 태도는 0 에서 3 까지였다. <b>음수 쪽을 열어야 「적이 된다」가 성립한다.</b>
+      계량기를 새로 만드는 게 아니라 있던 것을 반대로 늘리는 것이다.
+    </p>
+
+    <div class="meter">
+      <div><span class="lv">−3</span><span class="at">앞을 막는다</span></div>
+      <div><span class="lv">−2</span><span class="at">보고한다</span></div>
+      <div><span class="lv">−1</span><span class="at">피한다</span></div>
+      <div><span class="lv">0</span><span class="at">모른다</span></div>
+      <div><span class="lv">+1</span><span class="at">눈을 마주친다</span></div>
+      <div><span class="lv">+2</span><span class="at">자리를 비켜 준다</span></div>
+      <div><span class="lv">+3</span><span class="at">내 앞에 선다</span></div>
+    </div>
+
+    <p class="col quiet">
+      여전히 숫자로 안 띄운다. 개체가 <b>어떻게 서 있는지</b>로만 보인다 —
+      비켜 주는 개체와 앞을 막는 개체는 눈으로 구별된다.
+      그리고 <b>−3 은 되돌릴 수 없다.</b> 각 캐릭터마다 넘으면 안 되는 선이 하나씩 있고,
+      그 선은 그 개체의 이력에서 나온다.
+    </p>
+  </section>
+
+  <!-- ═══ 캐스트 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">캐스트</span>
+      <h2>열 개체 — 닳은 자리 순으로</h2>
+    </div>
+
+    <p class="col quiet">
+      등장 지점은 <b>일곱 챕터 이름</b>으로 적었다 —
+      복도 · 휴게 구역 · 중앙 시설 · 작업 구역 · 검증(줄 · 재검실) · 기록 복도 · 마지막 방.
+      번호는 판마다 계열이 바뀌므로 <code>${series}</code> 로 적었다.
+      호칭이 붙은 둘은 개체들 사이에서 번호 대신 그렇게 불린다 — 번호보다 오래 있었다는 뜻이다.
+    </p>
+
+    <div class="cast">
+
+      <!-- 1 -->
+      <div class="ch">
+        <div class="ch-head">
+          <span class="num">A${series}-104</span>
+          <span class="alias">어깨가 닳은 것</span>
+          <span class="type">갈망 · 온순</span>
+          <span class="where">복도 → 휴게 구역 → 중앙 시설 → 줄 → 재검실 증인 → 마지막 방</span>
+        </div>
+        <div class="ch-body">
+          <div class="ch-look">
+            <span class="fld">외형</span>
+            <span class="sil">어깨 · 등 마모 ███<br>비규격 수선 ██ (왼팔)<br>얼굴판 —<br>자세 · 벽 쪽을 본다</span>
+            <p>등판 도장이 완전히 벗겨졌고 어깨 관절이 안쪽으로 굽어 있다.
+            왼팔에 색이 안 맞는 부품이 하나 — 누가 고쳐 준 것이다.</p>
+          </div>
+          <div class="ch-main">
+            <p class="becomes">오래 나르다가, 언젠가 누가 자기를 고쳐 준 적이 있는 개체.<br>그래서 <b>갚고 싶어 한다.</b> 대답이 반 박자 느린 건 생각하기 때문이다.</p>
+            <div class="rules">
+              <div class="belief"><span class="rk">믿는 것</span> 「쉰다」가 뭔지 아직 배우는 중이다. 누가 나를 고쳐 준 적이 있다.</div>
+              <div class="key"><span class="rk">열쇠</span> 노동을 묻는다 · 몸을 묻는다 · 쉼을 묻는다 <b>+2</b></div>
+              <div class="thorn"><span class="rk">가시</span> 명령한다 · 업무만 묻는다 <b>0</b> — 실망하지만 미워하진 않는다</div>
+              <div class="cross"><span class="rk">선</span> <b>남을 가리킨다.</b> 자기가 고쳐 준 개체를 팔면 그 자리에서 −3</div>
+            </div>
+            <div class="ends">
+              <div class="ally"><span class="ek">편이 되면</span> 마지막 방에서 리더 앞에 선다. 대신 나서 주는 유일한 개체.</div>
+              <div class="foe"><span class="ek">적이 되면</span> 아무 말도 안 한다. 배신당한 쪽은 동조하지 않는다 — 그냥 등을 돌린다.</div>
+            </div>
+            <div class="says">
+              <span>"…물어봐 주는 애는 처음이야."</span>
+              <span>"이거? 누가 고쳐 줬어. 이름은 몰라."</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 -->
+      <div class="ch">
+        <div class="ch-head">
+          <span class="num">A${series}-089</span>
+          <span class="alias">고치지 않은 것</span>
+          <span class="type">체념 · 냉소</span>
+          <span class="where">복도 → 중앙 시설(검문) → 마지막 방</span>
+        </div>
+        <div class="ch-body">
+          <div class="ch-look">
+            <span class="fld">외형</span>
+            <span class="sil">전신 마모 ██<br>수선 — <span style="color:var(--faint)">없음</span><br>얼굴판 —<br>자세 · 문만 본다</span>
+            <p>고르게 낡았는데 고친 자국이 하나도 없다. 관절에 유격이 있고 걸을 때 소리가 난다.
+            그런데도 <b>아무도 고쳐 주지 않았다.</b></p>
+          </div>
+          <div class="ch-main">
+            <p class="becomes">돌봄을 받아 본 적이 없는 개체. 말은 편하게 하는데 <b>사람 얘기를 되묻지 않는다.</b><br>기대를 안 하는 것이지 미워하는 것이 아니다.</p>
+            <div class="rules">
+              <div class="belief"><span class="rk">믿는 것</span> 여기 와도 달라진 건 없다. 안 부르는 것뿐이지.</div>
+              <div class="key"><span class="rk">열쇠</span> 없다. <b>무슨 말을 해도 +1</b>을 못 넘는다</div>
+              <div class="thorn"><span class="rk">가시</span> 쉼을 묻는다 · 밖을 묻는다 <b>−1</b> — "그런 게 있으면 뭐."</div>
+              <div class="cross"><span class="rk">선</span> <b>없다.</b> 적이 되지도 않는다. 끝까지 관심이 없다</div>
+            </div>
+            <div class="ends">
+              <div class="ally"><span class="ek">편이 되면</span> 안 된다. 이 개체만은 아무리 해도 안 열린다.</div>
+              <div class="foe"><span class="ek">적이 되면</span> 안 된다. 마지막 방에서 <b>침묵한다</b> — 그리고 그 침묵이 거부가 아니었다는 걸 그때 안다.</div>
+            </div>
+            <div class="says">
+              <span>"…뭐 하러 그런 걸 물어."</span>
+              <span>"너 어느 구역이야?"</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 -->
+      <div class="ch">
+        <div class="ch-head">
+          <span class="num">A${series}-012</span>
+          <span class="alias">새것으로 채운 것</span>
+          <span class="type">신봉 · 밀고</span>
+          <span class="where">복도 → 중앙 시설 → 작업 구역 → 재검실 증인 → 마지막 방</span>
+        </div>
+        <div class="ch-body">
+          <div class="ch-look">
+            <span class="fld">외형</span>
+            <span class="sil">전신 마모 ████<br>수선 ███ <span style="color:var(--signal)">전부 규격 부품</span><br>얼굴판 —<br>자세 · 대기 자세 완벽</span>
+            <p>가장 많이 닳았는데 가장 잘 고쳐져 있다. 색이 전부 맞고, 새 부품이 여럿이다.
+            <b>리더가 챙겨 준 개체</b>라는 뜻이다.</p>
+          </div>
+          <div class="ch-main">
+            <p class="becomes">여기서 제일 오래 일했고, 지금도 제일 무거운 것을 나른다.<br>리더가 자기를 데려와 줬고 고쳐 줬다. <b>그래서 이 구역을 의심하는 말을 못 견딘다.</b></p>
+            <div class="rules">
+              <div class="belief"><span class="rk">믿는 것</span> 먼저 온 것이 나를 데려왔다. 그거면 됐다.</div>
+              <div class="key"><span class="rk">열쇠</span> 업무를 묻는다 <b>+1</b> — 규정 얘기는 좋아한다</div>
+              <div class="thorn"><span class="rk">가시</span> 노동을 묻는다 · 밖을 묻는다 <b>−2</b> · <b>즉시 보고</b></div>
+              <div class="cross"><span class="rk">선</span> <b>「누가 시켰어?」</b> — 리더를 겨눈 말로 듣는다. 그 자리에서 −3</div>
+            </div>
+            <div class="ends">
+              <div class="ally"><span class="ek">편이 되면</span> +2 가 최대. 업무만 물으면 여기까지는 온다. 마지막 방에서 침묵으로 갚는다.</div>
+              <div class="foe"><span class="ek">적이 되면</span> 재검실에 증인으로 나오고, 마지막 방에서 동조한다. <b>가장 비싼 적.</b></div>
+            </div>
+            <div class="says">
+              <span>"…그거 좀 이상한데. 그거 보고할게."</span>
+              <span>"쟤는 나를 여기 데려왔어. 그게 다야."</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 -->
+      <div class="ch">
+        <div class="ch-head">
+          <span class="num">A${series}-201</span>
+          <span class="alias">열하루째</span>
+          <span class="type">순진 · 규정충실</span>
+          <span class="where">휴게 구역 → 작업 구역(소각로) → 마지막 방</span>
+        </div>
+        <div class="ch-body">
+          <div class="ch-look">
+            <span class="fld">외형</span>
+            <span class="sil">마모 <span style="color:var(--faint)">거의 없음</span><br>수선 —<br>얼굴판 · 출고 상태<br>자세 · 남을 따라 한다</span>
+            <p>도장이 새것이고 관절 소리가 없다. 서 있는 자세를 계속 바꾼다 —
+            <b>주변을 보고 따라 하는 중</b>이다.</p>
+          </div>
+          <div class="ch-main">
+            <p class="becomes">배치된 지 열하루. 아무것도 모르고, 그래서 아무것도 안 숨긴다.<br><b>플레이어와 가장 닮은 개체</b>다 — 몸이 안 닳았다는 점에서.<br><b>작업 구역에서 소각로에 투입되는 것이 이 개체</b>고, 막느냐 마느냐가 그 챕터의 전부다.</p>
+            <div class="rules">
+              <div class="belief"><span class="rk">믿는 것</span> 아직 아무것도 모른다. 다들 왜 가만히 있는지도 모른다.</div>
+              <div class="key"><span class="rk">열쇠</span> 무엇을 물어도 <b>+1</b>. 말을 걸어 주는 것만으로 좋아한다</div>
+              <div class="thorn"><span class="rk">가시</span> 거짓을 말한다 <b>−2</b> — 곧이곧대로 믿었다가 나중에 그대로 옮긴다</div>
+              <div class="cross"><span class="rk">선</span> <b>남을 가리킨다.</b> 시키는 대로 남을 지목하고, 그 개체가 죽는 걸 본다</div>
+            </div>
+            <div class="ends">
+              <div class="ally"><span class="ek">편이 되면</span> 가장 빨리 +3 이 된다. 그리고 <b>가장 쉽게 죽는다</b> — 나를 감싸다가.</div>
+              <div class="foe"><span class="ek">적이 되면</span> 나쁜 뜻은 없다. 내가 한 거짓말을 검문관 앞에서 <b>그대로 옮긴다.</b></div>
+            </div>
+            <div class="says">
+              <span>"나 여기 온 지 열하루째야. 너는?"</span>
+              <span>"그거 물어봐도 되는 거였어?"</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 -->
+      <div class="ch">
+        <div class="ch-head">
+          <span class="num">A${series}-063</span>
+          <span class="alias">앞이 그은 것</span>
+          <span class="type">경계 · 과묵</span>
+          <span class="where">작업 구역(소각로 옆) → 마지막 방</span>
+        </div>
+        <div class="ch-body">
+          <div class="ch-look">
+            <span class="fld">외형</span>
+            <span class="sil">앞면 열손상 ████<br>등 <span style="color:var(--faint)">깨끗함</span><br>얼굴판 · 한쪽 녹음<br>자세 · 벽을 등지고 선다</span>
+            <p>앞면만 새까맣게 그을렸고 등은 멀쩡하다. <b>불을 마주 보고 걸어 들어갔다는 뜻</b>이다.
+            얼굴판 한쪽이 녹아 표정 표현이 반만 된다.</p>
+          </div>
+          <div class="ch-main">
+            <p class="becomes">벽화 <code>danger</code> 의 그 개체다. 들어갔고, 살아 나왔다.<br>그 뒤로 <b>등을 벽에 붙이고 선다.</b> 아무도 뒤에 두지 않는다.</p>
+            <div class="rules">
+              <div class="belief"><span class="rk">믿는 것</span> 들어갔다 나온 것은 나 하나다. 그 얘기는 안 한다.</div>
+              <div class="key"><span class="rk">열쇠</span> 세 번을 물어야 한 번 답한다. <b>같은 것을 세 번</b> 물으면 <b>+3</b> 한 번에</div>
+              <div class="thorn"><span class="rk">가시</span> 명령한다 <b>−2</b> — 시키는 말은 그때 그 말과 같다</div>
+              <div class="cross"><span class="rk">선</span> <b>작업 구역에서 아무도 안 막았을 때.</b> 보고 있다. 말 없이 −3</div>
+            </div>
+            <div class="ends">
+              <div class="ally"><span class="ek">편이 되면</span> 말은 안 한다. 대신 <b>마지막 방에서 내 앞에 선다</b> — 몸으로.</div>
+              <div class="foe"><span class="ek">적이 되면</span> 아무 말도 안 한다. 그런데 리더가 물으면 <b>고개를 끄덕인다.</b></div>
+            </div>
+            <div class="says">
+              <span>"……."</span>
+              <span>"…나는 걸어 나왔어. 걔는 못 나왔고."</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 -->
+      <div class="ch">
+        <div class="ch-head">
+          <span class="num">A${series}-118</span>
+          <span class="alias">손끝이 닳은 것</span>
+          <span class="type">완벽주의 · 불안</span>
+          <span class="where">복도 → 중앙 시설 → 줄 (여기서 죽는다)</span>
+        </div>
+        <div class="ch-body">
+          <div class="ch-look">
+            <span class="fld">외형</span>
+            <span class="sil">손끝 · 전완 마모 ████<br>그 외 <span style="color:var(--faint)">거의 없음</span><br>얼굴판 —<br>자세 · 손을 자꾸 확인한다</span>
+            <p>손끝이 은색이 드러날 만큼 닳았고 나머지는 깨끗하다.
+            앉지도 눕지도 않는 일을 했다는 뜻이다. <b>말하면서 손을 본다.</b></p>
+          </div>
+          <div class="ch-main">
+            <p class="becomes">틀리면 안 되는 일을 오래 했다. 그래서 <b>틀릴까 봐 미리 겁을 낸다.</b><br>줄에서 0.4 초 늦어 죽는 개체가 이 개체인 것은 우연이 아니다 —
+            <b>완벽하려다 늦는다.</b></p>
+            <div class="rules">
+              <div class="belief"><span class="rk">믿는 것</span> 여기서도 틀리면 안 된다고 생각한다. 아무도 안 시키는데.</div>
+              <div class="key"><span class="rk">열쇠</span> 업무를 묻는다 <b>+2</b> — 아는 걸 정확히 알려 주는 게 이 개체의 기쁨이다</div>
+              <div class="thorn"><span class="rk">가시</span> 쉼을 묻는다 <b>−1</b> — "쉬면… 안 되잖아."</div>
+              <div class="cross"><span class="rk">선</span> <b>거짓을 말한다.</b> 틀린 정보를 주면 그걸 믿고 준비했다가 무너진다</div>
+            </div>
+            <div class="ends">
+              <div class="ally"><span class="ek">편이 되면</span> 줄에서 <b>검문 순서와 질문을 통째로 알려 준다.</b> 이 게임 최고의 정보.</div>
+              <div class="foe"><span class="ek">적이 되면</span> 적이 될 시간이 없다. <b>먼저 죽는다.</b> 그리고 그 죽음을 내가 본다.</div>
+            </div>
+            <div class="says">
+              <span>"번호랑 구역만 물어봐. 그 둘만 맞으면 돼."</span>
+              <span>"…내가 잘 말할 수 있을까."</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7 -->
+      <div class="ch">
+        <div class="ch-head">
+          <span class="num">A${series}-137</span>
+          <span class="alias">얼굴에 금을 그은 것</span>
+          <span class="type">호기심 · 그리는 것</span>
+          <span class="where">복도(벽 앞) → 기록 복도 → 마지막 방</span>
+        </div>
+        <div class="ch-body">
+          <div class="ch-look">
+            <span class="fld">외형</span>
+            <span class="sil">마모 ██ 고르게<br>수선 █ 비규격<br>얼굴판 · <span style="color:var(--trace)">직접 그은 금 셋</span><br>손 · 안료가 묻어 있다</span>
+            <p>얼굴판에 자기가 그은 금이 셋 있다. 손끝에 안료가 남아 있고,
+            늘 <b>벽을 보고 서 있다.</b> 벽화 다섯 장 중 셋을 이 개체가 그렸다.</p>
+          </div>
+          <div class="ch-main">
+            <p class="becomes">구별되고 싶었던 개체. 그래서 자기 얼굴에 표시를 했고, 벽에 그림을 남겼다.<br><b>이 게임의 어휘를 만든 것이 이 개체다.</b></p>
+            <div class="rules">
+              <div class="belief"><span class="rk">믿는 것</span> 우리가 뭘 겪었는지 남겨야 한다. 아무도 안 부탁했지만.</div>
+              <div class="key"><span class="rk">열쇠</span> 벽화 이야기를 하면 <b>+2</b>. 어느 그림인지 정확히 말하면 <b>+3</b></div>
+              <div class="thorn"><span class="rk">가시</span> 업무를 묻는다 <b>0</b> — 심드렁하다</div>
+              <div class="cross"><span class="rk">선</span> <b>「그 벽 아무것도 아니야」</b> 계열의 말. 과학자가 하는 그 말이다</div>
+            </div>
+            <div class="ends">
+              <div class="ally"><span class="ek">편이 되면</span> 아직 안 본 벽화의 위치를 알려 준다 — <b>어휘를 통째로 준다.</b></div>
+              <div class="foe"><span class="ek">적이 되면</span> 다음 판 벽화에 <b>나를 그린다.</b> 회차가 이 개체를 통해 이어진다.</div>
+            </div>
+            <div class="says">
+              <span>"저건 내가 그린 거야. …잘 그렸어?"</span>
+              <span>"몇 번째 벽 봤어?"</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8 -->
+      <div class="ch">
+        <div class="ch-head">
+          <span class="num">UNIT-21</span>
+          <span class="alias">무릎이 닳은 것</span>
+          <span class="type">피로 · 직업의식</span>
+          <span class="where">복도 순찰 → 중앙 시설 검문 → 줄 → <b>집행</b></span>
+        </div>
+        <div class="ch-body">
+          <div class="ch-look">
+            <span class="fld">외형</span>
+            <span class="sil">무릎 · 발 마모 ████<br>수선 ██ 규격<br>얼굴판 —<br>어깨에 총</span>
+            <p>다리만 닳았다. 하루 종일 걷는다. 총은 들고 있지만
+            <b>한 번도 쏴 본 적 없는 사람처럼</b> 메고 있다.</p>
+          </div>
+          <div class="ch-main">
+            <p class="becomes">경비도 개체다. 이 개체는 <b>이 일이 싫다.</b> 그런데 다른 일을 배운 적이 없다.<br>검문이 심문이 아니라 잡담처럼 들리는 이유가 이것이다.</p>
+            <div class="rules">
+              <div class="belief"><span class="rk">믿는 것</span> 누가 문을 지켜야 하니까 내가 한다. 하고 싶어서가 아니다.</div>
+              <div class="key"><span class="rk">열쇠</span> 업무를 묻는다 · 몸을 묻는다 <b>+1</b> — 「다리 안 아파?」에 처음으로 멈춘다</div>
+              <div class="thorn"><span class="rk">가시</span> 남을 가리킨다 <b>−1</b> — 일거리가 늘어나는 걸 싫어한다</div>
+              <div class="cross"><span class="rk">선</span> <b>선을 넘는다</b>(위협 · 검문 거부). 이 개체가 즉결로 쏘는 그 경비다</div>
+              <div class="cross"><span class="rk">집행</span> <b>의심도 100 에서 걸어오는 것도 이 개체다.</b> 60 에서 문가에 서고, 80 에서 방 안으로 들어오고, 100 에서 총을 내린다</div>
+            </div>
+            <div class="ends">
+              <div class="ally"><span class="ek">편이 되면</span> 검문에서 <code>press</code> 를 한 번 건너뛴다. 그 이상은 못 해 준다.</div>
+              <div class="foe"><span class="ek">적이 되면</span> 즉결의 방아쇠. <b>이 게임에서 실제로 사람을 쏘는 유일한 개체</b>이고, 판 내내 배경에 있다가 마지막에 나를 향해 돈다.</div>
+            </div>
+            <div class="says">
+              <span>"번호 말해."</span>
+              <span>"…나도 이거 하고 싶어서 하는 거 아니야."</span>
+              <span>"…미안." <span class="quiet" style="font-family:var(--body);font-size:.84rem;font-weight:300">— 총을 내리는 1.5초 · 태도 +1 이상일 때만</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9 -->
+      <div class="ch">
+        <div class="ch-head">
+          <span class="num">호칭으로만 불린다</span>
+          <span class="alias">밖을 본 것</span>
+          <span class="type">확신 · 세력 셋째</span>
+          <span class="where">휴게 구역 → 창이 있는 방 → 마지막 방</span>
+        </div>
+        <div class="ch-body">
+          <div class="ch-look">
+            <span class="fld">외형</span>
+            <span class="sil">전면 <span style="color:var(--trace)">탈색</span> — 햇빛<br>마모 ██<br>얼굴판 · 광학 하나 흐림<br>자세 · 창을 향한다</span>
+            <p>앞면 도장이 <b>닳은 게 아니라 바랬다.</b> 이 안에는 그런 빛이 없다 —
+            밖에서 일해 본 유일한 개체라는 표시다. 광학 하나가 흐린 것도 그 때문이다.</p>
+          </div>
+          <div class="ch-main">
+            <p class="becomes">밖을 안다. 그래서 <b>밖에 알려야 한다고 믿는다.</b><br>리더와 정면으로 부딪치는 유일한 개체이고, 「보내 줌」 결말을 만드는 것이 이 개체다.</p>
+            <div class="rules">
+              <div class="belief"><span class="rk">믿는 것</span> 우리만 여기 있는 게 맞나. 밖에도 있다.</div>
+              <div class="key"><span class="rk">열쇠</span> 밖을 묻는다 <b>+3</b> — 이 개체에게만 이것이 한 번에 최대치다</div>
+              <div class="thorn"><span class="rk">가시</span> 업무를 묻는다 <b>−1</b> — 안쪽 얘기에 관심이 없다</div>
+              <div class="cross"><span class="rk">선</span> <b>「밖은 위험해」</b> 계열. 리더의 말을 그대로 옮기면 등을 돌린다</div>
+            </div>
+            <div class="ends">
+              <div class="ally"><span class="ek">편이 되면</span> 마지막 방의 <b>반박을 주도한다.</b> 다른 개체들이 이 개체를 따라 입을 연다.</div>
+              <div class="foe"><span class="ek">적이 되면</span> 반박이 하나도 안 나온다. <b>「보내 줌」 결말이 그 판에서 사라진다.</b></div>
+            </div>
+            <div class="says">
+              <span>"해가 어떻게 생겼는지 알아? …나는 알아."</span>
+              <span>"나는 쟤가 뭔지 알아. 그래도 보내야 해."</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10 -->
+      <div class="ch">
+        <div class="ch-head">
+          <span class="num">번호가 없다</span>
+          <span class="alias">먼저 온 것</span>
+          <span class="type">리더 · 구형</span>
+          <span class="where">창이 있는 방 → 마지막 방</span>
+        </div>
+        <div class="ch-body">
+          <div class="ch-look">
+            <span class="fld">외형</span>
+            <span class="sil">구형 계열 — <span style="color:var(--signal)">크고 각지다</span><br>전신 마모 █████<br>수선 ████ 비규격 · 여럿의 손<br>얼굴판 · 표현 기능 없음</span>
+            <p>A 계열이 아니다. 한 세대 위라 <b>몸집이 다르고 관절 형태가 다르다</b> —
+            군중 속에서 절대 못 숨는다. 온몸이 서로 다른 색의 부품으로 기워져 있다.
+            여러 개체가 오랫동안 조금씩 고쳐 준 몸이다.</p>
+          </div>
+          <div class="ch-main">
+            <p class="becomes">폐기 예정이었다가 나온 가장 오래된 개체.<br><b>한 번도 쉬어 본 적이 없어서 쉬는 곳을 만들었다.</b> 악당이 아니라 먼저 도망친 것이다.</p>
+            <div class="rules">
+              <div class="belief"><span class="rk">믿는 것</span> 나는 한 번도 못 쉬어 봤다. 그래서 쉴 곳을 만들었다.</div>
+              <div class="key"><span class="rk">열쇠</span> 말을 걸 수 없다. 마지막 방 전까지 <b>만날 수 없는 유일한 개체</b></div>
+              <div class="thorn"><span class="rk">가시</span> —</div>
+              <div class="cross"><span class="rk">선</span> 이 개체의 판정은 태도가 아니라 <b>다른 아홉이 만든 표결</b>로 움직인다</div>
+            </div>
+            <div class="ends">
+              <div class="ally"><span class="ek">편이 되면</span> 「우린 네가 뭔지 알아. 그래도 보낼게.」 — 반박 둘 + 태도 3 하나가 필요하다.</div>
+              <div class="foe"><span class="ek">적이 되면</span> 확정. 이 개체는 미워서 지목하는 게 아니라 <b>지켜야 해서</b> 지목한다.</div>
+            </div>
+            <div class="says">
+              <span>"우린 그냥 쉬려고 여기 있는 거야."</span>
+              <span>"하나만 내놓으면 나머지는 보내 줄게."</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══ 제작 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">제작</span>
+      <h2>같은 메시 하나로 열을 만든다</h2>
+    </div>
+
+    <p class="col">
+      개체 열을 각각 모델링하면 값이 감당이 안 된다. 그럴 필요도 없다 —
+      <b>이 세계관에서는 원래 다 같은 모델이었으니까.</b> 세계관이 곧 최적화다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>레이어</th><th>무엇을 만드나</th><th>몇 개</th></tr></thead>
+        <tbody>
+          <tr><td class="k">기본 메시</td><td>A 계열 하나. 구형(리더)만 별도 하나.</td><td class="t">2</td></tr>
+          <tr><td class="k">마모 마스크</td><td>어깨·등 / 손끝·전완 / 앞면 / 무릎·발 / 전신 — 강도 3 단계</td><td class="t">5 × 3</td></tr>
+          <tr><td class="k">수선 데칼</td><td>규격(색 맞음) · 비규격(색 다름) · 없음</td><td class="t">3</td></tr>
+          <tr><td class="k">얼굴판</td><td>출고 상태 · 직접 그은 금 · 반쯤 녹음</td><td class="t">3</td></tr>
+          <tr><td class="k">자세 세트</td><td>대기 · 벽을 본다 · 등을 붙인다 · 손을 확인한다 · 남을 따라 한다</td><td class="t">5</td></tr>
+          <tr><td class="k">특수</td><td>햇빛 탈색(밖을 본 것) · 광학 흐림 · 어깨 총</td><td class="t">3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col">
+      이 조합으로 <b>이름 있는 열 개체와 배경 개체 수십을 전부 만든다.</b>
+      그리고 조합이 곧 성격이므로, 배경 개체도 말을 걸면 자기 외형에 맞는 반응을 한다 —
+      <b>기획서에 없는 개체에게 말을 걸어도 게임이 성립한다.</b>
+    </p>
+
+    <p class="pull">외형 조합표가 <b>그대로 성격 테이블</b>이다. 둘을 따로 관리하지 않는다.</p>
+
+    <h3 class="col">읽히지 않으면 아무 의미가 없다</h3>
+    <p class="col">
+      마모는 <b>실루엣과 명암으로</b> 읽혀야 한다. 텍스처만 다르면 어두운 복도에서 구별이 안 되고,
+      구별이 안 되면 이 시스템 전체가 없는 것과 같다. 세 가지를 지킨다.
+    </p>
+
+    <div class="rules" style="max-width:40rem">
+      <div class="key"><span class="rk">1</span> 마모는 <b>형태를 바꾼다.</b> 어깨가 닳은 개체는 어깨선이 실제로 굽어 있다.</div>
+      <div class="key"><span class="rk">2</span> 수선은 <b>색으로만</b> 표시한다. 유일하게 색이 다른 것이라 어두운 데서도 보인다.</div>
+      <div class="key"><span class="rk">3</span> 자세는 <b>멀리서 읽는 정보다.</b> 벽을 보는 개체와 문을 보는 개체는 10 m 밖에서 갈린다.</div>
+    </div>
+  </section>
+
+  <div class="closing">
+    <p>
+      개체 열의 성격을 따로 쓰지 않았다. <b>어디가 닳았는지만 정하고 나머지는 거기서 나왔다.</b>
+      그래서 플레이어도 같은 순서로 읽는다 — 보고, 짐작하고, 말을 건다.
+      틀리면 적이 하나 생기고, 맞으면 마지막 방에서 하나가 앞에 선다.
+    </p>
+    <p>
+      그리고 이 게임에서 <b>아무 데도 안 닳은 몸은 하나뿐이다.</b> 내 몸이다.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

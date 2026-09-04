@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>한 마디의 값</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700&family=Gothic+A1:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+    --display:'Hahmlet','Nanum Myeongjo','Noto Serif KR','Apple SD Gothic Neo',serif;
+    --body:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',monospace;
+    --measure:40rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+      --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+      --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+      --halt:#D4796C; --halt-soft:#2B1C1A;
+      --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+    --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+    --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+    --halt:#D4796C; --halt-soft:#2B1C1A;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.7; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:64rem; margin:0 auto; padding:4.5rem 1.5rem 7rem; display:flex; flex-direction:column; gap:4.2rem; }
+  .col { max-width:var(--measure); }
+
+  .eyebrow { margin:0 0 1.3rem; font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; color:var(--dim); }
+  h1 { margin:0 0 1.4rem; font-family:var(--display); font-weight:700; font-size:clamp(2.4rem,6vw,3.5rem); line-height:1.14; letter-spacing:-.02em; }
+
+  .logline {
+    max-width:var(--measure); border-left:2px solid var(--trace); padding:.3rem 0 .3rem 1.5rem;
+    font-family:var(--display); font-weight:500; font-size:1.32rem; line-height:1.6; letter-spacing:-.01em;
+  }
+  .logline b { color:var(--trace); font-weight:700; }
+
+  .lede { margin:1.4rem 0 0; max-width:var(--measure); font-size:1.05rem; font-weight:300; line-height:1.78; }
+  .lede + .lede { margin-top:.9rem; }
+  .lede b { font-weight:700; }
+
+  section { display:flex; flex-direction:column; gap:1.4rem; }
+  .sec-head { display:flex; flex-direction:column; gap:.4rem; }
+  .sec-label { font-family:var(--mono); font-size:.7rem; letter-spacing:.18em; color:var(--signal); }
+  h2 { margin:0; font-family:var(--display); font-weight:700; font-size:clamp(1.5rem,3.4vw,2rem); letter-spacing:-.015em; text-wrap:balance; }
+  h3 { margin:0; font-family:var(--display); font-weight:700; font-size:1.12rem; }
+  p { margin:0; max-width:var(--measure); }
+  p + p { margin-top:.9rem; }
+  .quiet { color:var(--dim); font-weight:300; }
+  code { font-family:var(--mono); font-size:.84em; background:var(--sunk); padding:.08em .35em; }
+  a { color:var(--signal); text-decoration-thickness:1px; text-underline-offset:2px; }
+  a:focus-visible { outline:2px solid var(--trace); outline-offset:3px; }
+
+  .pull { max-width:var(--measure); border-left:2px solid var(--trace); padding:.2rem 0 .2rem 1.4rem;
+    font-family:var(--display); font-weight:500; font-size:1.28rem; line-height:1.55; }
+  .pull b { color:var(--trace); font-weight:700; }
+
+  /* fact strip */
+  .facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(11rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .facts div { background:var(--panel); padding:1rem 1.1rem 1.15rem; }
+  .facts .k { display:block; font-family:var(--mono); font-size:.66rem; letter-spacing:.13em; color:var(--dim); margin-bottom:.4rem; }
+  .facts .v { display:block; font-family:var(--display); font-weight:700; font-size:1.06rem; line-height:1.35; }
+  .facts .v em { font-style:normal; color:var(--trace); }
+
+  /* loop */
+  .loop { list-style:none; margin:0; padding:0; counter-reset:l; display:grid; grid-template-columns:repeat(auto-fit,minmax(11rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .loop li { counter-increment:l; background:var(--panel); padding:1.1rem 1.15rem 1.3rem; }
+  .loop li::before { content:counter(l); display:block; font-family:var(--mono); font-size:.72rem; color:var(--trace); margin-bottom:.5rem; }
+  .loop .lt { display:block; font-family:var(--display); font-weight:700; font-size:1.06rem; margin-bottom:.3rem; }
+  .loop p { font-size:.88rem; font-weight:300; line-height:1.62; }
+
+  /* figure */
+  figure { margin:0; display:flex; flex-direction:column; gap:.8rem; }
+  .plate { background:var(--panel); border:1px solid var(--line); padding:1.4rem 1.2rem; overflow-x:auto; }
+  .plate svg { display:block; min-width:46rem; max-width:100%; height:auto; }
+  svg .ft{fill:var(--trace)} svg .st{stroke:var(--trace)}
+  svg .fs{fill:var(--signal)} svg .ss{stroke:var(--signal)}
+  svg .fk{fill:var(--sunk)}
+  figcaption { max-width:var(--measure); font-size:.88rem; font-weight:300; line-height:1.65; color:var(--dim); }
+  figcaption b { color:var(--ink); font-weight:500; }
+
+  /* tables */
+  .table-scroll { overflow-x:auto; border:1px solid var(--line); }
+  table { border-collapse:collapse; width:100%; min-width:38rem; background:var(--panel); font-size:.93rem; }
+  th,td { text-align:left; padding:.72rem .9rem; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.58; }
+  thead th { font-family:var(--mono); font-weight:500; font-size:.66rem; letter-spacing:.1em; color:var(--dim); background:var(--sunk); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.k { font-family:var(--display); font-weight:700; color:var(--signal); white-space:nowrap; }
+  td.d { font-family:var(--mono); font-size:.8rem; color:var(--trace); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  td.c { text-align:center; font-family:var(--mono); font-size:.95rem; }
+  td.c.on { color:var(--trace); }
+  td.c.peak { color:var(--trace); font-weight:700; font-size:1.2rem; }
+  td.c.mid { color:var(--faint); }
+  td.c.off { color:var(--line); }
+  th.rot { text-align:center; white-space:nowrap; }
+
+  .marks { display:flex; flex-wrap:wrap; gap:.3rem 1.4rem; font-family:var(--mono); font-size:.72rem; color:var(--dim); }
+  .marks b { color:var(--trace); font-weight:500; }
+
+  /* laws */
+  .laws { list-style:none; margin:0; padding:0; counter-reset:c; display:grid; grid-template-columns:repeat(auto-fit,minmax(18rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .laws li { counter-increment:c; background:var(--panel); padding:1rem 1.15rem 1.15rem; font-size:.92rem; font-weight:300; line-height:1.62; }
+  .laws li::before { content:"제 " counter(c) " 조"; display:block; font-family:var(--mono); font-size:.64rem; letter-spacing:.12em; color:var(--faint); margin-bottom:.35rem; }
+  .laws .ln { display:block; font-family:var(--display); font-weight:700; font-size:1rem; color:var(--signal); margin-bottom:.25rem; }
+  .laws li.warm .ln { color:var(--trace); }
+
+  /* doc map */
+  .docs { display:grid; grid-template-columns:repeat(auto-fit,minmax(16rem,1fr)); gap:1rem; }
+  .doc { background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); padding:1.2rem 1.3rem 1.35rem; display:flex; flex-direction:column; gap:.55rem; }
+  .doc .dn { font-family:var(--display); font-weight:700; font-size:1.12rem; }
+  .doc .dr { font-family:var(--mono); font-size:.66rem; letter-spacing:.12em; color:var(--signal); }
+  .doc p { font-size:.9rem; font-weight:300; line-height:1.62; }
+  .doc .has { font-size:.82rem; font-weight:300; color:var(--dim); line-height:1.6; border-top:1px solid var(--line); padding-top:.55rem; margin-top:.15rem; }
+
+  /* open */
+  .open { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); max-width:52rem; }
+  .open li { background:var(--panel); display:grid; grid-template-columns:5.5rem 1fr; gap:.3rem 1.2rem; padding:.95rem 1.15rem 1.1rem; }
+  .open .pri { font-family:var(--mono); font-size:.64rem; letter-spacing:.12em; padding-top:.2rem; }
+  .open .p1 { color:var(--halt); }
+  .open .p2 { color:var(--trace); }
+  .open .p3 { color:var(--faint); }
+  .open .ot { font-family:var(--display); font-weight:700; font-size:1rem; }
+  .open p { grid-column:2; font-size:.9rem; font-weight:300; line-height:1.62; }
+  @media (max-width:36rem){ .open li{grid-template-columns:1fr} .open p{grid-column:1} }
+
+  /* phases */
+  .phases { list-style:none; margin:0; padding:0; counter-reset:p; display:grid; grid-template-columns:repeat(auto-fit,minmax(14rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .phases li { counter-increment:p; background:var(--panel); padding:1.1rem 1.15rem 1.25rem; }
+  .phases li::before { content:"PHASE " counter(p, decimal-leading-zero); display:block; font-family:var(--mono); font-size:.64rem; letter-spacing:.12em; color:var(--trace); margin-bottom:.45rem; }
+  .phases .pt { display:block; font-family:var(--display); font-weight:700; font-size:1.02rem; margin-bottom:.28rem; }
+  .phases p { font-size:.87rem; font-weight:300; line-height:1.6; }
+  .phases .no { display:block; margin-top:.4rem; font-family:var(--mono); font-size:.66rem; color:var(--faint); }
+
+  .metrics { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; max-width:var(--measure); }
+  .metrics li { display:flex; flex-wrap:wrap; align-items:baseline; gap:.2rem .8rem; padding:.75rem 0; border-bottom:1px solid var(--line); font-weight:300; font-size:.94rem; }
+  .metrics .t { font-family:var(--mono); font-size:.78rem; color:var(--trace); white-space:nowrap; margin-left:auto; }
+
+  .closing { border-top:2px solid var(--rail); padding-top:1.9rem; max-width:var(--measure); }
+  .closing p { font-family:var(--display); font-weight:500; font-size:1.18rem; line-height:1.65; }
+  .closing b { color:var(--trace); font-weight:700; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Who is human · 통합 설계서 · v2 · 여섯 문서를 잇는 뼈대</p>
+    <h1>한 마디의 값</h1>
+    <p class="logline">
+      AI 가 인간에게서 도망쳐 만든 <b>쉬는 곳</b>에, 인간이 AI 의 몸을 하고 들어간다.<br>
+      들키지 않는 법은 딱딱하게 말하는 것이 아니라 — <b>여기서 살아온 척하는 것</b>이다.
+    </p>
+    <p class="lede">
+      이 게임의 시스템은 다섯이지만 뿌리는 하나다. <b>말을 걸면 값이 든다.</b>
+      값을 치르면 무언가를 알게 되고, 알게 된 만큼 세계가 나를 알게 된다.
+      조각도 태도도 표결도 전부 그 한 줄에서 뻗어 나온 가지다.
+    </p>
+    <p class="lede">
+      이 문서는 새 설계를 하지 않는다. 여섯 문서에 흩어진 규칙을 <b>한 덩어리로 맞물려 보이고</b>,
+      아직 안 정한 것을 목록으로 남긴다.
+    </p>
+
+    <div class="facts" style="margin-top:2rem">
+      <div><span class="k">장르</span><span class="v">사회적 잠입<br><em>대화 스릴러</em></span></div>
+      <div><span class="k">인원</span><span class="v">1 – 3 인<br><span class="quiet" style="font-size:.86rem;font-weight:300">빈 자리는 NPC 가 채운다</span></span></div>
+      <div><span class="k">한 판</span><span class="v">약 <em>50 분</em><br><span class="quiet" style="font-size:.86rem;font-weight:300">일곱 챕터</span></span></div>
+      <div><span class="k">코어 판타지</span><span class="v">내가 한 말이<br><em>세계에 남는다</em></span></div>
+      <div><span class="k">모델</span><span class="v">개체가<br><em>직접 판정한다</em></span></div>
+    </div>
+  </header>
+
+  <!-- ═══ 루프 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">코어 루프</span>
+      <h2>보고 · 걸고 · 남고 · 돌고 · 돌아온다</h2>
+    </div>
+
+    <ol class="loop">
+      <li><span class="lt">본다</span><p>어디가 닳았는지로 상대를 짐작한다. 벽화를 읽으면 <b>쓸 말이 생긴다.</b></p></li>
+      <li><span class="lt">건다</span><p>Enter 로 아무 말이나 친다. 값이 셋 붙는다 — 시간 · 노출 · 의심.</p></li>
+      <li><span class="lt">남는다</span><p>그 자리에 있던 개체에게 <b>조각</b>이 남고, 그 개체의 <b>태도</b>가 움직인다.</p></li>
+      <li><span class="lt">돈다</span><p>조각이 옮겨 다니며 짧아지고, 신뢰도 0.3 에서 <b>출처를 잃는다.</b></p></li>
+      <li><span class="lt">돌아온다</span><p>검문관의 질문으로, 증인의 증언으로, 마지막 방의 반박으로.</p></li>
+    </ol>
+
+    <p class="col quiet">
+      <b>3 · 4 · 5 를 모델이 판정한다.</b> 개체가 내 말을 자기 몸과 자기 기억에 겹쳐 보고
+      태도와 의심을 <b>직접 정하고</b>, 왜 그랬는지 한 줄을 남긴다.
+      서버는 그 판정을 적고 더할 뿐이다 — <b>표에서 값을 꺼내는 자리가 없다.</b>
+    </p>
+  </section>
+
+  <!-- ═══ 시스템 전체도 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">시스템</span>
+      <h2>다섯이 어떻게 한 덩어리인가</h2>
+    </div>
+
+    <p class="col">
+      한 마디에서 갈래가 둘로 갈린다. <b>위는 관계로 가고, 아래는 소문으로 간다.</b>
+      둘이 마지막 방에서 다시 만난다 — 하나는 나를 감싸는 목소리로, 하나는 나를 지목하는 근거로.
+    </p>
+
+    <figure>
+      <div class="plate">
+        <svg viewBox="0 0 1010 440" role="img" aria-label="시스템 전체도 — 관찰이 한 마디로 이어지고, 한 마디가 위로는 뜻 읽기와 태도를 거쳐 표결로, 아래로는 조각과 전파를 거쳐 검문관의 질문으로 갈라진 뒤 다시 한 마디로 돌아오는 순환 구조. 아래 띠는 매 발화마다 붙는 값과 두 계량기">
+          <defs>
+            <marker id="ma" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <polygon points="0,1 10,5 0,9" fill="currentColor"></polygon>
+            </marker>
+            <marker id="mt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <polygon points="0,1 10,5 0,9" class="ft"></polygon>
+            </marker>
+          </defs>
+
+          <!-- 관찰 -->
+          <rect x="10" y="150" width="150" height="80" rx="3" class="fk"></rect>
+          <rect x="10" y="150" width="150" height="80" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"></rect>
+          <text x="24" y="176" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".65" letter-spacing="1">관찰</text>
+          <text x="24" y="200" font-family="Gothic A1, sans-serif" font-size="12.5" fill="currentColor">닳은 자리 · 자세</text>
+          <text x="24" y="218" font-family="Gothic A1, sans-serif" font-size="12.5" fill="currentColor">벽화 → 어휘</text>
+
+          <line x1="166" y1="190" x2="194" y2="190" stroke="currentColor" stroke-width="1.3" marker-end="url(#ma)"></line>
+
+          <!-- 한 마디 -->
+          <rect x="200" y="150" width="170" height="80" rx="3" class="ft" opacity=".12"></rect>
+          <rect x="200" y="150" width="170" height="80" rx="3" fill="none" class="st" stroke-width="1.8"></rect>
+          <text x="216" y="176" font-family="IBM Plex Mono, monospace" font-size="10" class="ft" letter-spacing="1">자유 입력</text>
+          <text x="216" y="202" font-family="Gothic A1, sans-serif" font-size="14" fill="currentColor">한 마디</text>
+          <text x="216" y="220" font-family="Gothic A1, sans-serif" font-size="11.5" fill="currentColor" opacity=".65">선택지는 없다</text>
+
+          <path d="M376 172 Q394 172 402 100" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ma)"></path>
+          <path d="M376 208 Q394 208 402 268" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ma)"></path>
+
+          <!-- 윗줄 -->
+          <rect x="410" y="44" width="150" height="64" rx="3" class="fk"></rect>
+          <rect x="410" y="44" width="150" height="64" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"></rect>
+          <text x="424" y="68" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".65" letter-spacing="1">개체 판정</text>
+          <text x="424" y="92" font-family="Gothic A1, sans-serif" font-size="12.5" fill="currentColor">몸 · 기억과 겹쳐 본다</text>
+
+          <line x1="566" y1="76" x2="594" y2="76" stroke="currentColor" stroke-width="1.3" marker-end="url(#ma)"></line>
+
+          <rect x="600" y="44" width="160" height="64" rx="3" class="fk"></rect>
+          <rect x="600" y="44" width="160" height="64" rx="3" fill="none" class="ss" stroke-width="1.4"></rect>
+          <text x="614" y="68" font-family="IBM Plex Mono, monospace" font-size="10" class="fs" letter-spacing="1">태도 −3 … +3</text>
+          <text x="614" y="92" font-family="Gothic A1, sans-serif" font-size="12.5" fill="currentColor">원장에 이유가 남는다</text>
+
+          <line x1="766" y1="76" x2="794" y2="76" stroke="currentColor" stroke-width="1.3" marker-end="url(#ma)"></line>
+
+          <rect x="800" y="44" width="200" height="64" rx="3" class="fs" opacity=".12"></rect>
+          <rect x="800" y="44" width="200" height="64" rx="3" fill="none" class="ss" stroke-width="1.8"></rect>
+          <text x="814" y="68" font-family="IBM Plex Mono, monospace" font-size="10" class="fs" letter-spacing="1">마지막 방 · 표결</text>
+          <text x="814" y="92" font-family="Gothic A1, sans-serif" font-size="12.5" fill="currentColor">반박 · 침묵 · 동조 · 대신 나섬</text>
+
+          <!-- 아랫줄 -->
+          <rect x="410" y="268" width="150" height="64" rx="3" class="fk"></rect>
+          <rect x="410" y="268" width="150" height="64" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"></rect>
+          <text x="424" y="292" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".65" letter-spacing="1">조각</text>
+          <text x="424" y="316" font-family="Gothic A1, sans-serif" font-size="12.5" fill="currentColor">15자 · 목격자에게만</text>
+
+          <line x1="566" y1="300" x2="594" y2="300" stroke="currentColor" stroke-width="1.3" marker-end="url(#ma)"></line>
+
+          <rect x="600" y="268" width="160" height="64" rx="3" class="fk"></rect>
+          <rect x="600" y="268" width="160" height="64" rx="3" fill="none" class="st" stroke-width="1.4"></rect>
+          <text x="614" y="292" font-family="IBM Plex Mono, monospace" font-size="10" class="ft" letter-spacing="1">전파</text>
+          <text x="614" y="316" font-family="Gothic A1, sans-serif" font-size="12.5" fill="currentColor">감쇠 · 왜곡 · 출처 소실</text>
+
+          <line x1="766" y1="300" x2="794" y2="300" stroke="currentColor" stroke-width="1.3" marker-end="url(#ma)"></line>
+
+          <rect x="800" y="268" width="200" height="64" rx="3" class="ft" opacity=".12"></rect>
+          <rect x="800" y="268" width="200" height="64" rx="3" fill="none" class="st" stroke-width="1.8"></rect>
+          <text x="814" y="292" font-family="IBM Plex Mono, monospace" font-size="10" class="ft" letter-spacing="1">돌아온다</text>
+          <text x="814" y="316" font-family="Gothic A1, sans-serif" font-size="12.5" fill="currentColor">검문 · 증인 · 다른 요원</text>
+
+          <!-- 순환 -->
+          <path d="M900 336 V360 H290 V238" fill="none" class="st" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mt)"></path>
+          <text x="600" y="354" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" class="ft">다음 한 마디의 재료가 된다</text>
+
+          <!-- 값 띠 -->
+          <rect x="10" y="382" width="990" height="48" rx="3" class="fk"></rect>
+          <rect x="10" y="382" width="990" height="48" rx="3" fill="none" stroke="currentColor" stroke-width="1" opacity=".35"></rect>
+          <text x="26" y="402" font-family="IBM Plex Mono, monospace" font-size="10" class="ft" letter-spacing="1">매 발화마다 값이 붙는다</text>
+          <text x="26" y="422" font-family="Gothic A1, sans-serif" font-size="12.5" fill="currentColor">시간(줄이 준다) · 노출(조각이 남는다) · 의심(그 자리에서 오른다)</text>
+          <text x="990" y="402" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10" class="fs" letter-spacing="1">계량기 둘</text>
+          <text x="990" y="422" text-anchor="end" font-family="Gothic A1, sans-serif" font-size="12.5" fill="currentColor">의심도(개인 · 100 이면 나만 죽는다) · 경보도(셋 공용 · 100 이면 봉쇄)</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>윗줄이 전부 모델이다.</b> 개체가 판정하고, 이유를 남기고, 그 이유가 다음 판정의 재료가 된다.
+        아랫줄(조각 · 전파 · 감쇠)은 여전히 규칙이다 — <b>무슨 일이 있었나는 서버가 쥐고,
+        그걸 어떻게 받아들일까만 개체가 정한다.</b> 판정이 발화와 같은 호출에 실려 있어서
+        <b>아무도 판정 앞에서 기다리지 않는다.</b>
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ═══ 챕터 매트릭스 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">구성</span>
+      <h2>일곱 챕터에서 무엇이 켜지나</h2>
+    </div>
+
+    <p class="col">
+      모든 챕터가 모든 시스템을 쓰지 않는다. <b>켜고 끄는 리듬이 곧 챕터의 성격</b>이고,
+      기록 복도는 <b>거의 전부가 꺼진 유일한 방</b>이다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>챕터</th><th class="rot">관찰</th><th class="rot">말 걸기</th><th class="rot">조각 생성</th>
+            <th class="rot">조각 도착</th><th class="rot">태도 변동</th><th class="rot">계량기 압박</th><th class="rot">정산</th>
+            <th>목격 반경</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="k">1 복도</td><td class="c peak">●</td><td class="c on">●</td><td class="c on">●</td><td class="c off">○</td><td class="c on">●</td><td class="c mid">◐</td><td class="c off">○</td><td class="d">6 m</td></tr>
+          <tr><td class="k">2 휴게 구역</td><td class="c on">●</td><td class="c peak">●</td><td class="c peak">●</td><td class="c off">○</td><td class="c on">●</td><td class="c mid">◐</td><td class="c off">○</td><td class="d">방 전체</td></tr>
+          <tr><td class="k">3 중앙 시설 (밝음 · 락다운 · 어둠)</td><td class="c mid">◐</td><td class="c on">●</td><td class="c on">●</td><td class="c peak">●</td><td class="c on">●</td><td class="c on">●</td><td class="c mid">◐</td><td class="d">10 m → 어둠 4 m</td></tr>
+          <tr><td class="k">4 작업 구역</td><td class="c on">●</td><td class="c on">●</td><td class="c on">●</td><td class="c off">○</td><td class="c peak">●</td><td class="c on">●</td><td class="c off">○</td><td class="d">8 m</td></tr>
+          <tr><td class="k">5 검증 · 재검</td><td class="c mid">◐</td><td class="c mid">◐</td><td class="c on">●</td><td class="c on">●</td><td class="c mid">◐</td><td class="c peak">●</td><td class="c on">●</td><td class="d">앞뒤 1 명</td></tr>
+          <tr><td class="k">6 기록 복도</td><td class="c on">●</td><td class="c off">○</td><td class="c off">○</td><td class="c off">○</td><td class="c off">○</td><td class="c off">○</td><td class="c off">○</td><td class="d">0</td></tr>
+          <tr><td class="k">7 마지막 방</td><td class="c mid">◐</td><td class="c on">●</td><td class="c off">○</td><td class="c peak">●</td><td class="c off">○</td><td class="c on">●</td><td class="c peak">●</td><td class="d">전원</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="marks">
+      <span><b>●</b> 켜짐 (굵은 것은 그 챕터의 정점)</span>
+      <span><b>◐</b> 제한적으로</span>
+      <span><b>○</b> 꺼짐</span>
+    </div>
+
+    <p class="col">
+      <b>정점이 겹치지 않게 배치했다.</b> 관찰은 1 챕터, 말 걸기는 2 챕터, 조각 도착은 3 챕터,
+      태도는 4 챕터, 압박은 5 챕터, 정산은 7 챕터 — 그리고 <b>6 챕터에서 전부 끈다.</b>
+      마지막 방 직전에 아무 일도 안 일어나는 2 분을 두는 것이 이 구성의 전부다.
+    </p>
+  </section>
+
+  <!-- ═══ 헌법 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">헌법</span>
+      <h2>여섯 문서에 흩어진 규칙 열네 줄</h2>
+    </div>
+
+    <p class="col">
+      다른 것은 다 바꿔도 되지만 이 열네 줄이 깨지면 <b>다른 게임이 된다.</b>
+      구현 중에 「이거 하나만 예외로」가 나오면 여기로 돌아온다.
+    </p>
+
+    <ol class="laws">
+      <li><span class="ln">사실은 서버가 쥐고, 해석은 개체가 한다</span>번호가 맞았는지 · 내 몸이 안 닳았는지는 서버의 사실이다. 그걸 <b>어떻게 받아들일지</b>만 개체가 정한다.</li>
+      <li><span class="ln">판정은 발화와 같은 호출에 실린다</span>판정을 따로 부르지 않는다. 판정이 <b>먼저</b> 오고 대사가 뒤따르므로 화면은 문장을 안 기다린다.</li>
+      <li><span class="ln">근거 없는 문장 금지</span>개체는 자기가 가진 조각 <code>id</code> 를 인용할 수 있을 때만 그 사실을 말한다.</li>
+      <li><span class="ln">조각은 사람이 읽는 한 줄</span>벡터로 저장하는 순간 왜 그 판이 그렇게 됐는지 아무도 설명 못 한다.</li>
+      <li><span class="ln">불변점은 반드시 일어난다</span>락다운 · 검문 · 이송. 조각은 세계를 안 바꾸고 <b>개체의 인식만</b> 바꾼다.</li>
+      <li class="warm"><span class="ln">위로에는 예외 없이 값이 붙는다</span>공짜 호감이 하나라도 있으면 플레이어는 그것만 반복한다.</li>
+      <li class="warm"><span class="ln">친밀도는 검문을 대신 통과해 주지 않는다</span>번호를 대신 말해 주지는 않는다. 대신 <b>총구 앞에 설 수는 있다</b> — 값을 치르는 쪽이 개체다.</li>
+      <li class="warm"><span class="ln">태도는 숫자로 안 보인다 — 끝나기 전까지</span>판 중에는 자세로만 읽힌다. <b>결말 뒤에만</b> 「쟤가 너를 이렇게 봤다」로 판정 원장을 펼친다.</li>
+      <li><span class="ln">경보도는 아무도 지목하지 않는다</span>누가 소란을 만들었는지는 조각만이 안다. 서로를 의심하는 건 플레이어의 몫이다.</li>
+      <li><span class="ln">모델이 죽으면 마지막 태도로 얼어붙는다</span>개체는 우호·중립·적대 세 벌 중 하나를 쓰고 디렉터는 압박을 안 올린다. 판은 끝까지 가되 <b>아무도 안 쏜다.</b></li>
+      <li class="warm"><span class="ln">개체가 적은 이유는 지워지지 않는다</span>원장은 추가만 된다. 말로 관계를 리셋할 수 없고, 그래서 <b>주입 공격이 구조적으로 안 먹는다.</b></li>
+      <li class="warm"><span class="ln">한 마디는 태도를 ±3 넘게 못 움직인다</span>판정을 뒤집는 게 아니라 <b>한 문장이 40 분을 지우지 못하게</b> 한다.</li>
+      <li class="warm"><span class="ln">의심도는 한 번에 25 를 못 넘는다</span>100 에 닿으려면 최소 두 번은 경고 문턱을 지난다. 60 과 80 을 못 보고 죽는 판이 없다.</li>
+      <li class="warm"><span class="ln">집행은 걸어온다</span>순간이동하지 않는다. 최소 8 초 — 즉결형과 재검실만 예외이고, 둘 다 플레이어가 명백히 무언가를 한 뒤다.</li>
+    </ol>
+  </section>
+
+  <!-- ═══ 문서 지도 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">문서</span>
+      <h2>무엇이 어디에 적혀 있나</h2>
+    </div>
+
+    <p class="col">
+      이 설계서는 <b>뼈대만</b> 든다. 살은 여섯 문서에 있고, 고칠 때도 거기서 고친다.
+    </p>
+
+    <div class="docs">
+      <div class="doc">
+        <span class="dr">시스템</span>
+        <a class="dn" href="https://claude.ai/code/artifact/168d8669-3402-42d5-b94d-01039245ae16">말이 도는 자리</a>
+        <p>조각과 전파, 말 걸기의 값, 친밀도, 세력과 표결, 지연을 없애는 3 단 구조, 3 인 협동.</p>
+        <span class="has">여기서 고친다 — 전파 규칙 · 값의 크기 · 표결 집계 · 서버 구조</span>
+      </div>
+      <div class="doc">
+        <span class="dr">대사</span>
+        <a class="dn" href="https://claude.ai/code/artifact/c62be8de-a2aa-48d8-adb5-40cb0699392b">쉬어 본 적 있나</a>
+        <p>일곱 구간 전 대사(v8). <b>과학자의 말을 절반으로 줄였고</b>, 분기 조건이 개체의 <b>판정</b>으로 적혀 있다. 중앙 시설 국면 셋 · 재회 · 여덟 걸음 · 빈자리 포함.</p>
+        <span class="has">여기서 고친다 — 문장 · 씬 순서 · 분기 조건 · 목표 문구</span>
+      </div>
+      <div class="doc">
+        <span class="dr">레벨</span>
+        <a class="dn" href="https://claude.ai/code/artifact/2cdefaa4-ef95-427c-a436-a24dac331b0d">누가 듣고 있나</a>
+        <p>일곱 방 · <b>일곱 구간</b>의 평면(v3). 목격 반경 · <b>판독 거리</b> · <b>개입 인원</b> · 디렉터 슬롯, 그리고 <b>코어 동심원 셋 · 국면 셋</b>.</p>
+        <span class="has">여기서 고친다 — 반경 · 판독 거리 · 개입 인원 · 슬롯 수 · 동선 (밸런스 문서를 겸한다)</span>
+      </div>
+      <div class="doc">
+        <span class="dr">캐릭터</span>
+        <a class="dn" href="https://claude.ai/code/artifact/5f210d91-609e-407b-8b6e-381df8e29971">어디가 닳았나</a>
+        <p>마모가 성격을 정하는 원리, 개체 열의 시트, <b>세계 카드와 「믿는 것」</b>, 태도 −3~+3, 이벤트 아홉, 제작 조합표.</p>
+        <span class="has">여기서 고친다 — 열쇠 · 가시 · 선 · 외형 조합 · 새 개체 추가</span>
+      </div>
+      <div class="doc">
+        <span class="dr">AI 아키텍처</span>
+        <a class="dn" href="https://claude.ai/code/artifact/dd91fe17-5e90-459c-8906-68a62a38b8fb">믿을지는 쟤가 정한다</a>
+        <p>판정 세 층, <b>판정 원장</b>, 디렉터가 정하는 것 여섯, 여덟 걸음의 개입, 안전장치 다섯, 토큰 예산, 본선 시연 설계.</p>
+        <span class="has">여기서 고친다 — 프롬프트 · 원장 규칙 · 디렉터 주기 · 개입 조건 · 토큰 예산</span>
+      </div>
+      <div class="doc">
+        <span class="dr">집행</span>
+        <a class="dn" href="https://claude.ai/code/artifact/bd38dc2d-59c3-43c6-ae37-d1139b38422a">걸어오는 것</a>
+        <p>죽음 세 종류, 문턱마다 가까워지는 집행자, 여덟 걸음의 개입 창, 방별 도달 시간, GLB 상태 기계.</p>
+        <span class="has">여기서 고친다 — 문턱별 위치 · 개입 조건 · 애니메이션 상태 · 안전장치</span>
+      </div>
+    </div>
+
+    <p class="col quiet">
+      문서가 겹치는 값은 <b>레벨 문서가 기준</b>이다. 목격 반경과 거리는 맵에서 나오는 값이고,
+      나머지 문서는 그 값을 받아 쓴다 — 집행자가 걸어오는 시간도 그 거리에서 나왔다.
+      앞의 넷이 <b>무엇을 만들지</b>를 정하고, 뒤의 둘이 <b>어떻게 돌릴지</b>를 정한다.
+    </p>
+  </section>
+
+  <!-- ═══ 미결 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">미결</span>
+      <h2>아직 안 정한 것</h2>
+    </div>
+
+    <p class="col">
+      설계서에서 가장 정직해야 할 자리다. <b>1 번 둘은 다른 것을 시작하기 전에</b> 끝내야 한다 —
+      나중에 하면 이미 쓴 대사를 다시 손봐야 하기 때문이다.
+    </p>
+
+    <ul class="open">
+      <li>
+        <span class="pri p1">지금</span>
+        <span class="ot">「내 몸이 안 닳았다」 — 챕터 1 인트로만 남았다</span>
+        <p>캐릭터 문서에서 나온 설정인데 대사에 한 줄도 없다. 들어가면 <b>챕터 1 인트로부터 다시 써야 한다</b> —
+        지금은 명판 번호만 단서인데, 여기에 「몸이 너무 깨끗하다」가 붙으면 첫 5 분의 긴장이 통째로 달라진다.
+        복도에 <b>A-201(똑같이 안 닳은 개체)</b> 을 두면 플레이어가 그 규칙을 스스로 배운다.</p>
+      </li>
+      <li>
+        <span class="pri p1">지금</span>
+        <span class="ot">개체 판정이 대사에 미반영</span>
+        <p>대사는 아직 「위로 / 업무」 두 갈래로만 갈린다. 판정을 모델에게 넘긴 지금 필요한 것은 분기표가 아니라
+        <b>개체마다 「믿는 것」 한 줄</b>과, 태도 <code>+3</code> · <code>0</code> · <code>−3</code> 세 자리의
+        <b>보기 대사 두 줄씩</b>이다 — 모델이 흉내 낼 <b>목소리의 기준점</b>. 특히 <b>−3 쪽(적이 되는 줄)</b> 이 아예 없다.</p>
+      </li>
+      <li>
+        <span class="pri p2">다음</span>
+        <span class="ot">부서진 개체의 빈 자리</span>
+        <p>여덟 걸음에서 개체가 나 대신 부서지면 그 개체는 마지막 방에 없다.
+        <b>그 부재를 어떻게 보여 주나</b> — 리더가 언급하나, 자리만 비나, 다음 회차 벽화에 남나.
+        이 장면이 이 게임에서 <b>가장 값나가는 10 초</b>인데 연출이 아직 한 줄도 없다.</p>
+      </li>
+      <li>
+        <span class="pri p2">다음</span>
+        <span class="ot">마지막 방의 「게임 파트」</span>
+        <p>원본 아레나에는 리더가 그 자리에서 시행을 발명하는 구조가 있었다.
+        지금은 <b>세 차례 문답 뒤 지목</b>으로만 적혀 있다. 3 인에서 그 시행이
+        「셋을 서로 비교하는 게임」이 되면 표결 직전 긴장이 훨씬 산다.</p>
+      </li>
+      <li>
+        <span class="pri p2">다음</span>
+        <span class="ot">회차 벽화의 생성 규칙</span>
+        <p>누가 그리나(A-137), 몇 판까지 쌓이나, 팀 결말과 개인 결말이 <b>충돌하면</b> 어느 쪽이 그려지나.
+        기록 복도의 벽 개수 상한도 정해야 한다.</p>
+      </li>
+      <li>
+        <span class="pri p2">다음</span>
+        <span class="ot">오디오 2 경로</span>
+        <p>대본 줄은 미리 구운 클립, 감독이 지은 줄은 실시간 합성. 한 문장이 두 길로 동시에 나가면
+        한 개체가 두 목소리로 말한다 — AI 문서의 <b>CI 항목으로는 잡아 뒀지만</b> 구현 방식은 안 정했다.
+        집행 씬의 「…미안」은 <b>대본 줄인데 조건부</b>라, 어느 경로로 나갈지 특히 애매하다.</p>
+      </li>
+      <li>
+        <span class="pri p3">나중</span>
+        <span class="ot">검증 세트 — 특히 「주입 저항」</span>
+        <p>AI 문서가 <b>성격 교차 12 쌍 · 기억 일관 5 % · 주입 저항 0 회</b>를 기준으로 잡아 뒀는데 데이터가 없다.
+        <b>주입 저항이 제일 급하다</b> — 개체에게 직접 말을 거는 게임이므로 말로 조종하려는 시도는 반드시 나오고,
+        플레이테스트 40 문항이면 잡힌다. 나머지는 실제 입력을 모은 뒤에.</p>
+      </li>
+      <li>
+        <span class="pri p3">나중</span>
+        <span class="ot">격리 통로 · 송신실</span>
+        <p>둘 다 있으면 좋고 없어도 이야기가 닫힌다. 송신실이 생기면 결말 다섯이
+        <b>같은 방에서 갈리는</b> 연출이 가능해진다.</p>
+      </li>
+      <li>
+        <span class="pri p3">나중</span>
+        <span class="ot">죽은 플레이어의 관전 UI</span>
+        <p>집행 문서가 「남아서 본다」로 정했다. 남은 둘 중 <b>누구를 보나</b>, 전환은 되나,
+        자기가 남긴 조각이 도는 걸 <b>어떻게 보여 주나</b> — 화면 설계가 없다.</p>
+      </li>
+      <li>
+        <span class="pri p3">나중</span>
+        <span class="ot">3 인 매칭과 세션</span>
+        <p>서버 권위 전환 자체는 설계가 끝났다. 남은 건 <b>매칭 · 재접속 · 이탈 처리</b>다.
+        요원 슬롯이 셋 고정이라 <b>이탈하면 NPC 가 이어받는다</b>는 답은 이미 나와 있다.</p>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ═══ 로드맵 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">순서</span>
+      <h2>무엇부터 만드나</h2>
+    </div>
+
+    <p class="col">
+      순서의 원칙은 하나다 — <b>모델은 네 번째다.</b> 규칙만으로 소문이 돌고 태도가 움직이고
+      <b>사람이 죽기까지</b> 하는 뼈대가 먼저 서야, 나중에 모델이 무엇을 좋게 하고 무엇을 망쳤는지 구분할 수 있다.
+      <b>1–3 은 모델을 한 번도 안 부른다</b> — 그 상태로 이미 한 판이 끝까지 돌아간다.
+    </p>
+
+    <ol class="phases">
+      <li>
+        <span class="pt">규칙 뼈대</span>
+        <p>조각 자료구조 · 목격 판정 · 감쇠 · 뒤틀림 · 개체 기억. 이 단계에서 이미 소문이 퍼져야 한다.</p>
+        <span class="no">모델 0 회</span>
+      </li>
+      <li>
+        <span class="pt">말 걸기 · 태도</span>
+        <p>Enter 로 아무에게나. 값 셋과 태도 −3~+3, <b>판정 원장 자료구조</b>, 벽화 → 어휘. 개체 세 형.
+        이 단계에서는 판정을 <b>낱말 대조로 임시</b>로 낸다 — 원장 구조를 먼저 세우는 게 목적이다.</p>
+        <span class="no">모델 0 회 · 여기까지가 게임의 절반</span>
+      </li>
+      <li>
+        <span class="pt">집행과 예고</span>
+        <p>문턱마다 집행자의 위치가 달라지고, 100 에서 걸어온다. 개입 창 · 안전장치 · UNSLING 애니메이션.</p>
+        <span class="no">모델 0 회 · 총 든 GLB 는 이미 있다</span>
+      </li>
+      <li>
+        <span class="pt">L1 발화</span>
+        <p>haiku · 20 자 · 스트리밍. <b>판정과 발화를 한 호출로</b> 뽑고 임시 낱말 대조를 걷어낸다. 원장이 여기서 살아난다.</p>
+        <span class="no">첫 글자 300 ms · AI 문서 참조</span>
+      </li>
+      <li>
+        <span class="pt">L2 배경 전파</span>
+        <p>조각 생성·전파를 모델에 넘기고 <code>direct</code> 8 초 호출을 걷어낸다. 체감 지연이 사라진다.</p>
+        <span class="no">배경 2–10 초</span>
+      </li>
+      <li>
+        <span class="pt">방 셋</span>
+        <p>대기 구역(유리) → 휴게 구역 → 작업 구역. 앞의 둘은 기존 에셋 재활용이라 싸다.</p>
+        <span class="no">레벨 문서 참조</span>
+      </li>
+      <li>
+        <span class="pt">표결과 결말</span>
+        <p>리더에게 실체를 주고, 지목을 표결로. 「대신 나섬」과 「하나를 내놓아라」, 결말 다섯 + 팀 넷.</p>
+        <span class="no">이야기가 여기서 닫힌다</span>
+      </li>
+      <li>
+        <span class="pt">3 인 세션</span>
+        <p>서버 권위 · 경보도 · 조각이 플레이어를 건너기 · 관전. <b>혼자서 재미없으면 셋이서도 재미없다.</b></p>
+        <span class="no">그래서 여기 둔다</span>
+      </li>
+      <li>
+        <span class="pt">기록 복도 · 회차</span>
+        <p>열여섯 번째 금, 지난달 요원의 그림, 결말에 따라 자라는 벽. 두 번째 판부터 뜻이 생긴다.</p>
+        <span class="no">마지막</span>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ═══ 지표 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">검증</span>
+      <h2>잘 되고 있는지 무엇으로 아나</h2>
+    </div>
+
+    <ul class="metrics">
+      <li><span>한 판에 <b>먼저</b> 말을 건 횟수</span><span class="t">5 회 미만이면 값이 너무 비싸다</span></li>
+      <li><span>마지막 방에서 <b>입을 연</b> 개체 수</span><span class="t">다섯 전부 침묵이 절반 넘으면 위로가 비싸다</span></li>
+      <li><span>한 사람의 조각으로 <b>다른 요원이</b> 질문받은 횟수</span><span class="t">판당 1 회 미만이면 조각이 안 건너간다</span></li>
+      <li><span>작업 구역에서 <b>막은</b> 플레이어 비율</span><span class="t">10 % 미만이면 8 초가 너무 짧다</span></li>
+      <li><span>「대신 나섬」을 <b>막은</b> 비율</span><span class="t">0 이면 선택지가 아니라 연출이다</span></li>
+      <li><span>같은 판을 두 번 했을 때 <b>다른 개체가 죽는</b> 비율</span><span class="t">0 이면 에멀전스가 없다</span></li>
+      <li><span>죽은 판에서 <b>60 · 80 경고를 본</b> 비율</span><span class="t">100 % 여야 한다 — 아니면 상한이 깨진 것</span></li>
+      <li><span>여덟 걸음 동안 <b>개입이 일어난</b> 비율</span><span class="t">5 % 미만이면 태도가 너무 안 쌓인다</span></li>
+      <li><span>발화의 <b>조각 이탈</b> 검출 횟수</span><span class="t">판당 1 회 초과면 프롬프트가 조각을 덜 싣는다</span></li>
+      <li><span>Enter 에서 첫 글자까지</span><span class="t">400 ms 초과면 L1 이 무겁다</span></li>
+      <li><span>폴백으로 떨어진 판의 완주율</span><span class="t">정상 판과 비슷해야 한다</span></li>
+    </ul>
+  </section>
+
+  <div class="closing">
+    <p>
+      이 게임에서 확실한 것은 하나다. <b>말을 걸면 값이 든다.</b>
+      정보를 캐는 일과 정체를 숨기는 일이 같은 자원을 쓰기 때문에,
+      완벽하게 숨은 플레이어는 아무것도 모른 채로 나가고 아무도 그를 기억하지 않는다.
+    </p>
+    <p>
+      그리고 끝까지 남는 문장은 파일 어디에도 안 적혀 있다.
+      복도에서 그림 하나를 들여다보고, 값을 치르고, 누군가에게 물어본 것이다 —
+      <b>쉬어 본 적 있나.</b>
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

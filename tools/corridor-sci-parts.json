@@ -1,0 +1,14 @@
+[
+  {
+    "id": "sci_bulkhead",
+    "prompt": "Sci-fi spaceship corridor structural bulkhead frame: one thick octagonal arch ring, open in the center, flat bottom, straight vertical sides, 45-degree chamfered upper corners, flat top, dark gunmetal steel with beveled edges, bolt heads and thin panel grooves, clean hard-surface geometry, standing upright, centered, no lights"
+  },
+  {
+    "id": "sci_console",
+    "prompt": "Sci-fi spaceship corridor wall console unit: a low wide rectangular dark gunmetal steel equipment box with a slanted angled top face, a recessed rectangular slot on the slanted face, small control panel with buttons and a tiny screen on the front, chamfered edges, clean hard-surface geometry, sits flat on the ground with a flat back, centered, no glowing lights"
+  },
+  {
+    "id": "sci_blast_door",
+    "prompt": "Massive closed sci-fi spaceship blast door: two heavy armored dark steel leaves meeting at the center seam, an octagonal emblem plate in the middle, layered plating, bolts and thin grooves, thick rectangular door frame with chamfered upper corners, completely flat back, clean hard-surface geometry, standing upright on the ground, centered, no lights"
+  }
+]

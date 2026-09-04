@@ -1,0 +1,287 @@
+/* 1인칭 대화창 (DialogueBox.tsx) — 청록 라인의 SF 프레임. 좌표계는 900×210 SVG, 나머지는 그 비율 위에 절대 배치 */
+
+.dlg {
+  position: absolute;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  /* 화면의 절반 남짓 — 처음 92vw 는 "너무 크다"였다 (2026-08-29) */
+  width: min(660px, 66vw);
+  aspect-ratio: 900 / 210;
+  transform: translateX(-50%);
+  z-index: 26;
+  pointer-events: none;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  --dlg-unit: calc(min(660px, 66vw) / 900);
+  /* 입력줄 높이 + 틈 — WorldFeature 의 입력줄(bottom 24px, 높이 ≈40px)이 상자 아래에 들어갈 자리 */
+  --dlg-lift: 54px;
+  transition: bottom 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* 입력줄이 열리면 상자가 그만큼 올라간다 — 입력줄은 늘 상자 **아래** (터치는 상자가 이미 조이스틱 위라 입력줄과 안 겹친다) */
+.dlg--lifted:not(.dlg--touch) {
+  bottom: calc(24px + var(--dlg-lift) + env(safe-area-inset-bottom, 0px));
+}
+.dlg--touch {
+  bottom: calc(150px + env(safe-area-inset-bottom, 0px));
+  width: min(520px, 90vw);
+  --dlg-unit: calc(min(520px, 90vw) / 900);
+}
+.dlg--in {
+  animation: dlg-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.dlg--out {
+  animation: dlg-out 0.28s ease-in both;
+}
+@keyframes dlg-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px) scaleY(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scaleY(1);
+  }
+}
+@keyframes dlg-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+}
+
+.dlg__box {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+}
+.dlg__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/*
+ * 초상 — 둥근 모서리 창 (900 좌표계에서 x 36~214, y 22~192). 이미지 자체가 가장자리를 패널색으로 녹여 놓았고(tools 의 비네트),
+ * 여기서 한 번 더 아래쪽을 패널색으로 흘려 사진이 상자 안에 잠기게 한다. 테는 가늘고 은은하게 — 두꺼우면 "붙인 사진"이 된다.
+ */
+.dlg__portrait {
+  position: absolute;
+  left: calc(36 * var(--dlg-unit));
+  top: calc(22 * var(--dlg-unit));
+  width: calc(178 * var(--dlg-unit));
+  height: calc(170 * var(--dlg-unit));
+  border-radius: calc(18 * var(--dlg-unit));
+  overflow: hidden;
+  background: #08182a;
+  box-shadow: 0 calc(6 * var(--dlg-unit)) calc(18 * var(--dlg-unit)) rgba(0, 0, 0, 0.45);
+}
+.dlg__portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 35%;
+  display: block;
+}
+.dlg__portrait::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 24, 42, 0) 55%, rgba(8, 24, 42, 0.75) 100%), linear-gradient(90deg, rgba(8, 24, 42, 0.35), rgba(8, 24, 42, 0) 25%, rgba(8, 24, 42, 0) 75%, rgba(8, 24, 42, 0.35));
+  pointer-events: none;
+}
+.dlg__portrait-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: calc(18 * var(--dlg-unit));
+  box-shadow: inset 0 0 0 calc(1.2 * var(--dlg-unit)) rgba(111, 211, 255, 0.55), inset 0 0 calc(22 * var(--dlg-unit)) rgba(111, 211, 255, 0.16);
+  pointer-events: none;
+}
+/* 내 말(연구원)은 테가 조금 따뜻하게 — 누가 말하는지 색으로도 갈린다 */
+.dlg__portrait--self .dlg__portrait-ring {
+  box-shadow: inset 0 0 0 calc(1.2 * var(--dlg-unit)) rgba(230, 214, 170, 0.6), inset 0 0 calc(22 * var(--dlg-unit)) rgba(230, 214, 170, 0.14);
+}
+
+/* 이름 탭 — 프레임 왼쪽 위 파인 자리에 얹힌다 */
+.dlg__name {
+  position: absolute;
+  left: calc(232 * var(--dlg-unit));
+  top: calc(-4 * var(--dlg-unit));
+  height: calc(40 * var(--dlg-unit));
+  min-width: calc(130 * var(--dlg-unit));
+  padding: 0 calc(26 * var(--dlg-unit)) 0 calc(22 * var(--dlg-unit));
+  display: flex;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(20, 52, 84, 0.95), rgba(8, 26, 46, 0.95));
+  border: calc(1.5 * var(--dlg-unit)) solid #6fd3ff;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  box-shadow: 0 0 calc(10 * var(--dlg-unit)) rgba(111, 211, 255, 0.35);
+  color: #eaf6ff;
+  font-size: calc(19 * var(--dlg-unit));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* 본문 — 타자로 찍힌다 */
+.dlg__text {
+  position: absolute;
+  left: calc(244 * var(--dlg-unit));
+  right: calc(70 * var(--dlg-unit));
+  top: calc(60 * var(--dlg-unit));
+  bottom: calc(40 * var(--dlg-unit));
+  margin: 0;
+  overflow: hidden;
+  color: #f2f8ff;
+  font-size: calc(22 * var(--dlg-unit));
+  line-height: 1.55;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-shadow: 0 0 calc(8 * var(--dlg-unit)) rgba(111, 211, 255, 0.25), 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.dlg__caret {
+  display: inline-block;
+  width: calc(10 * var(--dlg-unit));
+  height: calc(20 * var(--dlg-unit));
+  margin-left: calc(3 * var(--dlg-unit));
+  vertical-align: -0.15em;
+  background: #9fe0ff;
+  animation: dlg-caret 0.8s steps(1) infinite;
+}
+@keyframes dlg-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ▼ — 다 찍혔을 때만, 다음 줄이 있으면 더 밝게 */
+.dlg__next {
+  position: absolute;
+  left: 50%;
+  bottom: calc(10 * var(--dlg-unit));
+  transform: translateX(-50%);
+  color: #6fd3ff;
+  font-size: calc(16 * var(--dlg-unit));
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.dlg__next--on {
+  opacity: 0.55;
+  animation: dlg-bob 1.1s ease-in-out infinite;
+}
+.dlg__next--more {
+  opacity: 1;
+}
+@keyframes dlg-bob {
+  50% {
+    transform: translateX(-50%) translateY(calc(3 * var(--dlg-unit)));
+  }
+}
+
+/* 오른쪽 위 작은 표시등 4개 */
+.dlg__deco {
+  position: absolute;
+  right: calc(52 * var(--dlg-unit));
+  top: calc(30 * var(--dlg-unit));
+  display: flex;
+  gap: calc(5 * var(--dlg-unit));
+}
+.dlg__deco i {
+  width: calc(14 * var(--dlg-unit));
+  height: calc(3 * var(--dlg-unit));
+  background: #6fd3ff;
+  opacity: 0.35;
+}
+.dlg__deco i:first-child {
+  opacity: 0.9;
+  box-shadow: 0 0 calc(6 * var(--dlg-unit)) rgba(111, 211, 255, 0.8);
+}
+
+/*
+ * 속마음 — 소리 내지 않은 생각 (ChatLine.thought). 복도의 정비 명판도, 조사 중의 유도도 내가 속으로 하는 말이다.
+ *
+ * 2026-08-31 사용자: **보랏빛도, 「속마음」 이름표도 없앤다** — 그냥 내가 말하는 것처럼 내 이름으로 뜨고,
+ * 갈리는 것은 **글자 색뿐**이다: 또렷한 청백(입 밖에 낸 말) 대신 한 겹 물러난 회색. 소리는 여전히 없다 (DialogueBox 의 silent).
+ */
+.dlg--thought .dlg__text {
+  color: #a9b6c4;
+  text-shadow: 0 0 calc(7 * var(--dlg-unit)) rgba(150, 170, 190, 0.16), 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.dlg--thought .dlg__caret {
+  background: #a9b6c4;
+}
+
+/*
+ * 「T | SKIP」 — 오른쪽 아래의 넘기기 단추 (2026-09-02 사용자). 자판의 T 와 **같은 한 칸**이다 (DialogueBox 의 skipHere).
+ *
+ * 자리는 눈금(프레임의 x 700~772) 오른쪽, 안쪽 장식선(y 194) 위 — 프레임이 비워 둔 그 한 칸에 정확히 앉힌다.
+ * 읽는 것을 방해하면 안 되니 평소엔 물러나 있고(opacity 0.6), 커서를 올리면 또렷해진다.
+ * 폰에는 T 가 없다 — 글자와 칸막이를 빼고 SKIP 만 남겨 눌러서 넘긴다.
+ */
+.dlg__skip {
+  position: absolute;
+  /*
+   * 프레임이 비워 둔 한 칸에 딱 맞춘다 — 왼쪽은 눈금(x 700~772), 오른쪽은 모서리로 내려가는 안쪽 선
+   * (876,170)→(846,194), 위는 본문 바닥(y 170), 아래는 장식선(y 194). 넷 중 어디에도 안 닿는 크기다.
+   */
+  right: calc(52 * var(--dlg-unit));
+  bottom: calc(18 * var(--dlg-unit));
+  display: flex;
+  align-items: center;
+  gap: calc(7 * var(--dlg-unit));
+  height: calc(22 * var(--dlg-unit));
+  padding: 0 calc(8 * var(--dlg-unit));
+  background: rgba(8, 26, 46, 0.72);
+  border: calc(1 * var(--dlg-unit)) solid rgba(111, 211, 255, 0.4);
+  /* 오른쪽 아래 모서리를 깎는다 — 이름 탭·프레임과 같은 결 */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+  color: #8fc6e4;
+  font-family: inherit;
+  font-size: calc(12 * var(--dlg-unit));
+  letter-spacing: 0.12em;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+}
+.dlg__skip:hover,
+.dlg__skip:focus-visible {
+  opacity: 1;
+  color: #dff2ff;
+  border-color: rgba(111, 211, 255, 0.85);
+}
+/* T — 조금 밝게, 그리고 오른쪽에 칸막이 한 줄 */
+.dlg__skip b {
+  position: relative;
+  padding-right: calc(7 * var(--dlg-unit));
+  color: #9fe0ff;
+  font-weight: 700;
+}
+.dlg__skip b::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(1 * var(--dlg-unit));
+  height: calc(12 * var(--dlg-unit));
+  background: rgba(111, 211, 255, 0.45);
+}
+.dlg--touch .dlg__skip b {
+  display: none;
+}
+/*
+ * 폰에서는 **손가락이 닿는 자리**를 넓힌다 — 보이는 칸은 그대로 두고(프레임이 비워 둔 한 칸이라 키울 데가 없다)
+ * 눌리는 자리만 바깥으로 넓힌다. 상자의 다른 곳을 눌러도 넘어가긴 하지만, 적어 둔 것을 눌러 안 되면 없는 단추다.
+ */
+.dlg--touch .dlg__skip::before {
+  content: '';
+  position: absolute;
+  inset: -12px -14px;
+}

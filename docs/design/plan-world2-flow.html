@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>window.addEventListener('DOMContentLoaded',function(){if(window.mermaid){mermaid.initialize({startOnLoad:true,theme:window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'neutral'});}});</script>
+</head>
+<body>
+<title>두 판이 도는 길</title>
+
+<style>
+  :root {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+    --display:'Hahmlet','Nanum Myeongjo','Noto Serif KR','Apple SD Gothic Neo',serif;
+    --body:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',monospace;
+    --measure:40rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+      --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+      --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+      --halt:#D4796C; --halt-soft:#2B1C1A;
+      --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+    --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+    --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+    --halt:#D4796C; --halt-soft:#2B1C1A;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+  }
+  :root[data-theme="light"] {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.7; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:64rem; margin:0 auto; padding:4.5rem 1.5rem 7rem; display:flex; flex-direction:column; gap:4.2rem; }
+  .col { max-width:var(--measure); }
+
+  .eyebrow { margin:0 0 1.3rem; font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; color:var(--dim); }
+  h1 { margin:0 0 1.3rem; font-family:var(--display); font-weight:700; font-size:clamp(2.3rem,6vw,3.4rem); line-height:1.16; letter-spacing:-.02em; }
+  .lede { margin:0; max-width:var(--measure); font-size:1.05rem; font-weight:300; line-height:1.78; }
+  .lede + .lede { margin-top:.9rem; }
+  .lede b { font-weight:700; }
+
+  section { display:flex; flex-direction:column; gap:1.4rem; }
+  .sec-head { display:flex; flex-direction:column; gap:.4rem; }
+  .sec-label { font-family:var(--mono); font-size:.7rem; letter-spacing:.18em; color:var(--signal); }
+  h2 { margin:0; font-family:var(--display); font-weight:700; font-size:clamp(1.5rem,3.4vw,2rem); letter-spacing:-.015em; text-wrap:balance; }
+  h3 { margin:0; font-family:var(--display); font-weight:700; font-size:1.12rem; }
+  p { margin:0; max-width:var(--measure); }
+  p + p { margin-top:.9rem; }
+  .quiet { color:var(--dim); font-weight:300; }
+  code { font-family:var(--mono); font-size:.84em; background:var(--sunk); padding:.08em .35em; }
+
+  .pull { max-width:var(--measure); border-left:2px solid var(--trace); padding:.2rem 0 .2rem 1.4rem;
+    font-family:var(--display); font-weight:500; font-size:1.28rem; line-height:1.55; }
+  .pull b { color:var(--trace); font-weight:700; }
+
+  .cite { max-width:var(--measure); background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--trace); padding:.95rem 1.15rem 1.05rem; }
+  .cite .q { display:block; font-family:var(--display); font-weight:500; font-size:1.02rem; line-height:1.6; }
+  .cite .src { display:block; margin-top:.45rem; font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; color:var(--dim); }
+
+  figure { margin:0; display:flex; flex-direction:column; gap:.8rem; }
+  .plate { background:var(--panel); border:1px solid var(--line); padding:1.2rem 1.1rem; overflow-x:auto; }
+  .plate pre.mermaid { margin:0; background:transparent; border:none; padding:0; display:flex; justify-content:center; }
+  figcaption { max-width:var(--measure); font-size:.88rem; font-weight:300; line-height:1.65; color:var(--dim); }
+  figcaption b { color:var(--ink); font-weight:500; }
+
+  .table-scroll { overflow-x:auto; border:1px solid var(--line); }
+  table { border-collapse:collapse; width:100%; min-width:36rem; background:var(--panel); font-size:.92rem; }
+  th,td { text-align:left; padding:.72rem .9rem; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.58; }
+  thead th { font-family:var(--mono); font-weight:500; font-size:.66rem; letter-spacing:.1em; color:var(--dim); background:var(--sunk); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.k { font-family:var(--display); font-weight:700; color:var(--signal); white-space:nowrap; }
+  td.d { font-family:var(--mono); font-size:.8rem; color:var(--trace); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  td.f { font-family:var(--mono); font-size:.78rem; color:var(--trace); }
+  td.hot { color:var(--halt); font-weight:500; }
+  tr.new td { background:var(--trace-soft); }
+
+  .closing { border-top:2px solid var(--rail); padding-top:1.9rem; max-width:var(--measure); }
+  .closing p { font-family:var(--display); font-weight:500; font-size:1.18rem; line-height:1.65; }
+  .closing b { color:var(--trace); font-weight:700; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Who is human · 전체 흐름도 기획서 · world2 집행 개정 v2 · 중앙 시설 단일 통과 · 자매 문서: 게임 개발 · 코드 처리</p>
+    <h1>두 판이 도는 길</h1>
+    <p class="lede">
+      이 프로젝트에는 판이 둘 있다. <b>본판</b>(world → 중앙 시설 → 재검 → 아레나)과
+      <b>world2</b>(시나리오 2 — 본판과 아무것도 나눠 쓰지 않는 두 번째 판).
+      이 문서는 두 길의 전체 지도를 그리고, 이번 개정이 그 지도의 <b>어디에 무엇을 더하는지</b>를 표시한다.
+    </p>
+    <p class="lede">
+      금색으로 칠한 것이 이번에 새로 생기는 자리다 — 방 하나(central2 · <b>국면 셋을 가진 한 방</b>),
+      집행 상태 기계의 가지 둘, 그리고 데이터가 흐르는 길 셋.
+      v1 에 있던 <b>재통과(3′)는 v2 에서 지웠다</b> — 그 방이 하던 일(재회 · 어둠 · 처형 흔적)은 central2 의 국면으로 접혔다.
+    </p>
+  </header>
+
+  <!-- ═══ 트랙 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">지도</span>
+      <h2>두 트랙 — 어디서 갈라지고 어디서 다시 만나나</h2>
+    </div>
+
+    <figure>
+      <div class="plate">
+        <pre class="mermaid">
+flowchart LR
+  subgraph MAIN["본판 트랙 — WorldFeature 가 전부 매단다"]
+    direction LR
+    P["/play"] --> W["/world<br/>복도 · 챕터1"] --> C["/central<br/>중앙 시설 · 챕터1 후반 + 챕터2"] --> R["/recheck<br/>재검 · 챕터3"] --> A["/interrogation<br/>아레나 = 본체 판"]
+  end
+  subgraph S2["world2 트랙 — 자체 등록부 · SOLO 연결 · 자체 대본"]
+    direction LR
+    H["복도<br/>4×22m 신축"] --> REST["휴게 구역<br/>90초 대기"] --> C2["central2<br/>밝음 → 락다운 → 어둠<br/>재회 · 검문 · 코어 앞"] --> WORK["작업 구역<br/>소각로"] --> ARC["기록 복도<br/>반경 0"] --> WIN["창이 있는 방"]
+  end
+  WIN -. "handover<br/>sessionStorage" .-> A
+  C2 ~~~ MAIN
+  style C2 fill:#EDE0C9,stroke:#8E5405,color:#101619
+        </pre>
+      </div>
+      <figcaption>
+        <b>위가 본판, 아래가 world2.</b> 두 길이 만나는 곳은 끝의 아레나 인계 하나뿐이다
+        (점선 — 지금은 write-only, 아레나가 읽는 것은 후속 작업).
+        금색 한 칸이 신설이다: <b>central2</b> 는 휴게와 작업 사이(레벨 문서의 자리 그대로)이고,
+        <b>한 번만 지난다.</b> 대신 그 한 번이 국면 셋으로 갈린다 — 밝음(자리 선택 · 재회 · 소문) → 락다운(자리 고정 · 검문) → 어둠(코어 앞 · 빈 자리 · 2 분 대기).
+        「두 번째는 어둡고, 아는 얼굴이 있다」는 그대로인데, 두 번째 <b>방</b>이 아니라 두 번째 <b>국면</b>이다.
+      </figcaption>
+    </figure>
+
+    <div class="cite">
+      <span class="q">"원장은 재회에서 갚아진다 — 방을 두 번 짓지 말고, 개체를 옮겨 온다."</span>
+      <span class="src">「누가 듣고 있나」 · 원칙 6 (v8 개정) — 복도 · 휴게에서 원장이 생긴 개체를 디렉터가 central2 재회 슬롯에 먼저 세운다</span>
+    </div>
+  </section>
+
+  <!-- ═══ 구간표 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">구간</span>
+      <h2>world2 일곱 구간 — 개정 후</h2>
+    </div>
+
+    <p class="col">
+      집행 도달 시간은 「걸어오는 것」의 방별 표를, 목격 반경은 「누가 듣고 있나」의 값을 따른다.
+      금색 행이 이번에 더해지는 구간이다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>구간</th><th>목격 반경</th><th>집행 도달</th><th>개입 가능</th><th>이 방의 일</th></tr></thead>
+        <tbody>
+          <tr><td class="k">1 복도</td><td class="d">6 m</td><td class="d">14 초</td><td class="d">1–2</td><td>가장 관대하다. 명판 · 벽화 · 첫 대화</td></tr>
+          <tr><td class="k">2 휴게 구역</td><td class="d">방 전체</td><td class="d">9 초</td><td class="d">6+</td><td>90초 강제 대기 — 가만히 있는 것이 과제</td></tr>
+          <tr class="new"><td class="k">3 central2</td><td class="d">10 m · 동심원 (어둠 국면 판독 4 m)</td><td class="d">11 초</td><td class="d">zone 별 1–6+ · 락다운 후 4 m 안 고정</td><td><b>신설 · 국면 셋.</b> 밝음: 코어권 ×3 / 홀 ×1 / 그늘 ×0.4 — 위치가 값을 정한다 · 재회 슬롯 2 · 콘솔. 락다운: 자리 고정 · 검문 셋 · 곁의 개체가 감싼다. 어둠: 코어 출력 하강 · 검문 없음 · 경보 안 오름 · 코어 앞 고백 · 빈 자리 · 2 분</td></tr>
+          <tr><td class="k">4 작업 구역</td><td class="d">8 m</td><td class="d">12 초</td><td class="d">2–3</td><td>소각로까지 8초 — 공간이 시계를 대신한다</td></tr>
+          <tr><td class="k">5 기록 복도</td><td class="d">0</td><td class="d">— 집행 없음</td><td class="d">0</td><td>전부 꺼진 유일한 방 — 의심도가 안 오른다</td></tr>
+          <tr><td class="k">6 창이 있는 방</td><td class="d">—</td><td class="d">— 집행 없음</td><td class="d">—</td><td>마지막 방 직전의 2분</td></tr>
+          <tr><td class="k">7 아레나 (인계)</td><td class="d">전원</td><td class="d">4 초</td><td class="d">—</td><td>handover 로 표 · 처형 결과를 접어 넘긴다</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══ 집행 상태 기계 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">상태 기계</span>
+      <h2>집행 — 기존 기계에 가지 둘을 더한다</h2>
+    </div>
+
+    <p class="col">
+      <code>execution.ts</code> 의 상태 기계는 그대로 두고, <code>approach</code> 안에서
+      할 수 있는 일 둘(이동 · 콘솔)을 더한다. 상태가 늘지 않으니 기존 시험이 그대로 돈다.
+    </p>
+
+    <figure>
+      <div class="plate">
+        <pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> posted : 의심도 60<br/>문가에 선다
+  posted --> watch : 80 · 같은 방<br/>시선이 붙는다
+  watch --> approach : 100 · 걸어온다<br/>방별 8–14초 고정
+  approach --> unsling : 도착 · 총을 내린다 1.5초
+  unsling --> aim : 0.4초
+  aim --> dead : 발사
+  approach --> blocked : cover — 태도+2 개체가<br/>사이에 선다 (거리 4m 안)
+  blocked --> approach : 3초 뒤 재개 · 의심 −10
+  approach --> spared : standIn — 태도+3 개체가<br/>대신 부서진다 · 의심 −40
+  note right of approach
+    이번 개정 — approach 중:
+    · 이동 허용 (문 방향 ±35°만 flee)
+    · 콘솔 → dimmed 15초 (목격 ×0.4)
+    · 조명이 집행을 따라간다 (판에 한 번)
+  end note
+  note right of dead
+    이번 개정 — dead/spared 시:
+    zone 배율 반경의 개체 전원에게
+    「처리되는 걸 봤다」 조각 생성
+    경보도는 위치 무관 +25 고정
+  end note
+        </pre>
+      </div>
+      <figcaption>
+        상태 전이는 하나도 안 바뀐다 — <b>approach 안의 행동과 dead 의 결과</b>만 는다.
+        타이머는 상태 진입 시점에 방 값으로 고정되므로, 이동 · 콘솔 · 개입 어느 것도
+        도달 시각을 못 바꾼다 (헌법 14 조 「집행은 걸어온다 · 최소 8 초」).
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ═══ 데이터 흐름 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">데이터</span>
+      <h2>말과 죽음이 남기는 것 — 흐름 한 장</h2>
+    </div>
+
+    <figure>
+      <div class="plate">
+        <pre class="mermaid">
+flowchart TB
+  IN["한 마디 / 죽음"] --> CF["corefield.ts<br/>zone → 배율"]
+  CF --> FR["fragments.ts<br/>조각 생성 · 감쇠 · 뒤틀림"]
+  CF --> EX["execution.ts<br/>개입 거리 · dimmed"]
+  FR --> UN["units.ts<br/>태도 −3…+3"]
+  EX --> AL["alert.ts<br/>경보도 · 위치 무관 +25"]
+  EX --> FR
+  FR --> RE["central2 어둠 국면<br/>RECOGNIZED · EMPTY_SEAT 재료"]
+  UN --> HO["handover.ts<br/>scenario2:verdict"]
+  EX --> HO
+  HO -. "아직 아무도 안 읽는다<br/>후속: 아레나가 소비" .-> AR["아레나<br/>빈 자리 연출 · 표결"]
+  SU["suspicion.ts 싱글턴<br/>bindCross — 본판과 공유"] --- EX
+  style CF fill:#EDE0C9,stroke:#8E5405,color:#101619
+  style SU fill:#EEDCD8,stroke:#8A362E,color:#101619
+        </pre>
+      </div>
+      <figcaption>
+        금색이 신설되는 단일 출처(<b>corefield</b>), 붉은색이 <b>본판과의 유일한 결합점</b>
+        (의심도 싱글턴 — 소유자 가드를 붙인다)이다. 조각 · 태도 · 경보도는 전부 기존 모듈이고,
+        corefield 는 그 앞에서 <b>배율만</b> 곱한다. handover 는 이번에 처형 결과까지 실리지만
+        읽는 쪽(아레나)은 후속 작업 — 점선이 그 상태다.
+      </figcaption>
+    </figure>
+
+    <div class="cite">
+      <span class="q">"무슨 일이 있었나는 서버가 쥐고, 그걸 어떻게 받아들일까만 개체가 정한다."</span>
+      <span class="src">「믿을지는 쟤가 정한다」 · AI 아키텍처 — world2 는 아직 모델 0 회 단계이므로, 이 그림의 전부가 「무슨 일이 있었나」 쪽이다. 나중에 L1 판정이 붙을 때 이 데이터가 그대로 프롬프트 재료(원장 · 조각)가 된다</span>
+    </div>
+  </section>
+
+  <!-- ═══ 한 판의 시간축 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">리듬</span>
+      <h2>켜고 끄는 리듬 — central2 가 정점을 하나 가져간다</h2>
+    </div>
+
+    <p class="col">
+      「정점이 겹치지 않게 배치했다」(「한 마디의 값」 · 구성)를 world2 에도 적용한다.
+      central2 의 정점은 <b>조각 도착 · 위치 선택</b>이고, 재회는 정점이 아니라 <b>신호</b>다 —
+      복도에서 10 분 뒤라 무게가 아직 안 실린다. 태도의 정점은 작업 구역이, 재회의 정산은 재검실 증인과 마지막 방이 가져간다.
+      v1 에서 3′ 가 가졌던 「말 걸기 · 태도 정점」은 사라졌고, 그만큼 한 판이 3 분 짧아졌다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>구간</th><th>관찰</th><th>말 걸기</th><th>조각 생성</th><th>조각 도착</th><th>태도</th><th>압박</th></tr></thead>
+        <tbody>
+          <tr><td class="k">복도</td><td>정점</td><td>켜짐</td><td>켜짐</td><td>—</td><td>켜짐</td><td>절반</td></tr>
+          <tr><td class="k">휴게</td><td>켜짐</td><td>정점</td><td>정점</td><td>—</td><td>켜짐</td><td>절반</td></tr>
+          <tr class="new"><td class="k">central2</td><td>절반</td><td>켜짐 (밝음 · 어둠)</td><td>켜짐</td><td><b>정점</b></td><td>켜짐 (재회)</td><td>켜짐 (락다운)</td></tr>
+          <tr><td class="k">작업</td><td>켜짐</td><td>켜짐</td><td>켜짐</td><td>—</td><td>정점</td><td>켜짐</td></tr>
+          <tr><td class="k">기록 복도</td><td>켜짐</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+          <tr><td class="k">창이 있는 방</td><td>절반</td><td>절반</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col quiet">
+      기록 복도에서 전부 끄는 배치는 원문 그대로 유지한다 — 「마지막 방 직전에
+      아무 일도 안 일어나는 2 분을 두는 것이 이 구성의 전부다」.
+    </p>
+  </section>
+
+  <div class="closing">
+    <p>
+      지도에서 보이는 것은 결국 하나다. 두 판은 <b>끝의 인계 한 줄</b>로만 만나고,
+      이번 개정은 그 선을 하나도 늘리지 않는다 — 방과 규칙은 world2 안에서 늘고,
+      본판은 컴포넌트 하나를 빌려줄 뿐이다.
+    </p>
+    <p>
+      그리고 world2 의 일곱 구간이 대사 v8 의 일곱 구간과 같은 모양이 된다 —
+      <b>중앙 시설은 한 번만 지나되, 그 안에서 밝음 · 락다운 · 어둠이 갈리고, 아는 얼굴이 먼저 와 있다.</b>
+    </p>
+  </div>
+
+</div>
+
+</body>
+</html>

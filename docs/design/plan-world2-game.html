@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>어디서 죽을 것인가</title>
+
+<style>
+  :root {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+    --display:'Hahmlet','Nanum Myeongjo','Noto Serif KR','Apple SD Gothic Neo',serif;
+    --body:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',monospace;
+    --measure:40rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+      --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+      --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+      --halt:#D4796C; --halt-soft:#2B1C1A;
+      --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+    --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+    --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+    --halt:#D4796C; --halt-soft:#2B1C1A;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+  }
+  :root[data-theme="light"] {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.7; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:64rem; margin:0 auto; padding:4.5rem 1.5rem 7rem; display:flex; flex-direction:column; gap:4.2rem; }
+  .col { max-width:var(--measure); }
+
+  .eyebrow { margin:0 0 1.3rem; font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; color:var(--dim); }
+  h1 { margin:0 0 1.3rem; font-family:var(--display); font-weight:700; font-size:clamp(2.3rem,6vw,3.4rem); line-height:1.16; letter-spacing:-.02em; }
+  .lede { margin:0; max-width:var(--measure); font-size:1.05rem; font-weight:300; line-height:1.78; }
+  .lede + .lede { margin-top:.9rem; }
+  .lede b { font-weight:700; }
+
+  section { display:flex; flex-direction:column; gap:1.4rem; }
+  .sec-head { display:flex; flex-direction:column; gap:.4rem; }
+  .sec-label { font-family:var(--mono); font-size:.7rem; letter-spacing:.18em; color:var(--signal); }
+  h2 { margin:0; font-family:var(--display); font-weight:700; font-size:clamp(1.5rem,3.4vw,2rem); letter-spacing:-.015em; text-wrap:balance; }
+  h3 { margin:0; font-family:var(--display); font-weight:700; font-size:1.12rem; }
+  p { margin:0; max-width:var(--measure); }
+  p + p { margin-top:.9rem; }
+  .quiet { color:var(--dim); font-weight:300; }
+  code { font-family:var(--mono); font-size:.84em; background:var(--sunk); padding:.08em .35em; }
+
+  .pull { max-width:var(--measure); border-left:2px solid var(--trace); padding:.2rem 0 .2rem 1.4rem;
+    font-family:var(--display); font-weight:500; font-size:1.28rem; line-height:1.55; }
+  .pull b { color:var(--trace); font-weight:700; }
+
+  /* 인용 — 원문 기획서에서 가져온 줄 */
+  .cite { max-width:var(--measure); background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--trace); padding:.95rem 1.15rem 1.05rem; }
+  .cite .q { display:block; font-family:var(--display); font-weight:500; font-size:1.02rem; line-height:1.6; }
+  .cite .src { display:block; margin-top:.45rem; font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; color:var(--dim); }
+
+  .table-scroll { overflow-x:auto; border:1px solid var(--line); }
+  table { border-collapse:collapse; width:100%; min-width:36rem; background:var(--panel); font-size:.92rem; }
+  th,td { text-align:left; padding:.72rem .9rem; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.58; }
+  thead th { font-family:var(--mono); font-weight:500; font-size:.66rem; letter-spacing:.1em; color:var(--dim); background:var(--sunk); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.k { font-family:var(--display); font-weight:700; color:var(--signal); white-space:nowrap; }
+  td.d { font-family:var(--mono); font-size:.8rem; color:var(--trace); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  td.hot { color:var(--halt); font-weight:500; }
+  td.ok { color:var(--signal); font-weight:500; white-space:nowrap; }
+
+  /* 개정 카드 */
+  .rev { background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); }
+  .rev + .rev { margin-top:1.1rem; }
+  .rev-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:.35rem .9rem; padding:1.05rem 1.4rem; border-bottom:1px solid var(--line); background:var(--sunk); }
+  .rev-head .n { font-family:var(--mono); font-size:.72rem; letter-spacing:.12em; color:var(--trace); }
+  .rev-head .t { font-family:var(--display); font-weight:700; font-size:1.18rem; letter-spacing:-.01em; }
+  .rev-body { padding:1.15rem 1.4rem 1.35rem; display:flex; flex-direction:column; gap:.9rem; }
+  .rev-body p { font-size:.94rem; font-weight:300; line-height:1.68; }
+  .rev-body .cite { max-width:none; }
+  .keep { display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); }
+  .keep div { background:var(--panel); padding:.68rem .9rem; font-size:.88rem; font-weight:300; line-height:1.58; }
+  .keep .rk { display:inline-block; min-width:4.6rem; font-family:var(--mono); font-size:.66rem; letter-spacing:.08em; color:var(--signal); }
+  .keep .add .rk { color:var(--trace); }
+  .keep .line .rk { color:var(--halt); }
+
+  .laws { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.9rem; max-width:var(--measure); }
+  .laws li { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--signal); padding:1rem 1.15rem; font-size:.95rem; font-weight:300; line-height:1.66; }
+  .laws .ln { display:block; font-family:var(--display); font-weight:700; font-size:1rem; color:var(--signal); margin-bottom:.25rem; }
+  .laws li.warm { border-left-color:var(--trace); }
+  .laws li.warm .ln { color:var(--trace); }
+
+  .closing { border-top:2px solid var(--rail); padding-top:1.9rem; max-width:var(--measure); }
+  .closing p { font-family:var(--display); font-weight:500; font-size:1.18rem; line-height:1.65; }
+  .closing b { color:var(--trace); font-weight:700; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Who is human · 게임 개발 기획서 · world2 집행 개정 v1 · 자매 문서: 코드 처리 · 전체 흐름</p>
+    <h1>어디서 죽을 것인가</h1>
+    <p class="lede">
+      집행 설계(「걸어오는 것」)에는 시간축만 있다 — 여덟 걸음, 총을 내리는 1.5초, 겨눔 0.4초.
+      중앙 시설(「누가 듣고 있나」)이 가진 것은 <b>공간축</b>이다 — 코어권 6&nbsp;m · 홀 10&nbsp;m · 벽 그늘,
+      자리마다 값이 다르다. 이 문서는 그 둘을 곱한다.
+    </p>
+    <p class="lede">
+      중앙 시설에서 가져올 것은 코어의 빛이 아니라 <b>「위치가 값을 증폭한다」는 규칙</b>이다.
+      그 규칙을 집행에 붙이면, 마지막 여덟 걸음이 <b>보는 시간에서 고르는 시간</b>이 된다 —
+      어디로 걸어가 누구 곁에서 죽을 것인가.
+    </p>
+    <p class="lede">
+      개정은 world2 에서 만든다. 본판 프로세스에는 손대지 않는다 — 어떻게 안 대는지는
+      자매 문서 「빌리되 건드리지 않는다」(코드 처리)가 적는다.
+    </p>
+  </header>
+
+  <!-- ═══ 전제 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">전제 — 원문에서 가져온 세 줄</span>
+      <h2>이미 적혀 있던 것들이 서로를 부른다</h2>
+    </div>
+
+    <div class="cite">
+      <span class="q">"소리 반경이 곧 조각 반경이다 — 방마다 목격 반경을 먼저 정하고 그다음에 벽을 세운다."</span>
+      <span class="src">「누가 듣고 있나」 · 레벨 설계 · 원칙 1</span>
+    </div>
+    <div class="cite">
+      <span class="q">"누적형은 수십 번의 작은 선택이 쌓인 결과라, 마지막 순간에 한 번의 갚음이 있어야 앞의 선택들이 값을 한다."</span>
+      <span class="src">「걸어오는 것」 · 집행 설계 · 죽음이 세 가지다</span>
+    </div>
+    <div class="cite">
+      <span class="q">"코어 판타지: 내가 한 말이 세계에 남는다."</span>
+      <span class="src">「한 마디의 값」 · 통합 설계서 · 헤더</span>
+    </div>
+
+    <p class="col">
+      셋을 이으면 결론이 하나 나온다. 말이 목격 반경 안에 남는다면, <b>죽음도 목격 반경 안에 남아야 한다.</b>
+      지금 처형은 어디서 일어나든 결과가 같다 — 그래서 마지막 여덟 걸음 동안 플레이어가
+      할 수 있는 <b>의미 있는 행동이 없다.</b> 공간의 값 규칙을 집행에 물리면 그 여덟 걸음이 플레이가 된다.
+    </p>
+
+    <p class="pull">가져오는 것은 빛이 아니라 <b>배율</b>이다.</p>
+  </section>
+
+  <!-- ═══ 동심원 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">규칙</span>
+      <h2>동심원 셋 — 죽음에 적용하면 이렇게 된다</h2>
+    </div>
+
+    <p class="col">
+      「누가 듣고 있나」의 코어 동심원 값을 그대로 옮겨 오되, <b>죽음의 열</b>을 하나 더한다.
+      새 수치를 발명하지 않는다 — 레벨 문서가 기준이라는 원칙(「한 마디의 값」 · 문서 지도)을 지킨다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>구역</th><th>전파</th><th>조명 · 판독</th><th>개입 가능</th><th>여기서 죽으면</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="k">코어권 6 m</td><td class="d">×3</td>
+            <td>최대 — 몸이 다 읽힌다</td><td class="d">6 이상</td>
+            <td><b>방 전체가 본다.</b> 「처리되는 걸 봤다」 조각이 전원에게 남고, 다음 회차 벽화의 금이 굵게 그어진다. 개입해 줄 개체가 가장 많은 자리이기도 하다.</td>
+          </tr>
+          <tr>
+            <td class="k">홀 10 m</td><td class="d">×1</td>
+            <td>기본</td><td class="d">2 – 4</td>
+            <td>목격 반경 안의 개체에게만 조각이 남는다. 기본값.</td>
+          </tr>
+          <tr>
+            <td class="k">벽 그늘</td><td class="d">×0.4</td>
+            <td>어둡다 — 내 몸도 남의 마모도 안 읽힌다</td><td class="d">0 – 1</td>
+            <td class="hot">거의 아무도 모른다. 조각이 최소로 남는 대신, <b>나서 줄 개체도 없다.</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col">
+      「싼 자리와 위험한 자리가 같아야 선택이 된다」(「걸어오는 것」 · 방별 거리)가
+      죽음에까지 관통한다 — <b>많이 목격되는 자리가 곧 살 가능성이 높은 자리다.</b>
+      조용히 죽을 것인가, 보이며 살아날 기회를 잡을 것인가.
+    </p>
+
+    <p class="col quiet">
+      단, 경보도는 위치와 무관하게 고정 +25 를 유지한다. 헌법 9 조
+      「경보도는 아무도 지목하지 않는다」 — 위치가 경보도를 바꾸면 남은 요원들이
+      죽은 자리를 역산해 서로를 지목하게 되고, 그 조항이 깨진다. <b>위치는 조각에만 남는다.</b>
+    </p>
+  </section>
+
+  <!-- ═══ 개정 다섯 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">개정</span>
+      <h2>다섯 가지를 더한다 — 원문 인용과 함께</h2>
+    </div>
+
+    <div>
+      <div class="rev">
+        <div class="rev-head"><span class="n">개정 1</span><span class="t">코어 조명이 집행을 따라간다 — 판에 한 번뿐인 빛</span></div>
+        <div class="rev-body">
+          <div class="cite">
+            <span class="q">"UNSLING 이 이 게임에서 한 번만 나오는 동작이다. 그래서 내리는 동작이 나오는 순간, 플레이어는 대사 없이도 무슨 일인지 안다. 이 규칙을 어기는 연출을 다른 데 넣지 않는다."</span>
+            <span class="src">「걸어오는 것」 · 구현</span>
+          </div>
+          <p>
+            같은 문법을 빛에 준다. 의심도 100 → 락다운(출입구 넷 폐쇄) → <b>코어 출력이 올라가며
+            조명이 집행자와 나를 비춘다.</b> 문턱 예고(60 문가 · 80 시선)의 공간 버전이다.
+            코어가 이 밝기가 되는 것도 <b>판에 한 번뿐</b>으로 잠근다 — 신호의 희소성이 곧 공포다.
+          </p>
+          <div class="keep">
+            <div class="add"><span class="rk">더한다</span> 집행 국면 전용 코어 광도 상태. 다른 어떤 연출도 이 밝기를 못 쓴다.</div>
+            <div><span class="rk">지킨다</span> 카메라를 뺏지 않는다 — 락온 · 컷신 없음 (「걸어오는 것」 · 구현 그대로).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rev">
+        <div class="rev-head"><span class="n">개정 2</span><span class="t">죽음이 조각이 된다 — 목격 반경을 처형에 적용</span></div>
+        <div class="rev-body">
+          <div class="cite">
+            <span class="q">"조각은 그 자리에 있던 개체에게만 남으니까, 방의 모양이 곧 「내 말이 누구에게 남는가」를 정한다."</span>
+            <span class="src">「누가 듣고 있나」 · 헤더</span>
+          </div>
+          <p>
+            처형이 완료되면 zone 배율이 적용된 목격 반경 안의 개체 전원에게
+            <b>「그게 처리되는 걸 봤다」</b> 조각이 생성된다. 3인 판에서는 이 조각이
+            남은 둘에게 돌아가 판을 무겁게 만들고, 회차가 넘어가면 벽화의 금이 된다 —
+            「기록 복도의 금이 하나 는다. 열여섯이 열일곱이 된다」(「걸어오는 것」 · 3인)의 확장이다.
+          </p>
+          <div class="keep">
+            <div class="add"><span class="rk">더한다</span> 처형 목격 조각 · 목격 수에 따른 벽화 금 굵기.</div>
+            <div class="line"><span class="rk">선</span> 경보도는 위치 무관 고정 +25 — 헌법 9 조 유지.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rev">
+        <div class="rev-head"><span class="n">개정 3</span><span class="t">여덟 걸음의 이동 — 문 방향만 도주다</span></div>
+        <div class="rev-body">
+          <div class="cite">
+            <span class="q">"못 도망친다. 개체가 더 빠르고, 문 쪽으로 가면 경로를 막는다. 시도 자체가 인간의 증거라 본 개체 전원의 태도가 −1 이 된다."</span>
+            <span class="src">「걸어오는 것」 · 여덟 걸음 동안 무엇을 할 수 있나</span>
+          </div>
+          <p>
+            이 조항을 <b>문 방향 이동에만</b> 적용한다. 그 외의 이동은 자유다 —
+            그러면 플레이어는 마지막 여덟 걸음 동안 <b>태도 +2 개체 곁으로 걸어갈 수 있다.</b>
+            개입 판정(cover · standIn)에 거리 조건이 붙으므로, 「개입 가능 인원은 그 방에
+            있어야 한다」(「누가 듣고 있나」 · 원칙 7)는 레벨 원칙이 플레이어의 발에 걸린다.
+            여덟 걸음 개입 창이 연출에서 <b>플레이로 승격</b>되는 지점이다.
+          </p>
+          <div class="keep">
+            <div class="add"><span class="rk">더한다</span> approach 중 자유 이동 · 개입 발동에 거리 조건.</div>
+            <div><span class="rk">지킨다</span> 도달 시간은 위치와 무관하게 고정 — 이동으로 시간을 못 번다.</div>
+            <div class="line"><span class="rk">선</span> 헌법 14 조 「집행은 걸어온다 · 최소 8 초」 불변.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rev">
+        <div class="rev-head"><span class="n">개정 4</span><span class="t">콘솔 — 조용히 죽기라는 선택지</span></div>
+        <div class="rev-body">
+          <div class="cite">
+            <span class="q">"콘솔은 코어 출력을 내린다. 15 초간 전파 ×0.4 · 조명 하강. 그런데 그건 구역 전체가 아는 신호다 — 본 개체 전원 태도 −1, 디렉터가 압박을 올린다. 소리를 지르는 것과 같다."</span>
+            <span class="src">「누가 듣고 있나」 · 중앙 시설 · 규칙 04</span>
+          </div>
+          <p>
+            걸어오는 동안 콘솔에 닿으면 이 규칙이 그대로 발동한다 — 처형이 <b>어둠 속에서</b> 일어난다.
+            목격 조각이 최소화되고, 3인 판에서 동료에게 가는 불똥이 준다.
+            대가는 원문 그대로: 본 개체 전원 태도 −1 · 경보도 +12. <b>도주가 아니라 희생의 방식 선택</b>이므로
+            「막을 수 없는 죽음은 있어도 설명할 수 없는 죽음은 없다」와 충돌하지 않는다.
+          </p>
+          <div class="keep">
+            <div class="add"><span class="rk">더한다</span> approach 중 콘솔 상호작용 → dimmed 15 초.</div>
+            <div><span class="rk">지킨다</span> 죽음의 결과는 동일 — 바뀌는 것은 정보량뿐.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rev">
+        <div class="rev-head"><span class="n">개정 5</span><span class="t">어둠 국면과 빈 자리 — 처형의 흔적이 같은 방에 남는다</span></div>
+        <div class="rev-body">
+          <div class="cite">
+            <span class="q">"여덟 걸음에서 개체가 나 대신 부서지면 그 개체는 마지막 방에 없다. 그 부재를 어떻게 보여 주나 — 이 장면이 이 게임에서 가장 값나가는 10 초인데 연출이 아직 한 줄도 없다."</span>
+            <span class="src">「한 마디의 값」 · 미결 · 우선순위 「다음」</span>
+          </div>
+          <p>
+            미결 항목의 답을 여기서 만든다. 처형 · 대신 부서짐의 <b>위치와 목격 데이터</b>가
+            그대로 연출 재료가 된다 — 검문이 끝나고 코어 출력이 내려가는 <b>어둠 국면</b>(대사 v8 · VERDICT · DIM)에
+            개체들이 흩어지면서 그 자리 하나만 비워 두고, 코어권에서 처리된 판이면 「처리되는 거 봤어. 다들 봤어」,
+            그늘에서 처리된 판이면 「…뭐가 있었어? 어두워서」가 나온다(EMPTY_SEAT). 배율표가 그대로 대사 갈래다.
+            v1 은 이것을 재통과(3′)에 맡겼는데, 방을 다시 오는 것보다 <b>그 자리에서 조명이 내려가며 드러나는</b> 편이 세다.
+            아레나 인계에도 같은 데이터를 실어, 마지막 방에서 호에 빈틈이 남게 한다.
+          </p>
+          <div class="keep">
+            <div class="add"><span class="rk">더한다</span> 처형 결과(위치 · 목격 수 · 대신 부서진 개체)를 central2 어둠 국면 연출(EMPTY_SEAT)과 아레나 인계에 싣는다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 헌법 체크 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">헌법 대조</span>
+      <h2>열네 줄 중 건드리는 것이 없는지</h2>
+    </div>
+
+    <p class="col">
+      「다른 것은 다 바꿔도 되지만 이 열네 줄이 깨지면 다른 게임이 된다」(「한 마디의 값」 · 헌법).
+      개정 다섯을 전 조항에 대조했고, 걸리는 자리는 넷이다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>추가 요소</th><th>충돌 후보 조항</th><th>판정</th></tr></thead>
+        <tbody>
+          <tr><td class="k">조명 무대화</td><td>—</td><td class="ok">안전 — 연출층만 건드린다</td></tr>
+          <tr><td class="k">죽음의 목격 반경</td><td>9 조 · 경보도는 아무도 지목하지 않는다</td><td class="ok">조각에만 남기고 경보도는 고정 +25 → 유지</td></tr>
+          <tr><td class="k">여덟 걸음 이동</td><td>14 조 · 집행은 걸어온다, 최소 8 초</td><td class="ok">타이머 고정 · 위치만 자유 → 유지</td></tr>
+          <tr><td class="k">콘솔</td><td>죽음은 언제나 설명 가능해야 한다 (안전장치)</td><td class="ok">죽음 결과 동일 · 정보량만 변경 → 유지</td></tr>
+          <tr><td class="k">전 항목 공통</td><td>사람이 죽는 판정에 모델 개입 금지</td><td class="ok">전부 규칙 · 위치 기반 — 모델 호출 0 회</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══ 수치 초안 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">수치 초안</span>
+      <h2>플레이테스트 전의 시작값</h2>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>값</th><th>초안</th><th>근거</th></tr></thead>
+        <tbody>
+          <tr><td class="k">코어권 반경</td><td class="d">6 m</td><td>레벨 문서 그대로 — 새 수치를 만들지 않는다</td></tr>
+          <tr><td class="k">개입 발동 거리</td><td class="d">4 m</td><td>총을 내리는 1.5 초 안에 사이에 설 수 있는 거리</td></tr>
+          <tr><td class="k">콘솔 dimmed</td><td class="d">15 초</td><td>「누가 듣고 있나」 규칙 04 그대로</td></tr>
+          <tr><td class="k">콘솔 비용</td><td class="d">태도 −1 전원 · 경보 +12</td><td>동 규칙 그대로 — 값을 바꾸면 다른 자리의 콘솔과 어긋난다</td></tr>
+          <tr><td class="k">도주 판정 각</td><td class="d">문 방향 ±35°</td><td>플레이테스트 항목 — 오판정(개체 쪽으로 가는데 도주 판정)이 1 회라도 나오면 좁힌다</td></tr>
+          <tr><td class="k">목격 조각 신뢰도</td><td class="d">1.00 (직접 목격)</td><td>기존 조각 감쇠 규칙에 그대로 태운다</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="col">검증 지표 — 기존 지표 목록에 세 줄을 더한다</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>지표</th><th>기준</th></tr></thead>
+        <tbody>
+          <tr><td>여덟 걸음 동안 <b>이동한</b> 플레이어 비율</td><td class="d">30 % 미만이면 이동 허용이 안 읽힌 것 — HUD 한 줄을 더한다</td></tr>
+          <tr><td>죽음 위치 분포 (코어권 / 홀 / 그늘)</td><td class="d">한 구역에 80 % 몰리면 배율이 선택을 안 만든 것</td></tr>
+          <tr><td>콘솔 사용률</td><td class="d">0 이면 선택지가 아니라 장식이다 (「대신 나섬」 지표와 같은 논리)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="closing">
+    <p>
+      이 개정이 성립하면 죽음조차 이 게임의 코어 판타지를 완성한다 —
+      <b>내가 한 말이 세계에 남듯, 내가 죽은 자리도 세계에 남는다.</b>
+    </p>
+    <p>
+      그리고 마지막 여덟 걸음에 처음으로 질문이 생긴다.
+      도망칠 수 없다는 것은 그대로다. 다만 이제 — <b>어디서 죽을 것인가.</b>
+    </p>
+  </div>
+
+</div>
+
+</body>
+</html>

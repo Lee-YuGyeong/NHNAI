@@ -1,0 +1,29 @@
+// 워커 쪽 타입 검사. 루트 tsconfig 는 DOM 을 쓰고 이쪽은 workers-types 를 쓰므로 분리한다.
+// (배포는 한 프로젝트지만, 타입 세계는 브라우저와 워커가 다르다)
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["@cloudflare/workers-types"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noUnusedLocals": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  // worker 밖의 src/world/mp/* 도 검사한다. 클라이언트와 계약을 공유하므로 한쪽만 깨지면 안 된다.
+  "include": [
+    "worker/src/**/*.ts",
+    "src/world/mp/**/*.ts",
+    "src/lab/**/*.ts",
+    // 방송 종류의 원본. 여기 들어 있어야 "의존성이 없다"를 워커 타입 검사가 지켜준다
+    "src/shared/broadcast-kind.ts",
+    // 계열 번호의 원본 — mp/identity 와 lab/personas 가 같이 읽는다. 여기 들어 있어야 "의존성이 없다"가 지켜진다
+    "src/shared/series.ts"
+  ],
+  "exclude": ["node_modules"]
+}

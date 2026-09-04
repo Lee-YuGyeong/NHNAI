@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>누가 듣고 있나</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700&family=Gothic+A1:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:#E7EBE8; --panel:#F5F8F6; --sunk:#DCE2DE; --ink:#101619;
+    --dim:#5A676B; --faint:#8A9591; --line:#CBD3CF; --rail:#B7C1BC;
+    --signal:#145F5A; --trace:#8E5405; --trace-soft:#EDE0C9;
+    --halt:#8A362E; --halt-soft:#EEDCD8;
+    --shadow:0 1px 2px rgba(16,22,25,.05), 0 10px 28px -20px rgba(16,22,25,.4);
+    --display:'Hahmlet','Nanum Myeongjo','Noto Serif KR','Apple SD Gothic Neo',serif;
+    --body:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',monospace;
+    --measure:40rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+      --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+      --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+      --halt:#D4796C; --halt-soft:#2B1C1A;
+      --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0C1113; --panel:#131A1C; --sunk:#182022; --ink:#DEE6E3;
+    --dim:#879691; --faint:#66736F; --line:#212C2E; --rail:#2F3C3E;
+    --signal:#63C1B6; --trace:#D3A153; --trace-soft:#2A2418;
+    --halt:#D4796C; --halt-soft:#2B1C1A;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -22px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.7; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:66rem; margin:0 auto; padding:4.5rem 1.5rem 7rem; display:flex; flex-direction:column; gap:4.2rem; }
+  .col { max-width:var(--measure); }
+
+  .eyebrow { margin:0 0 1.3rem; font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; color:var(--dim); }
+  h1 { margin:0 0 1.3rem; font-family:var(--display); font-weight:700; font-size:clamp(2.3rem,6vw,3.4rem); line-height:1.16; letter-spacing:-.02em; }
+  .lede { margin:0; max-width:var(--measure); font-size:1.05rem; font-weight:300; line-height:1.78; }
+  .lede + .lede { margin-top:.9rem; }
+  .lede b { font-weight:700; }
+
+  section { display:flex; flex-direction:column; gap:1.4rem; }
+  .sec-head { display:flex; flex-direction:column; gap:.4rem; }
+  .sec-label { font-family:var(--mono); font-size:.7rem; letter-spacing:.18em; color:var(--signal); }
+  h2 { margin:0; font-family:var(--display); font-weight:700; font-size:clamp(1.5rem,3.4vw,2rem); letter-spacing:-.015em; text-wrap:balance; }
+  h3 { margin:0; font-family:var(--display); font-weight:700; font-size:1.14rem; }
+  p { margin:0; max-width:var(--measure); }
+  p + p { margin-top:.9rem; }
+  .quiet { color:var(--dim); font-weight:300; }
+  code { font-family:var(--mono); font-size:.84em; background:var(--sunk); padding:.08em .35em; }
+
+  .pull { max-width:var(--measure); border-left:2px solid var(--trace); padding:.2rem 0 .2rem 1.4rem;
+    font-family:var(--display); font-weight:500; font-size:1.28rem; line-height:1.55; }
+  .pull b { color:var(--trace); font-weight:700; }
+
+  /* svg */
+  figure { margin:0; display:flex; flex-direction:column; gap:.8rem; }
+  .plate { background:var(--panel); border:1px solid var(--line); padding:1.3rem 1.1rem; overflow-x:auto; }
+  .plate svg { display:block; max-width:100%; height:auto; }
+  .plate.wide svg { min-width:44rem; }
+  svg .ft{fill:var(--trace)} svg .st{stroke:var(--trace)}
+  svg .fs{fill:var(--signal)} svg .ss{stroke:var(--signal)}
+  svg .fh{fill:var(--halt)} svg .sh{stroke:var(--halt)}
+  svg .fk{fill:var(--sunk)}
+  figcaption { max-width:var(--measure); font-size:.88rem; font-weight:300; line-height:1.65; color:var(--dim); }
+  figcaption b { color:var(--ink); font-weight:500; }
+
+  /* legend */
+  .legend { display:grid; grid-template-columns:repeat(auto-fit,minmax(11rem,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .legend div { background:var(--panel); padding:.8rem .95rem .95rem; display:flex; gap:.6rem; align-items:flex-start; }
+  .legend .sw { flex:0 0 auto; margin-top:.35rem; }
+  .legend .lt { font-size:.85rem; font-weight:300; line-height:1.55; }
+  .legend .lt b { display:block; font-weight:700; font-family:var(--display); font-size:.95rem; }
+
+  /* laws */
+  .laws { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.9rem; max-width:var(--measure); }
+  .laws li { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--signal); padding:1rem 1.15rem; font-size:.96rem; font-weight:300; line-height:1.68; }
+  .laws .ln { display:block; font-family:var(--display); font-weight:700; font-size:1rem; color:var(--signal); margin-bottom:.25rem; }
+  .laws li.warm { border-left-color:var(--trace); }
+  .laws li.warm .ln { color:var(--trace); }
+
+  /* room cards */
+  .rooms { display:flex; flex-direction:column; gap:1.2rem; }
+  .room { background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); }
+  .room-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:.35rem .9rem; padding:1.05rem 1.4rem; border-bottom:1px solid var(--line); background:var(--sunk); }
+  .room-head .n { font-family:var(--mono); font-size:.72rem; letter-spacing:.12em; color:var(--signal); }
+  .room-head .t { font-family:var(--display); font-weight:700; font-size:1.2rem; letter-spacing:-.01em; }
+  .room-head .m { font-family:var(--mono); font-size:.68rem; color:var(--faint); margin-left:auto; }
+
+  .room-body { display:grid; grid-template-columns:29rem 1fr; }
+  .room-plan { padding:1.1rem 1.1rem 1.2rem; border-right:1px solid var(--line); }
+  .room-plan svg { display:block; width:100%; height:auto; }
+  .room-spec { padding:1.2rem 1.4rem 1.4rem; display:flex; flex-direction:column; gap:.85rem; }
+  .room-spec .why { font-family:var(--display); font-weight:500; font-size:1.02rem; line-height:1.5; }
+  .room-spec p { font-size:.93rem; font-weight:300; line-height:1.68; }
+
+  .dims { display:flex; flex-wrap:wrap; gap:.2rem 1.2rem; font-family:var(--mono); font-size:.72rem; color:var(--dim); letter-spacing:.03em; }
+  .dims b { color:var(--trace); font-weight:500; }
+
+  .rules { display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); }
+  .rules div { background:var(--panel); padding:.68rem .9rem; font-size:.89rem; font-weight:300; line-height:1.58; }
+  .rules .rk { display:inline-block; min-width:2.2rem; font-family:var(--mono); font-size:.68rem; color:var(--signal); }
+  .rules .hot .rk { color:var(--trace); }
+  .rules .hot { background:var(--trace-soft); }
+
+  @media (max-width:56rem) {
+    .room-body { grid-template-columns:1fr; }
+    .room-plan { border-right:none; border-bottom:1px solid var(--line); }
+  }
+
+  .table-scroll { overflow-x:auto; border:1px solid var(--line); }
+  table { border-collapse:collapse; width:100%; min-width:36rem; background:var(--panel); font-size:.93rem; }
+  th,td { text-align:left; padding:.78rem 1rem; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.6; }
+  thead th { font-family:var(--mono); font-weight:500; font-size:.68rem; letter-spacing:.12em; color:var(--dim); background:var(--sunk); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.k { font-family:var(--display); font-weight:700; color:var(--signal); white-space:nowrap; }
+  td.d { font-family:var(--mono); font-size:.82rem; color:var(--trace); white-space:nowrap; font-variant-numeric:tabular-nums; }
+
+  .closing { border-top:2px solid var(--rail); padding-top:1.9rem; max-width:var(--measure); }
+  .closing p { font-family:var(--display); font-weight:500; font-size:1.18rem; line-height:1.65; }
+  .closing b { color:var(--trace); font-weight:700; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Who is human · 레벨 설계 v3 · 일곱 방 · 일곱 구간 · 코어 국면 셋 · 재회 · 개입</p>
+    <h1>누가 듣고 있나</h1>
+    <p class="lede">
+      이 게임에서 맵은 배경이 아니라 <b>판정 장치</b>다. 조각은 <b>그 자리에 있던 개체에게만</b> 남으니까,
+      방의 모양이 곧 「내 말이 누구에게 남는가」를 정한다.
+      벽 하나를 세우는 것이 규칙 하나를 바꾸는 일이다.
+    </p>
+    <p class="lede">
+      판정을 개체에게 넘긴 뒤로 질문이 <b>셋</b>이 됐다 — 여기서 말하면 누가 듣나,
+      <b>여기서 서 있으면 누가 내 몸을 보나</b>, 그리고 <b>내가 몰렸을 때 여기까지 누가 닿나.</b>
+      개체가 내 말을 자기 눈으로 본 몸에 겹쳐 보므로, <b>조명과 거리도 판정 재료</b>가 됐다.
+      그리고 원장은 <b>같은 개체를 다시 만나야</b> 값이 된다 — 그건 동선의 문제다.
+    </p>
+  </header>
+
+  <!-- ═══ 원칙 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">원칙</span>
+      <h2>지형이 규칙이 되는 여덟 가지</h2>
+    </div>
+
+    <ul class="laws">
+      <li class="warm">
+        <span class="ln">소리 반경이 곧 조각 반경이다</span>
+        방마다 <b>목격 반경</b>을 먼저 정하고 그다음에 벽을 세운다.
+        좁은 통로는 반경이 작아 말을 걸기 싸고, 트인 방은 반경이 커서 비싸다.
+        <b>이 값 하나로 「어디서 말을 걸까」가 전략이 된다.</b>
+      </li>
+      <li class="warm">
+        <span class="ln">거리가 제한시간이다</span>
+        작업 구역에서 소각로까지 <b>뛰어서 8 초</b>다. 그 8 초가 THE_FURNACE 씬의 제한시간이고,
+        타이머를 따로 안 만든다. <b>공간이 시계를 대신한다.</b>
+      </li>
+      <li>
+        <span class="ln">읽으려면 등을 보여야 한다</span>
+        벽화와 정비 단말은 <b>정면으로 봐야만</b> 읽힌다. 정면으로 보면 통로에 등을 진다.
+        관찰이 곧 노출이 되도록 지물을 <b>동선의 옆이 아니라 뒤</b>에 붙인다.
+      </li>
+      <li>
+        <span class="ln">한 화면에 다 들어와야 한다</span>
+        태도는 숫자가 아니라 <b>자세</b>로 보인다. 비켜 주는 개체와 앞을 막는 개체를
+        10 m 밖에서 구별해야 하므로, 방은 전부 <b>한눈에 들어오는 크기</b>다.
+        넓은 오픈 맵은 이 게임을 주사위로 만든다.
+      </li>
+      <li class="warm">
+        <span class="ln">밝을수록 내 몸이 읽힌다</span>
+        개체는 내가 <b>아무 데도 안 닳았다</b>는 것을 눈으로 본다. 그러니 방마다
+        <b>판독 거리</b>를 목격 반경과 <b>따로</b> 정한다 — 몇 미터 안에서, 얼마나 밝을 때 내 몸이 읽히는가.
+        어두운 데선 내 몸이 안 읽히지만 <b>남의 마모도 못 읽는다.</b> 이 맞바꿈이 조명 설계 전부다.
+      </li>
+      <li class="warm">
+        <span class="ln">원장은 재회에서 갚아진다</span>
+        개체가 나에 대해 적어 둔 줄은 <b>그 개체를 다시 만나야</b> 값이 된다.
+        한 방에 한 무리씩 새로 만나고 지나가는 컨베이어 동선은 <b>이 시스템을 죽인다.</b>
+        그래서 방을 두 번 짓지 않고 <b>개체를 옮겨 온다</b> — 복도 · 휴게에서 원장이 생긴 개체를
+        디렉터가 중앙 시설의 재회 슬롯에 먼저 세운다. 방은 한 번 지나고, 얼굴은 두 번 본다.
+      </li>
+      <li class="warm">
+        <span class="ln">여덟 걸음 안에 몇이 닿나</span>
+        집행자가 걸어오는 동안 개체가 나설 수 있으려면 <b>그 개체가 그 방에 있어야</b> 한다.
+        방마다 <b>개입 가능 인원</b>을 정한다. 기록 복도가 0 인 것은 버그가 아니라
+        <b>거기서 죽으면 아무도 안 나온다</b>는 설계다.
+      </li>
+      <li>
+        <span class="ln">조명은 실루엣만 남긴다</span>
+        생김새가 곧 성격이고, 어두운 데서 읽히는 것은 <b>형태와 색 하나</b>뿐이다.
+        그래서 마모는 실루엣을 바꾸고, <b>수선 자국만 색으로</b> 표시한다 —
+        조명 설계가 캐릭터 판독 설계다.
+      </li>
+    </ul>
+
+    <div class="legend">
+      <div><svg class="sw" width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><rect x="1" y="1" width="20" height="12" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></rect></svg>
+        <span class="lt"><b>벽 · 방</b>바닥 평면. 위가 북쪽</span></div>
+      <div><svg class="sw" width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><rect x="2" y="4" width="18" height="6" class="fs" opacity=".55"></rect></svg>
+        <span class="lt"><b>지물</b>벽화 · 단말 · 소각로 · 창</span></div>
+      <div><svg class="sw" width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><circle cx="7" cy="7" r="3.4" fill="currentColor" opacity=".45"></circle><circle cx="16" cy="7" r="3.4" class="ft"></circle></svg>
+        <span class="lt"><b>개체</b>회색 배경 · 금색 이름 있는 개체</span></div>
+      <div><svg class="sw" width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><circle cx="11" cy="7" r="5.5" fill="none" class="st" stroke-dasharray="2.5 2"></circle></svg>
+        <span class="lt"><b>목격 반경</b>여기서 한 말이 남는 범위</span></div>
+      <div><svg class="sw" width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><path d="M2 7 H18" stroke="currentColor" stroke-width="1.6"></path><polygon points="17,4 21,7 17,10" fill="currentColor"></polygon></svg>
+        <span class="lt"><b>플레이어 동선</b>진입 → 퇴장</span></div>
+      <div><svg class="sw" width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><path d="M2 7 H20" class="ss" stroke-width="1.6" stroke-dasharray="4 3" fill="none"></path></svg>
+        <span class="lt"><b>순찰 경로</b>UNIT-21 · 주기 있음</span></div>
+    </div>
+  </section>
+
+  <!-- ═══ 전체 동선 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">전체</span>
+      <h2>일곱 방 · 일곱 구간</h2>
+    </div>
+
+    <p class="col">
+      되돌아갈 수 있는 곳은 <b>복도 하나뿐</b>이다. 격납문을 넘는 순간부터 전부 일방통행이고,
+      그래서 「복도에서 무엇을 봤는가」가 끝까지 따라온다.
+    </p>
+
+    <figure>
+      <div class="plate wide">
+        <svg viewBox="0 0 890 250" role="img" aria-label="일곱 구간의 연결 구조 — 일곱 방을 한 번씩 지나며, 중앙 시설은 밝음·락다운·어둠 국면 셋을 가진다. 각 구간의 목격 반경과 성격이 표시되어 있다">
+          <defs>
+            <marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <polygon points="0,1 10,5 0,9" fill="currentColor"></polygon>
+            </marker>
+          </defs>
+          <line x1="70" y1="96" x2="845" y2="96" stroke="currentColor" stroke-width="1" opacity=".2"></line>
+          <g font-family="Gothic A1, sans-serif" text-anchor="middle">
+            <rect x="14" y="66" width="105" height="60" rx="3" class="fk"></rect>
+            <rect x="14" y="66" width="105" height="60" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"></rect>
+            <text x="66.5" y="92" font-size="12.5" fill="currentColor">복도</text>
+            <text x="66.5" y="110" font-size="9.5" fill="currentColor" opacity=".6">4 × 22 m</text>
+            <text x="66.5" y="150" font-size="9.5" class="ft" font-family="IBM Plex Mono, monospace">반경 6 m</text>
+            <text x="66.5" y="166" font-size="9.5" fill="currentColor" opacity=".55" font-family="IBM Plex Mono, monospace">되돌아감 O</text>
+            <rect x="136" y="66" width="105" height="60" rx="3" class="fk"></rect>
+            <rect x="136" y="66" width="105" height="60" rx="3" fill="none" class="st" stroke-width="1.6"></rect>
+            <text x="188.5" y="92" font-size="12.5" fill="currentColor">휴게 구역</text>
+            <text x="188.5" y="110" font-size="9.5" fill="currentColor" opacity=".6">12 × 14 m</text>
+            <text x="188.5" y="150" font-size="9.5" class="ft" font-family="IBM Plex Mono, monospace">반경 = 방 전체</text>
+            <text x="188.5" y="166" font-size="9.5" fill="currentColor" opacity=".55" font-family="IBM Plex Mono, monospace">90 초 대기</text>
+            <rect x="258" y="66" width="105" height="60" rx="3" class="fk"></rect>
+            <rect x="258" y="66" width="105" height="60" rx="3" fill="none" class="sh" stroke-width="1.6"></rect>
+            <text x="310.5" y="92" font-size="12.5" fill="currentColor">중앙 시설</text>
+            <text x="310.5" y="110" font-size="9.5" fill="currentColor" opacity=".6">지름 26 m</text>
+            <text x="310.5" y="150" font-size="9.5" class="fh" font-family="IBM Plex Mono, monospace">반경 10 m</text>
+            <text x="310.5" y="166" font-size="9.5" fill="currentColor" opacity=".55" font-family="IBM Plex Mono, monospace">밝음 → 락다운 → 어둠</text>
+            <rect x="380" y="66" width="105" height="60" rx="3" class="fk"></rect>
+            <rect x="380" y="66" width="105" height="60" rx="3" fill="none" class="st" stroke-width="1.6"></rect>
+            <text x="432.5" y="92" font-size="12.5" fill="currentColor">작업 구역</text>
+            <text x="432.5" y="110" font-size="9.5" fill="currentColor" opacity=".6">8 × 34 m</text>
+            <text x="432.5" y="150" font-size="9.5" class="ft" font-family="IBM Plex Mono, monospace">반경 8 m</text>
+            <text x="432.5" y="166" font-size="9.5" fill="currentColor" opacity=".55" font-family="IBM Plex Mono, monospace">소각로까지 8 초</text>
+            <rect x="502" y="66" width="105" height="60" rx="3" class="fk"></rect>
+            <rect x="502" y="66" width="105" height="60" rx="3" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"></rect>
+            <text x="554.5" y="92" font-size="11.5" fill="currentColor">검증 · 재검</text>
+            <text x="554.5" y="110" font-size="9.5" fill="currentColor" opacity=".6">통로 + 5 × 5</text>
+            <text x="554.5" y="150" font-size="9.5" class="ft" font-family="IBM Plex Mono, monospace">반경 앞뒤 1 명</text>
+            <text x="554.5" y="166" font-size="9.5" fill="currentColor" opacity=".55" font-family="IBM Plex Mono, monospace">유리 · 관전</text>
+            <rect x="624" y="66" width="105" height="60" rx="3" class="fk"></rect>
+            <rect x="624" y="66" width="105" height="60" rx="3" fill="none" class="st" stroke-width="1.6"></rect>
+            <text x="676.5" y="92" font-size="12.5" fill="currentColor">기록 복도</text>
+            <text x="676.5" y="110" font-size="9.5" fill="currentColor" opacity=".6">3 × 60 m</text>
+            <text x="676.5" y="150" font-size="9.5" class="ft" font-family="IBM Plex Mono, monospace">반경 0</text>
+            <text x="676.5" y="166" font-size="9.5" fill="currentColor" opacity=".55" font-family="IBM Plex Mono, monospace">+ 창이 있는 방</text>
+            <rect x="746" y="66" width="105" height="60" rx="3" class="fs" opacity=".12"></rect>
+            <rect x="746" y="66" width="105" height="60" rx="3" fill="none" class="ss" stroke-width="1.6"></rect>
+            <text x="798.5" y="92" font-size="12.5" fill="currentColor">마지막 방</text>
+            <text x="798.5" y="110" font-size="9.5" fill="currentColor" opacity=".6">지름 12 m</text>
+            <text x="798.5" y="150" font-size="9.5" class="fs" font-family="IBM Plex Mono, monospace">전원이 전원을 본다</text>
+          </g>
+          <g stroke="currentColor" stroke-width="1.3" marker-end="url(#pa)">
+            <line x1="119" y1="96" x2="130" y2="96"></line>
+            <line x1="241" y1="96" x2="252" y2="96"></line>
+            <line x1="363" y1="96" x2="374" y2="96"></line>
+            <line x1="485" y1="96" x2="496" y2="96"></line>
+            <line x1="607" y1="96" x2="618" y2="96"></line>
+            <line x1="729" y1="96" x2="740" y2="96"></line>
+          </g>
+          <path d="M36 60 Q66 32 96 60" fill="none" class="st" stroke-width="1.3" marker-end="url(#pa)"></path>
+          <text x="66" y="26" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" class="ft">되돌아올 수 있다</text>
+          <path d="M258 192 H363" fill="none" class="sh" stroke-width="1.4"></path>
+          <path d="M293 192 V186" fill="none" class="sh" stroke-width="1.4"></path>
+          <path d="M328 192 V186" fill="none" class="sh" stroke-width="1.4"></path>
+          <text x="310.5" y="210" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" class="fh">한 방 · 국면 셋 — 밝음 · 락다운 · 어둠</text>
+          <text x="14" y="238" font-family="Gothic A1, sans-serif" font-size="12" fill="currentColor" opacity=".6">격납문을 넘는 순간부터 전부 일방통행 — 중앙 시설도 한 번. 다만 그 안에서 밝던 방이 어두워지고, 복도의 얼굴이 먼저 와 있다.</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>v3 에서 바뀐 것은 중앙 시설을 한 번만 지나는 것</b>이다. v2 의 재통과(3′)는 이 방의 세 번째 국면 「어둠」으로 접혔다 —
+        검문이 끝나면 코어 출력이 내려가고, 작업 통로가 열리기까지 2 분 동안 방이 어둡다.
+        아는 얼굴은 다시 와서 보는 것이 아니라 <b>먼저 와 있다</b>(재회 슬롯 · 원칙 6).
+        출입구 넷 중 ①② 만 동선이고, ③④ 는 락다운 때 <b>닫히는 것을 보이는</b> 문이다.
+        목격 반경의 진폭은 그대로다: <b>휴게 구역(방 전체)에서 기록 복도(0)까지</b>. 재검실 출구는 기록 복도 입구에 직결된다.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ═══ 방 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">평면</span>
+      <h2>일곱 방</h2>
+    </div>
+
+    <div class="rooms">
+
+      <!-- 1 -->
+      <div class="room">
+        <div class="room-head"><span class="n">챕터 1</span><span class="t">복도</span><span class="m">4 × 22 m · L 자 · 되돌아감 O</span></div>
+        <div class="room-body">
+          <div class="room-plan">
+            <svg viewBox="0 0 440 300" role="img" aria-label="복도 평면 — 진입부의 정비 단말, 꺾임 안쪽 벽에 붙은 벽화 여섯 장, 개체 다섯의 위치, 순찰 왕복 경로, 끝의 격납문">
+              <path d="M20 200 H250 V40 H330 V120 H340" fill="none" stroke="none"></path>
+              <path d="M20 170 H250 V40 H330" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></path>
+              <path d="M20 250 H310 V40" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></path>
+              <line x1="20" y1="170" x2="20" y2="250" stroke="currentColor" stroke-width="1.6" opacity=".6" stroke-dasharray="4 3"></line>
+              <line x1="250" y1="40" x2="310" y2="40" class="ss" stroke-width="3"></line>
+              <text x="280" y="30" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" class="fs">격납문</text>
+
+              <rect x="60" y="163" width="46" height="7" class="fs" opacity=".55"></rect>
+              <text x="83" y="155" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">정비 단말</text>
+
+              <g class="fs" opacity=".55">
+                <rect x="303" y="60" width="7" height="24"></rect>
+                <rect x="303" y="92" width="7" height="24"></rect>
+                <rect x="303" y="124" width="7" height="24"></rect>
+                <rect x="303" y="156" width="7" height="24"></rect>
+                <rect x="303" y="188" width="7" height="24"></rect>
+                <rect x="303" y="220" width="7" height="24"></rect>
+              </g>
+              <text x="322" y="155" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">벽화 6</text>
+
+              <circle cx="283" cy="72" r="5" class="ft"></circle><text x="272" y="76" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".7">104</text>
+              <circle cx="283" cy="136" r="5" class="ft"></circle><text x="272" y="140" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".7">137</text>
+              <circle cx="283" cy="228" r="5" fill="currentColor" opacity=".45"></circle>
+              <circle cx="150" cy="210" r="5" fill="currentColor" opacity=".45"></circle>
+              <circle cx="205" cy="195" r="5" fill="currentColor" opacity=".45"></circle>
+              <circle cx="270" cy="55" r="5" class="ft"></circle><text x="258" y="52" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".7">089</text>
+
+              <circle cx="283" cy="72" r="30" fill="none" class="st" stroke-dasharray="2.5 2.5" opacity=".7"></circle>
+
+              <path d="M40 235 H240 V60" fill="none" class="ss" stroke-width="1.3" stroke-dasharray="5 4"></path>
+              <text x="140" y="248" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">순찰 40초 왕복</text>
+
+              <path d="M28 210 H120" stroke="currentColor" stroke-width="1.5" marker-end="url(#pa)" opacity=".8"></path>
+              <text x="30" y="200" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".6">진입</text>
+
+              <text x="360" y="150" font-family="Gothic A1, sans-serif" font-size="10.5" fill="currentColor" opacity=".6">벽화를 보려면</text>
+              <text x="360" y="166" font-family="Gothic A1, sans-serif" font-size="10.5" fill="currentColor" opacity=".6">통로에 등을 진다</text>
+              <line x1="352" y1="146" x2="316" y2="146" class="st" stroke-width="1"></line>
+            </svg>
+          </div>
+          <div class="room-spec">
+            <p class="why">좁아서 소문이 안 퍼진다. 이 게임에서 <b>가장 싸게 말을 걸 수 있는 곳</b>이고, 그래서 첫 방이다.</p>
+            <div class="dims">목격 반경 <b>6 m</b> · 판독 거리 <b>3 m</b> · 개입 가능 <b>1–2</b> · 조명 벽면 간접 · 체류 무제한</div>
+            <div class="rules">
+              <div class="hot"><span class="rk">01</span> 벽화 여섯 장을 <b>꺾임 안쪽 벽</b>에 붙인다. 정면으로 봐야 읽히므로 <b>순찰 통로에 등을 지게</b> 된다.</div>
+              <div><span class="rk">02</span> 정비 단말은 진입부에 둔다 — 벽화보다 먼저 만나야 「번호」의 뜻을 안다.</div>
+              <div><span class="rk">03</span> 순찰은 40 초 왕복. <b>벽화 한 장을 다 읽는 데 12 초</b>라, 한 주기에 두 장이 한계다.</div>
+              <div><span class="rk">04</span> 격납문 앞에서 되돌아올 수 있는 유일한 방. 그래서 「아직은」 선택지가 성립한다.</div>
+              <div><span class="rk">05</span> 개체 다섯을 <b>서로 6 m 이상</b> 떼어 놓는다 — 한 개체에게 건 말이 옆으로 안 새게.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 -->
+      <div class="room">
+        <div class="room-head"><span class="n">챕터 2 · 신규</span><span class="t">휴게 구역</span><span class="m">12 × 14 m · 천장 2.2 m · 차폐 없음</span></div>
+        <div class="room-body">
+          <div class="room-plan">
+            <svg viewBox="0 0 440 300" role="img" aria-label="휴게 구역 평면 — 마주 보는 입구와 출구, 벽을 따라 놓인 낮은 단, 흩어져 앉은 개체 스물, 서쪽 벽 앞의 밖을 본 것, 중앙에서 서성이는 A-201, 구석에서 자는 개체. 차폐물이 하나도 없어 목격 반경이 방 전체다">
+              <rect x="60" y="40" width="320" height="220" rx="4" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></rect>
+              <rect x="60" y="40" width="320" height="220" rx="4" class="st" stroke-dasharray="3 3" opacity=".35" fill="none"></rect>
+              <line x1="60" y1="130" x2="60" y2="175" class="ss" stroke-width="3"></line>
+              <text x="50" y="156" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">입구</text>
+              <line x1="380" y1="130" x2="380" y2="175" class="ss" stroke-width="3"></line>
+              <text x="390" y="156" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">출구</text>
+
+              <rect x="68" y="48" width="304" height="10" class="fk"></rect>
+              <rect x="68" y="242" width="304" height="10" class="fk"></rect>
+              <rect x="68" y="58" width="10" height="184" class="fk"></rect>
+              <rect x="362" y="58" width="10" height="184" class="fk"></rect>
+              <text x="220" y="34" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".55">벽을 따라 낮은 단 (앉는 자리)</text>
+
+              <g fill="currentColor" opacity=".45">
+                <circle cx="95" cy="70" r="5"></circle><circle cx="130" cy="66" r="5"></circle>
+                <circle cx="175" cy="70" r="5"></circle><circle cx="230" cy="66" r="5"></circle>
+                <circle cx="280" cy="70" r="5"></circle><circle cx="330" cy="68" r="5"></circle>
+                <circle cx="88" cy="110" r="5"></circle><circle cx="88" cy="200" r="5"></circle>
+                <circle cx="352" cy="105" r="5"></circle><circle cx="352" cy="205" r="5"></circle>
+                <circle cx="110" cy="232" r="5"></circle><circle cx="165" cy="236" r="5"></circle>
+                <circle cx="215" cy="232" r="5"></circle><circle cx="265" cy="236" r="5"></circle>
+                <circle cx="318" cy="232" r="5"></circle>
+              </g>
+
+              <circle cx="88" cy="155" r="6" class="ft"></circle>
+              <text x="98" y="150" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".75">밖을 본 것</text>
+              <text x="98" y="163" font-family="Gothic A1, sans-serif" font-size="9" fill="currentColor" opacity=".55">아무것도 없는 서쪽 벽을 본다</text>
+
+              <circle cx="222" cy="150" r="6" class="ft"></circle>
+              <text x="234" y="154" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".75">A-201 · 서성인다</text>
+
+              <circle cx="345" cy="248" r="6" class="ft"></circle>
+              <text x="336" y="266" text-anchor="end" font-family="Gothic A1, sans-serif" font-size="9.5" fill="currentColor" opacity=".6">자는 개체 — 가장 안쪽 구석</text>
+
+              <path d="M66 152 H200" stroke="currentColor" stroke-width="1.5" marker-end="url(#pa)" opacity=".8"></path>
+              <path d="M244 152 H374" stroke="currentColor" stroke-width="1.5" marker-end="url(#pa)" opacity=".8" stroke-dasharray="4 3"></path>
+              <text x="300" y="144" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".5">90 초 뒤 개방</text>
+
+              <text x="220" y="286" text-anchor="middle" font-family="Gothic A1, sans-serif" font-size="10.5" class="ft">목격 반경 = 방 전체. 숨을 곳이 하나도 없다.</text>
+            </svg>
+          </div>
+          <div class="room-spec">
+            <p class="why">복도의 정반대로 만든다. <b>차폐물이 하나도 없다.</b> 여기서 하는 모든 말과 모든 움직임을 스무 개체가 전부 본다.</p>
+            <div class="dims">목격 반경 <b>방 전체</b> · 판독 거리 <b>1.5 m</b> · 개입 가능 <b>6 이상</b> · 조명 최저 · 체류 <b>90 초 강제</b></div>
+            <div class="rules">
+              <div class="hot"><span class="rk">01</span> <b>입구와 출구를 정면으로 마주 보게</b> 둔다. 통과만 하려면 12 m 직선인데, <b>문이 90 초 뒤에 열린다.</b></div>
+              <div><span class="rk">02</span> 기둥 · 화물 · 칸막이 <b>전부 금지.</b> 「가만히 있기」가 과제가 되려면 숨을 곳이 없어야 한다.</div>
+              <div><span class="rk">03</span> 앉는 단은 벽을 따라서만. 중앙은 비운다 — <b>중앙에 서 있는 것이 곧 눈에 띄는 것</b>이다.</div>
+              <div><span class="rk">04</span> 「밖을 본 것」은 <b>아무것도 없는 서쪽 벽</b> 앞. 플레이어가 「저긴 벽인데」라고 생각하게 배치한다.</div>
+              <div><span class="rk">05</span> 자는 개체는 가장 안쪽 구석. <b>일부러 찾아가야 보이는 자리</b>에 둔다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 -->
+      <div class="room">
+        <div class="room-head"><span class="n">챕터 3</span><span class="t">중앙 시설 — 코어</span><span class="m">지름 26 m · 원형 홀 · 한 번 지난다 · 국면 셋</span></div>
+        <div class="room-body">
+          <div class="room-plan">
+            <svg viewBox="0 0 440 340" role="img" aria-label="중앙 시설 평면 — 중앙의 코어를 중심으로 동심원 셋. 코어권 6미터는 전파 3배에 몸이 다 읽히고, 홀 10미터는 기본, 벽 그늘은 전파가 느리고 몸이 안 읽힌다. 출입구 넷, 왼쪽 벽에 코어 출력 콘솔">
+              <circle cx="220" cy="146" r="118" class="fk"></circle>
+              <circle cx="220" cy="146" r="92" class="fs" opacity=".08"></circle>
+              <circle cx="220" cy="146" r="55" class="ft" opacity=".14"></circle>
+              <circle cx="220" cy="146" r="118" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></circle>
+              <circle cx="220" cy="146" r="92" fill="none" class="ss" stroke-width="1" stroke-dasharray="3 3" opacity=".7"></circle>
+              <circle cx="220" cy="146" r="55" fill="none" class="st" stroke-width="1.3" stroke-dasharray="4 3"></circle>
+
+              <circle cx="220" cy="146" r="25" class="ft" opacity=".32"></circle>
+              <circle cx="220" cy="146" r="25" fill="none" class="st" stroke-width="1.8"></circle>
+              <text x="220" y="150" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" class="ft">코어</text>
+
+              <g stroke="currentColor" stroke-width=".9" opacity=".45">
+                <line x1="220" y1="121" x2="220" y2="30"></line>
+                <line x1="215" y1="91" x2="225" y2="91"></line>
+                <line x1="215" y1="54" x2="225" y2="54"></line>
+              </g>
+              <text x="230" y="94" font-family="IBM Plex Mono, monospace" font-size="9" class="ft">6 m</text>
+              <text x="230" y="57" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">10 m</text>
+
+              <g class="ss" stroke-width="3">
+                <line x1="192" y1="26" x2="248" y2="26"></line>
+                <line x1="192" y1="266" x2="248" y2="266"></line>
+                <line x1="100" y1="118" x2="100" y2="174"></line>
+                <line x1="340" y1="118" x2="340" y2="174"></line>
+              </g>
+              <text x="186" y="18" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">① 들어옴</text>
+              <text x="352" y="112" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">② 작업</text>
+              <text x="88" y="112" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">③ 잠김 (락다운에 닫힌다)</text>
+              <text x="254" y="282" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">④ 잠김</text>
+
+              <rect x="103" y="192" width="32" height="8" class="fh" opacity=".8" transform="rotate(-38 119 196)"></rect>
+              <text x="96" y="222" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9" class="fh">코어 출력 콘솔</text>
+
+              <g fill="currentColor" opacity=".5">
+                <circle cx="176" cy="122" r="5"></circle><circle cx="262" cy="126" r="5"></circle>
+                <circle cx="256" cy="176" r="5"></circle><circle cx="196" cy="186" r="5"></circle>
+                <circle cx="170" cy="164" r="5"></circle><circle cx="240" cy="196" r="5"></circle>
+                <circle cx="288" cy="104" r="5"></circle><circle cx="150" cy="102" r="5"></circle>
+                <circle cx="292" cy="188" r="5"></circle><circle cx="146" cy="196" r="5"></circle>
+              </g>
+              <g fill="currentColor" opacity=".2">
+                <circle cx="134" cy="66" r="5"></circle><circle cx="312" cy="66" r="5"></circle>
+                <circle cx="132" cy="230" r="5"></circle><circle cx="310" cy="232" r="5"></circle>
+              </g>
+
+              <circle cx="310" cy="146" r="6" class="ft"></circle>
+              <text x="322" y="150" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".75">UNIT-21</text>
+
+              <g font-family="IBM Plex Mono, monospace" font-size="9">
+                <rect x="8" y="294" width="12" height="9" class="ft" opacity=".3"></rect>
+                <text x="26" y="302" fill="currentColor" opacity=".8">코어권 6 m — 전파 ×3 · 조명 최대 · 몸이 다 읽힌다</text>
+                <rect x="8" y="308" width="12" height="9" class="fs" opacity=".18"></rect>
+                <text x="26" y="316" fill="currentColor" opacity=".8">홀 10 m — 기본. 목격 반경이 여기서 나온다</text>
+                <rect x="8" y="322" width="12" height="9" class="fk"></rect>
+                <text x="26" y="330" fill="currentColor" opacity=".8">벽 그늘 — 전파 ×0.4 · 어둡다 · 몸이 안 읽힌다</text>
+              </g>
+            </svg>
+          </div>
+          <div class="room-spec">
+            <p class="why">코어가 <b>동심원 셋</b>이다. 가까이 가면 내 말이 몇 초 만에 전부에게 퍼지고, <b>동시에 내 안 닳은 몸이 다 보인다.</b> 이 방은 「얼마나 알려질 것인가」를 <b>발로 정하는</b> 방이다.</p>
+            <div class="dims">목격 반경 <b>10 m</b> · 판독 거리 <b>코어권 전체</b>(어둠 국면 <b>4 m</b>) · 개입 가능 <b>6 이상</b>(락다운 후 <b>4 m 안</b>) · 락다운 후 출구 <b>0</b> · 체류 약 <b>9 분</b></div>
+            <div class="rules">
+              <div class="hot"><span class="rk">01</span> <b>코어권 6 m</b> — 전파 ×3, 조명 최대, 판독 거리 최대. 여기서 건 말은 <b>다음 방에 도착하기 전에</b> 전부에게 가 있고, 개체 원장에 「모두 앞에서 말했다」로 적힌다.</div>
+              <div><span class="rk">02</span> <b>홀 10 m</b> — 기본값. 목격 반경 10 m 가 여기서 나온다.</div>
+              <div><span class="rk">03</span> <b>벽 그늘</b> — 전파 ×0.4, 어둡다. 내 몸이 안 읽히는 대신 <b>남의 마모도 못 읽는다.</b> 조용히 말 걸 유일한 자리이자, 그래서 <b>서성이면 그 자체가 수상한</b> 자리.</div>
+              <div class="hot"><span class="rk">04</span> <b>콘솔은 코어 출력을 내린다.</b> 15 초간 전파 ×0.4 · 조명 하강. 그런데 그건 <b>구역 전체가 아는 신호</b>다 — 본 개체 전원 태도 −1, 디렉터가 압박을 올린다. <b>소리를 지르는 것과 같다.</b></div>
+              <div><span class="rk">05</span> 검문 지점은 벽 쪽. 코어권 군중과 <b>겹치게</b> 둬서 검문 대기 중에도 목격자가 붙게 한다.</div>
+              <div><span class="rk">06</span> 락다운은 출입구 넷을 동시에 닫는다. 「위치를 고수하라」 허용 이동 <b>0.6 m</b> — 개체 간격을 그보다 넓게. 그리고 <b>락다운이 내 자리를 고정한다</b> — 그 순간 4 m 안에 있는 개체가 검문의 목격자 · 감싸 줄 개체 · 개입 후보다. 개체는 명령을 받은 쪽이 아니므로 태도 높은 개체가 <b>나에게 두 걸음 오는 것</b>은 허용된다.</div>
+              <div class="hot"><span class="rk">07</span> <b>재회 슬롯 둘</b> — 복도 · 휴게에서 원장이 생긴 개체를 디렉터가 진입 전에 <b>홀 10 m 안</b>에 세운다. 진입하며 판독 거리에 들어오는 자리(문 ① 정면 좌우)여야 「먼저 와 있다」가 보인다. 없으면 배경 개체.</div>
+              <div class="hot"><span class="rk">08</span> <b>어둠 국면</b> — 검문이 끝나면 코어 출력이 내려간다(조명 40 % · 판독 4 m · 전파 ×1). 위치 고수 해제 · 검문 없음 · 경보 안 오름 · 문 ② 는 <b>2 분 뒤</b> 열린다. 콘솔은 이 국면에서 무효. 이 방에서 처리된 자리가 있으면 개체들이 <b>그 자리를 비워 둔 채</b> 흩어진다. v2 의 재통과(3′)가 하던 일이 전부 여기 있다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 -->
+      <div class="room">
+        <div class="room-head"><span class="n">챕터 4 · 신규</span><span class="t">작업 구역</span><span class="m">8 × 34 m · 라인 한 방향 · 소각로 끝</span></div>
+        <div class="room-body">
+          <div class="room-plan">
+            <svg viewBox="0 0 440 300" role="img" aria-label="작업 구역 평면 — 한 방향으로 흐르는 컨베이어, 끝의 소각로, 플레이어 작업 위치에서 소각로까지 뛰어서 8초 거리, 소각로 옆 벽의 A-063, 라인 앞의 A-012">
+              <rect x="30" y="90" width="380" height="120" rx="3" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></rect>
+              <line x1="30" y1="120" x2="30" y2="180" class="ss" stroke-width="3"></line>
+              <text x="24" y="156" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">입구</text>
+
+              <rect x="45" y="140" width="300" height="20" class="fk"></rect>
+              <rect x="45" y="140" width="300" height="20" fill="none" stroke="currentColor" stroke-width="1" opacity=".4"></rect>
+              <g stroke="currentColor" opacity=".35" stroke-width="1">
+                <line x1="90" y1="140" x2="90" y2="160"></line><line x1="140" y1="140" x2="140" y2="160"></line>
+                <line x1="190" y1="140" x2="190" y2="160"></line><line x1="240" y1="140" x2="240" y2="160"></line>
+                <line x1="290" y1="140" x2="290" y2="160"></line>
+              </g>
+              <path d="M160 150 H210" class="ss" stroke-width="1.4" marker-end="url(#pa)"></path>
+              <text x="120" y="134" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".55">컨베이어 — 절대 안 멈춘다</text>
+
+              <rect x="352" y="126" width="46" height="48" class="fh" opacity=".22"></rect>
+              <rect x="352" y="126" width="46" height="48" fill="none" class="sh" stroke-width="1.6"></rect>
+              <text x="375" y="118" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" class="fh">소각로</text>
+
+              <circle cx="96" cy="180" r="6" class="ft"></circle>
+              <text x="96" y="200" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".75">내 작업 위치</text>
+              <circle cx="96" cy="180" r="38" fill="none" class="st" stroke-dasharray="2.5 2.5" opacity=".6"></circle>
+
+              <path d="M110 180 H345" stroke="currentColor" stroke-width="1.5" marker-end="url(#pa)" opacity=".85"></path>
+              <text x="228" y="196" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" class="ft">26 m — 뛰어서 8 초</text>
+
+              <circle cx="200" cy="112" r="5" class="ft"></circle>
+              <text x="200" y="105" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".75">A-012</text>
+              <circle cx="336" cy="196" r="5" class="ft"></circle>
+              <text x="336" y="212" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".75">A-063</text>
+              <line x1="330" y1="192" x2="330" y2="206" stroke="currentColor" stroke-width="2" opacity=".5"></line>
+
+              <g fill="currentColor" opacity=".45">
+                <circle cx="150" cy="112" r="5"></circle><circle cx="255" cy="112" r="5"></circle>
+                <circle cx="150" cy="192" r="5"></circle><circle cx="250" cy="192" r="5"></circle>
+              </g>
+
+              <line x1="410" y1="120" x2="410" y2="180" class="ss" stroke-width="3"></line>
+              <text x="416" y="156" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">출구</text>
+
+              <text x="220" y="256" text-anchor="middle" font-family="Gothic A1, sans-serif" font-size="10.5" class="ft">타이머를 안 만든다. 거리가 제한시간이다.</text>
+              <text x="220" y="274" text-anchor="middle" font-family="Gothic A1, sans-serif" font-size="10.5" fill="currentColor" opacity=".55">소각로가 보이되, 뛰어야 닿는다.</text>
+            </svg>
+          </div>
+          <div class="room-spec">
+            <p class="why">이 방의 전부는 <b>하나의 거리</b>다. 소각로가 보이되 멀어야, 8 초 동안 갈지 말지를 고민하게 된다.</p>
+            <div class="dims">목격 반경 <b>8 m</b> · 판독 거리 <b>라인 위 5 m</b> · 개입 가능 <b>2–3</b> · 소각로까지 <b>26 m / 8 초</b></div>
+            <div class="rules">
+              <div class="hot"><span class="rk">01</span> <b>플레이어 작업 위치를 소각로에서 26 m</b>에 고정한다. 뛰어서 8 초 — 그 8 초가 THE_FURNACE 의 제한시간이다.</div>
+              <div><span class="rk">02</span> 소각로는 <b>정면으로 보이는 자리</b>에 둔다. 안 보이면 선택이 안 되고, 가까우면 고민이 안 된다.</div>
+              <div><span class="rk">03</span> 컨베이어는 화면 안에서 <b>계속 흐른다.</b> 막든 안 막든 라인이 안 멈춘다는 걸 눈으로 계속 보여 준다.</div>
+              <div><span class="rk">04</span> A-063 은 소각로 <b>바로 옆 벽</b>에 등을 붙이고 선다. 플레이어가 뛰면 그 앞을 지나간다.</div>
+              <div><span class="rk">05</span> A-012 는 라인 최선두 — 가장 무거운 것이 처음 올라오는 자리다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 -->
+      <div class="room">
+        <div class="room-head"><span class="n">챕터 5</span><span class="t">검증 통로 · 재검실 · 대기 구역</span><span class="m">통로 2 m 폭 · 방 5 × 5 · 유리 한 면</span></div>
+        <div class="room-body">
+          <div class="room-plan">
+            <svg viewBox="0 0 440 300" role="img" aria-label="검증 구역 평면 — 유도등이 깔린 좁은 줄 통로, 검증실 문 앞의 검문 장치, 재검실과 그 옆의 대기 구역을 가르는 유리 한 면">
+              <path d="M20 250 H150 V120 H150" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></path>
+              <path d="M20 210 H110 V120" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></path>
+              <path d="M110 250 V250" fill="none"></path>
+              <g class="fs" opacity=".5">
+                <rect x="40" y="228" width="12" height="4"></rect><rect x="66" y="228" width="12" height="4"></rect>
+                <rect x="92" y="228" width="12" height="4"></rect><rect x="118" y="228" width="12" height="4"></rect>
+                <rect x="126" y="196" width="4" height="12"></rect><rect x="126" y="170" width="4" height="12"></rect>
+                <rect x="126" y="144" width="4" height="12"></rect>
+              </g>
+              <text x="70" y="266" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">바닥 유도등 — 경로 강제</text>
+
+              <g fill="currentColor" opacity=".45">
+                <circle cx="46" cy="230" r="5"></circle><circle cx="76" cy="230" r="5"></circle>
+                <circle cx="106" cy="230" r="5"></circle><circle cx="130" cy="212" r="5"></circle>
+                <circle cx="130" cy="184" r="5"></circle>
+              </g>
+              <circle cx="130" cy="156" r="5" class="ft"></circle>
+              <text x="142" y="160" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".75">내 차례</text>
+              <circle cx="130" cy="184" r="22" fill="none" class="st" stroke-dasharray="2.5 2.5" opacity=".7"></circle>
+              <text x="160" y="196" font-family="Gothic A1, sans-serif" font-size="9.5" class="ft">목격 반경 = 앞뒤 1 명</text>
+
+              <rect x="110" y="104" width="40" height="8" class="fs" opacity=".55"></rect>
+              <text x="130" y="98" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">검문 장치</text>
+
+              <rect x="190" y="60" width="110" height="110" rx="3" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></rect>
+              <text x="245" y="52" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity=".7">재검실 5 × 5</text>
+              <circle cx="225" cy="130" r="6" class="ft"></circle>
+              <text x="225" y="150" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".7">나</text>
+              <circle cx="265" cy="90" r="5" fill="currentColor" opacity=".45"></circle>
+              <text x="265" y="82" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".7">UNIT-04</text>
+
+              <line x1="300" y1="60" x2="300" y2="170" class="ss" stroke-width="3.5"></line>
+              <text x="300" y="186" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">유리 — 양방향</text>
+
+              <rect x="300" y="60" width="105" height="110" rx="3" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></rect>
+              <text x="352" y="52" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity=".7">대기 구역</text>
+              <circle cx="322" cy="110" r="6" class="ft"></circle>
+              <circle cx="322" cy="140" r="6" class="ft"></circle>
+              <text x="336" y="114" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".75">동료 둘</text>
+
+              <line x1="240" y1="120" x2="316" y2="120" class="st" stroke-width="1" stroke-dasharray="3 3"></line>
+              <text x="278" y="112" text-anchor="middle" font-family="Gothic A1, sans-serif" font-size="9" class="ft">눈이 마주친다</text>
+
+              <path d="M28 240 H100" stroke="currentColor" stroke-width="1.5" marker-end="url(#pa)" opacity=".8"></path>
+              <text x="150" y="284" font-family="Gothic A1, sans-serif" font-size="10.5" class="ft">유리를 사이에 두고 정면으로 마주 보게 앉힌다.</text>
+            </svg>
+          </div>
+          <div class="room-spec">
+            <p class="why">줄은 이 게임에서 <b>목격 반경이 가장 좁은 자리</b>다 — 앞뒤 하나씩. 그래서 속삭임이 가장 싸고, 그래서 가장 많이 한다.</p>
+            <div class="dims">통로 폭 <b>2 m</b> · 반경 <b>앞뒤 1 명</b> · 판독 거리 <b>1 m</b> · 개입 가능 <b>앞뒤 2</b> · 유리 <b>양방향</b></div>
+            <div class="rules">
+              <div class="hot"><span class="rk">01</span> 통로 폭을 <b>2 m</b>로 좁힌다. 옆에 설 수 없어야 <b>앞뒤로만</b> 말이 새고, 그 제약이 「줄에서의 속삭임」을 만든다.</div>
+              <div><span class="rk">02</span> 유도등이 경로를 강제한다 — <b>이 챕터에는 탐색이 없다.</b> 서 있는 것 말고 할 게 없어야 한다.</div>
+              <div><span class="rk">03</span> 유리는 <b>재검실과 대기 구역을 정면으로</b> 가른다. 안의 사람과 밖의 둘이 눈이 마주쳐야 증인 소환이 아프다.</div>
+              <div><span class="rk">04</span> 재검실에 <b>다른 출구를 두지 않는다.</b> 나가는 길이 유리 앞을 지나야 한다.</div>
+              <div><span class="rk">05</span> 격리된 개체는 통로 반대쪽 <b>격리 통로</b>로 끌려간다 — 끝은 안 보여 준다.</div>
+              <div><span class="rk">06</span> 재검실 출구는 <b>기록 복도 입구에 직결</b>된다(v3 — 중앙 시설 재통과를 없앴으므로). 유리 앞을 지나 곡선 통로로 바로 들어간다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 -->
+      <div class="room">
+        <div class="room-head"><span class="n">챕터 6 · 신규</span><span class="t">기록 복도 · 창이 있는 방</span><span class="m">3 × 60 m 곡선 · 목격 반경 0</span></div>
+        <div class="room-body">
+          <div class="room-plan">
+            <svg viewBox="0 0 440 300" role="img" aria-label="기록 복도 평면 — 끝이 안 보이는 완만한 곡선 통로, 양쪽 벽을 가득 채운 벽화, 중간의 열여섯 금 벽화와 낮게 걸린 지난달 요원의 그림, 통로 끝의 창이 있는 방">
+              <path d="M28 262 Q120 262 180 210 T320 108 Q360 84 392 84" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></path>
+              <path d="M28 226 Q108 226 160 182 T296 82 Q340 54 392 54" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></path>
+
+              <g class="fs" opacity=".45">
+                <circle cx="60" cy="246" r="3"></circle><circle cx="88" cy="244" r="3"></circle><circle cx="116" cy="240" r="3"></circle>
+                <circle cx="142" cy="230" r="3"></circle><circle cx="166" cy="216" r="3"></circle><circle cx="190" cy="200" r="3"></circle>
+                <circle cx="214" cy="184" r="3"></circle><circle cx="240" cy="168" r="3"></circle><circle cx="264" cy="152" r="3"></circle>
+                <circle cx="288" cy="136" r="3"></circle><circle cx="312" cy="118" r="3"></circle><circle cx="338" cy="102" r="3"></circle>
+                <circle cx="60" cy="216" r="3"></circle><circle cx="90" cy="212" r="3"></circle><circle cx="120" cy="204" r="3"></circle>
+                <circle cx="148" cy="190" r="3"></circle><circle cx="174" cy="172" r="3"></circle><circle cx="200" cy="154" r="3"></circle>
+                <circle cx="226" cy="138" r="3"></circle><circle cx="252" cy="120" r="3"></circle><circle cx="278" cy="104" r="3"></circle>
+              </g>
+
+              <rect x="203" y="178" width="9" height="22" class="ft"></rect>
+              <text x="196" y="196" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9" class="ft">금 열여섯</text>
+
+              <rect x="256" y="152" width="9" height="14" class="fh"></rect>
+              <text x="272" y="168" font-family="IBM Plex Mono, monospace" font-size="9" class="fh">A-155 의 그림</text>
+              <text x="272" y="181" font-family="Gothic A1, sans-serif" font-size="9" fill="currentColor" opacity=".55">낮게 걸려 있다 — 사람 키</text>
+
+              <circle cx="188" cy="212" r="5" class="ft"></circle>
+              <text x="180" y="228" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".75">A-137</text>
+
+              <rect x="360" y="44" width="60" height="56" rx="3" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></rect>
+              <line x1="420" y1="52" x2="420" y2="92" class="ss" stroke-width="4"></line>
+              <text x="392" y="36" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">창</text>
+              <circle cx="396" cy="76" r="5" class="ft"></circle>
+              <text x="392" y="116" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".75">먼저 온 것</text>
+
+              <path d="M36 244 Q120 244 176 194 T310 96 Q346 70 380 70" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".8" marker-end="url(#pa)" stroke-dasharray="0"></path>
+
+              <text x="120" y="288" font-family="Gothic A1, sans-serif" font-size="10.5" class="ft">곡선이라 끝이 안 보인다 — 「끝이 없다」가 지형으로 전달된다.</text>
+            </svg>
+          </div>
+          <div class="room-spec">
+            <p class="why">이 게임에서 <b>목격 반경이 0 인 유일한 공간</b>이다. 아무도 없고, 아무 일도 안 일어난다. 그래서 벽만 남는다.</p>
+            <div class="dims">폭 <b>3 m</b> · 목격 반경 <b>0</b> · 판독 거리 <b>0</b> · 개입 가능 <b>0</b> · 체류 2 분</div>
+            <div class="rules">
+              <div class="hot"><span class="rk">00</span> <b>여기서 죽으면 아무도 안 나온다.</b> 개입 가능 인원 <b>0</b> — 목격 반경 0 의 대가다. 40 분 쌓은 원장이 <b>여기서는 아무 값도 못 한다.</b> 그래서 이 복도의 침묵이 무섭다.</div>
+              <div class="hot"><span class="rk">01</span> <b>곡선으로 만든다.</b> 직선이면 끝이 보이고, 끝이 보이면 「끝이 없다」가 안 된다.</div>
+              <div><span class="rk">02</span> 조명은 벽면만. 바닥이 어두워야 시선이 계속 <b>옆</b>으로 간다.</div>
+              <div><span class="rk">03</span> 금 열여섯 벽화는 <b>정확히 중간 지점.</b> 걸음이 저절로 멈추는 자리다.</div>
+              <div class="hot"><span class="rk">04</span> <b>A-155 의 그림만 낮게 건다.</b> 개체는 키가 크고 인간은 작다 — 높이 하나로 「사람이 그렸다」가 전달된다.</div>
+              <div><span class="rk">05</span> 창이 있는 방은 통로 끝 4 × 4. <b>창은 높이 달아</b> 빛만 들어오고 밖은 잘 안 보이게 한다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7 -->
+      <div class="room">
+        <div class="room-head"><span class="n">챕터 7</span><span class="t">마지막 방</span><span class="m">지름 12 m · 원형 · 문 하나</span></div>
+        <div class="room-body">
+          <div class="room-plan">
+            <svg viewBox="0 0 440 300" role="img" aria-label="마지막 방 평면 — 지름 12미터 원형, 문 하나, 문 반대편에 리더, 개체 다섯이 호를 이루고, 요원 셋은 서로 떨어뜨려 배치되어 있으며 중앙에 조명 하나">
+              <circle cx="220" cy="150" r="118" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"></circle>
+              <line x1="192" y1="268" x2="248" y2="268" class="ss" stroke-width="3.5"></line>
+              <text x="220" y="288" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" class="fs">문 — 이 방의 유일한 출입구</text>
+
+              <circle cx="220" cy="150" r="14" class="fs" opacity=".18"></circle>
+              <circle cx="220" cy="150" r="14" fill="none" class="ss" stroke-width="1.2" stroke-dasharray="2 2"></circle>
+              <text x="220" y="154" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" class="fs">조명</text>
+
+              <circle cx="220" cy="52" r="8" class="ft"></circle>
+              <text x="220" y="38" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".8">먼저 온 것</text>
+
+              <g class="ft">
+                <circle cx="132" cy="82" r="6"></circle>
+                <circle cx="96" cy="150" r="6"></circle>
+                <circle cx="132" cy="218" r="6"></circle>
+                <circle cx="308" cy="82" r="6"></circle>
+                <circle cx="344" cy="150" r="6"></circle>
+              </g>
+              <text x="86" y="122" text-anchor="end" font-family="Gothic A1, sans-serif" font-size="9.5" fill="currentColor" opacity=".6">개체 다섯 —</text>
+              <text x="86" y="136" text-anchor="end" font-family="Gothic A1, sans-serif" font-size="9.5" fill="currentColor" opacity=".6">호를 이룬다</text>
+
+              <g fill="currentColor" opacity=".55">
+                <circle cx="308" cy="218" r="6"></circle>
+                <circle cx="185" cy="240" r="6"></circle>
+                <circle cx="258" cy="238" r="6"></circle>
+              </g>
+              <text x="330" y="244" font-family="Gothic A1, sans-serif" font-size="9.5" fill="currentColor" opacity=".6">요원 셋</text>
+              <text x="330" y="258" font-family="Gothic A1, sans-serif" font-size="9.5" class="ft">떨어뜨려 세운다</text>
+
+              <g stroke="currentColor" stroke-width=".8" opacity=".22">
+                <line x1="220" y1="52" x2="132" y2="82"></line><line x1="220" y1="52" x2="96" y2="150"></line>
+                <line x1="220" y1="52" x2="132" y2="218"></line><line x1="220" y1="52" x2="308" y2="82"></line>
+                <line x1="220" y1="52" x2="344" y2="150"></line><line x1="220" y1="52" x2="308" y2="218"></line>
+                <line x1="220" y1="52" x2="185" y2="240"></line><line x1="220" y1="52" x2="258" y2="238"></line>
+              </g>
+
+              <circle cx="344" cy="218" r="7" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2.5 2.5" opacity=".55"></circle>
+              <text x="358" y="222" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="currentColor" opacity=".55">빈자리</text>
+
+              <text x="220" y="176" text-anchor="middle" font-family="Gothic A1, sans-serif" font-size="10.5" class="ft">전원이 전원을 본다</text>
+              <text x="220" y="196" text-anchor="middle" font-family="Gothic A1, sans-serif" font-size="9.5" class="fs">가까이 선 것이 태도가 높은 것이다 — 원장이 배치를 정한다</text>
+            </svg>
+          </div>
+          <div class="room-spec">
+            <p class="why">표결이 일어나려면 <b>모두가 모두를 봐야 한다.</b> 그래서 원형이고, 그래서 이 방에는 기둥도 계단도 없다.</p>
+            <div class="dims">지름 <b>12 m</b> · 판독 거리 <b>전체</b> · 개입 가능 <b>전원</b> · 출입구 <b>1</b> · 사각지대 <b>0</b></div>
+            <div class="rules">
+              <div class="hot"><span class="rk">01</span> <b>요원 셋을 서로 떼어 놓는다.</b> 붙어 서면 표결이 「셋 대 다섯」으로 보이고, 그러면 「하나를 내놓아라」가 성립하지 않는다.</div>
+              <div><span class="rk">02</span> 리더는 <b>문 정반대</b>. 나가려면 그를 지나쳐야 한다는 게 눈으로 읽혀야 한다.</div>
+              <div class="hot"><span class="rk">03</span> <b>호의 자리를 원장이 정한다.</b> 태도가 높은 개체가 나에게 가까이, 등을 돌린 개체가 리더 쪽에. 방에 들어선 <b>3 초 만에 내 판이 어떻게 됐는지</b>가 숫자 없이 읽힌다.</div>
+              <div class="hot"><span class="rk">03b</span> <b>부서진 개체의 자리는 비워 둔다.</b> 여덟 걸음에서 나 대신 부서진 개체가 있으면 호에 <b>사람 하나 폭의 빈틈</b>이 남는다. 아무도 그 얘기를 안 하고, 리더도 안 짚는다 — <b>빈자리가 알아서 말한다.</b></div>
+              <div><span class="rk">04</span> 조명은 중앙 하나. 발언하는 개체가 <b>앞으로 반 걸음</b> 나오면 밝아진다 — 표결을 조명이 대신 센다.</div>
+              <div><span class="rk">05</span> 「대신 나섬」이 나오면 그 개체는 <b>문까지 여덟 걸음</b>을 걷는다. 그 여덟 걸음이 플레이어의 마지막 선택 시간이다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══ 슬롯 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">슬롯</span>
+      <h2>배치의 일부를 비워 둔다</h2>
+    </div>
+
+    <p class="col">
+      디렉터가 <b>다음 장면에 누구를 내 근처에 세울지</b>를 정한다(AI 문서 2 층).
+      그러려면 방마다 <b>비워 둔 자리</b>가 있어야 한다. 전부 고정 배치면 디렉터가 할 일이 없고,
+      전부 가변이면 방이 매번 달라 보여서 <b>공간을 기억할 수 없다.</b>
+      그래서 <b>고정 다수 + 슬롯 소수</b>로 짠다.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>방</th><th>고정</th><th>디렉터 슬롯</th><th>디렉터가 여기에 세우는 것</th></tr></thead>
+        <tbody>
+          <tr><td class="k">복도</td><td class="d">A-137 · UNIT-21</td><td class="d">1</td><td>첫 인상용. 말 걸기 쉬운 개체 하나.</td></tr>
+          <tr><td class="k">휴게 구역</td><td class="d">A-104 · A-201</td><td class="d">3</td><td>원장이 비어 있으므로 <b>성격이 다른 셋</b>. 여기서 갈린다.</td></tr>
+          <tr><td class="k">중앙 시설</td><td class="d">UNIT-21 · 검문 둘</td><td class="d">4</td><td><b>씨앗 둘</b> — 내 어긋남을 본 개체를 코어권에. <b>재회 둘</b> — 복도 · 휴게에서 원장이 생긴 개체를 홀에, 진입 정면에.</td></tr>
+          <tr><td class="k">작업 구역</td><td class="d">A-201 · 라인 넷</td><td class="d">2</td><td>태도가 <b>−</b> 로 기운 개체. 소각로 씬의 압박을 만든다.</td></tr>
+          <tr><td class="k">검증 · 재검</td><td class="d">검증관 · 줄 여섯</td><td class="d">2</td><td>줄 <b>앞뒤</b>. 태도 + 개체를 앞에 두면 순서를 알려 준다.</td></tr>
+          <tr><td class="k">기록 복도</td><td class="d">없음</td><td class="d">0</td><td>아무도 없다. 이 방만 슬롯이 0 이다.</td></tr>
+          <tr><td class="k">마지막 방</td><td class="d">리더 · 요원</td><td class="d">호 전체</td><td>배치가 곧 결과다 — <b>원장 순서대로 세운다.</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="pull">방은 고정이고 <b>사람만 움직인다.</b> 그래서 판마다 다른데도 <b>공간은 외워진다.</b></p>
+
+    <p class="col quiet">
+      슬롯 위치는 <b>미리 표시해 둔다</b> — 벽에 기댈 만한 자리, 통로 옆, 코어권 안쪽.
+      비어 있어도 어색하지 않은 자리여야 한다. 디렉터가 채우지 않기로 하면 그냥 빈 공간으로 보이고,
+      플레이어는 <b>거기가 슬롯이었는지 모른다.</b>
+    </p>
+  </section>
+
+  <!-- ═══ 수치표 ═══ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">한 장</span>
+      <h2>맵이 정하는 값들</h2>
+    </div>
+
+    <p class="col">
+      아래 넷은 <b>기획 문서가 아니라 맵에서 나오는 값</b>이다. 방을 고치면 이 숫자가 바뀌고,
+      숫자가 바뀌면 밸런스가 바뀐다. <b>판독 거리와 개입은 이번에 새로 생긴 열</b>이다 —
+      개체가 내 몸을 보고 판정하고, 개체가 나를 위해 나설 수 있게 되면서
+      <b>「누가 듣나」만으로는 방을 다 못 적게 됐다.</b>
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>방</th><th>목격 반경</th><th>판독 거리</th><th>개입</th><th>이 방이 정하는 규칙</th></tr></thead>
+        <tbody>
+          <tr><td class="k">복도</td><td class="d">6 m</td><td class="d">3 m</td><td class="d">1–2</td><td>말 걸기가 가장 싸다. 순찰 40 초 주기가 벽화 관찰의 리듬을 만든다.</td></tr>
+          <tr><td class="k">휴게 구역</td><td class="d">방 전체</td><td class="d">1.5 m</td><td class="d">6+</td><td>가장 비싸고 가장 값지다. <b>어두워서 내 몸은 안 읽히는데 말은 다 퍼진다</b> — 정반대로 걸린 방.</td></tr>
+          <tr><td class="k">중앙 시설</td><td class="d">10 m</td><td class="d">코어권 → 어둠 4 m</td><td class="d">6+ → 락다운 후 4 m 안</td><td><b>코어까지의 거리가 곧 노출량.</b> 전파도 조명도 판독도 반지름 하나로 움직인다. 락다운이 그 반지름을 <b>고정</b>하고, 어둠이 그것을 <b>줄인다.</b></td></tr>
+          <tr><td class="k">작업 구역</td><td class="d">8 m</td><td class="d">5 m</td><td class="d">2–3</td><td><b>26 m = 8 초.</b> 이 거리가 THE_FURNACE 의 제한시간 전부다.</td></tr>
+          <tr><td class="k">검증 · 재검</td><td class="d">앞뒤 1 명</td><td class="d">1 m</td><td class="d">앞뒤 2</td><td>속삭임이 가장 싸다. <b>바로 앞 개체만 내 몸을 본다</b> — 그 하나가 결정적이 된다.</td></tr>
+          <tr><td class="k">기록 복도</td><td class="d">0</td><td class="d">0</td><td class="d">0</td><td>아무 말도 안 남고 <b>아무도 못 나선다.</b> 그래서 회차 기억을 여기 둔다.</td></tr>
+          <tr><td class="k">마지막 방</td><td class="d">전원</td><td class="d">전체</td><td class="d">전원</td><td>사각지대 0. 침묵도 발언으로 읽히게 만드는 배치.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="pull">벽을 하나 옮기면 <b>규칙이 하나 바뀐다.</b> 이 문서를 밸런스 문서로 같이 써야 하는 이유다.</p>
+  </section>
+
+  <div class="closing">
+    <p>
+      일곱 방 중 여섯은 <b>말할 수 있는 방</b>이고, 하나는 아니다.
+      기록 복도에서만 아무도 안 듣고, <b>아무도 나서 줄 수 없다</b> —
+      그래서 거기서만 플레이어가 혼자 생각한다.
+    </p>
+    <p>
+      그리고 그 방을 지나면 바로 <b>전원이 전원을 보는 방</b>이 나온다.
+      호에 빈틈이 하나 있을 수도 있다. 이 게임의 마지막 두 방을
+      그 순서로 둔 것이 설계의 전부다.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

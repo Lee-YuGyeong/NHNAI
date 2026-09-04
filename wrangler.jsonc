@@ -1,0 +1,41 @@
+// 한 프로젝트 = 워커 하나. 정적 프론트(dist)와 월드 서버(Durable Object)를 같이 배포한다.
+//
+//   로컬:  npm run dev          → vite 5173 (/world-ws 를 127.0.0.1:8787 로 프록시)
+//          npm run worker:dev   → 이 워커 8787
+//   배포:  npm run build 후 사용자가 직접 `npx wrangler deploy` (Claude 는 차단돼 있다)
+//
+// 배포하면 프론트와 WebSocket 이 같은 오리진이라 VITE_WORLD_WS_URL 이 필요 없다.
+// (별도 워커를 가리키고 싶을 때만 빌드 환경변수로 준다)
+//
+// 비밀은 없다 — 이 워커는 인증을 하지 않는다 (방 번호 + 닉네임만).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "who-is-human",
+  "main": "worker/src/index.ts",
+  "compatibility_date": "2025-09-01",
+  "observability": { "enabled": true },
+
+  // 빌드 결과물을 그대로 서빙한다. SPA 라 없는 경로는 index.html 로 돌려준다.
+  // run_worker_first: 이 경로들만 워커가 먼저 받는다 (나머지는 정적 파일이 먼저).
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/world-ws/*", "/rooms/*", "/api/*", "/health"]
+  },
+
+  // 방 하나 = 인스턴스 하나. idFromName(roomCode) 로 찾는다.
+  // 등록소(LOBBY_DO)는 **전부 합쳐 하나**다 — 열린 방 목록이 사는 종이 한 장 (worker/src/lobby-do.ts).
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOM_DO", "class_name": "RoomDO" },
+      { "name": "LOBBY_DO", "class_name": "LobbyDO" }
+    ]
+  },
+  // SQLite 백엔드 DO. 무료 플랜에서는 이 형태만 만들 수 있다.
+  // ★ tag 를 바꾸거나 지우지 않는다. 마이그레이션 이력이라 되돌릴 수 없다.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["RoomDO"] },
+    { "tag": "v2", "new_sqlite_classes": ["LobbyDO"] }
+  ]
+}

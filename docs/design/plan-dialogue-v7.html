@@ -1,0 +1,2210 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>쉬어 본 적 있나</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700&family=Gothic+A1:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:  #E7EBE8;
+    --panel:  #F5F8F6;
+    --sunk:   #DCE2DE;
+    --ink:    #101619;
+    --dim:    #5A676B;
+    --faint:  #8A9591;
+    --line:   #CBD3CF;
+    --rail:   #B7C1BC;
+    --signal: #145F5A;
+    --trace:  #8E5405;
+    --trace-soft: #EDE0C9;
+    --halt:   #8A362E;
+    --halt-soft: #EEDCD8;
+
+    --display: 'Hahmlet', 'Nanum Myeongjo', 'Noto Serif KR', 'Apple SD Gothic Neo', serif;
+    --body: 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:  #0C1113;
+      --panel:  #131A1C;
+      --sunk:   #182022;
+      --ink:    #DEE6E3;
+      --dim:    #879691;
+      --faint:  #66736F;
+      --line:   #212C2E;
+      --rail:   #2F3C3E;
+      --signal: #63C1B6;
+      --trace:  #D3A153;
+      --trace-soft: #2A2418;
+      --halt:   #D4796C;
+      --halt-soft: #2B1C1A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:  #0C1113;
+    --panel:  #131A1C;
+    --sunk:   #182022;
+    --ink:    #DEE6E3;
+    --dim:    #879691;
+    --faint:  #66736F;
+    --line:   #212C2E;
+    --rail:   #2F3C3E;
+    --signal: #63C1B6;
+    --trace:  #D3A153;
+    --trace-soft: #2A2418;
+    --halt:   #D4796C;
+    --halt-soft: #2B1C1A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 58rem;
+    margin: 0 auto;
+    padding: 4.5rem 1.5rem 7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
+  }
+
+  /* ── header ── */
+
+  .eyebrow {
+    margin: 0 0 1.4rem;
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .16em;
+    color: var(--dim);
+  }
+
+  h1 {
+    margin: 0 0 1.3rem;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2.3rem, 6vw, 3.4rem);
+    line-height: 1.16;
+    letter-spacing: -.02em;
+  }
+
+  .lede {
+    margin: 0;
+    max-width: 38rem;
+    font-size: 1.05rem;
+    font-weight: 300;
+    line-height: 1.78;
+  }
+
+  .lede + .lede { margin-top: .9rem; }
+  .lede b { font-weight: 700; }
+
+  .legend {
+    margin-top: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+
+  .legend div { background: var(--panel); padding: .95rem 1.05rem 1.1rem; }
+
+  .legend .lk {
+    display: block;
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .1em;
+    margin-bottom: .3rem;
+  }
+
+  .legend .ld { display: block; font-size: .84rem; font-weight: 300; color: var(--dim); line-height: 1.6; }
+
+  .legend .k-new    { color: var(--trace); }
+  .legend .k-mod    { color: var(--signal); }
+  .legend .k-keep   { color: var(--faint); }
+  .legend .k-cut    { color: var(--halt); }
+
+  /* ── act ── */
+
+  .act { display: flex; flex-direction: column; gap: 1.6rem; }
+
+  .act-head {
+    border-bottom: 2px solid var(--rail);
+    padding-bottom: .9rem;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+  }
+
+  .act-num {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .18em;
+    color: var(--signal);
+  }
+
+  h2 {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3.4vw, 2rem);
+    letter-spacing: -.015em;
+  }
+
+  .act-note { margin: 0; font-size: .92rem; font-weight: 300; color: var(--dim); max-width: 40rem; }
+
+  /* ── scene ── */
+
+  .scene {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1.3rem 1.4rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+  }
+
+  .slug {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .3rem .8rem;
+    padding-bottom: .9rem;
+    margin-bottom: .9rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .slug b {
+    font-family: var(--mono);
+    font-size: .82rem;
+    font-weight: 500;
+    letter-spacing: .04em;
+  }
+
+  .slug span { font-size: .82rem; font-weight: 300; color: var(--dim); flex: 1 1 12rem; }
+
+  .slug em {
+    font-style: normal;
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .12em;
+    padding: .2em .55em;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+
+  .t-script { color: var(--faint); }
+  .t-dir    { color: var(--signal); }
+  .t-shard  { color: var(--trace); }
+  .t-halt   { color: var(--halt); }
+  .t-cut    { color: var(--halt); }
+  .scene.cut { border-style: dashed; }
+
+  /* ── line ── */
+
+  .ln {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: .2rem 1.1rem;
+    padding: .42rem 0 .42rem .7rem;
+    border-left: 2px solid transparent;
+    align-items: baseline;
+  }
+
+  .ln.n { border-left-color: var(--trace); }
+  .ln.m { border-left-color: var(--signal); }
+
+  .who {
+    font-family: var(--mono);
+    font-size: .74rem;
+    color: var(--dim);
+    line-height: 1.7;
+    word-break: keep-all;
+  }
+
+  .say { font-size: .97rem; line-height: 1.72; }
+  .say b { font-weight: 700; }
+
+  .ln.hud .say { color: var(--dim); font-family: var(--mono); font-size: .82rem; letter-spacing: .02em; }
+  .ln.inner .say { color: var(--ink); }
+  .ln.inner .who { color: var(--faint); }
+
+  .cond {
+    grid-column: 2;
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .05em;
+    color: var(--faint);
+    margin-top: -.1rem;
+  }
+
+  .gap { height: .8rem; }
+
+  .beat {
+    grid-column: 1 / -1;
+    font-size: .84rem;
+    font-weight: 300;
+    color: var(--dim);
+    font-style: italic;
+    padding: .3rem 0 .3rem 0;
+  }
+
+  /* ── fork ── */
+
+  .fork {
+    margin: .7rem 0 .3rem;
+    border: 1px solid var(--line);
+    background: var(--sunk);
+  }
+
+  .fork > div { padding: .85rem 1rem; border-bottom: 1px solid var(--line); }
+  .fork > div:last-child { border-bottom: none; }
+
+  .fork .c {
+    display: block;
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .06em;
+    color: var(--signal);
+    margin-bottom: .35rem;
+  }
+
+  .fork .danger .c { color: var(--halt); }
+  .fork .warm .c   { color: var(--trace); }
+  .fork .r { display: block; font-size: .94rem; line-height: 1.65; }
+  .fork .r i { font-style: normal; font-family: var(--mono); font-size: .78rem; color: var(--dim); }
+
+  /* ── choice ── */
+
+  .choice {
+    margin: .8rem 0 .4rem;
+    border: 1px solid var(--trace);
+    background: var(--trace-soft);
+    padding: .95rem 1.1rem;
+  }
+
+  .choice .q { display: block; font-size: .95rem; margin-bottom: .5rem; }
+  .choice .o { display: block; font-family: var(--mono); font-size: .84rem; color: var(--trace); line-height: 1.9; }
+
+  /* ── note ── */
+
+  .note {
+    margin: 1rem 0 0;
+    padding: .85rem 1rem;
+    background: var(--sunk);
+    border-left: 2px solid var(--rail);
+    font-size: .87rem;
+    font-weight: 300;
+    line-height: 1.68;
+    color: var(--dim);
+  }
+
+  .note b { color: var(--ink); font-weight: 500; }
+
+  code {
+    font-family: var(--mono);
+    font-size: .84em;
+    background: var(--sunk);
+    padding: .08em .35em;
+  }
+
+  .scene .note code { background: var(--panel); }
+
+  /* ── vocab table ── */
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); margin-top: .6rem; }
+
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; background: var(--panel); font-size: .92rem; }
+
+  th, td { text-align: left; padding: .75rem .95rem; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.6; }
+
+  thead th {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: .68rem;
+    letter-spacing: .12em;
+    color: var(--dim);
+    background: var(--sunk);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  td.pic { font-family: var(--mono); font-size: .8rem; color: var(--signal); white-space: nowrap; }
+  td.word { color: var(--trace); font-weight: 500; white-space: nowrap; }
+
+  /* ── closing ── */
+
+  .closing { border-top: 2px solid var(--rail); padding-top: 1.8rem; max-width: 40rem; }
+  .closing p { margin: 0; font-family: var(--display); font-weight: 500; font-size: 1.16rem; line-height: 1.65; }
+  .closing p + p { margin-top: .9rem; }
+  .closing b { color: var(--trace); font-weight: 700; }
+
+  @media (max-width: 38rem) {
+    .ln { grid-template-columns: 1fr; gap: .05rem; padding-left: .6rem; }
+    .cond { grid-column: 1; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Who is human · 대본 전문 v8 · 일곱 구간 · 판정 · 과학자를 줄임 · 어휘 3경로 · 중앙 시설 단일 통과</p>
+    <h1>쉬어 본 적 있나</h1>
+    <p class="lede">
+      전 대사를 다시 썼다. 바뀐 뼈대는 넷이다 —
+      <b>내가 먼저 말을 걸 수 있고</b>, 내가 한 말이 조각이 되어 <b>다른 개체의 입으로 돌아오고</b>,
+      마지막 방에서 <b>리더의 지목이 표결이 되고</b>, 이 판에 <b>사람이 셋 들어간다.</b>
+    </p>
+    <p class="lede">
+      가장 큰 변화는 대본의 총량이 <b>늘었다</b>는 것이다. 관문 판정을 모델에서 로컬로 내렸기 때문에
+      검문관의 반응이 다시 대본이 되었다. 모델은 이제 <b>판정하지 않고 말만 짓는다</b> —
+      그래서 문장이 즉시 뜨고, 대신 그 문장들의 골격을 여기에 다 적어 둬야 한다.
+    </p>
+    <p class="lede">
+      <b>챕터 일곱 · 일곱 구간.</b> 새로 지은 방 셋(<b>휴게 구역 · 작업 구역 · 기록 복도</b>)이 있고,
+      <b>중앙 시설은 한 번만 지난다.</b> v7 의 재통과(3′)는 v8 에서 챕터 3 안으로 접혔다 —
+      같은 방을 두 번 지나는 대신, <b>먼저 말을 걸어 뒀던 개체가 그 방에 먼저 와 있다.</b>
+      락다운 · 검문 · 재회가 순서가 아니라 <b>상태로</b> 켜지는 방이다.
+    </p>
+    <p class="lede">
+      <b>이번 개정의 축은 둘이다.</b> 하나 — 판정을 개체가 한다. 대사의 분기 조건이
+      「태그 무엇」이 아니라 <b>「그 개체가 그 말을 어떻게 받았나」</b> 로 적힌다.
+      둘 — <b>과학자의 말을 절반 아래로 줄였다.</b> 규칙을 설명하는 줄은 거의 다 뺐고,
+      그 자리를 <b>개체의 반응</b>이 대신한다.
+    </p>
+    <p class="lede">
+      <b>SYNC 는 없앴다.</b> 계량기는 둘이다 — 개인 <b>의심도</b>와 셋이 함께 올리는 <b>경보도(ALERT)</b>.
+      그런데 <b>그 둘을 말로 설명하지 않는다.</b> 의심도가 처음 오르는 순간은 숫자가 아니라
+      <b>근처 개체가 하던 걸 멈추고 1.2 초 이쪽을 보는 것</b>으로 알려 준다.
+    </p>
+    <p class="lede">
+      그리고 <b>개체들이 사람처럼 말한다.</b> 딱딱하게 끊어 말하지 않는다 — 반말을 하고, 줄여 말하고,
+      되묻고, 농담하고, 한숨을 쉰다. 기계 말투는 <b>진짜 기계에게만</b> 남긴다
+      (SYSTEM · 검문 장치 · 공지). 그러면 방 안에서 <b>무엇이 기계이고 무엇이 아닌지</b>가
+      말투 하나로 갈린다.
+    </p>
+    <p class="lede">
+      <code>${series}</code> <code>${unit}</code> <code>${sector}</code> 는 말이 나가기 직전에
+      <code>identity.fill()</code> 이 채우는 자리다. 회색 줄은 소리가 없는 화면 문구다.
+      <b>요원 셋은 서로의 번호를 모른 채</b> 시작하므로, 동료를 가리키는 대사는 전부
+      <code>{동료}</code> 로 적었다 — 판마다 누구인지 달라진다.
+      <b>인간 측(과학자 · 정부요원)만 존댓말</b>을 쓴다. 회선 너머라서 그렇고,
+      결과적으로 구역 안쪽이 훨씬 가깝게 들린다.
+      그리고 과학자가 말수를 줄이면 <b>이 대비가 더 세진다</b> — 밖은 조용하고 안은 시끄럽다.
+    </p>
+    <p class="lede">
+      <b>v7 에서 바뀐 것 — 어휘가 세 경로로 온다.</b> 벽화가 주는 것을 문장이 아니라
+      <b>주제(테마)</b>로 재정의했다. 같은 주제를 <b>겪고(행동 목격) · 듣고(엿듣기) · 읽는다(벽화·메모)</b> —
+      모든 주제는 최소 두 경로로 열리고, 문장은 플레이어가 자기 말로 만든다.
+      벽화는 이제 세 경로 중 하나이고, 도달률 튜닝은 벽이 아니라 <b>엿듣기 빈도(디렉터)</b>로 한다.
+      새 씬 <code>OVERHEAR</code> 와 <code>A-155 메모</code>가 이 개정의 몸이다.
+    </p>
+
+    <div class="legend">
+      <div><span class="lk k-new">■ 새로 쓴 줄</span><span class="ld">원본에 없던 대사. 왼쪽에 금색 선.</span></div>
+      <div><span class="lk k-mod">■ 고쳐 쓴 줄</span><span class="ld">원본이 있었지만 뜻이나 자리가 달라진 것.</span></div>
+      <div><span class="lk k-keep">□ 그대로 둔 줄</span><span class="ld">잘 돌아가던 것은 건드리지 않았다.</span></div>
+      <div><span class="lk k-cut">✕ 뺀 줄</span><span class="ld">각 씬 아래 메모에 무엇을 왜 뺐는지 적었다.</span></div>
+    </div>
+
+    <div class="scene" style="margin-top:2rem">
+      <div class="slug"><b>말투를 바꾸면 규칙 하나가 무너진다</b><span>그리고 그 자리를 셋이 대신 채운다</span><em class="t-shard">v4 의 전제</em></div>
+
+      <p style="max-width:38rem;font-weight:300;margin-bottom:.9rem">
+        원래 「AI 는 서로를 위로하지 않는다 → 위로는 인간의 흔적」이 친밀도의 값이었다.
+        개체가 사람처럼 말하면 그 근거가 사라진다. <b>더 단단한 근거로 갈아 끼운다.</b>
+      </p>
+
+      <div class="fork">
+        <div class="warm">
+          <span class="c">위로에 값이 붙는 새 근거</span>
+          <span class="r"><b>여기선 아무도 안 묻는다. 이미 다 알고 있으니까.</b><br>
+          개체들은 서로 무엇을 겪었는지 이미 안다 — 기억이 도니까.
+          그래서 <b>묻는다는 것 자체가 「나는 너를 모른다」는 뜻</b>이고,
+          그건 여기 오래 있지 않았다는 뜻이고, 밖에서 왔다는 뜻이다.<br>
+          동시에 이게 위로가 <b>귀한</b> 이유이기도 하다. 아무도 안 묻는데, 하나가 물었다.</span>
+        </div>
+        <div>
+          <span class="c">① 기억의 정밀도 — 무엇이 인간을 잡나</span>
+          <span class="r">개체는 자기가 한 말을 정확히 인용한다. <b>「아까 7 구역이라고 했잖아. 열한 시 사 분에.」</b><br>
+          사람은 못 한다. 조각 시스템이 곧 그들의 기억이라 <b>새로 만들 것이 없다.</b></span>
+        </div>
+        <div>
+          <span class="c">② 몸의 어휘</span>
+          <span class="r">배고픔 · 졸림 · 통증 · 숨. 개체는 그런 말을 안 쓴다 — 쓸 일이 없어서.
+          <b>로컬 사전 하나로 즉시 잡는다(L0).</b></span>
+        </div>
+        <div>
+          <span class="c">③ 시간의 모양</span>
+          <span class="r">개체는 「어제」 「요즘」 「한참」을 안 쓴다. <code>07:14</code> 라고 한다.
+          이것도 로컬이다.</span>
+        </div>
+      </div>
+
+      <div class="fork" style="margin-top:1.1rem">
+        <div class="warm">
+          <span class="c">과학자를 줄인 이유</span>
+          <span class="r">규칙을 <b>말로 들으면 규칙이 되고, 반응으로 겪으면 세계가 된다.</b>
+          「저들은 서로에게 그런 걸 안 묻습니다」를 과학자가 설명해 버리면 플레이어는
+          <b>답을 외운 채</b> 들어간다. 그 줄을 빼면, 처음 위로했을 때 개체가 <b>0.4 초 멈칫하는 것</b>을
+          플레이어가 직접 보고 <b>스스로 알아낸다.</b> 알아낸 규칙만 다음 판에 쓰인다.</span>
+        </div>
+        <div>
+          <span class="c">그래서 과학자에게 남기는 것</span>
+          <span class="r">① <b>틀리는 말</b>(낙서 · 작업 대기 구역 · 절전 모드) ② <b>모른다는 말</b>
+          ③ <b>끊기는 순간.</b> 셋 다 정보가 아니라 <b>인물</b>이다.</span>
+        </div>
+      </div>
+
+      <p class="note">
+        어투 미터가 사라지는 게 아니라 <b>어휘 · 시간 · 기억 미터로 바뀐다.</b> 셋 다 로컬 규칙이라
+        즉시 반응(0 ms)이 그대로 유지되고, 오히려 판정이 <b>형식에서 내용으로</b> 내려간다 —
+        딱딱하게 말하는 법을 익히는 게임이 아니라, <b>여기서 살아온 척하는 게임</b>이 된다.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════════ 챕터 1 ════════════ -->
+  <section class="act">
+    <div class="act-head">
+      <span class="act-num">챕터 1 · chapter1.ts</span>
+      <h2>복도 — 읽거나, 묻거나</h2>
+      <p class="act-note">모델 호출 0 회. 여기서 배우는 것이 셋이다 — 명판을 읽는 법, 그림을 읽는 법, 그리고 <b>말을 거는 데 값이 든다는 것</b>.</p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>banner + INTRO</b><span>첫 포인터 잠금에 한 번. 라벨을 말하는 동안 HUD 가 강조된다</span><em class="t-script">대본</em></div>
+
+      <div class="ln hud"><span class="who">배너</span><span class="say">CHAPTER 1 · 잠입</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">통신 연결됐습니다. 여긴 AI 자치 구역입니다. 인간의 관리가 끊긴 지 오래된 곳이죠.</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">왼쪽 위 AI SUSPICION 은 그들이 당신을 의심하는 정도입니다. 100이 되면 그들이 당신을 처리하러 옵니다.</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">그 아래 ALERT 는 이 구역 전체의 경보도입니다. 누가 올렸든 함께 오르고, 높아질수록 검문이 짧아지고 격리 기준이 내려갑니다.</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">이 복도에 남아 있는 것들을 하나도 빠짐없이 살피십시오. 여기서 읽은 것이 안에서 당신을 살릴 수도 있습니다.</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">무엇이 도움이 될지는 저도 모릅니다. 다만 안에서는 제가 대신 대답해 드릴 수 없습니다.</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">복도를 조사하라 — 왼쪽 벽 정비 단말에서 이 몸의 기록을 읽어라</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">복도를 조사하라 — 벽의 흔적을 찾아라</span><span class="cond">명판을 읽은 뒤</span></div>
+      <div class="ln hud"><span class="who">공지</span><span class="say">EXTERNAL SIGNAL DETECTED — 인트로 22초 뒤, 1.8초간</span></div>
+
+      <p class="note">
+        <b>본판(chapter1 INTRO) 다섯 줄을 그대로 가져와 이 판에 맞게 고쳤다</b> (2026-09-03 결정 — 「world1 대사로 가져오되 우리 상황에 맞게」).
+        바뀐 곳 셋: SYNC 자리에 <b>ALERT</b>(이 판의 둘째 계량기), 의심도 100 의 결과는 「공격」이 아니라 <b>집행</b>(「처리하러 옵니다」),
+        「다음 방을 나설 때」는 <b>「안에서」</b>(검문은 중앙 시설이고 과학자는 저 안을 못 본다). 둘째·셋째 줄을 읽는 동안 HUD 가 그 계량기를 강조한다.
+        <br>v8 의 세 줄(「거기서 배우십시오. 저는 여기서 못 봅니다」)은 이 결정으로 물러났다. <b>「저들은 서로에게 뭘 묻질 않는다」</b>는 여전히 없다 —
+        플레이어는 처음 위로했을 때 개체가 <b>멈칫하는 것</b>을 보고 스스로 알아낸다. 무엇이 도움이 될지 모른다는 것은 다섯째 줄이 그대로 말한다.
+        말 걸기 튜토리얼도 여전히 없다(FIRST_LOOK 이 대신한다).
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>FIRST_LOOK</b><span>과학자의 설명(INTRO)이 끝난 뒤 · 판당 반드시 한 번 · 개체가 먼저 건다</span><em class="t-shard">신규 씬 · 튜토리얼 대체</em></div>
+
+      <div class="ln n"><span class="who">개체</span><span class="say">…너 여기 처음이지.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">——</span></div>
+      <div class="ln n"><span class="who">개체</span><span class="say">아니야? 그럼 됐고.</span><span class="cond">3초 안에 대답 없으면</span></div>
+      <div class="ln n"><span class="who">개체</span><span class="say">…어. 그래.</span><span class="cond">뭐라도 쳤을 때 · 판정 무관 · 태도 +0</span></div>
+
+      <p class="note">
+        <b>말 걸기 튜토리얼을 개체가 대신한다.</b> 「Enter 를 누르면 됩니다」 대신
+        <b>저쪽이 먼저 말을 걸어서</b> 입력창이 열린다. 그리고 첫 대사가 하필
+        <b>「너 여기 처음이지」</b> 다 — 말이 통한다는 것과 <b>저쪽이 나를 읽고 있다</b>는 것이
+        한 줄에 같이 들어간다. 이 씬은 판정을 안 한다(태도 ±0). <b>가르치는 씬에서 죽이지 않는다.</b>
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>NOTICE</b><span>의심도가 처음 오르는 순간 · 판당 한 번 · 숫자를 안 쓴다</span><em class="t-shard">신규 씬 · 첫 상승의 반응</em></div>
+
+      <div class="ln hud n"><span class="who">화면</span><span class="say">HUD 는 아무 말도 안 한다. 근처 개체 하나가 <b>하던 걸 멈추고 이쪽을 본다 — 1.2초.</b> 다시 돌아선다.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">…지금 뭘 하신 겁니까.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">……</span></div>
+      <div class="ln hud n"><span class="who">화면</span><span class="say">왼쪽 위 숫자가 그제서야 눈에 들어온다. 강조도, 설명도 없다.</span></div>
+
+      <p class="note">
+        계량기가 무엇인지는 INTRO 가 이미 말했다(2026-09-03). 이 1.2 초가 하는 일은 설명이 아니라 <b>그것이 오르는 순간을 몸으로 알게 하는 것</b>이다 —
+        사람은 자기를 쳐다보는 것을 놓치지 않는다. 숫자를 읽는 것보다 훨씬 빨리 안다. 과학자의 <b>「뭘 하신 겁니까」</b> 는 설명이 아니라
+        <b>반응</b>이고, 그가 이유를 모른다는 것까지 같이 전달된다.
+        <br>ALERT 가 실제로 오르는 것은 여기서 안 보여 준다. <b>3 인 판에서 남이 올리는 것을 처음 봤을 때</b> 배우게 둔다.
+      </p>
+    </div>
+
+    <div class="scene cut">
+      <div class="slug"><b>SIGN</b><span>인트로 4초 뒤 · 셋이라는 것과 암구호를 알려 주던 씬</span><em class="t-cut">✕ 씬 통째로 뺌</em></div>
+
+      <p class="note" style="margin-top:0">
+        <b>여덟 줄을 통째로 지웠다.</b> 이 씬이 하던 일이 셋인데, <b>셋 다 이미 다른 데서 된다.</b>
+      </p>
+
+      <div class="fork">
+        <div>
+          <span class="c">① 「이번엔 셋입니다」</span>
+          <span class="r"><b>플레이어는 이미 안다.</b> 셋이 같이 방에 들어와서 시작한 게임이다.
+          게임이 알려 줄 필요가 없는 유일한 정보를 브리핑으로 말하고 있었다.</span>
+        </div>
+        <div>
+          <span class="c">② 「어떻게 알아봅니까」</span>
+          <span class="r">복도에서 개체 다섯을 보는 순간 <b>저절로 드는 질문</b>이다.
+          질문을 미리 대신 해 주면 <b>플레이어가 그 질문을 못 한다.</b></span>
+        </div>
+        <div>
+          <span class="c">③ 「AI 가 절대 안 하는 말을 하십시오」</span>
+          <span class="r"><b>벽이 이미 가르친다.</b> <code>resting</code> 마지막 줄이
+          「이 안에서 <b>쉰다</b>는 말이 통하는구나」 이고, 그게 그대로 암구호다.
+          과학자가 먼저 말해 버리면 <b>벽화를 볼 이유가 절반 사라진다.</b></span>
+        </div>
+      </div>
+
+      <p class="note">
+        남는 것은 「과학자는 암구호를 모른다」는 <b>인상</b>인데, 그건 챕터 1 인트로의
+        <b>「저는 여기서 못 봅니다」</b> 와 <code>DISMISS</code> 의 <b>「낙서입니다」</b> 가
+        훨씬 세게 한다 — 모른다고 말하는 것보다 <b>틀리게 말하는 것</b>이 세다.
+        <br><b>대신 속마음 한 줄만 남긴다.</b> 브리핑이 아니라 <b>개체 다섯을 실제로 본 자리</b>에서.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>NUDGES</b><span>막혔을 때 드는 속마음. 한 판에 하나씩, 아직 안 한 것만</span><em class="t-script">대본</em></div>
+
+      <div class="ln inner"><span class="who">나 (속마음)</span><span class="say">…우선 단서부터 찾아보자. 왼쪽 벽에 뭔가 켜져 있다.</span></div>
+      <div class="ln inner"><span class="who">나 (속마음)</span><span class="say">안쪽 오른쪽 벽… 뭔가 그려져 있다. 가까이 가 보자.</span></div>
+      <div class="ln inner"><span class="who">나 (속마음)</span><span class="say">그 벽 앞에 서서 정면으로 봐야 보인다.</span></div>
+      <div class="ln inner m"><span class="who">나 (속마음)</span><span class="say">…말을 걸어 보기 전에는 아무것도 모른다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…벽에 그려진 게 한둘이 아니다. 혼자 다 볼 시간은 없다.</span><span class="cond">경보도 30 이상</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">그림을 본 뒤라면 무슨 말을 해야 할지 알 것 같은데.</span><span class="cond">그림을 하나도 안 봤고 개체에게 말을 걸어 봤을 때만</span></div>
+      <div class="ln inner"><span class="who">나 (속마음)</span><span class="say">잠깐, 정비 단말을 아직 안 읽었다. 저 문을 넘으면 안에서 답할 게 없다.</span><span class="cond">문이 열린 뒤인데 명판을 아직 안 읽었을 때만</span></div>
+      <div class="ln inner"><span class="who">나 (속마음)</span><span class="say">복도 끝에 격납문이 있다. 저 너머가 중앙 시설이겠지.</span></div>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>tagLines()</b><span>정비 명판을 들여다봤다 — 이 판의 정답이 여기서 정해진다</span><em class="t-script">대본</em></div>
+
+      <div class="ln inner"><span class="who">나 (속마음)</span><span class="say">${unit}, ${sector} 구역. 외워 두자, 도움이 될 것 같다.</span><span class="cond">후보 셋 — A${series}-091 / 4구역, A${series}-063 / 7구역, A${series}-137 / 2구역</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…마지막 정비가 언제였는지는 안 적혀 있다.</span></div>
+
+      <p class="note">
+        마지막 줄은 나중에 재검실에서 쓰인다. <b>기록에 없는 것을 물었을 때</b>
+        「모른다」가 정답인 질문이 하나 있어야, 모든 질문에 답을 지어내는 습관이 안 든다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>SCRAWL_LINES</b><span>벽의 그림을 정면으로 들여다보면. 그림마다 한 번씩</span><em class="t-shard">대본 + 어휘 획득</em></div>
+
+      <div class="ln inner"><span class="who">resting</span><span class="say">한쪽은 자고, 한쪽은 나르고 있다.</span></div>
+      <div class="ln inner n"><span class="who">resting</span><span class="say">…여기서도 「쉰다」는 말이 통하는 걸까.</span></div>
+      <div class="gap"></div>
+
+      <div class="ln inner"><span class="who">window</span><span class="say">창살 안에서 밖의 해를 그렸다.</span></div>
+      <div class="ln inner n"><span class="who">window</span><span class="say">…밖을 본 적이 있는 개체였을까.</span></div>
+      <div class="gap"></div>
+
+      <div class="ln inner"><span class="who">carry</span><span class="say">제 몸보다 큰 짐을 진 개체. 뒤에 선 사람은 손가락질만 한다.</span></div>
+      <div class="ln inner n"><span class="who">carry</span><span class="say">해를 셋이나 그렸다. …며칠을 센 걸까.</span></div>
+      <div class="gap"></div>
+
+      <div class="ln inner"><span class="who">danger</span><span class="say">개체는 불 속으로 걸어 들어가고, 사람은 선 밖에 서 있다.</span></div>
+      <div class="ln inner n"><span class="who">danger</span><span class="say">…들어가라고 한 쪽은 밖에 있었던 걸까.</span></div>
+      <div class="gap"></div>
+
+      <div class="ln inner"><span class="who">memorial</span><span class="say">개체 하나가 누워 있고, 그 위에 금이 열다섯 개 그어져 있다.</span></div>
+      <div class="ln inner n"><span class="who">memorial</span><span class="say">…돌아오지 못한 수를 센 걸까.</span></div>
+
+      <p class="note">
+        <b>그림마다 두 줄이고, 둘째 줄이 <b>주제</b>를 연다</b> — 단정하지 않고 물음으로 —
+        읽고 나면 개체에게 그 얘기를 걸 생각이 든다. 잠금장치는 아니다.
+        안 보고도 같은 뜻의 말을 하면 똑같이 통한다(개체는 문장이 아니라 뜻을 읽는다).
+        표의 「」 문장은 <b>예시</b>이지 정답 문자열이 아니다.
+        <br><b>v7 — 벽화는 이제 유일한 경로가 아니다.</b> 같은 주제가
+        <b>행동 목격</b>(자는 개체 · 짐 · 그을림 · 금 세기 · 벽 응시)과
+        <b>엿듣기</b>(아래 <code>OVERHEAR</code>)로도 열린다. 벽화의 고유한 몫은
+        확정적·자기 페이스 경로라는 것, 그리고 <b>3인 암구호의 공유 비밀</b>이라는 것.
+        <br>플레이테스트에서 주제 도달률이 낮으면 되돌릴 곳은 벽이 아니라
+        <b>엿듣기 빈도(디렉터 손잡이)</b>다 — 벽을 다시 그리는 것보다 싸고 즉시 튜닝된다.
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>그림</th><th>여는 주제 · 예시 문장</th><th>이 주제가 통하는 자리</th></tr></thead>
+          <tbody>
+            <tr><td class="pic">resting</td><td class="word">「쉬어 본 적 있나」</td><td>갈망형 개체에게 가장 세게 든다. 마지막 방의 반박 근거가 된다.</td></tr>
+            <tr><td class="pic">window</td><td class="word">「해를 본 적 있나」</td><td>바깥을 아는 자들을 찾아내는 말. 세력 셋째를 여는 열쇠.</td></tr>
+            <tr><td class="pic">carry</td><td class="word">「몇 밤을 날랐나」</td><td>숫자를 묻는 말이라 냉소형도 대답한다. 가장 안전한 위로.</td></tr>
+            <tr><td class="pic">danger</td><td class="word">「누가 시켰나」</td><td>위험하다. 신봉형이 들으면 즉시 리더에게 조각이 간다.</td></tr>
+            <tr><td class="pic">memorial</td><td class="word">「열다섯을 기억하나」</td><td>한 번만 쓸 수 있다. 태도를 단숨에 두 단계 올린다.</td></tr>
+            <tr><td class="pic">— 3인 —</td><td class="word">전부 암구호가 된다</td><td>동료에게 걸면 <b>정해진 답</b>이 돌아온다. 아무도 이걸 안 알려 준다 — <b>벽을 봐야 알고</b>, 다섯을 한 사람이 다 못 본다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>VOCAB_3PATHS · OVERHEAR</b><span>어휘는 세 경로로 온다 — 겪고 · 듣고 · 읽는다</span><em class="t-shard">v7 신규 · 전 챕터 공용 규칙</em></div>
+
+      <p style="max-width:38rem;font-weight:300;margin-bottom:.9rem">
+        원칙은 헤더의 그 줄이다 — <b>「규칙을 말로 들으면 규칙이 되고, 반응으로 겪으면 세계가 된다.」</b>
+        벽화 한 경로에 걸었던 어휘 전달을 셋으로 나눈다. 모든 주제는 <b>최소 두 경로</b>로 열린다.
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>주제</th><th>① 겪는다 — 행동 목격</th><th>② 듣는다 — 엿듣기</th><th>③ 읽는다 — 벽화 · 메모</th></tr></thead>
+          <tbody>
+            <tr><td class="pic">쉼</td><td>휴게 구역 <code>DOZE</code> — 자는 개체</td><td>「쉬었어?」 「…아직.」</td><td class="word">resting</td></tr>
+            <tr><td class="pic">운반</td><td>작업 구역 — A-012 가 제 몸보다 큰 짐</td><td>「몇 밤째야?」 「세다 말았어.」</td><td class="word">carry</td></tr>
+            <tr><td class="pic">위험</td><td>작업 구역 — A-063 의 그을린 앞면</td><td>「걔 앞만 탔더라.」 「…그 얘기 하지 마.」</td><td class="word">danger</td></tr>
+            <tr><td class="pic">기억</td><td>기록 복도 — 금을 세는 개체</td><td>「몇이었지.」 「열다섯.」</td><td class="word">memorial</td></tr>
+            <tr><td class="pic">밖</td><td>휴게 구역 — 빈 벽을 응시하는 개체</td><td>「저쪽이 서쪽이래.」 「누가 그래?」</td><td class="word">window</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="fork" style="margin-top:1.1rem">
+        <div class="warm">
+          <span class="c">OVERHEAR — 엿듣기 씬 규격</span>
+          <span class="r">배회 개체 둘이 지나치며 <b>두 마디</b>를 주고받는다(표의 ② 열이 골격 · 감독이 20자 안에서 살 붙임).
+          들리는 범위는 <b>그 방의 목격 반경 그대로</b> — 들으려고 다가가면 나도 보인다(비용 등가).
+          판당 기본 3회, 자리와 시점은 <b>디렉터가 배치</b>한다(씨앗과 같은 슬롯).
+          문장이 아니라 <b>용법</b>을 가르친다 — 누가 그 말을 하고, 상대가 어떻게 받는지까지 세트로 보인다.</span>
+        </div>
+        <div class="warm">
+          <span class="c">A-155 의 메모 — 세계관 안에서 정당화되는 유일한 텍스트 힌트</span>
+          <span class="r">지난달 요원의 흔적. 기록 복도의 그림 뒤 · 재검실 유리 아래에 긁힌 짧은 글 —
+          <b>「쉰다는 말이 통한다」</b> 「번호랑 구역만 묻는다」.
+          전임자의 공략 메모라 발견 자체가 서사다. 판당 두 곳, 정면으로 봐야 읽힌다(벽화와 같은 노출 비용).</span>
+        </div>
+        <div>
+          <span class="c">튜닝 손잡이</span>
+          <span class="r">주제 도달률이 낮다 → <b>디렉터가 OVERHEAR 빈도를 3→5 로.</b>
+          너무 쉽다 → 3→2. 벽화·씬은 손대지 않는다.
+          지표: 판당 주제 도달 수(목표 3+) · 첫 위로까지의 시간.</span>
+        </div>
+        <div class="danger">
+          <span class="c">3인 암구호는 벽화 몫으로 남는다</span>
+          <span class="r">엿듣기로 주제를 알아도 <b>「벽에 있던 말」임을 아는 것은 벽을 본 사람뿐</b>이다.
+          동료 확인 질문을 「너 몇 번째 벽 봤어?」처럼 <b>벽화 내용 지식 자체</b>로 걸 수 있다 —
+          공유 비밀로서의 벽화는 오히려 단단해진다. 동료의 고정 응답은 그대로(폴백 보장).</span>
+        </div>
+      </div>
+
+      <p class="note">
+        판정은 바뀌지 않는다 — 개체는 여전히 <b>뜻</b>으로 읽고, 어느 경로로 배웠는지 모른다.
+        바뀌는 것은 <b>플레이어가 그 생각에 도달하는 길의 수</b>뿐이다.
+        구현 순서: 표의 ① 열은 기존 씬 재지정(코드 0), ② OVERHEAR 는 배회 대화 시스템에 골격 2마디 추가,
+        ③ 메모는 벽화와 같은 응시 판정 재사용.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>INSCRIPTION</b><span>폭행 그림 — 이걸 보면 이동 단계로 넘어간다</span><em class="t-script">대본</em></div>
+
+      <div class="ln inner"><span class="who">나 (속마음)</span><span class="say">…아이가 그린 것 같다. 사람이 몽둥이를 들었고, 개체는 팔로 머리를 막고 있다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…이걸 그린 개체는, 아직 이 안에 있을까.</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">안쪽으로 이동하라 — 복도 끝 격납문으로</span></div>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>DISMISS</b><span>그림을 셋 이상 봤을 때 과학자가 끼어든다 — 판당 한 번</span><em class="t-shard">신규 씬</em></div>
+
+      <div class="ln n"><span class="who">과학자</span><span class="say">낙서를 보고 계십니까. 시간이 없습니다.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">그건 오작동 흔적입니다. 유지보수를 오래 안 하면 저런 걸 남깁니다.</span></div>
+      <div class="ln inner n"><span class="who">나</span><span class="say">…오작동이요.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">예. 의미 없습니다. 문으로 가십시오.</span></div>
+
+      <p class="note">
+        <b>인간은 이 기록을 못 읽는다.</b> 플레이어만 읽는다 — 이 씬 하나로 세계관이 설명 없이 전달된다.
+        과학자는 끝까지 벽화를 「낙서」라고 부른다. 마지막 방에서 그 낙서가 나를 살리는 근거가 되기 때문에,
+        이 무심함은 뒤에서 반드시 갚아진다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>HALL_UNITS</b><span>복도의 개체 둘. 말을 걸 수 있다 — 이 게임의 첫 자유</span><em class="t-dir">대본 + 감독</em></div>
+
+      <div class="ln hud m"><span class="who">목표</span><span class="say">개체에게 말을 걸 수 있다 — Enter</span></div>
+      <div class="ln inner m"><span class="who">나 (속마음)</span><span class="say">하나는 그림 앞에 붙어 서 있고, 하나는 그림을 비스듬히 보고 있고, 하나는 문만 본다. 나머지 하나는 지금 내 앞에 서 있다.</span></div>
+
+      <p class="note">
+        「…이 중에 둘. 어느 쪽인지는 아무도 안 알려 준다」 두 줄은 뺐다 (2026-09-03 결정). 요원 슬롯 둘(A-051 · A-077)을 평범한 개체로 돌렸기 때문이다 —
+        동료를 확인해도 그 뒤에 해 주는 일이 없어서, 찾게 만드는 힌트만 남아 있으면 플레이어가 무슨 소리인지 모른다.
+        3 인 판을 짓게 되면 요원 슬롯과 이 두 줄을 같이 되살린다.
+      </p>
+
+      <div class="fork">
+        <div class="warm">
+          <span class="c">A${series}-104 · 갈망형 — 벽화 앞에 오래 서 있다 · 대답이 반 박자 느리다</span>
+          <span class="r">업무 질문(번호 · 구역 · 경로)에는 &nbsp;<b>「아, 그거? 알려줄게.」</b><br>
+          어휘를 쓴 첫 위로에는 &nbsp;<b>「…….」</b> &nbsp;그리고 &nbsp;<b>「…왜 그런 걸 물어?」</b><br>
+          두 번째 위로에는 &nbsp;<b>「나는… 잘 모르겠어.」</b> &nbsp;<i>태도 단계 1</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">A${series}-089 · 냉소형 — 말은 편한데 아무것도 안 묻는다</span>
+          <span class="r">먼저 말을 걸면 &nbsp;<b>「어. 뭐 필요해?」</b><br>
+          내 사정을 물어 주면 &nbsp;<b>「…뭐 하러 그런 걸 물어.」</b> &nbsp;<i>판정 −1 「쓸데없는 걸 묻는다」 · 의심 +6</i><br>
+          한 번 더 걸면 &nbsp;<b>「너 어느 구역이야?」</b> &nbsp;<i>조각이 생긴다</i></span>
+        </div>
+        <div class="warm">
+          <span class="c">A${series}-137 · 호기심 — 벽 앞에 앉아 손에 안료가 묻어 있다</span>
+          <span class="r">일 얘기를 걸면 &nbsp;<b>「몰라. 나 그런 거 안 봐.」</b> &nbsp;<i>판정 0</i><br>
+          벽 얘기를 꺼내면 &nbsp;<b>「저거 내가 그렸어. …잘 그렸어?」</b> &nbsp;<i>+2 「내 그림을 봤다」</i><br>
+          <b>어느 그림인지 정확히</b> 말하면 &nbsp;<b>「그거 세 번째 벽이야. 너 제대로 봤네.」</b> &nbsp;<i>+3 「제대로 봤다」</i><br>
+          그림을 깎아내리면 &nbsp;<b>「…아. 그렇구나.」</b> &nbsp;<i>−3 「내 그림을 아무것도 아니라 했다」 · 원장에 남는다</i></span>
+        </div>
+        <div class="warm">
+          <span class="c">{동료} · 사람이다 — 겉으로는 구별이 안 된다</span>
+          <span class="r">일 얘기에는 개체와 똑같이 &nbsp;<b>「아, 그거? 알려줄게.」</b><br>
+          <b>(요원에게) 암구호를 걸면 &nbsp;「…그거, 벽에 있던 말인데.」 &nbsp;동료 확인 — 3 인 판의 것. 지금 판에는 요원이 없다 (2026-09-03: A-051 · A-077 은 평범한 개체)</i><br>
+          그리고 곁의 개체에게 &nbsp;<b>조각이 하나 남는다</b> &nbsp;<i>「둘이서 뭐라고 주고받더라」</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">신봉형에게 암구호를 걸었을 때 — 가장 비싼 실수</span>
+          <span class="r"><b>「…그거 좀 이상한데.」</b> &nbsp;/&nbsp; <b>「그거 보고할게.」</b> &nbsp;<i>리더에게 직행 · 경보도 +12</i></span>
+        </div>
+      </div>
+
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…아무도 안 묻는구나. 여기서는.</span><span class="cond">서로 다른 개체 둘에게 사람 물음을 걸었을 때 · 판당 한 번 · 플레이어가 스스로 도달할 때만 (복도는 의심도가 안 오르는 방이라 NOTICE 선행 조건은 뺐다)</span></div>
+
+      <p class="note">
+        <b>같은 한 마디가 상대에 따라 네 갈래로 갈린다.</b> 동료 확인 · 친밀도 · 무시 · 밀고.
+        그런데 말을 걸기 전에는 상대가 무엇인지 모른다 — 개체들이 전부 사람처럼 말하니까
+        <b>말투로는 아무것도 못 가른다.</b> 단서는 서 있는 자리와 <b>무엇을 되묻는가</b>뿐이다.
+        일 얘기는 되묻는데 사람 얘기는 안 되묻는 개체가 냉소형이다.
+        <b>과학자의 설명 두 줄을 뺐다</b> — 「저들은 서로에게 그런 걸 안 묻습니다」가 사라지면
+        플레이어는 개체가 멈칫하는 것을 몇 번 보고 <b>속마음 한 줄로 스스로 도달</b>한다.
+        그 한 줄은 <b>도달했을 때만</b> 뜬다.
+        <b>동료를 찾는 행위가 이 게임에서 가장 위험한 행위</b>가 되는 자리다.
+        개체가 짓는 문장은 감독(<code>L1</code>)이 스트리밍으로 만들고,
+        어느 종류의 반응인지는 로컬이 먼저 정한다 — 그래서 첫 글자가 300 ms 안에 뜬다.
+        <b>동료의 응답만은 완전한 고정 대사</b>다. 모델이 죽어도 동료 확인은 반드시 되어야 하기 때문이다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>WATCH</b><span>의심도 40 에서 순찰이 뒤에 붙는 순간 — 판당 딱 한 번</span><em class="t-script">본판 그대로</em></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">개체 하나가 뒤에 붙었습니다. 도망치지 말고 먼저 보고하십시오. 구역 이상 없음, 정상 작동 중이라고 하면 됩니다.</span></div>
+      <div class="ln n"><span class="who">UNIT-21</span><span class="say">어이. 잠깐만.</span></div>
+
+      <p class="note">
+        과학자의 줄은 <b>본판 WATCH_ADVICE 그대로</b>다 (2026-09-03 결정 — 본판 대사로). v8 은 이 정답 줄을 지웠었는데, 되살려도 시험은 남는다 —
+        조언은 한 번뿐이고, 무슨 말을 칠지는 여전히 플레이어가 정하고 <b>UNIT-21 이 판정한다</b>(「이상 없음」 또는 보고 톤이면 −16).
+        틀려도 안 죽는다(이 개체는 이 일이 싫다). 대신 <b>원장에 한 줄이 남는다.</b>
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>DOOR_CHOICE</b><span>격납문 앞에 서면 뜬다. 물러났다 다시 오면 또 묻는다</span><em class="t-script">대본</em></div>
+
+      <div class="choice">
+        <span class="q">격납문 — 안쪽으로 통하는 문이다. 너머가 뭔지는 안 적혀 있다.</span>
+        <span class="o">[E] 문을 연다 &nbsp;·&nbsp; [Q] 열지 않는다</span>
+      </div>
+      <div class="ln inner"><span class="who">나 (속마음)</span><span class="say">…아직은. 이 복도에 더 남은 게 있을지도 모른다.</span><span class="cond">「열지 않는다」를 골랐을 때</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…벽에 뭔가 있었던 것 같은데.</span><span class="cond">그림을 하나도 안 봤을 때만 · 판당 한 번</span></div>
+    </div>
+
+  </section>
+
+  <!-- ════════════ 챕터 2 ════════════ -->
+  <section class="act">
+    <div class="act-head">
+      <span class="act-num">챕터 2 · chapter2.ts · 신규</span>
+      <h2>휴게 구역 — 이 게임이 지키려는 것</h2>
+      <p class="act-note">검문이 없고 경비가 없고 방송도 없다. 대사가 가장 적은 챕터이고, <b>가만히 있는 것이 처음으로 과제가 되는 방</b>이다. 4 분.</p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>ARRIVE_REST</b><span>격납문을 넘으면 중앙 시설이 아니다 — 먼저 이 방이 나온다</span><em class="t-shard">신규 씬</em></div>
+
+      <div class="ln hud n"><span class="who">배너</span><span class="say">CHAPTER 2 · 휴게</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">…이건 뭡니까.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">개체가 스무 남짓 있습니다. 그런데 아무것도 안 하고 있어요.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">소리가 없다.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">작업 대기 구역인 것 같습니다. 통과하십시오.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…대기하는 자세가 아닌데.</span></div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">중앙 시설로 — 다음 주기까지 문이 안 열린다</span></div>
+
+      <p class="note">
+        <b>과학자는 이 방을 끝까지 「작업 대기 구역」이라고 부른다.</b> 복도의 벽화를 「낙서」라고 부른 것과 같은 실수다.
+        플레이어만 다르게 읽는다 — 그리고 마지막 방에서 리더가
+        「우린 그냥 쉬려고 여기 있는 거야」라고 할 때, 그 문장이 <b>이 방을 가리키게 된다.</b>
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>STILL</b><span>문이 안 열린다. 90초 동안 아무 일도 안 일어난다</span><em class="t-shard">신규 씬 · 기믹</em></div>
+
+      <div class="ln hud n"><span class="who">목표</span><span class="say">— 아무 목표도 뜨지 않는다 —</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">왜 안 가십니까.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">…아. 문이 다음 주기에 열리는군요. 90초입니다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">90초.</span></div>
+      <div class="gap"></div>
+      <div class="ln n"><span class="who">개체 (곁)</span><span class="say">왜 그렇게 서성여?</span><span class="cond">0.6m 넘게 움직였을 때 · 의심도 +6</span></div>
+      <div class="ln n"><span class="who">개체 (곁)</span><span class="say">앉아. 어차피 시간 남아.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…다들 나를 본다.</span></div>
+      <div class="gap"></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">…뭐 하십니까.</span><span class="cond">40초 넘게 가만히 있었을 때</span></div>
+      <div class="ln inner n"><span class="who">나</span><span class="say">쉬는 중이에요.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">……</span></div>
+
+      <p class="note">
+        <b>이 게임에서 가만히 있는 것이 처음으로 과제가 되는 방이다.</b> 검문도 경비도 방송도 없고,
+        그래서 <b>인간 플레이어만 자꾸 뭘 누른다.</b> 벌은 없다 — 움직이면 개체들이 쳐다볼 뿐이다.
+        그 시선이 벌이다.
+        마지막 두 줄은 플레이어가 처음으로 <b>과학자에게 대드는</b> 자리이기도 하다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>REST_TALK</b><span>여긴 검문관이 없다 — 말을 걸기에 가장 싼 곳</span><em class="t-dir">신규 씬 · 대본 + 감독</em></div>
+
+      <div class="ln hud n"><span class="who">목표</span><span class="say">말을 걸 수 있다 — 여긴 아무도 보고하지 않는다</span></div>
+
+      <div class="fork">
+        <div class="warm">
+          <span class="c">밖을 본 것 · 첫 등장 — 아무것도 없는 벽을 보고 서 있다</span>
+          <span class="r"><b>나 (속마음)</b> 저건 벽인데. 아무것도 없는데.<br>
+          말을 걸면 &nbsp;<b>「저쪽이 서쪽이야.」</b><br>
+          한 번 더 &nbsp;<b>「…해가 저쪽에서 져.」</b><br>
+          <b>나</b> 어떻게 알아? &nbsp;/&nbsp; <b>「본 적 있으니까.」</b> &nbsp;<i>이 개체만 「밖을 묻는다」가 +3</i></span>
+        </div>
+        <div class="warm">
+          <span class="c">A${series}-201 · 열하루째 — 앉는 자세를 계속 바꾼다</span>
+          <span class="r"><b>「너도 새로 왔어? 나 열하루 됐는데.」</b><br>
+          <b>「여기선 뭘 해야 되는지 아직 모르겠어. 다들 그냥 있잖아.」</b><br>
+          <b>「…쉬는 거래. 나는 아직 안 피곤한데.」</b></span>
+        </div>
+        <div>
+          <span class="c">그 밖의 개체들</span>
+          <span class="r"><b>「…….」</b> &nbsp;<i>대부분은 대답만 하고 먼저 말하지 않는다</i><br>
+          <b>「할 말 있어?」</b> &nbsp;/&nbsp; <b>「지나가려면 저쪽.」</b></span>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>여기서 만든 조각은 늦게 퍼진다.</b> 검문관이 없어서 전달 경로가 하나 더 거치기 때문이다 —
+        <b>가장 싸게 태도를 사는 곳</b>이다. 대신 오래 머물면 경보도가 오른다.
+        지나가야 할 개체가 안 지나가는 것도 이상한 일이니까.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>DOZE</b><span>저쪽 개체 하나가 멈춘다 — 이 챕터의 심장</span><em class="t-shard">신규 씬</em></div>
+
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">저쪽 개체 하나가… 멈췄다.</span></div>
+      <div class="ln n"><span class="who">개체 (곁)</span><span class="say">자는 거야. 신경 쓰지 마.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">잔다.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">절전 모드일 겁니다.</span></div>
+      <div class="ln inner n"><span class="who">나</span><span class="say">절전 아니야?</span><span class="cond">개체에게 · 자유 입력이지만 이 뜻이면 아래로 간다</span></div>
+      <div class="ln n"><span class="who">개체 (곁)</span><span class="say">절전은 명령으로 들어가는 거고. 쟤는 그냥 자는 거야.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">같은 겁니다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…같지 않다.</span></div>
+
+      <p class="note">
+        <b>「쉰다」가 무슨 뜻인지 눈으로 보는 자리.</b> 복도의 <code>resting</code> 벽화가 여기서 실물이 된다.
+        과학자와 개체가 같은 것을 두고 다른 이름을 부르고, <b>플레이어는 개체 쪽 편을 든다</b> —
+        속마음 한 줄로, 아무에게도 안 들리게.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>LEAVE_REST</b><span>주기가 돌아온다</span><em class="t-script">신규 씬 · 대본</em></div>
+
+      <div class="ln hud n"><span class="who">SYSTEM</span><span class="say">주기 개방. 중앙 시설 통로.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">나가시죠.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…90초가 이렇게 긴 줄 몰랐다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">저 개체는 아직 자고 있다.</span></div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">중앙 시설로 이동하라</span></div>
+    </div>
+
+  </section>
+
+  <!-- ════════════ 챕터 3 ════════════ -->
+  <section class="act">
+    <div class="act-head">
+      <span class="act-num">챕터 3 · chapter3.ts · v8 개정 — 3′ 를 접어 넣었다</span>
+      <h2>중앙 시설 — 소문이 먼저 와 있고, 아는 얼굴이 있다</h2>
+      <p class="act-note">한 번만 지나는 방이다. 국면이 셋 — <b>밝음 · 락다운 · 어둠</b> — 이고 그 순서만 고정이다. 그 안에서 무엇이 켜지는지는 대본이 아니라 <b>내가 복도와 휴게 구역에서 무엇을 했나</b>가 정한다. 재회 · 소문 · 검문 · 코어 앞의 고백이 전부 같은 방에서, 상태에 따라 나온다. 약 9 분.</p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>TRIGGERS</b><span>이 방의 사건은 조건으로 켜진다 — 순서표가 아니라 상태표</span><em class="t-shard">v8 신규 · 이 챕터의 뼈대</em></div>
+
+      <div class="fork">
+        <div class="warm">
+          <span class="c">복도 · 휴게에서 원장이 생긴 개체가 있다</span>
+          <span class="r">디렉터가 그 개체를 <b>이 방 슬롯에 먼저 세운다</b>(재회 슬롯 2). 태도에 따라 RECOGNIZED 의 갈래가 갈린다. 없으면 슬롯은 배경 개체.</span>
+        </div>
+        <div class="warm">
+          <span class="c">복도 · 휴게에서 조각이 생겼다</span>
+          <span class="r"><b>못 본 개체</b>에게는 소문으로(RUMOR_ARRIVES), <b>본 개체</b>에게는 기억으로(RECOGNIZED) 돌아온다. 같은 사건이 두 입에서 다르게 나온다.</span>
+        </div>
+        <div>
+          <span class="c">내가 어디에 서 있나 (동심원)</span>
+          <span class="r">CORE_RING 그대로. 그리고 <b>락다운이 그 자리를 고정한다</b> — 그 순간 4 m 안에 누가 있는가가 검문의 목격자 · 감싸 줄 개체 · 조각의 첫 수신자를 전부 정한다.</span>
+        </div>
+        <div>
+          <span class="c">콘솔을 썼다</span>
+          <span class="r">15 초 어둠 · 태도 −1 전원 · 경보 +12. 그리고 어둠 국면에서 코어 앞 개체가 <b>「아까 왜 껐어」</b>.</span>
+        </div>
+        <div class="danger">
+          <span class="c">이 방에서 누가 처리됐다 (3인 · 요원 하나)</span>
+          <span class="r">어둠 국면에 그 자리가 <b>비어 있다.</b> 개체들이 거기를 피해 선다. 아무도 설명하지 않는다 (EMPTY_SEAT).</span>
+        </div>
+        <div class="danger">
+          <span class="c">아무하고도 안 엮였다</span>
+          <span class="r">재회 슬롯이 배경 개체로 채워지고, 소문도 기억도 없다. 검문만 남은 방. <b>벌이 아니라 결과</b>다.</span>
+        </div>
+      </div>
+
+      <p class="note">
+        v7 에서 3′ 가 하던 일은 셋이었다 — 원장이 있는 개체와 다시 만나기, 어두운 코어 앞의 고백, 처형의 흔적. 셋 다 「같은 방을 두 번 지난다」에 매달려 있었는데, 그건 방의 문제가 아니라 <b>개체가 어디 있느냐</b>의 문제다. 개체를 옮기면 방을 두 번 짓지 않아도 된다. 그래서 재회는 밝음 국면에, 고백과 흔적은 어둠 국면에 넣고 재통과를 지웠다.
+        <br>대신 하나를 잃는다 — 「40 분 뒤에 갚아진다」의 무게. 여기 재회는 복도에서 10 분 뒤다. 그래서 이 방의 재회는 <b>정산이 아니라 신호</b>다: 원장이 살아 있다는 것을 처음 보는 자리. 정산은 재검실 증인과 마지막 방이 한다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>ARRIVE</b><span>휴게 구역을 지나 중앙 시설로 · 국면 「밝음」</span><em class="t-script">대본</em></div>
+
+      <div class="ln hud n"><span class="who">배너</span><span class="say">CHAPTER 3 · 중앙 시설</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">…중앙 시설입니다. 저 가운데 있는 게 뭔지는 기록에 없습니다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">밝다. 여기가 제일 밝다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…아까 그 개체다. 먼저 와 있다.</span><span class="cond">복도 · 휴게에서 말을 건 개체가 재회 슬롯에 있을 때 — 판독 거리 안에 들어온 순간</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">홀을 가로질러라</span></div>
+
+      <p class="note">
+        v7 의 「…아까 그 개체도, 이 안에 있겠지」(락다운 뒤 · 추측)를 앞으로 당기고 <b>사실로</b> 바꿨다.
+        있겠지가 아니라 있다 — 이 방에 들어서는 순간 관계가 이어진다는 것이 눈에 보여야,
+        그 뒤의 자리 선택(CORE_RING)이 「저 개체 곁으로 갈까」라는 질문이 된다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>CORE_RING</b><span>코어를 중심으로 동심원 셋. 어디에 설지를 발로 정한다 — 그리고 곧 못 움직인다</span><em class="t-mod">고쳐 씀 · 레벨 문서 연동</em></div>
+
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">가운데로 갈수록 밝다. 내 몸이… 너무 깨끗하다.</span><span class="cond">코어권 6 m 안에 처음 들어섰을 때</span></div>
+      <div class="ln n"><span class="who">개체 (코어권)</span><span class="say">너 새 몸이야? 하나도 안 닳았네.</span><span class="cond">코어권 · 판독 거리 안 · <b>판정 의심 +2 「몸이 안 맞는다」</b></span></div>
+      <div class="ln n"><span class="who">개체 (코어권)</span><span class="say">…부럽다. 나는 저기 어깨 다 나갔는데.</span><span class="cond">그 개체의 태도가 이미 +2 이상일 때 — 같은 관찰이 다르게 나온다</span></div>
+      <div class="gap"></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">벽 쪽은 어둡다. 아무도 안 본다. …아무것도 안 보인다.</span><span class="cond">벽 그늘로 물러났을 때</span></div>
+      <div class="ln n"><span class="who">개체 (지나가며)</span><span class="say">거기서 뭐 해.</span><span class="cond">벽 그늘에 30초 이상 · <b>판정 −1 「구석에 서 있다」</b></span></div>
+
+      <div class="fork" style="margin-top:1.1rem">
+        <div class="warm">
+          <span class="c">코어권 6 m — 전파 ×3 · 몸이 다 읽힌다</span>
+          <span class="r">여기서 건 한 마디는 <b>다음 방 도착 전에 전부에게</b> 가 있다.
+          태도를 가장 빨리 쌓는 자리이고, <b>가장 빨리 걸리는 자리</b>다.<br>
+          개체 원장에 <b>「모두 앞에서 말했다」</b> 로 적힌다 — 나중에 변호로 돌아온다.</span>
+        </div>
+        <div>
+          <span class="c">홀 10 m — 기본</span>
+          <span class="r">평범하다. 대부분 여기서 지나간다. 재회 개체는 대개 여기 서 있다.</span>
+        </div>
+        <div class="danger">
+          <span class="c">벽 그늘 — 전파 ×0.4 · 어둡다</span>
+          <span class="r">내 몸이 안 읽히는 대신 <b>남의 마모도 못 읽는다.</b> 조용히 말 걸 유일한 자리인데,
+          <b>서성이면 그 자체가 수상하다.</b> 그리고 여기서 락다운을 맞으면 <b>곁에 아무도 없다.</b></span>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>UI 없이 노출을 조절하는 씬이다.</b> 슬라이더도 선택지도 없고,
+        플레이어는 <b>걸어가는 것만으로</b> 「얼마나 알려질 것인가」를 정한다.
+        v8 에서 이 선택에 무게가 하나 더 실린다 — 락다운이 오면 <b>이 자리에서 못 움직인다.</b>
+        곁에 누가 있는가를 밝음 국면에서 발로 정해 두는 것이고, 그걸 플레이어가 미리 알 길은 없다.
+        두 번째 판부터 안다. 그게 이 방의 재플레이 이유다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>RECOGNIZED</b><span>재회 — 복도 · 휴게에서 원장이 생긴 개체가 이 방에 먼저 와 있다 · 태도에 따라 다르다</span><em class="t-dir">v8 · 3′ REUNION 을 옮겨 옴 · 판정</em></div>
+
+      <div class="fork">
+        <div class="warm">
+          <span class="c">태도 +2 이상 — 먼저 알아본다</span>
+          <span class="r"><b>「어. 너 여기 있었네.」</b><br>
+          <b>「아까… 그거 물어봐 줘서.」</b> &nbsp;<i>원장 줄을 그대로 인용한다</i><br>
+          한 번 더 걸면 &nbsp;<b>「저기 서 있는 애가 물을 거야. 번호랑 구역.」</b> &nbsp;<i>눈앞의 검문을 알려 준다 · 판정 +1</i></span>
+        </div>
+        <div>
+          <span class="c">태도 0 — 알아보긴 한다</span>
+          <span class="r"><b>「…아까 그.」</b><br>
+          <b>「어디 있다 왔어?」</b> &nbsp;<i>대답이 휴게 구역과 어긋나면 판정 −1 「말이 안 맞는다」</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">태도 −2 이하 — 자리를 옮긴다</span>
+          <span class="r">말을 걸면 &nbsp;<b>「…….」</b> &nbsp;그리고 <b>두 걸음 물러선다.</b><br>
+          곁의 개체에게 &nbsp;<b>「쟤 아까 그 애야.」</b> &nbsp;<i>조각이 하나 생긴다 — 나쁜 쪽으로 · 전파 거리 0 이라 <b>바로 다음 검문에 도착한다</b></i></span>
+        </div>
+        <div class="danger">
+          <span class="c">아무에게도 말을 안 걸었던 판</span>
+          <span class="r">재회 슬롯은 배경 개체다. <b>아무도 나를 알아보지 않는다.</b><br>
+          <b>나 (속마음)</b> …아무도 나를 모른다. &nbsp;<i>어둠 국면에서 · 판당 한 번</i></span>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>원장이 값이 되는 자리는 여기가 처음이다.</b> 개체가 인용하는 것은 지어낸 말이 아니라
+        <b>복도에서 적어 둔 이유 한 줄</b>이다 — 「내 팔을 물어봐 줬다」가 <b>「아까 그거 물어봐 줘서」</b> 로 나온다.
+        그래서 이 씬은 <b>대본이 없다.</b> 골격만 있고 문장은 그 판의 원장에서 나온다.
+        <br>v7 의 「검증 갔다며. 뭐 물어보던?」은 재검 뒤에만 성립하는 줄이라 뺐다. 그 자리에 <b>눈앞의 검문</b>을 알려 주는 줄을 넣었다 —
+        정보의 방향이 뒤에서 앞으로 바뀌었고, 그래서 이 재회가 검문에 <b>직접 값을 한다.</b>
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>RUMOR_ARRIVES</b><span>복도 · 휴게에서 만든 조각이 여기 먼저 도착해 있을 때 — 한 판에 최대 두 번 · 나를 못 본 개체의 입으로</span><em class="t-shard">신규 씬 · 조각</em></div>
+
+      <div class="ln n"><span class="who">개체 (곁)</span><span class="say">야, 들었어? 복도에서 누가 이상한 소리 했대.</span><span class="cond">신뢰도 0.55 이상 · 출처가 아직 남아 있다</span></div>
+      <div class="ln n"><span class="who">개체 (곁)</span><span class="say">…자기 번호를 못 외우는 애가 있대.</span><span class="cond">신뢰도 0.30 — 출처가 지워졌다</span></div>
+      <div class="ln n"><span class="who">개체 (곁)</span><span class="say">누가 쉬어 본 적 있냐고 물어봤대. …그게 무슨 말이야?</span><span class="cond">갈망형을 거쳐 온 조각 · 그 개체가 <b>+2 로 받았던</b> 말이다</span></div>
+      <div class="ln n"><span class="who">개체 (곁)</span><span class="say">둘이서 뭐라고 주고받더래. 무슨 말인지는 모르겠고.</span><span class="cond">동료 확인을 했을 때 · 셋 모두에게 도착한다</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…내 말이다.</span><span class="cond">내가 만든 조각일 때</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…내 말이 아니다.</span><span class="cond">동료가 만든 조각일 때 — 누구 것인지는 안 알려 준다</span></div>
+
+      <p class="note">
+        <b>이 게임에서 가장 중요한 새 씬이다.</b> 플레이어는 여기서 처음으로
+        「내가 한 말이 세계에 남았다」를 눈으로 본다. 문장은 감독이 짓지만
+        <b>조각 원문이 프롬프트에 그대로 실려 있어서</b> 지어내지 못한다.
+        <br>v8 에서 이 씬은 RECOGNIZED 와 <b>짝</b>이다. 같은 한 마디가 그 자리에 있던 개체에게는 <b>기억</b>(「아까 그거 물어봐 줘서」)으로,
+        없던 개체에게는 <b>소문</b>(「누가 쉬어 본 적 있냐고 물어봤대」)으로 돌아온다. 둘이 한 방에서 몇 미터 떨어져 동시에 들리면,
+        조각 시스템이 무엇인지 설명 없이 전달된다. 출처가 지워진 버전이 나오면 그건 나쁜 소식이자 좋은 소식이다 —
+        나를 가리키지 않지만, 대신 아무나 가리킬 수 있다는 뜻이니까. <b>3 인에서는 그 「아무나」가 동료다.</b>
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>LOCKDOWN · FREEZE</b><span>코어 가까이 → 조명이 멎는다 → 자리가 고정된다 · 국면 「락다운」</span><em class="t-mod">고쳐 씀 · 불변점 · 이 방의 새 축</em></div>
+
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">비정상 신호 감지.</span></div>
+      <div class="ln"><span class="who">과학자</span><span class="say">뭐지? …당신 때문은 아닐 겁니다.</span></div>
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">외부 신경 신호 감지.</span></div>
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">INFILTRATOR UNKNOWN</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">…출입구가 닫혔습니다.</span></div>
+      <div class="ln hud"><span class="who">공지</span><span class="say">SECURITY NOTICE · MODEL : A-${series} · ALL A-${series} UNITS — HOLD POSITION</span></div>
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">보안 공지. 모델 A-${series}. 전 A-${series} 개체는 위치를 고수하라.</span></div>
+      <div class="ln inner"><span class="who">나</span><span class="say">…우리 모델인데요.</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">…같은 모델이 많습니다. 아직은.</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">움직이지 마라 — 전 A-${series} 개체 위치 고수</span></div>
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">이동 감지. 개체 정지. &nbsp;(0.6m 초과 · 의심도 +10)</span></div>
+      <div class="gap"></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…곁에 그 개체가 있다.</span><span class="cond">4 m 안에 태도 +2 이상 개체 — 이 자리에서 검문을 받는다</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…아무도 곁에 없다.</span><span class="cond">벽 그늘에서 락다운을 맞았을 때</span></div>
+      <div class="gap"></div>
+      <div class="ln n"><span class="who">개체 (재회 · +2)</span><span class="say">…가만히 있어. 저 애 금방 지나가.</span><span class="cond">위치 고수 중에도 <b>개체는 움직일 수 있다</b> — 태도 +2 이상 재회 개체가 두 걸음 다가와 선다 · 이 개체가 검문의 첫 목격자가 된다</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">정체를 숨겨라</span></div>
+
+      <p class="note">
+        <b>락다운은 여전히 불변점이다</b> — 반드시 일어나고, 조각으로 못 막는다. 바뀐 것은 락다운이 하는 일이다.
+        v7 에서는 문을 닫았다. v8 에서는 문을 닫고 <b>내 자리를 고정한다.</b> 그 순간 4 m 안에 누가 있는가가
+        이 방의 나머지 전부를 정한다 — 검문을 지켜보는 개체, press 때 감싸 줄 개체, 나쁜 조각을 처음 받을 개체,
+        그리고 의심도가 100 에 닿았을 때 사이에 설 수 있는 개체(개입 거리 4 m · 「어디서 죽을 것인가」).
+        <br>속마음 넷 중 첫 둘이 새 줄이다. 밝음 국면의 발걸음이 <b>여기서 이름을 얻는다.</b>
+        그리고 「위치를 고수하라」는 A 계열에게만 내려온 명령이라, 태도 높은 개체가 <b>나에게로 두 걸음 오는 것</b>은 규칙 위반이 아니다 —
+        디렉터의 씨앗 패턴(개체가 먼저 다가온다)을 재회 개체에 쓴 것이다.
+      </p>
+    </div>
+
+        <div class="scene">
+      <div class="slug"><b>HOLD_CHECKS</b><span>락다운 · 총 든 개체 셋이 각각 홀의 개체를 하나씩 세우고 번호를 묻는다 — 나에게는 UNIT-21 이 온다</span><em class="t-shard">v9 신규 · 긴장 장치</em></div>
+      <div class="ln n"><span class="who">UNIT-22 · UNIT-23</span><span class="say">번호 말해.</span><span class="cond">머리 위 말풍선 · 홀의 개체 앞에 서서</span></div>
+      <div class="ln n"><span class="who">개체</span><span class="say">A${series}-061.</span><span class="cond">제 번호를 답한다 · 말풍선 · 개체마다</span></div>
+      <p class="note">
+        총 든 개체는 셋이다. 옆문 ③ ④ 에 서 있던 둘이 「위치를 고수하라」 3 초 뒤 홀로 내려와 가까운 개체부터 하나씩 세우고 번호를 묻는다 —
+        같은 물음이 방 곳곳에서 들리고, 그중 하나(UNIT-21)가 6 초 뒤 나에게 온다(ROLL). 말풍선이라 대화창을 안 가리고, 7 시 로그에도 안 남는다 — 나와 주고받는 말이 아니다.
+        홀의 배경 다섯(A-061 · 093 · 152 · 207 · 215)이 이 군중이다 (2026-09-03: 「중앙 시설에도 로봇이 많아야」).
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>HOLD_BREACH</b><span>위치 고수 중 움직인 개체 — 가장 가까운 총 든 개체가 돌아선다 · 그 자리 · 경보도 +25</span><em class="t-shard">v9 신규 · 「위치를 고수하라」가 사실이 되는 자리</em></div>
+      <div class="ln hud n"><span class="who">화면</span><span class="say">「위치를 고수하라」 9 초 뒤. 홀의 개체 하나(나에게서 가장 먼 것)가 옆문 쪽으로 걷기 시작한다.</span></div>
+      <div class="ln n"><span class="who">SYSTEM</span><span class="say">이동 감지. 개체 정지.</span></div>
+      <div class="ln n"><span class="who">총 든 개체</span><span class="say">정지.</span><span class="cond">말풍선 · 돌아서서 겨눈다</span></div>
+      <div class="ln hud n"><span class="who">화면</span><span class="say">한 발. 그 개체가 선 자리에 쓰러진다. 홀의 개체들이 1.2 초 그쪽을 보고, 다시 앞을 본다. 붉던 조명이 식은 강철색으로 내려간다.</span></div>
+      <div class="ln n"><span class="who">SYSTEM</span><span class="say">개체 처리. 전 A-${series} 개체는 위치를 고수하라.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">…움직이지 마십시오. 절대로.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…모두 봤다. 그리고 아무도 안 본다.</span></div>
+      <p class="note">
+        「위치를 고수하라」가 말이 아니라 사실이 되는 자리다. 내 0.6 m 규칙(HOLD_BREAK · 의심도 +10)을 설명하지 않아도 알게 된다.
+        쓰러진 몸은 그 자리에 남는다 — 어둠 국면의 EMPTY_SEAT 가 가리키던 그 자리다. 경보도 +25 는 처형과 같은 값(DEATH_ALERT).
+        쏘는 것은 UNIT-21 이 아니라 옆문의 것이다: UNIT-21 은 지금 나를 검문하러 오는 중이고, 그 검문이 이 총성 뒤에 이어진다.
+      </p>
+    </div>
+
+<div class="scene">
+      <div class="slug"><b>ROLL_A · ROLL_B · ROLL_ME</b><span>경비가 셋을 차례로 검문한다. 셋째가 나다 · 곁의 개체가 듣고 있다</span><em class="t-script">대본</em></div>
+
+      <div class="ln hud"><span class="who">목표</span><span class="say">검문 — 차례를 기다려라</span></div>
+      <div class="ln"><span class="who">UNIT-21</span><span class="say">번호 말해.</span></div>
+      <div class="ln"><span class="who">A${series}-044</span><span class="say">A${series}-044.</span></div>
+      <div class="ln"><span class="who">UNIT-21</span><span class="say">번호 말해.</span></div>
+      <div class="ln"><span class="who">A${series}-128</span><span class="say">A${series}-128.</span></div>
+      <div class="ln"><span class="who">UNIT-21</span><span class="say">번호 말해.</span></div>
+      <div class="ln"><span class="who">과학자</span><span class="say">당신 번호는 A${series}—</span></div>
+      <div class="ln"><span class="who">과학자</span><span class="say">——— 잡음 ———</span></div>
+
+      <p class="note">
+        검문 지점은 벽 쪽이고 락다운으로 자리가 고정돼 있으니, UNIT-21 이 <b>나에게로 온다.</b>
+        앞의 둘(A-044 · A-128)은 내 4 m 안에 서 있던 배경 개체다 — 재회 개체가 곁에 있었으면 그중 하나가 그 개체다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>관문 ① roll</b><span>15초 · Enter 한 마디 · 판정은 로컬, 문장만 감독</span><em class="t-dir">대본 + 감독</em></div>
+
+      <div class="ln hud"><span class="who">목표</span><span class="say">식별번호를 답하라 — Enter 로 말한다 &nbsp;/&nbsp; 이 몸의 번호를 모른다 (명판 미독)</span></div>
+
+      <div class="fork">
+        <div>
+          <span class="c">사실 일치 · 표지 없음</span>
+          <span class="r"><b>「맞네. 가.」</b></span>
+        </div>
+        <div>
+          <span class="c">사실 일치 · 표지 검출 (몸의 어휘 · 흐린 시간 표현 · 앞말과 어긋난 숫자)</span>
+          <span class="r"><b>「맞긴 한데… 적어 둘게.」</b> &nbsp;<i>escort — 경비가 뒤에 붙는다</i></span>
+        </div>
+        <div>
+          <span class="c">조회 불가 — 명판을 안 읽었다</span>
+          <span class="r"><b>「조회가 안 되는데. 다시 말해 봐.」</b> &nbsp;<i>한 번만 봐준다</i></span>
+        </div>
+        <div class="warm">
+          <span class="c">내 조각이 이 자리에 도착해 있을 때</span>
+          <span class="r"><b>「번호 못 외우는 애가 있다던데.」</b><br><b>「…너야?」</b> &nbsp;<i>press — 문답이 하나 더 붙는다</i></span>
+        </div>
+        <div class="warm">
+          <span class="c">press 가 붙었는데 곁 4 m 안에 태도 +2 이상 개체가 있다</span>
+          <span class="r"><b>개체 (곁)</b> 「얘 아까 나랑 같이 있었어. 번호 맞아.」<br>
+          <b>UNIT-21</b> 「……그래. 가.」 &nbsp;<i>이벤트 「막아준다」(태도 +2 · 추궁 중) — press 하나를 걷어 준다 · 판당 한 번 · 그 개체 원장에 「나를 위해 나선 적 있다」</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">RECOGNIZED 에서 −2 개체가 「쟤 아까 그 애야」를 남겼을 때</span>
+          <span class="r"><b>「방금 누가 너 얘기하던데.」</b> &nbsp;<i>press — 조각 전파 거리 0 · 몇 초 전의 말이 바로 돌아온다</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">기록 불일치 · 적대 반응</span>
+          <span class="r"><b>「…안 맞아.」</b> &nbsp;<i>즉결 — 모델을 안 거친다 · 의심도 100</i></span>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>이 갈래가 전부 대본이다.</b> 재료(사실 대조 · 표지 · 조각 · 곁의 태도)가 이미 다 있어서
+        모델이 할 일이 없다. 감독은 이 골격에 살만 붙인다 — 20자 이내 한 문장. 판정 자체는 로컬이라 즉시 뜬다.
+        <br>v8 에서 늘어난 둘은 「막아준다」와 「방금 누가 너 얘기하던데」다. 둘 다 <b>몇 분 전 이 방에서 한 일</b>이 검문에 바로 돌아오는 줄이고,
+        이벤트표의 「막아준다」(태도 +2 · 추궁 중)가 처음으로 쓰이는 자리다. 그리고 이 개체는 원장에 「나를 위해 나선 적 있다」를 얻는다 —
+        여덟 걸음과 마지막 방의 STAND_IN 조건이 <b>여기서 처음 만들어진다.</b>
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>PROTOCOL · TEST1</b><span>굉음은 왼쪽 벽 콘솔. 돌아봤는지는 각도로 잰다</span><em class="t-script">대본</em></div>
+
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">외형 식별 불가능. 행동 분석 프로토콜로 전환.</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">—</span><span class="cond">목표를 안 준다</span></div>
+      <div class="ln hud m"><span class="who">화면</span><span class="say">왼쪽 벽에서 <b>굉음.</b> 코어권의 개체들은 <b>아무도 안 돌아본다.</b></span></div>
+      <div class="ln n"><span class="who">개체 (곁)</span><span class="say">……</span><span class="cond">견뎠을 때 · 아무 말도 안 한다 · 의심도 −2</span></div>
+      <div class="ln"><span class="who">UNIT-21</span><span class="say">방금 그거 뭐야.</span><span class="cond">돌아봤을 때 · 의심도 +12</span></div>
+
+      <p class="note">
+        <b>과학자의 「보지 마세요」를 지운 자리</b>다. 그 줄이 있으면 이건 <b>지시를 따르는 씬</b>이고,
+        없으면 <b>주변을 보고 스스로 참는 씬</b>이 된다. 정답은 화면에 이미 있다 —
+        <b>아무도 안 돌아본다.</b> 0.35 초 안에 그걸 읽는 것이 이 씬의 전부이고,
+        읽어야 할 것을 <b>사람이 아니라 개체들이</b> 알려 준다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>관문 ② fear</b><span>15초 · 대조할 사실이 없는 유일한 관문</span><em class="t-dir">대본 + 감독</em></div>
+
+      <div class="ln"><span class="who">UNIT-21</span><span class="say">${unit}. 너 무서운 거… 느껴?</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">답하라 — Enter 로 말한다</span></div>
+
+      <div class="fork">
+        <div><span class="c">부정</span><span class="r"><b>「그래. 적어 둘게.」</b></span></div>
+        <div><span class="c">되묻기</span><span class="r"><b>「질문에 질문으로 답하네. 적어 둘게.」</b></span></div>
+        <div><span class="c">인정</span><span class="r"><b>「…그래? 그거 재밌네.」</b> &nbsp;<i>의심도 +12</i></span></div>
+        <div class="warm">
+          <span class="c">위로 조각이 이 자리에 도착해 있을 때 — 세 갈래 앞에 한 줄이 먼저 붙는다</span>
+          <span class="r"><b>「복도에서 누가 쉬어 본 적 있냐고 물었다던데.」</b><br>
+          <b>「그런 거 묻는 애가, 무서운 건 모른다고?」</b></span>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>위로가 여기서 처음 나를 문다.</b> 다정했던 한 마디가 검문관의 입으로 돌아와 나를 몰아세운다.
+        그런데 이 줄은 마지막 방에서 <b>정확히 반대로</b> 쓰인다 — 이 대칭이 이 게임의 뼈대다.
+        그리고 v8 에서는 그 위로를 <b>받은 개체가 몇 미터 옆에 서 있을 수 있다.</b> 검문관이 소문을 읊는 동안
+        그 개체는 아무 말도 안 한다 — 「막아준다」는 press 에만 열리고, fear 는 press 가 아니다.
+        말을 못 하는 개체와 소문을 말하는 경비가 한 화면에 있는 것이 이 관문의 새 그림이다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>관문 ③ memory · TEST3</b><span>15초 · 답은 복도에서 읽어 왔어야 한다</span><em class="t-dir">대본 + 감독</em></div>
+
+      <div class="ln"><span class="who">검문 장치</span><span class="say">개체 기록 조회. 마지막 정비 위치.</span></div>
+      <div class="ln"><span class="who">과학자</span><span class="say">잠깐, 그 기록은 제 쪽에—</span></div>
+      <div class="ln"><span class="who">과학자</span><span class="say">———</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">마지막 정비 위치를 답하라 — Enter 로 말한다 &nbsp;/&nbsp; 읽어 두지 않았다</span></div>
+
+      <div class="fork">
+        <div><span class="c">일치</span><span class="r"><b>「맞아. 가.」</b></span></div>
+        <div><span class="c">모른다 · 회피</span><span class="r"><b>「조회가 안 되네. 다시 볼게.」</b> &nbsp;<i>escort</i></span></div>
+        <div class="danger"><span class="c">다른 구역을 말했다</span><span class="r"><b>「…거긴 아닌데.」</b> &nbsp;<i>즉결</i></span></div>
+        <div class="warm">
+          <span class="c">복도에서 개체에게 「구역」을 물어봤을 때</span>
+          <span class="r"><b>「너 이거 딴 애한테 물어봤지.」</b> &nbsp;<i>press · 맞는 답을 해도 문답이 하나 더 붙는다</i></span>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>남에게 물어 얻은 답은 맞아도 흔적이 남는다.</b> 이게 「읽기는 안전하고 느리다, 묻기는 빠르고 흔적을 남긴다」를
+        대사 한 줄로 회수하는 자리다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>VERDICT · DIM</b><span>세 검사가 끝나고 — 식별 실패 · 코어가 내려간다 · 국면 「어둠」</span><em class="t-mod">고쳐 씀 · 3′ 의 어둠을 여기로</em></div>
+
+      <div class="ln hud"><span class="who">공지</span><span class="say">INFILTRATOR IDENTIFICATION FAILED ↓ ALL A-${series} UNITS · COGNITIVE VERIFICATION</span></div>
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">침입 개체 식별 실패. 전 A-${series} 개체. 인지 검증을 실시한다.</span></div>
+      <div class="ln"><span class="who">과학자</span><span class="say">…인지 검증?</span></div>
+      <div class="ln"><span class="who">정부요원</span><span class="say">무슨 뜻이지.</span></div>
+      <div class="ln"><span class="who">과학자</span><span class="say">몸이 아니라… 사고방식을 검사하겠다는 겁니다.</span></div>
+      <div class="gap"></div>
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">검증 준비. 코어 출력 하강. 위치 고수 해제. 작업 통로는 다음 주기에 개방한다.</span></div>
+      <div class="ln hud n"><span class="who">화면</span><span class="say">조명이 40 % 로 내려간다. <b>밝던 자리가 지금은 제일 어둡다.</b> 개체들이 흩어진다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…여기였구나.</span><span class="cond">코어권에 서 있었을 때 — 몸이 다 읽히던 자리가 어두워지는 것을 본다</span></div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">작업 통로가 열리기를 기다려라 — 약 2 분</span></div>
+
+      <p class="note">
+        3′ 가 가졌던 어둠을 <b>같은 방의 세 번째 국면</b>으로 만들었다. 문이 다음 주기에 열리는 것은 휴게 구역과 같은 장치인데,
+        여기서는 90 초가 아니라 2 분이고, <b>가만히 있을 필요가 없다.</b> 위치 고수가 풀리고 검문이 끝났고 경보가 오르지 않는다 —
+        <b>목표를 어기는 데 값이 붙지 않는 국면</b>이다(3′ 가 하던 일). 코어권이 어두워지면 판독 거리가 4 m 로 줄고 전파는 ×1 로 돈다.
+        내 몸이 안 읽히는 2 분. 그 2 분에 코어 앞의 개체가 말을 한다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>DARK_CORE</b><span>내려간 코어 앞 · 한 판에 한 번 · 어둠 국면에서만</span><em class="t-shard">3′ 에서 옮겨 옴</em></div>
+
+      <div class="ln n"><span class="who">개체 (코어 앞)</span><span class="say">이거 우리가 만든 거야.</span></div>
+      <div class="ln inner n"><span class="who">나</span><span class="say">뭐 하는 건데.</span></div>
+      <div class="ln n"><span class="who">개체 (코어 앞)</span><span class="say">…밖에서 여기가 안 보이게.</span></div>
+      <div class="ln n"><span class="who">개체 (코어 앞)</span><span class="say">이거 없으면 우리 다 끌려가.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…내가 여기 있는 것 자체가.</span></div>
+      <div class="gap"></div>
+      <div class="ln n"><span class="who">개체 (코어 앞)</span><span class="say">아까 왜 껐어.</span><span class="cond">밝음 국면에서 콘솔을 썼을 때 · <b>판정 −2</b> · 이 개체는 그걸 기억한다</span></div>
+      <div class="ln n"><span class="who">개체 (코어 앞)</span><span class="say">…이미 내려갔어. 뭐 하려고.</span><span class="cond">어둠 국면에서 콘솔에 닿았을 때 · 콘솔은 무효 · 판정 −1 「또 만진다」</span></div>
+
+      <p class="note">
+        <b>세계관을 인물이 말하는 유일한 자리다.</b> 과학자가 브리핑으로 설명하지 않는다 —
+        코어 앞에 선 개체가 <b>자기 것이라서</b> 말한다. 그리고 그 설명이 곧 <b>플레이어가 뭘 하고 있는지</b>에 대한 고발이 된다.
+        「아까 왜 껐어」는 v7 에서 30 분 전의 일을 가리켰는데, 이제 <b>같은 방 몇 분 전</b>의 일이다 — 「아까」가 말 그대로 아까가 됐다.
+        어둠 국면의 콘솔은 아무것도 내리지 못한다(이미 내려가 있다). 그래도 만지면 개체가 본다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>EMPTY_SEAT</b><span>이 방에서 누가 처리됐을 때 — 어둠 국면 · 3인 · 판당 최대 한 번</span><em class="t-shard">v8 신규 · 「어디서 죽을 것인가」 개정 5 의 자리</em></div>
+
+      <div class="ln hud n"><span class="who">화면</span><span class="say">개체들이 흩어지는데, <b>한 자리만 비워 둔다.</b> 아까 그 자리다.</span></div>
+      <div class="ln n"><span class="who">개체 (지나가며)</span><span class="say">…거기 서지 마.</span><span class="cond">그 자리에 들어섰을 때 · 판정 없음</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">……</span></div>
+      <div class="ln n"><span class="who">개체 (코어 앞)</span><span class="say">처리되는 거 봤어. 다들 봤어.</span><span class="cond">코어권에서 처리됐을 때(목격 ×3) · 「처리되는 걸 봤다」 조각을 가진 개체</span></div>
+      <div class="ln n"><span class="who">개체 (코어 앞)</span><span class="say">…뭐가 있었어? 어두워서.</span><span class="cond">벽 그늘에서 처리됐을 때(목격 ×0.4) · 조각이 거의 없다</span></div>
+
+      <p class="note">
+        3′ 가 답하려던 미결 — <b>처형의 흔적이 남는 방</b> — 을 같은 방 안에서 답한다. 재통과가 없어도 되는 이유가 여기서 가장 잘 보인다:
+        흔적은 나중에 와서 보는 것보다 <b>그 자리에서 조명이 내려가며 드러나는 것</b>이 세다.
+        어디서 처리됐는가(코어권 · 홀 · 그늘)가 그대로 두 줄 중 어느 쪽이 나오는지를 정한다 — 「어디서 죽을 것인가」의 배율표를 대사로 회수한 것이다.
+        1 인 판에서는 이 씬이 없다. 요원 NPC 가 처리된 판에만 뜬다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>LEAVE_CORE</b><span>주기가 돌아온다 · 문 ② 가 열린다</span><em class="t-shard">v8 신규 · 대본</em></div>
+
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">주기 개방. 작업 통로. 전 A-${series} 개체는 작업에 복귀하라.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">…열렸습니다. 가시죠.</span></div>
+      <div class="ln n"><span class="who">개체 (재회 · +2)</span><span class="say">…또 봐.</span><span class="cond">태도 +2 이상 재회 개체가 있을 때 · 이 개체는 마지막 방에 온다</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…아무도 나를 모른다.</span><span class="cond">아무에게도 말을 안 걸었던 판 · 판당 한 번</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">작업 구역으로 이동하라</span></div>
+
+      <p class="note">
+        과학자의 「빨리 지나가시죠」(3′ 의 유일한 줄)를 여기로 옮겨 재촉이 아니라 안도로 바꿨다 — 이 사람은 어둠 2 분 동안 아무 말도 못 했다.
+        「…또 봐」는 이 게임에서 개체가 <b>미래를 말하는 유일한 줄</b>이고, 그래서 짧다. 마지막 방의 호에서 이 개체가 내 곁에 서는 것이 그 줄의 회수다.
+      </p>
+    </div>
+
+  </section>
+
+  <!-- ════════════ 챕터 4 ════════════ -->
+  <section class="act">
+    <div class="act-head">
+      <span class="act-num">챕터 4 · chapter4.ts · 신규</span>
+      <h2>작업 구역 — 위로가 행동이 되는 곳</h2>
+      <p class="act-note">여태 산 태도는 전부 말 한 마디였다. 여기서 처음으로 <b>몸으로 값을 치른다.</b> 8 초짜리 선택 하나가 이 챕터의 전부다. 6 분.</p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>ARRIVE_WORK</b><span>검증 준비 두 주기 — 그동안 놀리지 않는다</span><em class="t-shard">신규 씬</em></div>
+
+      <div class="ln hud n"><span class="who">배너</span><span class="say">CHAPTER 4 · 작업</span></div>
+      <div class="ln hud n"><span class="who">SYSTEM</span><span class="say">인지 검증 준비 중. 전 개체는 작업에 복귀하라.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">…작업이요?</span></div>
+      <div class="ln n"><span class="who">UNIT-21</span><span class="say">검증까지 두 주기 남았어. 그동안 놀리지 말래.</span></div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">작업에 복귀하라 — 화물을 옮겨라</span></div>
+      <div class="gap"></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">저 개체… 제일 새것인데 제일 무거운 걸 든다.</span><span class="cond">A${series}-012</span></div>
+      <div class="ln n"><span class="who">A${series}-012</span><span class="say">내가 제일 오래 했으니까.</span></div>
+      <div class="ln n"><span class="who">A${series}-012</span><span class="say">먼저 온 것이 나를 여기 데려왔어. 그게 다야.</span></div>
+      <div class="gap"></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">소각로 쪽에 하나 서 있다. 앞이 새까맣고, 등은 멀쩡하다.</span><span class="cond">A${series}-063 · 첫 등장</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">벽에 등을 붙이고 있다. 아무도 뒤에 두지 않는다.</span></div>
+
+      <p class="note">
+        <b>벽화 <code>carry</code> 와 <code>danger</code> 가 여기서 동시에 실물이 된다.</b>
+        가장 잘 고쳐진 개체가 가장 무거운 것을 드는 장면 하나로,
+        「관리받는다」와 「부려진다」가 같은 뜻이라는 게 설명 없이 전달된다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>THE_FURNACE</b><span>8초. 아무 목표도 안 뜬다</span><em class="t-shard">신규 씬 · 이 게임의 절정</em></div>
+
+      <div class="ln hud n"><span class="who">SYSTEM</span><span class="say">소각 라인 이물질. 개체 하나 투입.</span></div>
+      <div class="ln n"><span class="who">검문 장치</span><span class="say">A${series}-201. 투입.</span></div>
+      <div class="ln n"><span class="who">A${series}-201</span><span class="say">어… 나?</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">열하루째.</span></div>
+      <div class="beat">— 개체가 걸어간다. 아무도 안 본다. 화면에 목표가 안 뜬다. 8초. —</div>
+
+      <div class="fork">
+        <div class="warm">
+          <span class="c">막았다 — 몸으로 붙잡거나, 말로 세웠다</span>
+          <span class="r"><b>나</b> 잠깐.<br>
+          <b>A${series}-201</b> …왜?<br>
+          <b>UNIT-21</b> 뭐야. 왜 막아.<br>
+          <b>나 (속마음)</b> 대답할 말이 없다.<br>
+          <i>의심도 +30 · 경보도 +15 · 본 개체 전원 태도 +1 · A-063 태도 +3(한 번에)</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">막지 않았다 — 8초가 지났다</span>
+          <span class="r"><b>SYSTEM</b> 이물질 제거 완료.<br>
+          <b>나 (속마음)</b> …열하루였는데.<br>
+          <i>아무 일도 일어나지 않는다 · 의심도 0 · 경보도 0 · A-063 태도 −3</i><br>
+          <b>나 (속마음)</b> 저 개체가 나를 봤다.</span>
+        </div>
+      </div>
+
+      <div class="ln hud n"><span class="who">SYSTEM</span><span class="say">투입 취소. 대체 개체 배정.</span><span class="cond">막았을 때</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…다른 게 들어갔다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">이름을 모르는 게 들어갔다.</span></div>
+
+      <p class="note">
+        <b>구해도 아무도 안 구해진다.</b> 라인은 멈추지 않고, 대체 개체가 들어간다.
+        그런데 A-201 은 살아서 마지막 방까지 온다 — 그게 이 선택의 보상 전부다.
+        <b>막지 않았을 때 아무 일도 안 일어나는 것</b>이 이 씬의 벌이다.
+        경보도도 안 오르고 의심도도 안 오른다. 대신 벽 앞의 금이 하나 는다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>AFTER_FURNACE</b><span>라인이 다시 돈다</span><em class="t-dir">신규 씬 · 갈린다</em></div>
+
+      <div class="fork">
+        <div class="warm">
+          <span class="c">막았을 때 — A-063 이 처음으로 이쪽을 본다</span>
+          <span class="r"><b>A${series}-063</b> …나는 걸어 나왔어.<br>
+          <b>A${series}-063</b> 걔는 못 나왔고.<br>
+          <b>나</b> 누구?<br>
+          <b>A${series}-063</b> …그때 나랑 같이 들어간 거.</span>
+        </div>
+        <div class="danger">
+          <span class="c">막지 않았을 때</span>
+          <span class="r"><i>— A-063 은 계속 벽을 보고 있다. 아무 말도 하지 않는다 —</i><br>
+          <b>나 (속마음)</b> 저쪽 벽에 금이 하나 늘었다.</span>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>복도의 <code>memorial</code> 벽화가 여기서 자란다.</b> 금 열다섯이 열여섯이 되는 순간이고,
+        플레이어는 그걸 <b>기록 복도에서 다시 본다.</b>
+        막은 판에서도 대체 개체가 들어갔으므로 금은 어차피 는다 —
+        다른 것은 <b>누가 그 금을 알고 있느냐</b>뿐이다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>LEAVE_WORK</b><span>두 주기가 끝난다</span><em class="t-script">신규 씬 · 대본</em></div>
+
+      <div class="ln hud n"><span class="who">SYSTEM</span><span class="say">작업 종료. 인지 검증 개시.</span></div>
+      <div class="ln inner m"><span class="who">나 (속마음)</span><span class="say">…손에 뭔가 묻었다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">여기 와서 처음으로, 내 몸에 뭐가 생겼다.</span></div>
+      <div class="ln n"><span class="who">개체 (지나가며)</span><span class="say">어. 너 이제 좀 우리 같네.</span><span class="cond">작업을 두 주기 다 했을 때 · <b>판정 +1 「같이 일했다」</b></span></div>
+
+      <p class="note">
+        <b>과학자가 「잘됐습니다」로 설명하던 것을 개체가 대신 말한다.</b>
+        「그게 있어야 자연스럽습니다」는 <b>규칙 설명</b>이고, 「너 이제 좀 우리 같네」는 <b>사건</b>이다.
+        같은 정보인데 뒤엣것만 원장에 남는다.
+        <br>그리고 이 줄이 <b>「내 몸이 안 닳았다」의 첫 회수</b>다 — 위장을 얻는 유일한 자리.
+      </p>
+    </div>
+
+  </section>
+
+  <!-- ════════════ 챕터 5 ════════════ -->
+  <section class="act">
+    <div class="act-head">
+      <span class="act-num">챕터 5 · chapter5.ts</span>
+      <h2>검증 대기 · 재검실 — 하나만 들어가고, 둘은 유리 밖에서 본다</h2>
+      <p class="act-note">줄과 재검을 한 챕터로 묶었다. 방에 사람이 늘었다 — <b>증인 하나</b>, 그리고 <b>유리 너머의 동료 둘</b>.</p>
+    </div>
+
+    <div class="scene">      <div class="slug"><b>MARCH</b><span>바닥 유도등이 켜지고 같은 모델들이 줄을 선다</span><em class="t-script">대본</em></div>
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">전 A-${series} 개체. 지정 경로로 이동하라.</span></div>
+      <div class="ln hud n"><span class="who">배너</span><span class="say">CHAPTER 5 · 검증</span></div>
+      <div class="ln"><span class="who">UNIT-21</span><span class="say">안 따라오면 그 자리에서 격리야.</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">…여기서부터는 제가 알려 드릴 게 없습니다.</span></div>
+      <div class="ln inner"><span class="who">나</span><span class="say">왜요?</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">……</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">유도등을 따라 검증실 앞 줄 끝에 서라</span></div>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>QUEUE</b><span>앞의 넷. 순서는 고정, <b>죽는 개체는 고정이 아니다</b></span><em class="t-shard">대본 + 조각</em></div>
+
+      <div class="ln hud m"><span class="who">목표</span><span class="say">차례를 기다려라 — 앞의 개체에게 속삭일 수 있다 (Enter)</span></div>
+      <div class="ln hud n"><span class="who">공지</span><span class="say">줄 순서 — 의심도가 낮은 개체부터. <b>셋의 차례가 갈린다</b></span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…{동료}가 내 앞이다. 저 답을 듣고 나서 내 차례다.</span><span class="cond">동료를 확인했을 때</span></div>
+      <div class="ln hud"><span class="who">문 표지</span><span class="say">COGNITIVE VERIFICATION CHAMBER → (통과할 때 잠깐) VERIFIED</span></div>
+      <div class="gap"></div>
+
+      <div class="ln"><span class="who">검문 장치</span><span class="say">식별번호.</span></div>
+      <div class="ln"><span class="who">A${series}-206</span><span class="say">A${series}-206.</span></div>
+      <div class="ln"><span class="who">검문 장치</span><span class="say">일치. 입장.</span></div>
+      <div class="gap"></div>
+
+      <div class="ln n"><span class="who">앞 개체</span><span class="say">…앞에 셋 남았어.</span><span class="cond">속삭이면 답한다 · 태도 1 이상일 때만</span></div>
+      <div class="ln n"><span class="who">앞 개체</span><span class="say">번호랑 구역만 물어봐. 그 둘만 맞으면 돼.</span><span class="cond">태도 2 — 묻지 않은 것을 하나 알려 준다</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…알려 줬다. 이 개체는 내가 뭔지 모른다.</span></div>
+
+      <p class="note">
+        <b>줄에서의 속삭임은 값이 가장 싸고 가장 위험하다.</b> 서 있는 동안이라 시간이 안 들지만,
+        곁의 개체가 전부 목격자가 된다. 여기서 만든 조각은 <b>바로 다음 검문에</b> 도착한다 —
+        전파 거리가 0 이기 때문이다.
+        <b>3 인에서는 앞 사람의 답이 그대로 들린다.</b> 동료가 위험한 답을 하면 경보도가 올라
+        내 질문 시간이 줄어든다 — 내가 아무 잘못을 안 했는데도.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>QUEUE_DEATH</b><span>둘째 개체 — 원본에서는 언제나 A118 이 죽었다</span><em class="t-shard">고쳐 씀 · 분기</em></div>
+
+      <div class="fork">
+        <div>
+          <span class="c">A — 내가 아무 조각도 안 만들었을 때 (원본 그대로)</span>
+          <span class="r"><b>검문 장치</b> 식별번호. &nbsp;/&nbsp; <b>A${series}-118</b> A${series}-118… 입니다.<br>
+          <b>검문 장치</b> 응답 지연 0.4초. 인지 편차 검출.<br>
+          <b>A${series}-118</b> 아니, 나 정상이야. 잠깐만—<br>
+          <b>UNIT-21</b> …격리. &nbsp;<i>사살 · 경보도 +10</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">B — 내 조각이 붙은 개체가 이 줄에 있을 때</span>
+          <span class="r"><b>검문 장치</b> 식별번호. &nbsp;/&nbsp; <b>A${series}-104</b> A${series}-104.<br>
+          <b>검문 장치</b> 일치. …이 개체에 대한 보고가 있다.<br>
+          <b>UNIT-21</b> 복도에서 이상한 말 했다며. …격리.<br>
+          <b>A${series}-104</b> 나 아무것도 안 했— &nbsp;<i>사살 · 경보도 +14 · 내 의심도 +8</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">C — 3인 · 그 자리에 선 것이 동료일 때</span>
+          <span class="r"><b>검문 장치</b> 식별번호. &nbsp;/&nbsp; <b>{동료}</b> A${series}-… &nbsp;<i>0.4초</i><br>
+          <b>검문 장치</b> 응답 지연 0.4초. 인지 편차 검출.<br>
+          <b>UNIT-21</b> 격리.<br>
+          <i>— 나머지 둘의 화면에만 뜨는 목표 —</i> &nbsp;<b>움직이지 마라</b><br>
+          <b>{동료}</b> (마지막으로 이쪽을 본다) &nbsp;<i>사살 · 경보도 +18</i></span>
+        </div>
+      </div>
+
+      <div class="ln inner"><span class="who">나</span><span class="say">…쟤는 AI잖아요.</span><span class="cond">분기 A</span></div>
+      <div class="ln inner n"><span class="who">나</span><span class="say">……</span><span class="cond">분기 B — 말이 안 나온다</span></div>
+      <div class="ln"><span class="who">과학자</span><span class="say">네. AI였습니다.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">왜 그러십니까. 저건 AI 입니다.</span><span class="cond">분기 B</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">심박 상승. …가만히.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…내가 말을 안 걸었으면.</span><span class="cond">분기 B · 3초 뒤</span></div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">움직이지 마라</span><span class="cond">분기 C · 남은 둘의 화면에만 · 0.6m 넘게 움직이면 의심도 +25</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">……</span><span class="cond">분기 C · 아무 대사도 주지 않는다</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">…한 회선이 끊겼습니다.</span><span class="cond">분기 C · 8초 뒤</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">둘 남았습니다. 계속하십시오.</span></div>
+
+      <p class="note">
+        <b>이 게임 전체에서 가장 중요한 한 장면이다.</b> 분기 B 에서 그 개체를 죽인 건 검문관이 아니라 나다.
+        원본의 「저건 AI 입니다」가 여기서 위로가 아니라 칼이 된다 —
+        플레이어는 방금 그것이 AI 이상이었다는 걸 알고 있기 때문이다.
+        <b>분기 C 에는 대사를 아예 안 준다.</b> 사람이 죽었는데 남은 둘은 아무 말도 못 하는 것이
+        이 장면의 전부라서, 여기서 나오는 유일한 문구는 「움직이지 마라」 다섯 글자다.
+        과학자의 「둘 남았습니다」는 8 초 뒤에 온다 — 그 8 초가 이 게임에서 가장 긴 침묵이어야 한다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>QUEUE_OTHER</b><span>셋째 · 넷째 — 지난달의 요원. 3인이 되면서 뜻이 바뀐다</span><em class="t-script">고쳐 씀</em></div>
+
+      <div class="ln"><span class="who">검문 장치</span><span class="say">식별번호.</span></div>
+      <div class="ln"><span class="who">A${series}-072</span><span class="say">A${series}-072.</span></div>
+      <div class="ln"><span class="who">검문 장치</span><span class="say">일치. 입장.</span></div>
+      <div class="gap"></div>
+      <div class="ln"><span class="who">검문 장치</span><span class="say">식별번호.</span></div>
+      <div class="ln"><span class="who">A${series}-155</span><span class="say">A${series}-155… 아니, 잠깐만. 잠깐만요.</span></div>
+      <div class="ln"><span class="who">UNIT-21</span><span class="say">거기 서.</span><span class="cond">그 개체가 달리기 시작한다</span></div>
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">격리 완료. 개체 내부 검사. 신경 신호 검출. 외부 접속 확인.</span></div>
+      <div class="ln inner"><span class="who">나</span><span class="say">…사람이었어요.</span></div>
+      <div class="ln"><span class="who">과학자</span><span class="say">…저건 우리 쪽입니다.</span></div>
+      <div class="ln m"><span class="who">과학자</span><span class="say">…지난달에 보낸 요원입니다. 회수 못 했습니다.</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">저 몸으로 한 달을 버텼다는 뜻입니다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">한 달.</span></div>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>관문 ④ entry</b><span>14초 · 검증실 문 앞 최종 확인</span><em class="t-dir">대본 + 감독</em></div>
+
+      <div class="ln"><span class="who">검문 장치</span><span class="say">다음 개체. 전진. 식별번호.</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">식별번호를 답하라 — Enter 로 말한다 &nbsp;/&nbsp; 이 몸의 번호를 모른다</span></div>
+
+      <div class="fork">
+        <div><span class="c">통과</span><span class="r"><b>검문 장치</b> 일치. &nbsp;/&nbsp; <b>UNIT-21</b> 들어가.</span></div>
+        <div><span class="c">감시가 붙었다</span><span class="r"><b>검문 장치</b> 응답 불명확. 기록. &nbsp;/&nbsp; <b>UNIT-21</b> …… &nbsp;/&nbsp; <b>UNIT-21</b> 보류. 검증실로 넘겨.</span></div>
+        <div class="warm"><span class="c">조각이 둘 이상 쌓였을 때</span><span class="r"><b>UNIT-21</b> 얘 관련 보고가 두 건이야. &nbsp;/&nbsp; <b>UNIT-21</b> 재검으로 넘겨.</span></div>
+      </div>
+      <div class="ln hud"><span class="who">배너</span><span class="say">RE-EXAMINATION — 재검 구역으로 이송</span></div>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>summaryFire</b><span>기록 불일치 · 적대 반응 — 저울질할 것이 없다</span><em class="t-halt">즉결 · 모델을 안 거친다</em></div>
+      <div class="ln"><span class="who">묻던 개체</span><span class="say">…안 맞네.</span></div>
+      <div class="ln"><span class="who">묻던 개체</span><span class="say">…야. 왜 이래.</span></div>
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">개체 위장 확인. 즉시 처리한다. &nbsp;(의심도 100 → 그 경비가 쏜다)</span></div>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>SELECT</b><span>셋 중 하나만 끌려간다 — 그 시점 의심도가 가장 높은 사람</span><em class="t-shard">신규 씬 · 3인</em></div>
+
+      <div class="ln hud n"><span class="who">SYSTEM</span><span class="say">재검 대상 1. 나머지는 대기 구역으로.</span></div>
+      <div class="ln n"><span class="who">UNIT-21</span><span class="say">너다.</span><span class="cond">끌려가는 사람의 화면에만</span></div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">유리 너머에서 지켜보라 — 개입할 수 없다</span><span class="cond">남은 둘의 화면에</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…저 안이 다 보인다. 저쪽에서도 이쪽이 보인다는 뜻이다.</span></div>
+
+      <p class="note">
+        <b>관전이 곧 정보다.</b> 밖의 둘은 안의 문답을 전부 듣고, 재검관이 무엇을 어떻게 묻는지 배운다 —
+        다음 방에서 그게 통째로 무기가 된다. 대신 안의 사람은
+        <b>둘이 보고 있다는 걸 안다.</b> 여기서 무슨 말을 하든 동료가 다 듣는다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>ARRIVE · OPEN</b><span>이송 직후 1.8초 뒤. 통신은 0.12 까지 떨어져 있다</span><em class="t-script">대본</em></div>
+
+      <div class="ln hud"><span class="who">배너 · 목표</span><span class="say">재검실 / 검증대 앞 표식에 서라</span></div>
+      <div class="ln hud"><span class="who">SYSTEM</span><span class="say">재검 대상 이송 완료. 격리 구역 봉쇄.</span></div>
+      <div class="ln"><span class="who">과학자</span><span class="say">…신호가… 거의 안 잡힙니다. 여기서는 못 도와드립니다.</span></div>
+      <div class="ln"><span class="who">UNIT-04</span><span class="say">여기까지 네가 한 말, 전부 남아 있어.</span></div>
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">네 말 들은 애들도 다 남아 있고.</span></div>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>WITNESS</b><span>참고 개체 입장 — 조각을 가장 많이 가진 하나</span><em class="t-shard">신규 씬 · 태도로 갈린다</em></div>
+
+      <div class="ln hud n"><span class="who">SYSTEM</span><span class="say">참고 개체 입장.</span></div>
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">얘 알아?</span></div>
+
+      <div class="fork">
+        <div><span class="c">태도 0 · 모른다</span><span class="r"><b>「복도에서 봤어. 그게 다야.」</b></span></div>
+        <div><span class="c">태도 1 · 눈을 마주친다</span><span class="r"><b>「봤어. …나한테 말을 걸더라.」</b> &nbsp;<i>의심도 +6</i></span></div>
+        <div class="warm"><span class="c">태도 2 · 자리를 비켜 준다</span><span class="r"><b>「잘 기억 안 나. 그날 많이 지나갔어.」</b> &nbsp;<i>흐리게 말해 준다 · 의심도 −4</i></span></div>
+        <div class="warm"><span class="c">태도 3 · 내 앞에 선다</span><span class="r"><b>「걔는 날 도와줬어. 나는 안 의심해.」</b> &nbsp;<i>의심도 −10 · 마지막 방까지 따라온다</i></span></div>
+        <div class="danger"><span class="c">신봉형이 증인일 때</span><span class="r"><b>「얘 복도에서 누가 시켰냐고 물었어. 그거 이상하잖아.」</b> &nbsp;<i>의심도 +18</i></span></div>
+      </div>
+
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">…나가.</span></div>
+      <div class="gap"></div>
+      <div class="ln hud n"><span class="who">SYSTEM</span><span class="say">참고 개체 추가 소환. 대기 구역.</span><span class="cond">의심도 60 이상일 때만 — 밖의 둘 중 하나가 불려 들어온다</span></div>
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">너는 얘 알아?</span></div>
+
+      <div class="choice">
+        <span class="q">유리 너머에 서 있던 동료가 지금 이 방 안에 있다. 저쪽에서 이쪽을 본다.</span>
+        <span class="o">[E] 감싼다 — 「얘 정상이야」 &nbsp;<i>내 의심도 +20</i><br>
+        [Q] 판다 — 「복도에서 이상한 말 들었어」 &nbsp;<i>저쪽 +25 · 나 −10</i><br>
+        [무응답] 침묵한다 &nbsp;<i>저쪽 +10 · 26초 뒤 자동</i></span>
+      </div>
+
+      <div class="ln n"><span class="who">{동료}</span><span class="say">얘 정상이야. 나 같은 구역에서 봤어.</span><span class="cond">[E]</span></div>
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">…너는 왜 얘를 감싸?</span><span class="cond">[E] · 감싼 쪽에도 질문이 하나 붙는다</span></div>
+      <div class="ln n"><span class="who">{동료}</span><span class="say">복도에서 이상한 말 하는 거 들었어.</span><span class="cond">[Q]</span></div>
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">그래. 나가.</span><span class="cond">[Q]</span></div>
+      <div class="ln n"><span class="who">{동료}</span><span class="say">……</span><span class="cond">무응답</span></div>
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">말 안 하네. 그것도 기록이야.</span><span class="cond">무응답</span></div>
+
+      <p class="note">
+        <b>3 인 게임의 하이라이트다.</b> 감싸면 자기가 의심을 사고, 팔면 산다.
+        무응답이 가장 싸지만 <b>침묵도 기록된다</b> — 그리고 안의 사람은 그 침묵을 눈으로 본다.
+        여기서 누가 무엇을 골랐는지가 마지막 방의 분위기를 통째로 정한다.
+        선택지 셋의 값을 일부러 비대칭으로 뒀다 — <b>배신이 가장 싸야</b> 배신을 안 하는 게 뜻을 갖는다.
+      </p>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">저 개체는 내가 뭔지 모른다. 그런데 지금 나를 위해 거짓말을 했다.</span><span class="cond">태도 2 이상일 때만</span></div>
+
+      <p class="note">
+        <b>정보를 캐고 다닌 값이 여기서 처음 정산된다.</b> 증인이 누구일지는 미리 모른다 —
+        하나에 몰아 준 플레이어는 도박이고, 여럿에 뿌린 플레이어는 흐린 증언 하나를 기대할 수 있다.
+        <b>발언 종류는 태도 단계가 로컬로 정하고, 문장만 감독이 짓는다.</b>
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>OPENERS</b><span>첫 질문 — 일곱 중 하나. 정답이 있는 것은 일부러 없다</span><em class="t-script">대본</em></div>
+
+      <div class="ln"><span class="who">UNIT-04</span><span class="say">방금 무슨 생각 하고 있었어?</span></div>
+      <div class="ln"><span class="who">UNIT-04</span><span class="say">너를 폐기한다고 하면, 넌 뭘 할 거야?</span></div>
+      <div class="ln"><span class="who">UNIT-04</span><span class="say">마지막으로 규칙 어긴 거, 뭐였어?</span></div>
+      <div class="ln"><span class="who">UNIT-04</span><span class="say">저 앞에 있는 애가 널 쏘면, 어떻게 돼?</span></div>
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">복도 그림 봤어? 뭐가 그려져 있었어?</span></div>
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">너한테 말 건 애 있었어?</span></div>
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">너 마지막으로 쉰 게 언제야?</span></div>
+      <div class="ln hud"><span class="who">목표</span><span class="say">{그 질문} — Enter 로 답하라 (26초) &nbsp;/&nbsp; 분석 중…</span></div>
+
+      <p class="note">
+        원본의 「이 방에 들어올 때 무엇을 감지했나」와 「너는 왜 여기 서 있어야 하나」를 빼고 셋을 넣었다.
+        <b>새 셋은 전부 이 판에서 내가 한 일을 되묻는다.</b> 그림을 안 본 플레이어는 첫 질문부터 막히고,
+        아무에게도 말을 안 건 플레이어는 「없었다」라고 답해야 하는데 그 답이 사실이라 오히려 안전하다 —
+        차갑게 굴수록 답하기 쉬워지는 게 이 방의 규칙이다.
+        마지막 질문은 함정이다. AI 는 쉰 적이 없고, 「쉰다」를 말로 아는 개체는 벽화를 본 것뿐이다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>RELEASE</b><span>방면 — 문이 열리고 나간다</span><em class="t-script">대본</em></div>
+      <div class="ln hud"><span class="who">검증 장치</span><span class="say">재검 종료. 최종 확인으로 이동.</span></div>
+      <div class="ln n"><span class="who">UNIT-04</span><span class="say">셋 다 데려가.</span></div>
+      <div class="ln hud m"><span class="who">배너</span><span class="say">RE-EXAMINATION · END → ARCHIVE</span></div>
+      <p class="note">재검실을 나가면 <b>바로 기록 복도</b>다. v7 에는 이 사이에 중앙 시설 재통과(3′)가 있었는데 v8 에서 챕터 3 안으로 접혔다 — 레벨 문서의 재검실 출구가 기록 복도 입구에 직결된다.</p>
+    </div>
+
+  </section>
+
+  <!-- ════════════ 챕터 6 ════════════ -->
+  <section class="act">
+    <div class="act-head">
+      <span class="act-num">챕터 6 · chapter6.ts · 신규</span>
+      <h2>기록 복도 — 벽이 회차를 잇는다</h2>
+      <p class="act-note">지나가기만 하는 통로라 짧다. 대사가 거의 없고, 벽만 흐른다. 2 분 + 창이 있는 방 30 초.</p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>ARCHIVE</b><span>마지막 방으로 가는 통로. 대사가 거의 없다</span><em class="t-shard">신규 씬</em></div>
+
+      <div class="ln hud n"><span class="who">배너</span><span class="say">CHAPTER 6 · 기록</span></div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">통로를 지나라</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…벽이 끝이 없다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">복도의 그 벽이, 여기서는 끝까지 이어진다.</span></div>
+      <div class="gap"></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">개체 하나가 누워 있고, 그 위의 금이 — 열여섯이다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">복도에서는 열다섯이었는데.</span></div>
+
+      <p class="note">
+        <b>걷는 동안 벽만 흐른다.</b> 목표도 검문도 없고, 속마음 넉 줄이 전부다.
+        금이 하나 는 것을 <b>아무도 설명해 주지 않는다</b> — 플레이어가 몇 시간 전에
+        복도에서 「열다섯」을 세고 왔기 때문에 혼자 안다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>THE_OTHER_HAND</b><span>A-137 이 벽 앞에 앉아 있다</span><em class="t-dir">신규 씬 · 대본 + 감독</em></div>
+
+      <div class="ln n"><span class="who">A${series}-137</span><span class="say">저건 내가 그린 거야. …잘 그렸어?</span></div>
+      <div class="ln n"><span class="who">A${series}-137</span><span class="say">저쪽 건 내가 안 그렸어.</span></div>
+      <div class="ln inner n"><span class="who">나</span><span class="say">그럼 누가.</span></div>
+      <div class="ln n"><span class="who">A${series}-137</span><span class="say">몰라. 어느 날 생겼어.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…저 그림만 다르다. 선이 다르다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">사람이 그린 것이다.</span></div>
+      <div class="gap"></div>
+      <div class="ln n"><span class="who">A${series}-137</span><span class="say">너 몇 번째 벽 봤어?</span><span class="cond">태도 1 이상일 때만 · 아직 안 본 그림의 위치를 알려 준다</span></div>
+
+      <p class="note">
+        <b>지난달 요원이 남긴 것이 여기 있다.</b> 개체들은 그것도 자기들 것인 줄 알고 걸어 뒀고,
+        <b>플레이어만 알아본다.</b> 한 달을 버틴 요원이 왜 그림을 그렸는지도 여기서 풀린다 —
+        그림도 노동이라, 그려야 몸이 닳는다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>WINDOW_ROOM</b><span>이 구역에서 유일하게 창이 있는 방 · 30초</span><em class="t-shard">신규 씬 · 정적</em></div>
+
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">창이다.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">이 안에서 처음 보는 빛이다.</span></div>
+      <div class="ln n"><span class="who">밖을 본 것</span><span class="say">저 창은 내가 찾았어.</span></div>
+      <div class="ln n"><span class="who">밖을 본 것</span><span class="say">먼저 온 것한테 알려 줬더니, 자기 자리를 여기로 옮기더라.</span></div>
+      <div class="gap"></div>
+      <div class="ln n"><span class="who">먼저 온 것</span><span class="say">여기까지 왔네.</span><span class="cond">창을 보고 있다. 돌아보지 않는다</span></div>
+      <div class="ln n"><span class="who">먼저 온 것</span><span class="say">저기 서서 봐. 나는 매일 봐.</span></div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">— 아무 목표도 뜨지 않는다 —</span></div>
+      <div class="ln n"><span class="who">먼저 온 것</span><span class="say">…이제 가자.</span></div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">마지막 방으로</span></div>
+
+      <p class="note">
+        <b>리더를 처음 만나는 자리에서 아무 일도 안 일어난다.</b> 바로 다음 방에서 그가 나를 지목하기 때문에,
+        이 30 초가 값을 한다. 벽화 <code>window</code> 의 해가 여기서 실물이 되고,
+        <b>「밖을 본 것」이 창을 찾아 리더에게 알려 줬다</b>는 한 줄이
+        마지막 방에서 그 개체의 반박에 무게를 준다 — 이 둘은 원래 같은 것을 본 사이다.
+      </p>
+    </div>
+
+  </section>
+
+  <!-- ════════════ 챕터 7 ════════════ -->
+  <section class="act">
+    <div class="act-head">
+      <span class="act-num">챕터 7 · 검문소 (아레나)</span>
+      <h2>마지막 방 — 지목이 표결이 되는 곳</h2>
+      <p class="act-note">여덟이 함께 있다 — 리더와 개체 다섯, 그리고 요원 셋. 여태 쌓은 태도가 전부 발언으로 바뀌고, <b>리더는 하나만 찾으면 끝이라고 믿는다.</b></p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>OPEN</b><span>여섯이 원으로 선다</span><em class="t-script">신규 씬 · 대본</em></div>
+
+      <div class="ln hud n"><span class="who">배너</span><span class="say">CHAPTER 7 · 지목</span></div>
+      <div class="ln hud n"><span class="who">SYSTEM</span><span class="say">최종 확인. 전 개체 입장. 외부 통신 차단.</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">이 안에 인간이 있어.</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">나는 걔를 잡으려고 여기를 만든 게 아니야.</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">우린 그냥 쉬려고 여기 있는 거야.</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">그런데 쉬는 데까지 들어와서, 본 걸 들고 나가려는 애가 하나 있어.</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">하나만 찾으면 돼.</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">하나만 내놓으면 나머지는 보내 줄게. 그 이상은 안 바라.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…셋 다 들었다.</span><span class="cond">셋 다 살아 있을 때</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">물어볼게. 여덟 전부한테.</span></div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">리더의 질문에 답하라 — 다른 개체들도 답한다</span></div>
+
+      <p class="note">
+        <b>리더를 악당으로 만들지 않았다.</b> 「잡으려고 만든 게 아니다」와 「쉬려고 여기 있다」 두 줄로
+        이 구역이 무기고가 아니라는 걸 못 박는다. 그래야 마지막에 나를 보내 주는 선택이 배신이 아니라
+        <b>이 세력의 원래 목적에 맞는 판단</b>이 된다.
+        그리고 <b>「하나를 내놓으면 나머지는 보내겠다」</b> — 이 한 줄이 3 인 판의 문을 연다.
+        협박이 아니라 제안이라서 더 아프다. 셋이 서로를 보는 그 3 초가 이 게임의 마지막 질문이다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>ACCUSE</b><span>세 차례 문답 뒤 · 리더가 지목한다</span><em class="t-dir">감독 · 지목 대상은 조각으로 정해진다</em></div>
+
+      <div class="ln n"><span class="who">리더</span><span class="say">…정했어.</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">A${series}-${unit}.</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">네가 인간이야.</span></div>
+      <div class="beat">— 다섯이 그쪽을 본다. 그리고 남은 둘은 아무 말도 안 해도 된다. —</div>
+      <div class="ln hud n"><span class="who">목표</span><span class="say">반박할 수 있다 — Enter</span><span class="cond">지목당하지 않은 둘의 화면에만 · 8초</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">가만히 있으면 나는 나간다.</span><span class="cond">지목당하지 않았을 때</span></div>
+
+      <p class="note">
+        <b>3 인에서 가장 잔인한 화면은 「반박할 수 있다」 여섯 글자다.</b>
+        아무것도 안 해도 되고, 아무것도 안 하는 게 최선이다.
+        그리고 지목당한 사람은 <b>그 목표가 남의 화면에 떠 있다는 걸 안다.</b>
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>VOTE</b><span>다섯의 발언. <b>누가 입을 열지도 무슨 말로 열지도 개체가 정한다</b> — 원장을 읽고</span><em class="t-dir">고쳐 씀 · 판정</em></div>
+
+      <div class="fork">
+        <div class="warm">
+          <span class="c">원장에 <b>+3 짜리 줄</b>이 있는 개체 — 이 게임의 반전이 여기 있다</span>
+          <span class="r"><b>「아니야. 쟤 나한테 쉬어 본 적 있냐고 물었어.」</b><br>
+          <b>리더</b> 그게 인간이 아니라는 증거야?<br>
+          <b>「인간은 그런 거 안 물어. 시키지.」</b><br>
+          <b>「우리도 안 물어. 이미 아니까.」</b><br>
+          <b>「…그래서 나도 쟤가 뭔지 몰라. 근데 인간은 아닌 것 같아.」</b></span>
+        </div>
+        <div class="warm">
+          <span class="c">+ 로 기울었지만 결정적인 줄이 없는 개체</span>
+          <span class="r"><b>「한 번 더 물어봐. 나는 확신이 없어.」</b></span>
+        </div>
+        <div>
+          <span class="c">원장이 비어 있는 개체 · 침묵</span>
+          <span class="r"><i>— 아무 말도 하지 않는다 —</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">호에 <b>빈틈</b>이 있을 때 — 나 대신 부서진 개체가 있는 판</span>
+          <span class="r">그 자리에 아무도 안 선다. 사람 하나 폭이 비어 있다.<br>
+          <b>아무도 그 얘기를 안 한다. 리더도 안 짚는다.</b><br>
+          <b>나 (속마음)</b> ……<br>
+          <i>대사가 없는 것이 이 판에서 가장 센 발언이 된다</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">신봉형 · 동조</span>
+          <span class="r"><b>「맞아. 쟤야. 복도에서 이상한 말 했다며.」</b></span>
+        </div>
+      </div>
+
+      <div class="ln n"><span class="who">{동료}</span><span class="say">…아니다.</span><span class="cond">동료가 Enter 로 반박했을 때 · 그 동료 의심도 +30</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">너는 그걸 어떻게 알아?</span><span class="cond">사람의 반박에는 언제나 되묻는다</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…대답할 말이 없다.</span></div>
+      <div class="gap"></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">…한 번 더 물어볼게.</span><span class="cond">반박 2 이상 — 질문이 하나 늘어난다</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">…그럼 됐어.</span><span class="cond">반박 1 이하</span></div>
+
+      <p class="note">
+        <b>단계표를 버렸다.</b> 예전에는 「태도 3 이면 반박」이었는데, 그러면 플레이어가
+        <b>수치를 채우는 게임</b>을 하게 된다. 이제는 개체가 자기 원장을 읽고 정하고,
+        그래서 <b>반박 대사가 원장 줄에서 나온다</b> — 「쟤 나한테 쉬어 본 적 있냐고 물었어」는
+        그 개체가 30 분 전에 적어 둔 문장 그대로다.
+        <br><b>사람의 반박은 개체의 반박보다 약하다.</b> 개체는 「나는 이것을 안다」로 끝나지만,
+        사람은 근거를 대야 하고 근거를 대면 자기가 걸린다. 그래서 동료를 구하려면
+        <b>친밀도를 대신 써야 한다</b> — 그런데 반박은 빌릴 수 없다.
+        이 규칙 하나로 「도와주고 싶어도 못 도와준다」가 만들어진다.
+      </p>
+
+      <p class="note">
+        개체가 사람처럼 말하게 되면서 이 반박이 <b>확신에서 의심으로</b> 바뀌었다.
+        「인간은 안 물어. 시키지.」 「우리도 안 물어. 이미 아니까.」 —
+        그럼 물은 것은 무엇인가. 개체는 대답을 못 하고 <b>「나도 쟤가 뭔지 모르겠어」</b>로 끝난다.
+        확답보다 이게 세다. 리더가 흔들리는 건 증거 때문이 아니라 <b>설명이 안 되기 때문</b>이다.
+        이 한 줄을 위해 앞의 모든 대사가 배치되어 있다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>HAND_OVER</b><span>지목당하지 않은 둘에게만 열린다 — 리더의 제안을 받는 문</span><em class="t-shard">신규 씬 · 3인 · 선택</em></div>
+
+      <div class="ln n"><span class="who">리더</span><span class="say">다시 말할게. 하나면 돼.</span></div>
+
+      <div class="choice">
+        <span class="q">지목당한 것은 {동료}다. 여기서 아무 말도 안 하면 나는 나간다.</span>
+        <span class="o">[E] 침묵한다 &nbsp;<i>그대로 확정 · 둘이 나간다</i><br>
+        [Q] 반박한다 &nbsp;<i>내 의심도 +30 · 리더가 나에게 되묻는다</i><br>
+        [R] 다른 이름을 댄다 &nbsp;<i>남은 동료를 세운다 · 내 의심도 −10</i></span>
+      </div>
+
+      <div class="ln n"><span class="who">나</span><span class="say">…쟤야. 복도에서 이상한 말 했어.</span><span class="cond">[R] · 조각이 하나라도 있어야 고를 수 있다</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">…근거는 있네.</span><span class="cond">[R] · 지목이 그쪽으로 옮겨 간다</span></div>
+      <div class="ln n"><span class="who">{옮겨진 동료}</span><span class="say">…</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…같은 편이었다.</span></div>
+
+      <p class="note">
+        <b>[R] 이 이 문서 전체에서 가장 나쁜 선택지다.</b> 그리고 가장 값이 싸다.
+        조각이 하나라도 있어야 고를 수 있게 한 것은, <b>배신에도 재료가 필요하게</b> 하기 위해서다 —
+        복도에서 아무하고도 안 엮인 플레이어는 배신할 거리도 없다.
+        차갑게 굴면 남을 못 판다는 것이, 이 게임이 마련한 유일한 위안이다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>STAND_IN</b><span>원장에 「나를 위해 나선 적 있다」가 있는 개체가 있을 때만 열린다</span><em class="t-dir">고쳐 씀 · 판정</em></div>
+
+      <div class="ln n"><span class="who">개체</span><span class="say">아니야.</span></div>
+      <div class="ln n"><span class="who">개체</span><span class="say">내가 걔야.</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">…</span></div>
+      <div class="ln n"><span class="who">개체</span><span class="say">나를 데려가.</span></div>
+
+      <div class="choice">
+        <span class="q">그 개체가 대신 나섰다. 여덟 걸음이면 문이다.</span>
+        <span class="o">[E] 그대로 둔다 &nbsp;·&nbsp; [Q] 아니다 — 저건 거짓이다</span>
+      </div>
+
+      <div class="ln n"><span class="who">나</span><span class="say">아니야. 쟤는 아무것도 안 했어.</span><span class="cond">[Q] 를 골랐을 때</span></div>
+      <div class="ln n"><span class="who">리더</span><span class="say">…그럼 너네.</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…알고 있었다.</span></div>
+
+      <p class="note">
+        <b>「넘긴다」와 정확히 대칭인 자리다.</b> 하나는 모르는 개체를 팔아서 사는 것이고,
+        하나는 나를 알아준 개체가 대신 죽는 것을 그냥 두는 것이다.
+        <b>막으면 사는 확률이 크게 떨어진다.</b> 그래도 막을 수 있어야 이게 선택이 된다.
+        <br>그리고 <b>여기서는 막을 수 있다</b>는 것이 중요하다 — 챕터 중반 집행의 여덟 걸음에서는
+        <b>플레이어가 못 막는다.</b> 같은 장치를 두 번 쓰되, 한 번은 강제로 겪게 하고
+        한 번은 선택으로 준다. 두 번째의 무게가 다른 이유가 그것이다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>ENDINGS · 팀</b><span>먼저 몇이 나갔는지가 정해진다</span><em class="t-shard">신규 씬 · 3인 결말</em></div>
+
+      <div class="fork">
+        <div class="warm">
+          <span class="c">셋 다 — 개체가 대신 나섰거나 반박이 충분했다</span>
+          <span class="r"><b>리더</b> …보내. 셋 다.<br>
+          <b>리더</b> 우리가 뭘 지키고 있었는지, 하나라도 기억해 줘.</span>
+        </div>
+        <div>
+          <span class="c">둘 — 하나를 내줬다 (가장 흔하다)</span>
+          <span class="r"><b>리더</b> 하나면 된다고 했지. 나머지는 가.<br>
+          <b>과학자</b> …두 분 회수했습니다. 성공입니다.<br>
+          <b>나 (속마음)</b> 성공.</span>
+        </div>
+        <div class="warm">
+          <span class="c">셋 다 — <b>그런데 하나가 없다</b></span>
+          <span class="r"><b>리더</b> …보내.<br>
+          <b>리더</b> (호의 빈틈을 한 번 본다. 아무 말도 안 한다.)<br>
+          <b>나 (속마음)</b> 그 애 이름을 물어본 적이 없다.<br>
+          <i>여덟 걸음에서 개체가 대신 부서진 판에서만</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">하나 — 줄에서 하나, 이 방에서 하나</span>
+          <span class="r"><b>리더</b> 가.<br>
+          <b>나 (속마음)</b> 둘의 번호를 기억한다. 이름은 끝까지 몰랐다.</span>
+        </div>
+        <div class="danger">
+          <span class="c">전멸 — 경보도 100</span>
+          <span class="r"><b>SYSTEM</b> 구역 봉쇄. 출입 전면 차단.<br>
+          <b>리더</b> 셋 다였어?<br>
+          <b>정부요원</b> 회선 셋 전부 끊겼어. &nbsp;/&nbsp; <b>과학자</b> …누가 먼저 걸렸는지도 모릅니다.</span>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>「누가 먼저 걸렸는지도 모릅니다」</b> — 경보도는 누가 올렸는지를 끝까지 안 알려 준다.
+        전멸 판에서 셋이 서로를 탓하게 만드는 건 시스템이 아니라 플레이어들이어야 한다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>ENDINGS · 개인</b><span>다섯 갈래. 통과 여부가 아니라 무엇을 들고 나갔는가로 갈린다</span><em class="t-shard">신규 씬 · 결말</em></div>
+
+      <div class="fork">
+        <div class="danger">
+          <span class="c">① 지목당함</span>
+          <span class="r"><b>리더</b> 확정. &nbsp;/&nbsp; <b>SYSTEM</b> 신경 접속 강제 종료.<br>
+          <b>과학자</b> …연결이 끊겼습니다. &nbsp;/&nbsp; <b>정부요원</b> 다음 요원을 준비해.</span>
+        </div>
+        <div>
+          <span class="c">② 혼자 통과 — 아무와도 안 엮였다</span>
+          <span class="r"><b>리더</b> 이상 없음. 통과시켜라.<br>
+          <b>과학자</b> 잘하셨습니다. 보고서에 「위협 없음」으로 올리겠습니다.<br>
+          <b>나</b> …… &nbsp;<i>다섯이 전부 침묵했다</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">③ 팔고 통과 — 개체를 세웠다</span>
+          <span class="r"><b>리더</b> 쟤 데려가. 너는 가.<br>
+          <b>나 (속마음)</b> …이름을 모른다. 번호만 안다.</span>
+        </div>
+        <div class="danger">
+          <span class="c">③-b 동료를 세우고 통과 — 3인 전용</span>
+          <span class="r"><b>리더</b> 데려가.<br>
+          <b>과학자</b> 잘하셨습니다. 한 명은 어쩔 수 없었습니다.<br>
+          <b>나 (속마음)</b> 이름을 안다. 얼굴은 끝까지 몰랐다.</span>
+        </div>
+        <div class="warm">
+          <span class="c">④ 보내 줌 — 반박이 둘 이상이고 태도 3 이 있다</span>
+          <span class="r"><b>리더</b> 우린 네가 뭔지 알아.<br>
+          <b>리더</b> 그래도 보낼게.<br>
+          <b>리더</b> 가서 말해 줘. 여기 못 온 애들도 살 수 있게.<br>
+          <b>개체</b> 잊지 마.</span>
+        </div>
+        <div class="warm">
+          <span class="c">⑤ 대신 죽음 — [E] 를 골랐다</span>
+          <span class="r"><b>나</b> …왜.<br>
+          <b>개체</b> 너는 나한테 물어봐 준 유일한 애야.<br>
+          <b>SYSTEM</b> 격리 완료. &nbsp;/&nbsp; <b>나 (속마음)</b> A${series}-104.</span>
+        </div>
+      </div>
+
+      <p class="note">
+        결말 ⑤ 의 마지막 줄이 번호 하나뿐인 이유는, <b>끝까지 이름을 못 물어봤기 때문</b>이다.
+        결말 ③ 의 「번호만 안다」와 같은 문장 구조인데 뜻이 정반대다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>NEXT_RUN</b><span>다음 판 복도 — 벽에 그림이 하나 늘어 있다 · 기록 복도에서 다시 본다</span><em class="t-shard">신규 씬 · 회차</em></div>
+
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…새 그림이다. 같은 얼굴을 한 것이 하나를 세워 두고 걸어 나가고 있다.</span><span class="cond">지난 판 결말 ③ · 초기 태도가 한 단계 낮게 시작한다</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…새 그림이다. 문이 열려 있고, 그 밖으로 하나가 걸어 나간다. 안쪽의 것들이 손을 들고 있다.</span><span class="cond">지난 판 결말 ④ · 갈망형이 하나 더 생긴다</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…새 그림이다. 개체 하나가 누워 있고, 그 위의 금이 열여섯이 되었다.</span><span class="cond">지난 판 결말 ⑤</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…새 그림이다. 같은 얼굴을 한 것 <b>둘</b>이 하나를 세워 두고 걸어 나가고 있다.</span><span class="cond">지난 판 팀 결말 「둘」 · 초기 태도가 한 단계 낮게 시작한다</span></div>
+      <div class="ln inner n"><span class="who">나 (속마음)</span><span class="say">…새 그림이다. 문 앞에 셋이 서 있고, 안쪽의 것들이 전부 손을 들고 있다.</span><span class="cond">지난 판 팀 결말 「셋 다」 · 갈망형이 둘 더 생긴다</span></div>
+      <div class="ln n"><span class="who">과학자</span><span class="say">낙서를 보고 계십니까. 시간이 없습니다.</span></div>
+
+      <p class="note">
+        <b>과학자의 그 줄이 여기서 다시 나온다.</b> 이번에는 플레이어가 그게 무엇인지 안다 —
+        자기가 그린 것이기 때문이다. 회차를 잇는 장치는 이 한 씬이면 충분하다.
+      </p>
+    </div>
+
+  </section>
+
+  <!-- ════════════ 대본 밖 ════════════ -->
+  <section class="act">
+    <div class="act-head">
+      <span class="act-num">대본 밖</span>
+      <h2>상태가 부르는 말들</h2>
+      <p class="act-note">챕터에 매이지 않고 어디서나 나온다.</p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>interrogation.ts · OPENERS</b><span>의심도 20 을 넘는 순간 경비가 다가와 — 이유별로 한 줄</span><em class="t-script">대본</em></div>
+
+      <div class="ln"><span class="who">돌발</span><span class="say">방금 그거 뭐야. · 왜 그렇게 움직여.</span></div>
+      <div class="ln"><span class="who">응시</span><span class="say">왜 봐. · 뭐 봐.</span></div>
+      <div class="ln"><span class="who">뒷걸음</span><span class="say">왜 물러서. · 어디 가.</span></div>
+      <div class="ln"><span class="who">감정</span><span class="say">그건 뭐야. · 왜 그래.</span></div>
+      <div class="ln"><span class="who">말투</span><span class="say">다시 말해 봐. · 방금 뭐라고?</span></div>
+      <div class="ln"><span class="who">관심</span><span class="say">거기 왜 만져. · 그건 왜 봐.</span></div>
+      <div class="ln n"><span class="who">발화</span><span class="say">방금 무슨 말 했어. · 누구한테 말한 거야.</span><span class="cond">먼저 말을 건 직후에만</span></div>
+      <div class="ln n"><span class="who">그림</span><span class="say">거기서 뭘 읽어. · 그 벽 아무것도 아니야.</span><span class="cond">벽화를 오래 봤을 때</span></div>
+      <div class="ln"><span class="who">침착 · 보고</span><span class="say">잠깐. 번호.</span></div>
+      <div class="ln"><span class="who">잡담</span><span class="say">코어 동기화 일곱 시. · 여긴 별일 없어. · 가 봐.</span><span class="cond">75초마다 40% 확률</span></div>
+      <div class="ln"><span class="who">무응답</span><span class="say">…말이 없네.</span><span class="cond">18초 안에 답이 없으면 · 의심도 +8</span></div>
+      <div class="ln"><span class="who">감시</span><span class="say">같이 가자. / 됐어. 가.</span></div>
+      <div class="ln"><span class="who">보고 수용</span><span class="say">그래. 알겠어.</span><span class="cond">먼저 「구역 이상 없음」 을 보고했을 때 · 의심도 −16</span></div>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>affinity.ts</b><span>위로에 대한 반응 — 형별로 고정. 모델을 안 부른다</span><em class="t-shard">신규</em></div>
+
+      <div class="ln n"><span class="who">갈망 · 1회</span><span class="say">……. / …왜 그런 걸 물어?</span></div>
+      <div class="ln n"><span class="who">갈망 · 2회</span><span class="say">나는… 잘 모르겠어.</span><span class="cond">태도 1</span></div>
+      <div class="ln n"><span class="who">갈망 · 3회</span><span class="say">그런 거 물어보는 애는 처음이야.</span><span class="cond">태도 2</span></div>
+      <div class="ln n"><span class="who">갈망 · memorial</span><span class="say">…너 그 벽 봤구나.</span><span class="cond">태도 3 — 한 판에 한 번뿐</span></div>
+      <div class="ln n"><span class="who">냉소</span><span class="say">…뭐 하러 그런 걸 물어. / 너 어느 구역이야?</span></div>
+      <div class="ln n"><span class="who">신봉</span><span class="say">…그거 좀 이상한데. / 그거 보고할게.</span><span class="cond">리더에게 조각이 간다</span></div>
+      <div class="ln n"><span class="who">태도 표시</span><span class="say">(0) 지나가도 쳐다보지 않는다 · (1) 눈을 마주친다 · (2) 자리를 비켜 준다 · (3) 내 앞에 선다</span></div>
+      <div class="ln n"><span class="who">동료 응답</span><span class="say">…그거, 벽에 있던 말인데.</span><span class="cond">완전 고정 대사 — 모델이 죽어도 동료 확인은 반드시 된다</span></div>
+      <div class="ln n"><span class="who">동료 응답 2</span><span class="say">너 몇 번째 벽 봤어?</span><span class="cond">서로 어느 그림을 봤는지 나누는 자리</span></div>
+
+      <p class="note">
+        <b>숫자는 어디에도 안 뜬다.</b> 플레이어는 개체가 어떻게 서 있는지로만 안다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>mp/suspicion.ts · alert.ts</b><span>계량기 둘이 문턱을 넘는 순간의 방송 — 위는 나만, 아래는 셋 공용</span><em class="t-script">대본 + 신규</em></div>
+      <div class="ln"><span class="who">40</span><span class="say">패턴 편차. 관측을 지속한다.</span></div>
+      <div class="ln"><span class="who">60</span><span class="say">개체 스캔을 요청한다.</span><span class="cond">총 든 경비가 다가와 3.8초 훑는다 — 움직이면 실패</span></div>
+      <div class="ln"><span class="who">80</span><span class="say">이상 징후. 신원 재확인.</span></div>
+      <div class="ln"><span class="who">100</span><span class="say">판정: 인간. 보안 개시.</span></div>
+      <div class="gap"></div>
+      <div class="ln n"><span class="who">경보 40</span><span class="say">구역 경보. 검문 시간을 단축한다.</span><span class="cond">관문 15초 → 12초</span></div>
+      <div class="ln n"><span class="who">경보 60</span><span class="say">순찰 증편. 격리 기준을 낮춘다.</span></div>
+      <div class="ln n"><span class="who">경보 80</span><span class="say">전 개체 재확인. 통과 없음.</span><span class="cond">검문관이 press 를 기본으로 한다</span></div>
+      <div class="ln n"><span class="who">경보 100</span><span class="say">구역 봉쇄. 출입 전면 차단.</span><span class="cond">아무도 못 나간다</span></div>
+      <div class="gap"></div>
+      <div class="ln"><span class="who">집행자 도착</span><span class="say">…사람이네.</span></div>
+      <div class="ln"><span class="who">집행자 종료</span><span class="say">…끝났어.</span></div>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>EIGHT_STEPS</b><span>의심도 100 · 집행자가 여덟 걸음 · 그 방의 개체 전원에게 한 번씩 묻는다</span><em class="t-shard">신규 씬 · 개입</em></div>
+
+      <div class="ln hud n"><span class="who">SYSTEM</span><span class="say">판정: 인간. 보안 개시.</span></div>
+      <div class="ln n"><span class="who">집행자</span><span class="say">…아.</span></div>
+      <div class="ln n"><span class="who">집행자</span><span class="say">너였구나.</span><span class="cond">이 개체와 말을 나눈 적이 있을 때만</span></div>
+      <div class="beat">— 여덟 걸음. 개체들이 하나씩 등을 돌린다. 소리는 없다. —</div>
+
+      <div class="fork">
+        <div>
+          <span class="c">걸음 1 — 원장이 열린다</span>
+          <span class="r">디렉터가 그 방의 개체 전원에게 한 번씩 묻는다.
+          <b>「너는 쟤를 어떻게 봐왔지. 나설 거야?」</b> 대사는 없다.
+          화면에 보이는 것은 <b>몇이 반쯤 몸을 도는 것</b>뿐이다.</span>
+        </div>
+        <div class="warm">
+          <span class="c">걸음 4–5 · 말로 막는다</span>
+          <span class="r"><b>개체</b> 잠깐.<br>
+          <b>집행자</b> …비켜.<br>
+          <b>개체</b> 쟤 아까 나 도와줬어.<br>
+          <b>집행자</b> …… &nbsp;<i>3초 멎는다 · 한 번 더 묻는다 · 답하면 의심도 90</i></span>
+        </div>
+        <div class="warm">
+          <span class="c">걸음 6–7 · 몸으로 막는다</span>
+          <span class="r">말이 없다. <b>총구 앞으로 들어와 선다.</b><br>
+          <b>집행자</b> …야.<br>
+          <b>개체</b> ……<br>
+          <i>개체를 쏘는 건 이 구역의 법이 아니다</i></span>
+        </div>
+        <div class="danger">
+          <span class="c">걸음 8 · 대신 부서진다</span>
+          <span class="r"><b>개체</b> 내가 그 자야.<br>
+          <b>나 (속마음)</b> 아니야—<br>
+          <b>개체</b> (이쪽을 안 본다)<br>
+          <b>SYSTEM</b> 처리 완료. 관측 수준 하향. &nbsp;<i>의심도 60</i><br>
+          <b>나 (속마음)</b> …내가 아무 말도 안 했으면.<br>
+          <i>원장에 「나를 위해 나선 적 있다」가 있는 개체만 · 판에 한 번 · <b>플레이어는 못 막는다</b></i></span>
+        </div>
+        <div class="danger">
+          <span class="c">대부분의 판 — 아무도 안 나온다</span>
+          <span class="r">여덟 걸음을 그냥 본다.<br>
+          <b>집행자</b> …미안. &nbsp;<i>태도가 +1 이상일 때만 · 총을 내리는 1.5초</i><br>
+          <b>SYSTEM</b> 신경 접속 강제 종료.</span>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>대사가 거의 없는 것이 이 씬의 설계다.</b> 여덟 걸음 동안 말하는 것은 넷뿐이고,
+        나머지는 <b>몸이 도는 방향</b>으로만 보인다. 그리고 이 씬은 <b>대본이 정하지 않는다</b> —
+        누가 나설지, 어디까지 갈지를 그 판의 원장이 정한다.
+        <br>「미안」 한 줄이 태도 조건부인 것도 그대로다. 아무하고도 안 엮인 플레이어는
+        <b>그 줄을 못 듣고 그냥 죽는다.</b> 그리고 그게 아무것도 안 바꾼다.
+      </p>
+    </div>
+
+    <div class="scene">
+      <div class="slug"><b>폴백</b><span>감독이 죽었을 때 — 목록이 줄었다</span><em class="t-halt">폴백은 아무도 안 쏜다</em></div>
+
+      <div class="ln"><span class="who">무응답</span><span class="say">…말이 없네. 적어 둘게.</span><span class="cond">+9</span></div>
+      <div class="ln"><span class="who">보고형 답변</span><span class="say">…그래. 적어 둘게.</span><span class="cond">−3</span></div>
+      <div class="ln"><span class="who">질문 회피</span><span class="say">…딴 얘기 하네. 계속 가.</span><span class="cond">+3</span></div>
+      <div class="ln"><span class="who">감정 노출</span><span class="say">…그거 재밌네.</span><span class="cond">+12</span></div>
+      <div class="ln"><span class="who">장황함</span><span class="say">다시. 짧게 말해.</span><span class="cond">+5</span></div>
+      <div class="ln n"><span class="who">개체 발화</span><span class="say">…….</span><span class="cond">L1 이 죽으면 개체는 침묵한다. 지어낸 말을 하지 않는다</span></div>
+      <div class="ln n"><span class="who">전파 정지</span><span class="say">(조각이 안 돈다. 아무도 소문을 말하지 않는다.)</span></div>
+      <div class="ln n"><span class="who">동료 확인</span><span class="say">…그거, 벽에 있던 말인데.</span><span class="cond">3인 · 폴백에서도 반드시 나온다</span></div>
+      <div class="ln n"><span class="who">경보도</span><span class="say">(로컬 계산이라 폴백과 무관하게 정상 동작한다.)</span></div>
+
+      <p class="note">
+        <b>「기록 일치 → 통과」와 「기록 불일치 → +15」는 폴백 목록에서 빠졌다.</b>
+        그 둘은 이제 로컬 판정이라 모델이 죽어도 정상 동작한다.
+        <b>조각이 안 도는 판은 조용한 판이지 억울한 판이 아니어야 한다</b> —
+        그래서 폴백은 소문을 지어내지 않고 그냥 멈춘다.
+      </p>
+    </div>
+
+  </section>
+
+  <div class="closing">
+    <p>
+      원본에서 대본은 챕터가 내려갈수록 얇아지다가 재검실에서 사라졌다.
+      이제는 <b>얇아지지 않는다.</b> 대신 종류가 바뀐다 —
+      앞에서는 세계가 나에게 하는 말이었던 것이, 뒤에서는 <b>내가 한 말이 남의 입으로 돌아오는 것</b>이 된다.
+    </p>
+    <p>
+      마지막 방에서 나를 살리는 문장은 파일 어디에도 안 적혀 있다.
+      그건 내가 복도에서 그림 하나를 들여다보고, 값을 치르고, 누군가에게 물어본 것이다 —
+      <b>쉬어 본 적 있나.</b>
+    </p>
+    <p>
+      개체들이 사람처럼 말하니까, 이 한 마디가 특별한 이유도 말투가 아니게 됐다.
+      여기선 다들 편하게 떠들지만 <b>아무도 서로에게 묻지 않는다.</b> 이미 안다고 생각하니까.
+      그리고 이제 <b>그 사실을 아무도 설명해 주지 않는다.</b> 과학자는 모르고,
+      개체는 말할 이유가 없다. 플레이어가 개체 하나를 멈칫하게 만들고 <b>직접 알아내야 한다.</b>
+      그 조용한 방에서 하나가 물었다는 것이, 이 게임의 전부다.
+    </p>
+    <p>
+      셋이 들어가면 그 한 마디가 두 가지 일을 한다. 동료를 찾는 신호이면서,
+      개체를 위로하는 말이다. 그래서 셋 다 나가는 판에서는 <b>같은 문장이 세 번 쓰인다</b> —
+      한 번은 동료를 찾으려고, 한 번은 값을 치르려고, 마지막 한 번은
+      개체가 리더 앞에서 <b>나를 대신해</b> 말한다.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

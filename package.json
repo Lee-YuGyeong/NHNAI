@@ -1,0 +1,52 @@
+{
+  "name": "who-is-human",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "lab": "vite --open /lab",
+    "talk": "vite --open /talk",
+    "dev:api": "LAB_VIA_WORKER=1 vite",
+    "worker:dev": "wrangler dev --port ${WORKER_PORT:-8787}",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench:leader": "node tools/leader-bench.mjs",
+    "vars:check": "node tools/load-vars.mjs --check",
+    "db:check": "node tools/load-vars.mjs -- supabase/apply.sh --check",
+    "db:fence": "bash supabase/fence.test.sh",
+    "db:apply": "node tools/load-vars.mjs -- supabase/apply.sh",
+    "prepare": "git config core.hooksPath tools/git-hooks || exit 0"
+  },
+  "dependencies": {
+    "@google-cloud/text-to-speech": "^7.0.0",
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
+    "@reduxjs/toolkit": "^2.12.0",
+    "@supabase/supabase-js": "^2.112.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-redux": "^9.3.0",
+    "react-router-dom": "^7.18.2",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.245",
+    "@cloudflare/workers-types": "^5.20260820.1",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@types/three": "^0.185.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "jsdom": "^26.1.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^3.2.7",
+    "wrangler": "^4.0.0"
+  }
+}
