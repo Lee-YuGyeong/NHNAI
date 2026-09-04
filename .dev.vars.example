@@ -25,9 +25,24 @@ UXPILOT_API_KEY=
 # ── 워커 (npm run worker:dev) ──────────────────────────────────────────
 # /api/lab — 배포된 워커에서 AI 다섯을 돌릴 때. 로컬 /lab 은 이 머신의 Claude 구독 인증을 써서 비워도 된다.
 ANTHROPIC_API_KEY=
-# /api/tts — 리더 방송 음성. 없으면 503 (텍스트만 나온다).
+# /api/tts — 관리 AI 방송 음성. 없으면 503 (텍스트만 나온다).
 ELEVENLABS_API_KEY=
 ELEVENLABS_VOICE_ID=
+#
+# ── 관리 AI 세 톤 (worker/src/tts.ts) ──────────────────────────────────
+# 관리 AI 는 **한 존재**지만 하는 일이 셋이다 (PLANNING §4.1): 시험을 열고(announce),
+# 기록을 읽고(readout), 격리를 알린다(alarm). 셋은 이미 발성값이 다르다 —
+# 안정 0.85/0.9/0.7 · 연기 0/0/0.3 · 속도 0.95/1.0/1.1. **목소리까지 가르고 싶을 때만** 채운다.
+#
+# ★ 비워 두는 것이 기본이고, 그게 대개 맞다. 셋을 전부 다르게 두면 한 시설에서 **세 시스템이
+#   말하는 것처럼** 들린다. 굳이 가른다면 alarm 이 값이 싸다 — 격리는 판에 몇 번 없고,
+#   그때 목소리가 바뀌는 것은 「다른 계통이 끼어들었다」로 읽혀 오히려 산다.
+#
+# 고르는 곳은 /tts 맨 위 「관리 AI 세 톤」이다. 거기서 갈래마다 갈아 들어 보면
+# (실제 방송 관로로 나간다) 줄을 만들어 준다.
+ELEVENLABS_VOICE_ID_ANNOUNCE=
+ELEVENLABS_VOICE_ID_READOUT=
+ELEVENLABS_VOICE_ID_ALARM=
 # ── 참가자 좌석 음성 (worker/src/seat-voice.ts · docs/VOICE.md) ────────
 # 위의 ELEVENLABS_VOICE_ID 는 **관리 AI 방송 하나**의 목소리고, 아래는 **방에 앉은 아홉**의
 # 목소리다. 둘은 관로도 규칙도 다르다 — 방송은 안 들리면 정보가 사라질 뿐이지만, 참가자
