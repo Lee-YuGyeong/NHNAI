@@ -36,7 +36,7 @@ import { sampleAt, type Pose } from '../mp/interp';
 import type { AnimState, EmoteState } from '../mp/protocol';
 import { seatColor } from '../mp/validate';
 import type { WorldConnection } from '../net/connection';
-import { remotePlayers, type RemotePlayer } from '../net/remote-players';
+import { CHAR_BODY_R, remotePlayers, type RemotePlayer } from '../net/remote-players';
 import type { QualityTier } from '../perf/quality';
 import { WorldCanvas } from './WorldCanvas';
 
@@ -346,6 +346,10 @@ function LocalRig({ conn, spawn, composing, paused, map }: { conn: WorldConnecti
     const pushed = bystanders.pushOut(pos.current.x, pos.current.z, PLAYER_BODY_R);
     pos.current.x = pushed.x;
     pos.current.z = pushed.z;
+    // 다른 캐릭터(원격 플레이어·AI 좌석)도 뚫고 지나가지 않는다 — 미는 건 내 몸뿐, 상대는 상대 화면에서 밀린다
+    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, CHAR_BODY_R, now);
+    pos.current.x = among.x;
+    pos.current.z = among.z;
     // 밀려난 자리가 다시 가구 안일 수 있다 — 리브·상자 옆에 선 개체가 나를 벽 쪽으로 밀면 프레임마다 벽과 몸이 번갈아 밀어 튕긴다. 한 번 더 벽을 푼다
     resolveColliders(pos.current, pos.current.y);
 

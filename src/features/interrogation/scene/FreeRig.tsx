@@ -27,6 +27,7 @@ import { BODIES, type BodyId } from '@/world/mp/bodies';
 import { GRAVITY, JUMP_SPEED, MOVE_THROTTLE_MS, WALK_SPEED, WORLD } from '@/world/mp/constants';
 import { PAD_R, PAD_TOP, PLATFORM_RESPAWN_MS } from '@/world/mp/platform';
 import type { AnimState } from '@/world/mp/protocol';
+import { CHAR_BODY_R, remotePlayers } from '@/world/net/remote-players';
 import { PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, forwardOf, placeChaseCamera } from './chase';
 import { platformState } from './platformState';
 import { selfPose } from './selfPose';
@@ -163,6 +164,11 @@ export function FreeRig({
       if (pad && pos.current.y >= platformState.PAD_TOP - 0.02) pos.current.x += platformState.carryX(pad.k, nowMs, Math.min(delta, 0.1) * 1000);
     }
 
+    map.resolveColliders(pos.current, pos.current.y);
+    // 캐릭터끼리는 통과 못 한다 — 겹친 만큼 밀려난다. 밀린 자리가 벽 안이면 벽이 다시 민다 (환경이 이긴다)
+    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, CHAR_BODY_R, performance.now());
+    pos.current.x = among.x;
+    pos.current.z = among.z;
     map.resolveColliders(pos.current, pos.current.y);
     // 발판은 통과 못 한다 — 윗면보다 낮은 높이로 발판 안에 들어왔으면(옆에서 부딪힘 · 밑으로 지나감) 테두리 밖으로 민다
     if (platformState.active && pos.current.y < PAD_TOP - 0.02) {

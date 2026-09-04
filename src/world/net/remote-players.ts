@@ -8,7 +8,8 @@
  * (core/WorldState 와 같은 원칙이다 — 다만 여기는 보간 링버퍼가 필요해 따로 둔다.)
  */
 
-import { pushSample, type MoveSample, type Pose } from '../mp/interp';
+import { INTERP_DELAY_MS } from '../mp/constants';
+import { pushSample, sampleAt, type MoveSample, type Pose } from '../mp/interp';
 import type { AnimState, BodyId, PlayerSnapshot } from '../mp/protocol';
 
 export interface RemotePlayer {
@@ -30,6 +31,13 @@ export interface RemotePlayer {
 
 /** 말풍선 수명 (ms). */
 export const BUBBLE_MS = 3_000;
+
+/** 캐릭터 몸 반지름(m) — 로봇·군인 어깨 폭의 절반쯤. 밀어내기는 양쪽 반지름을 더해 잰다 */
+export const CHAR_BODY_R = 0.35;
+/** 발 높이 차가 이보다 크면 다른 층(발판 위/아래)이다 — 서로 밀지 않는다 */
+const PUSH_Y_GAP = 1.4;
+/** pushOut 의 보간 그릇 — 프레임마다 재사용한다 */
+const probe: Pose = { x: 0, z: 0, y: 0, heading: 0 };
 
 const players = new Map<string, RemotePlayer>();
 
@@ -70,6 +78,32 @@ export const remotePlayers = {
     if (!p) return;
     p.anim = anim;
     pushSample(p.buffer, { t: now, x, z, y, heading });
+  },
+  /**
+   * (x, z, 발 높이 y) 에 선 반지름 r 의 몸을 원격 캐릭터들 밖으로 민다 — 캐릭터끼리 뚫고 지나가지 않게
+   * (각 리그의 useFrame — 미는 건 언제나 내 몸이다. 상대 화면에선 상대 리그가 상대 몸을 민다).
+   * 기준 자세는 화면에 보이는 것과 같은 150ms 과거(sampleAt)다. 겹친 만큼 밀린 좌표를 돌려준다
+   */
+  pushOut(x: number, z: number, y: number, r: number, now: number): { x: number; z: number } {
+    let ox = x;
+    let oz = z;
+    for (const p of players.values()) {
+      const at = sampleAt(p.buffer, now - INTERP_DELAY_MS, probe) ? probe : p.pose;
+      if (Math.abs(at.y - y) >= PUSH_Y_GAP) continue;
+      const dx = ox - at.x;
+      const dz = oz - at.z;
+      const d = Math.hypot(dx, dz);
+      const min = r + CHAR_BODY_R;
+      if (d >= min) continue;
+      if (d < 1e-4) {
+        ox += min; // 정확히 겹쳐 있다(같은 자리 스폰) — 방향이 없으니 +x 로 벌린다
+        continue;
+      }
+      const k = (min - d) / d;
+      ox += dx * k;
+      oz += dz * k;
+    }
+    return { x: ox, z: oz };
   },
   bubble(id: string, text: string, now: number): void {
     const p = players.get(id);

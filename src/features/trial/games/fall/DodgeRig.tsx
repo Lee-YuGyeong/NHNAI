@@ -13,6 +13,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { LOOK_SENSITIVITY, attachKeyboard, input, resetInput } from '@/world/input/input';
 import { FALL_ARENA, FALL_BODY_R, GRAVITY, JUMP_SPEED, MOVE_THROTTLE_MS, WALK_SPEED } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
+import { remotePlayers } from '@/world/net/remote-players';
 import { PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, forwardOf, headingOf, placeChaseCamera } from '../common/chase';
 import { selfPose } from '../common/selfPose';
 
@@ -86,6 +87,11 @@ export function DodgeRig({ sendMove }: { sendMove: (x: number, z: number, y: num
       heading.current += d * Math.min(1, delta / 0.15);
       anim = 'walk';
     }
+
+    // 캐릭터끼리는 통과 못 한다 — 겹친 만큼 밀려난다. 마당 클램프가 뒤라 밖으로 밀려 나가진 않는다
+    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, FALL_BODY_R, performance.now());
+    pos.current.x = among.x;
+    pos.current.z = among.z;
 
     // 마당 밖으로는 못 나간다 — 공은 마당 안에만 떨어지고, 판정도 마당 안에서만 뜻이 있다
     pos.current.x = Math.min(Math.max(pos.current.x, FALL_ARENA.minX + FALL_BODY_R), FALL_ARENA.maxX - FALL_BODY_R);

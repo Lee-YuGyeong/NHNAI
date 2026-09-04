@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { LOOK_SENSITIVITY, MAX_PITCH, attachKeyboard, input, resetInput } from '@/world/input/input';
 import { EYE_HEIGHT, FALL_BODY_R, GRAVITY, HUNT_ARENA, JUMP_SPEED, MOVE_THROTTLE_MS, WALK_SPEED } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
+import { remotePlayers } from '@/world/net/remote-players';
 import { selfPose } from '../common/selfPose';
 
 /** 견본판(z 7.4) 앞 — 무대 쪽(-z)을 보고 선다. 첫 화면에서 구슬밭 전체가 눈에 들어온다 */
@@ -77,6 +78,11 @@ export function HuntRig({ sendMove }: { sendMove: (x: number, z: number, y: numb
       pos.current.z += (forward.current.z * az + right.current.z * ax) * fit * speed;
       anim = 'walk';
     }
+
+    // 캐릭터끼리는 통과 못 한다 — 겹친 만큼 밀려난다. 마당 클램프가 뒤라 밖으로 밀려 나가진 않는다
+    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, FALL_BODY_R, performance.now());
+    pos.current.x = among.x;
+    pos.current.z = among.z;
 
     // 마당 밖으로는 못 나간다 — 구슬도 판정도 마당 안에만 있다
     pos.current.x = Math.min(Math.max(pos.current.x, HUNT_ARENA.minX + FALL_BODY_R), HUNT_ARENA.maxX - FALL_BODY_R);
