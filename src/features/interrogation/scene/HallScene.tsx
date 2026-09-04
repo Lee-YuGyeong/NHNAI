@@ -21,6 +21,7 @@ import { remotePlayers } from '@/world/net/remote-players';
 import { AdaptiveFov, Exposure, MouseLook } from '@/world/scene/WorldScene';
 import { WorldCanvas } from '@/world/scene/WorldCanvas';
 import { SeatBodies } from './SeatAvatar';
+import { Executioner } from './Executioner';
 import { FallObjects } from './FallObjects';
 import { FreeRig, type Teleport } from './FreeRig';
 import { StopRig } from './stopline/StopRig';
@@ -95,6 +96,10 @@ export function HallScene(p: HallSceneProps) {
       {fall ? <FallObjects /> : null}
 
       <SeatBodies seats={p.others} getSuspicion={p.getSuspicion} markId={p.markId} bubbleTick={p.bubbleTick} />
+      {/* 무대 위의 처형자 — 격리되는 몸을 쏜다 (executionerStore). 판이 서기 전(로비)에도 서 있다 */}
+      <Suspense fallback={null}>
+        <Executioner />
+      </Suspense>
       {stopline ? <StopRunners others={p.others} /> : null}
 
       {stopline && p.mySeatId ? (

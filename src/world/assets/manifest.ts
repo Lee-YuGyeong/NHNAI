@@ -113,6 +113,13 @@ export const ASSETS = {
   sol_fit_f: { url: '/world/soldier/sol_fit_f.glb' },
   sol_heavy_m: { url: '/world/soldier/sol_heavy_m.glb' },
   sol_heavy_f: { url: '/world/soldier/sol_heavy_f.glb' },
+  /**
+   * 검문소 무대 위의 처형자 + 총 (2026-09-04 사용자 제공 Tripo GLB → tools/executioner-glb.sh). 몸은 리깅만 있고 클립은 없다 —
+   * 무장 심문 AI 와 같은 자세 엔진(features/world/enforcerPose)이 코드로 움직인다. 총은 tools/gun-orient.mjs 로 소총 기준 좌표
+   * (총열 +z · 위 +y · 길이 1)로 돌려 구웠다. 의심도 100% 로 격리되는 순간 그 몸을 쏜다 (features/interrogation/scene/Executioner).
+   */
+  executioner: { url: '/world/executioner/executioner.glb' },
+  executioner_gun: { url: '/world/executioner/gun.glb' },
 
   /**
    * 물리 미니게임 — 정지선(features/trial). 심문소 홀 안에 레인을 깔고 그 위에 세우는 소품 둘:

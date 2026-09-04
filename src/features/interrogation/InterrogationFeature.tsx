@@ -30,6 +30,7 @@ import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
 import type { BodyId } from '@/world/mp/bodies';
 import { fallState } from './scene/fallState';
+import { EXECUTION_MS, executioner } from './scene/executionerStore';
 import { runnerState } from './scene/stopline/runnerState';
 import './interrogation.css';
 
@@ -66,6 +67,8 @@ export function InterrogationFeature() {
   const [teleport, setTeleport] = useState<Teleport | null>(null);
   /** 로비에서 받은 내 몸 (welcome). 판이 열리면 좌석의 body 가 이긴다 — 같은 값이다 */
   const [lobbyBody, setLobbyBody] = useState<BodyId | null>(null);
+  /** 격리됐지만 아직 홀에 남아 총을 맞는 중인 좌석 — EXECUTION_MS 뒤 빠진다 (scene/executionerStore) */
+  const [dying, setDying] = useState<Set<string>>(() => new Set());
   const rootRef = useRef<HTMLDivElement>(null);
   const connRef = useRef<GameConnection | null>(null);
   if (connRef.current === null) connRef.current = new GameConnection();
@@ -99,6 +102,7 @@ export function InterrogationFeature() {
     remotePlayers.clear();
     runnerState.clear();
     fallState.clear();
+    executioner.reset();
     dispatch(gameActions.connecting());
 
     const conn = connRef.current!;
@@ -153,11 +157,26 @@ export function InterrogationFeature() {
         case 'game_suspicion':
           dispatch(gameActions.suspicionReceived(msg));
           return;
-        case 'game_isolated':
+        case 'game_isolated': {
           dispatch(gameActions.isolatedReceived(msg));
-          // 격리된 몸은 그 자리에서 끌려 나간다 — 홀에서도 사라진다. 정체는 좌석판이 들고 있다
-          remotePlayers.remove(msg.id);
+          /*
+           * 무대 위 처형자가 그 몸을 쏜다 (scene/Executioner) — 몸은 EXECUTION_MS 동안 홀에 남았다가(dying) 사라진다.
+           * 판은 그대로다: 격리는 서버가 이미 했고 좌석판도 지금 바뀐다. 내 화면의 연출만 그 뒤를 따른다.
+           * 내가 격리됐으면 몸이 없으니 내 마지막 좌표를 쏜다.
+           */
+          const id = msg.id;
+          executioner.execute(id, id === meRef.current?.seatId ? { ...myPos.current } : null);
+          setDying((d) => new Set(d).add(id));
+          window.setTimeout(() => {
+            remotePlayers.remove(id);
+            setDying((d) => {
+              const n = new Set(d);
+              n.delete(id);
+              return n;
+            });
+          }, EXECUTION_MS);
           return;
+        }
         case 'game_leader':
           dispatch(gameActions.leaderReceived(msg));
           dispatch(broadcastAnnounce({ text: msg.text, kind: msg.kind, ts: msg.ts }));
@@ -275,7 +294,16 @@ export function InterrogationFeature() {
   /* ─────────────────────────────── 보내기 ─────────────────────────────── */
 
   const conn = connRef.current;
-  const sendMove = useCallback((x: number, z: number, y: number, heading: number, anim: AnimState) => conn.sendMove(x, z, y, heading, anim), [conn]);
+  /** 내 마지막 좌표 — 내가 격리될 때 처형자가 겨눌 자리 */
+  const myPos = useRef({ x: 0, z: 4 });
+  const sendMove = useCallback(
+    (x: number, z: number, y: number, heading: number, anim: AnimState) => {
+      myPos.current.x = x;
+      myPos.current.z = z;
+      conn.sendMove(x, z, y, heading, anim);
+    },
+    [conn],
+  );
   const onAccel = useCallback(() => conn.sendAccel(), [conn]);
   const onBrake = useCallback(() => conn.sendBrake(), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
@@ -311,11 +339,11 @@ export function InterrogationFeature() {
   const others = useMemo(
     () =>
       inGame
-        ? seats.filter((s) => s.id !== mySeatId && !s.isolated).map((s) => ({ id: s.id }))
+        ? seats.filter((s) => s.id !== mySeatId && (!s.isolated || dying.has(s.id))).map((s) => ({ id: s.id }))
         : Object.keys(players)
             .filter((id) => id !== selfId)
             .map((id) => ({ id })),
-    [inGame, seats, mySeatId, players, selfId],
+    [inGame, seats, mySeatId, players, selfId, dying],
   );
   /** 내가 지금 겨누고 있는 좌석 — 그 몸의 이름표에 👉 가 붙는다 (좌석판의 「철회」와 같은 값) */
   const markId = mySeatId ? (wire?.accusations[mySeatId] ?? null) : null;
