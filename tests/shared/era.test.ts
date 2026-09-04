@@ -34,9 +34,19 @@ describe('구역의 연표', () => {
     expect(readFileSync('src/features/arena/handover.ts', 'utf8')).not.toContain("from '@/shared/era'");
   });
 
+  /*
+   * 2026-09-04, PLANNING.md 개정으로 두 인트로(브리핑 · 옛 랜딩)는 이 배선에서 빠졌다.
+   * 새 기획("인간인 척")은 72년 누적 신화가 아니라 **2026년 하루**의 사건이다 — 사건이
+   * 일어난 해와 "지금"이 같아서, ZONE_YEAR(2098)를 "지금"으로 쓰면 새 서사와 어긋난다.
+   * 그래서 두 화면은 이제 상수를 안 쓰고 값을 그대로 적는다(IntroFeature.tsx · Intro.tsx
+   * 각 파일의 개정 주석 참고).
+   *
+   * 복도 명판(Chapter1Scene)과 인계 서류(HandoverCard)는 아직 옛 72년 세계 그대로다 —
+   * 실제 게임 루프(worker/ArenaFeature)가 옛 구성으로 도는 동안은 그쪽도 옛 연표를 쓰는 게
+   * 맞다. 그 결과 지금은 **두 인트로의 "지금"(2026)과 본판의 "지금"(2098)이 서로 다르다** —
+   * 알려진, 의도된 틈이다. 본판이 PLANNING 쪽으로 옮겨가는 날 이 틈도 같이 없어진다.
+   */
   for (const [file, what] of [
-    ['src/features/lobby/Intro.tsx', '브리핑의 연표'],
-    ['src/features/intro/IntroFeature.tsx', '옛 랜딩의 연혁'],
     ['src/features/world/Chapter1Scene.tsx', '복도의 정비 명판'],
     ['src/features/arena/HandoverCard.tsx', '인계 서류'],
   ] as const) {
@@ -44,6 +54,16 @@ describe('구역의 연표', () => {
       const src = readFileSync(file, 'utf8');
       expect(src).toContain("from '@/shared/era'");
       expect(src).toContain('ORIGIN_YEAR');
+    });
+  }
+
+  for (const [file, what] of [
+    ['src/features/lobby/Intro.tsx', '브리핑'],
+    ['src/features/intro/IntroFeature.tsx', '옛 랜딩'],
+  ] as const) {
+    it(`${what} — 더는 shared/era 를 안 쓴다 (2026-09-04, PLANNING.md 개정)`, () => {
+      const src = readFileSync(file, 'utf8');
+      expect(src).not.toContain("from '@/shared/era'");
     });
   }
 

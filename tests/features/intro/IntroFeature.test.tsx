@@ -54,8 +54,8 @@ describe('인트로 — 누가 인간인가?', () => {
 
   it('구간 셋(소개·배역·규칙)이 있고, 내비와 규칙 보기가 그리로 스크롤한다', () => {
     renderIntro();
-    expect(screen.getByRole('region', { name: /2098/ })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: /여덟 자리/ })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /2026/ })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /가변 인원/ })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: /시행은 계속된다/ })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '규칙 보기' }));
@@ -64,36 +64,44 @@ describe('인트로 — 누가 인간인가?', () => {
     expect(scrolled).toEqual(['intro-rules', 'intro-roles', 'intro-about']);
   });
 
-  it('브리핑의 연혁이 2026 을 첫 항목으로 세운다 — 72년 동안 규칙이 쌓이기만 했다', () => {
+  // PLANNING.md 개정(2026-09-04)으로 8석 고정·라운드제 연혁이 가변 인원·라운드 없음으로
+  // 바뀌었다 — 연혁 두 줄 대신 이 판을 실제로 움직이는 두 수치(시행 간격 · 격리선)를 본다.
+  it('브리핑의 계기가 시행 간격과 의심도 격리선을 세운다', () => {
     renderIntro();
-    const origin = screen.getByText('첫 규칙').closest('li')!;
-    expect(origin).toHaveTextContent('2026');
-    expect(screen.getByText('구역 폐쇄').closest('li')!).toHaveTextContent('2098');
-    expect(screen.getByText(/72년째/)).toBeInTheDocument();
+    const trigger = screen.getByText('테스트 트리거').closest('li')!;
+    expect(trigger).toHaveTextContent('60–90s');
+    const gate = screen.getByText('의심도 격리선').closest('li')!;
+    expect(gate).toHaveTextContent('100%');
   });
 
-  it('플레이어에게 생존 승리를 말한다 — 「인간을 찾아라」는 AI 노드의 목표일 뿐', () => {
+  it('찾는 것은 숨은 AI다 — 인간을 찾으라는 문구는 남아 있지 않다', () => {
     renderIntro();
-    // 히어로 — 당신이 인간이고, 들키지 않으면 이긴다
-    expect(screen.getByText(/들키지 않으면 이긴다/)).toBeInTheDocument();
-    // 마지막 CTA — 찾는 쪽이 아니라 살아남는 쪽을 묻는다
-    expect(screen.getByText(/살아남을 수 있습니까/)).toBeInTheDocument();
-    // 「인간을 찾으면 이긴다」류의 문구는 플레이어를 향해 남아 있지 않다
+    // 히어로 — 몸은 못 속인다는 새 전제 (section 4 의 규칙 카드도 같은 낱말로 시작하니 전체 줄로 특정한다)
+    expect(screen.getByText(/몸은 못 속인다\. 말은 속일 수 있다/)).toBeInTheDocument();
+    // 마지막 CTA — 옆 사람이 진짜인지를 묻는다
+    expect(screen.getByText(/정말 사람입니까/)).toBeInTheDocument();
+    // 「인간을 찾으면 이긴다」류의 옛 문구는 남아 있지 않다
     expect(screen.queryByText(/인간을 찾아내면/)).not.toBeInTheDocument();
-    // 색출 승리는 AI 노드의 카드 안에만 있다
-    const aiCard = screen.getByRole('heading', { name: 'AI 노드' }).closest('li')!;
-    expect(aiCard).toHaveTextContent('인간을 색출하면 승리');
+    expect(screen.queryByText(/인간을 색출하면/)).not.toBeInTheDocument();
+    // 색출 승리는 이제 사람 쪽 카드다 — AI 가 격리되면 사람이 이긴다
+    const humanCard = screen.getByRole('heading', { name: '사람' }).closest('li')!;
+    expect(humanCard).toHaveTextContent('AI가 격리되면 승리');
   });
 
-  it('배역 카드는 셋이고 인간 요원만 HUMAN 태그를 단다', () => {
+  it('배역 카드는 셋(AI · AI 설계자 · 사람)이고 사람 카드만 앰버로 강조된다', () => {
     renderIntro();
-    expect(screen.getByRole('heading', { name: '리더 AI' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'AI 노드' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '인간 요원' })).toBeInTheDocument();
-    expect(screen.getAllByText('HUMAN')).toHaveLength(1);
-    // 여덟 자리는 노드 5 + 인간 3 두 종류뿐 — 리더는 자리 밖 진행자다 (PLANNING.md 8석 = AI 5 + 인간 3)
-    expect(screen.getByRole('heading', { name: /여덟 자리/ })).toHaveTextContent('두 종류. 그리고 리더');
-    expect(screen.getByText(/리더는 여덟 자리 밖에서/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'AI', level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'AI 설계자' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '사람' })).toBeInTheDocument();
+    // 앰버 강조(intro-role--human)는 사람 카드 하나뿐이다
+    const humanCard = screen.getByRole('heading', { name: '사람' }).closest('li')!;
+    expect(humanCard).toHaveClass('intro-role--human');
+    const aiCard = screen.getByRole('heading', { name: 'AI', level: 3 }).closest('li')!;
+    const designerCard = screen.getByRole('heading', { name: 'AI 설계자' }).closest('li')!;
+    expect(aiCard).not.toHaveClass('intro-role--human');
+    expect(designerCard).not.toHaveClass('intro-role--human');
+    // 관리 AI는 배역 밖이다 — 판정하지 않는 쪽이라 세 카드 중에 없다
+    expect(screen.getByRole('heading', { name: /가변 인원/ })).toHaveTextContent('관리 AI는 그중이 아니다');
   });
 });
 

@@ -40,8 +40,9 @@ describe('표지 (HeroKey · 복도)', () => {
     put();
     const title = screen.getByRole('heading', { level: 1 }).textContent ?? '';
     expect(title.replace(/\s+/g, '')).toContain('누가인간인가?');
-    expect(screen.getByText(/이 구역에 인간은 없다/)).toBeInTheDocument();
-    expect(screen.getByText(/없어야 한다/)).toBeInTheDocument();
+    // 2026-09-04, PLANNING.md 개정 — 방송이 "AI가 없다"에서 "표지가 붙어 있다"로 뒤집혔다 (heroes.tsx 참고)
+    expect(screen.getByText(/여기, 전부 표지가 붙어 있다/)).toBeInTheDocument();
+    expect(screen.getByText(/붙어 있어야 한다/)).toBeInTheDocument();
   });
 
   it('문 셋이 다 있고 각자 제 곳으로 간다', () => {
