@@ -311,6 +311,108 @@ export async function handleSeatClipMint(request: Request, env: SeatVoiceEnv): P
   });
 }
 
+/**
+ * 좌석 목소리 시청 (/tts 의 명부 캐스팅) — **개발에서만.**
+ *
+ * 명부를 짜는 동안에는 ELEVENLABS_SEAT_VOICE_IDS 가 아직 비어 있어서 명부 번호로는 부를 수가
+ * 없다(닭과 달걀). 그래서 voice id 를 직접 받는다.
+ *
+ * ★ 중요한 것은 **이 게임이 실제로 낼 소리로 듣는 것**이다. 같은 파일의 MODEL · FORMAT ·
+ *   SEAT_SETTINGS 를 그대로 쓴다 — 방송용 조리법(tts.ts: stability 0.85 · style 0 · 22kHz ·
+ *   확성기 필터)으로 들려주면 게임이 안 내는 소리를 듣고 아홉을 고르게 된다.
+ *   이 저장소가 이미 한 번 밟은 함정이다 (2026-08-30 「/tts 소리가 게임과 다르다」).
+ *
+ * 같은 목소리·같은 문장은 캐시가 받는다 — A/B 는 같은 줄을 몇 번이고 갈아 듣는 일이라,
+ * 한 번 한 번이 크레딧이면 아무도 반복하지 않게 된다.
+ */
+export async function handleSeatAudition(
+  request: Request,
+  env: SeatVoiceEnv,
+  ctx: { waitUntil(p: Promise<unknown>): void },
+): Promise<Response> {
+  if (env.SEAT_VOICE_DEV !== '1') return fail('없는 경로다', 404);
+  if (request.method !== 'POST') return fail('POST 만 받는다', 405);
+  if (!env.ELEVENLABS_API_KEY) return fail('ELEVENLABS_API_KEY 가 없다', 503);
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return fail('본문이 JSON 이 아니다', 400);
+  }
+  const { voiceId, text } = (body ?? {}) as { voiceId?: unknown; text?: unknown };
+  if (typeof voiceId !== 'string' || !voiceId.trim()) return fail('voiceId 가 비었다', 400);
+  const clean = typeof text === 'string' ? text.replace(/\s+/g, ' ').trim() : '';
+  if (!clean) return fail('text 가 비었다', 400);
+  if (clean.length > MAX_CHARS) return fail(`text 가 너무 길다 (${clean.length}자 > ${MAX_CHARS}자)`, 400);
+
+  // POST 는 본문이 캐시 열쇠가 못 된다 — 목소리·문장으로 가짜 GET 열쇠를 만든다
+  const key = new Request(
+    `https://seat-audition.local/${encodeURIComponent(voiceId)}/${encodeURIComponent(clean)}`,
+  );
+  const cache = caches.default;
+  const hit = await cache.match(key);
+  if (hit) return hit;
+
+  const upstream = await fetch(`${API}/${encodeURIComponent(voiceId)}?output_format=${FORMAT}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'xi-api-key': env.ELEVENLABS_API_KEY },
+    body: JSON.stringify({ text: clean, model_id: MODEL, voice_settings: SEAT_SETTINGS }),
+  });
+  if (!upstream.ok) {
+    const detail = await upstream.text();
+    return fail(`elevenlabs ${upstream.status}: ${detail.slice(0, 300)}`, 502);
+  }
+
+  const res = new Response(upstream.body, {
+    headers: { 'content-type': 'audio/mpeg', 'cache-control': 'public, max-age=86400' },
+  });
+  ctx.waitUntil(cache.put(key, res.clone()));
+  return res;
+}
+
+/**
+ * 라이브러리 보이스를 계정에 넣는다 — **개발에서만.**
+ *
+ * 공유 라이브러리의 voice id 는 그대로 합성에 못 쓴다. 계정에 'Add to My Voices' 를 해야
+ * 쓸 수 있는 id 가 나오고, 명부(ELEVENLABS_SEAT_VOICE_IDS)에 들어가는 것은 **그 id** 다.
+ * 아홉 번 반복할 일이라 화면에서 누르게 한다.
+ */
+export async function handleLibraryAdd(request: Request, env: SeatVoiceEnv): Promise<Response> {
+  if (env.SEAT_VOICE_DEV !== '1') return fail('없는 경로다', 404);
+  if (request.method !== 'POST') return fail('POST 만 받는다', 405);
+  if (!env.ELEVENLABS_API_KEY) return fail('ELEVENLABS_API_KEY 가 없다', 503);
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return fail('본문이 JSON 이 아니다', 400);
+  }
+  const { ownerId, voiceId, name } = (body ?? {}) as Record<string, unknown>;
+  if (typeof ownerId !== 'string' || !ownerId.trim()) return fail('ownerId 가 비었다', 400);
+  if (typeof voiceId !== 'string' || !voiceId.trim()) return fail('voiceId 가 비었다', 400);
+  const label = typeof name === 'string' && name.trim() ? name.trim().slice(0, 60) : `SEAT ${voiceId.slice(0, 6)}`;
+
+  const upstream = await fetch(
+    `https://api.elevenlabs.io/v1/voices/add/${encodeURIComponent(ownerId)}/${encodeURIComponent(voiceId)}`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'xi-api-key': env.ELEVENLABS_API_KEY },
+      body: JSON.stringify({ new_name: label }),
+    },
+  );
+  if (!upstream.ok) {
+    const detail = await upstream.text();
+    return fail(`elevenlabs ${upstream.status}: ${detail.slice(0, 300)}`, 502);
+  }
+  // 상류가 주는 새 voice_id 가 곧 명부에 넣을 값이다
+  const data = (await upstream.json().catch(() => ({}))) as { voice_id?: string };
+  return new Response(JSON.stringify({ id: data.voice_id ?? '', name: label }), {
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
+}
+
 function fail(error: string, status: number): Response {
   return new Response(JSON.stringify({ error }), {
     status,

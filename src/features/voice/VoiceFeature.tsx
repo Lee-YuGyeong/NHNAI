@@ -19,22 +19,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { audioContext, masterOut } from '@/features/tts/engine';
 import { FLOOR_LIMITS } from './floor';
+import { DISCUSSION_LINES } from './lines';
 import { assignVoices } from './roster';
 import { type Heard, type SeatLine, type VoicePorts, createRoomVoice } from './roomVoice';
 import { webAudioPorts } from './webAudio';
 
-/** 토론에서 나올 법한 줄들 — 길이가 흩어져 있어야 90자 상한과 겹침이 같이 보인다 */
-const SAMPLES = [
-  '나 방금 중력 바뀐 거 바로 느꼈는데',
-  '03번 착지 오차 0.2m 는 좀 이상하지 않아?',
-  '그건 운이야. 나도 한 번 그랬어',
-  '아니 전환 직후 3초를 봐. 거기서 갈려',
-  '난 아까 두 번이나 넘어졌어',
-  '너 지금 말 돌리는 거 아니야?',
-  '평균이 1.8인데 혼자 0.2면 설명이 필요하지',
-  '내가 왜 설명해야 하는데',
-  '기록만 보고 몰아가지 말자. 아직 한 번밖에 안 했어',
-];
+/** 캐스팅 화면(/tts)과 **같은 줄**을 쓴다 — 고른 소리가 겹쳐 들릴 때를 이어서 판단하는 흐름이라 */
+const SAMPLES = DISCUSSION_LINES;
 
 type Mode = 'mock' | 'real';
 

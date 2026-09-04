@@ -22,7 +22,7 @@ import { handleLabAct, handleLabCast, handleLabFree, handleLabTalk, handleWorldB
 import { LobbyDO, handleRooms } from './lobby-do';
 import { RoomDO } from './room-do';
 import { handleTts, handleTtsLibrary, handleTtsVoices } from './tts';
-import { handleSeatClip, handleSeatClipMint } from './seat-voice';
+import { handleLibraryAdd, handleSeatAudition, handleSeatClip, handleSeatClipMint } from './seat-voice';
 
 export { LobbyDO, RoomDO };
 
@@ -118,6 +118,13 @@ export default {
     if (url.pathname === '/api/tts/clip') return handleSeatClip(request, env, ctx);
     // 시연 화면(/voice)이 토큰을 받아 가는 자리 — SEAT_VOICE_DEV=1 일 때만 산다
     if (url.pathname === '/api/tts/clip/mint') return handleSeatClipMint(request, env);
+    /*
+     * 명부 캐스팅(/tts) — 역시 SEAT_VOICE_DEV=1 일 때만.
+     * 시청은 **게임이 실제로 낼 조리법**으로 낸다(seat-voice.ts 의 SEAT_SETTINGS). 방송용
+     * 조리법으로 들려주면 게임이 안 내는 소리를 듣고 아홉을 고르게 된다.
+     */
+    if (url.pathname === '/api/tts/seat-audition') return handleSeatAudition(request, env, ctx);
+    if (url.pathname === '/api/tts/library/add') return handleLibraryAdd(request, env);
 
     const match = ROOM_PATH.exec(url.pathname);
     // 방 경로가 아니면 정적 파일로 넘긴다 (없는 경로는 assets 설정에 따라 index.html).
