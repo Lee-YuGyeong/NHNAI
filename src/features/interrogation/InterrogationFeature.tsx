@@ -18,13 +18,13 @@ import { BackToRoot } from '@/shared/BackToRoot';
 import { broadcastAnnounce } from '@/shared/broadcast';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import type { GameSeat } from '@/world/mp/game-protocol';
+import { GAME_TEST_MS, type GameSeat } from '@/world/mp/game-protocol';
 import type { AnimState, PlayerSnapshot } from '@/world/mp/protocol';
 import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { Board, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TopBar } from './hud/Panels';
+import { BigClock, Board, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TopBar } from './hud/Panels';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
@@ -464,6 +464,8 @@ export function InterrogationFeature() {
           <BackToRoot />
         </div>
         {wire ? <TopBar wire={wire} roomCode={roomCode} /> : null}
+        {/* 미니 게임 30초만 큰 숫자로 — 토론 40초는 상단줄의 작은 초로 족하다 (사용자, BigClock 머리말) */}
+        {wire && phase === 'test' ? <BigClock endsAt={wire.phaseEndsAt} maxSeconds={(test?.durationMs ?? GAME_TEST_MS) / 1000} /> : null}
         {phase === 'test' && wire?.currentTest ? <div className="ig-order">{wire.currentTest.instruction}</div> : null}
         {/* 색 사냥 — 목표색. 스와치는 **기준광 원색**(조명 밖 UI): 맵 안 견본판(조명색)과의 대비가 「조명이 색을 바꿨다」를 가르친다 */}
         {phase === 'test' && test?.game === 'colorhunt' && hunt ? (

@@ -71,6 +71,26 @@ export function TopBar({ wire, roomCode }: { wire: GameStateWire; roomCode: stri
   );
 }
 
+/**
+ * 미니 게임의 남은 초 — 위 가운데 큰 숫자, 30 29 28 … (2026-09-05 사용자: "실제 게임할때 몇초 남았는지
+ * 위에 보이게" · "대화 40초는 안 보여도 돼. 미니게임 30초만"). 그래서 **시험 국면에만** 선다.
+ * 상단줄의 12px `30s` 는 몸을 움직이며 읽기엔 너무 작았다. /trial 이 같은 요청으로 얻은 모양
+ * (44px · 마지막 10초는 붉게)을 그대로 옮긴다 — 두 화면에서 같은 게임을 하니 시계도 같아야 한다.
+ * 기준 시각은 상단줄과 같은 phaseEndsAt 이다. 내 시계가 서버보다 늦으면 31 로 시작할 수 있어
+ * 시험 길이(maxSeconds)로 눌러 둔다 — 첫 숫자는 늘 30 이다.
+ */
+export function BigClock({ endsAt, maxSeconds, urgentBelow = 10 }: { endsAt: number | null; maxSeconds: number; urgentBelow?: number }) {
+  const raw = useCountdown(endsAt);
+  if (raw === null) return null;
+  const left = Math.min(raw, Math.ceil(maxSeconds));
+  return (
+    <div aria-live="off" className={`ig-clock${left <= urgentBelow ? ' urgent' : ''}`}>
+      {left}
+      <span>초</span>
+    </div>
+  );
+}
+
 /* ─────────────────────────────── 좌석판 ─────────────────────────────── */
 
 export function Board({
