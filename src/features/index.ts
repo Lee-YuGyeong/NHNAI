@@ -121,8 +121,9 @@ export const FEATURES: FeatureDef[] = [
   { id: 'game',    title: '라운드 진행',    path: '/game',    owner: 'TBD', Component: GameFeature },
   { id: 'profile', title: '프로필',        path: '/profile', owner: 'TBD', Component: ProfileFeature },
   { id: 'llm',     title: 'LLM 테스트',    path: '/llm',     owner: 'TBD', Component: LlmFeature },
-  { id: 'tts',     title: 'TTS 리더 방송',   path: '/tts',     owner: 'hbkim507', Component: TtsFeature },
-  { id: 'voice',   title: '좌석별 목소리',    path: '/voice',   owner: 'hbkim507', Component: VoiceFeature },
+  // 「리더 방송」은 옛 판 이름이다 — 이 기획의 방송자는 관리 AI 고, 이 화면은 좌석 아홉을 고르는 자리이기도 하다
+  { id: 'tts',     title: 'TTS 관리 AI · 좌석 캐스팅', path: '/tts', owner: 'hbkim507', Component: TtsFeature },
+  { id: 'voice',   title: '좌석별 목소리 (방 울림)',   path: '/voice', owner: 'hbkim507', Component: VoiceFeature },
   // 폴더와 경로가 어긋나 있다: features/talk → /lab (이게 지금 쓰는 판), features/lab → /rules (규정·검사 실험판)
   { id: 'lab',     title: '구역 (AI 5 + 나)',      path: '/lab',   owner: 'TBD', Component: TalkFeature },
   { id: 'rules',   title: '규정·검사판',            path: '/rules', owner: 'TBD', Component: LabFeature },

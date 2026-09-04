@@ -29,19 +29,25 @@ import { SeatCasting } from '@/features/voice/SeatCasting';
  * `broadcastAnnounce` → 큐(ttsSlice) → 전역 재생기(TtsPlayer) → 엔진(engine.ts).
  */
 
-/** 리더 방송 톤 샘플 — PLANNING 의 예시 문장들. 종류별로 하나씩 */
+/**
+ * 관리 AI 방송 샘플 — 「인간인 척」이 실제로 내보낼 세 갈래다 (PLANNING §4.1:
+ * 테스트 설계 · 기록 해설 · 주장 판정). 옛 판의 「전 노드는 중앙 라인에 정렬한다」류는
+ * 이 게임에 없는 세계라 걷어냈다 — 톤을 고르는 자리에서 남의 게임 문장을 들으면
+ * 고른 목소리가 실제 방송에서 어떻게 들릴지 알 수 없다.
+ */
 const SAMPLES: Array<{ kind: BroadcastKind; text: string }> = [
-  { kind: 'announce', text: '전 노드는 중앙 라인에 정렬한다. 신호에 맞춰 도약을 반복한다.' },
-  { kind: 'announce', text: '2항. 모든 송신은 규격 헤더를 선행한다.' },
-  { kind: 'readout',  text: '판독 결과. 3번 노드의 응답 지연 패턴이 규격을 벗어났다.' },
-  { kind: 'alarm',    text: '경보. 5번 노드의 폐기가 결정되었다. 전 노드는 대기한다.' },
-  // 길이 캡 확인용 — 예산(§1.2b)을 넘겨서 끝난 문장까지만 읽히는지 들어본다
+  { kind: 'announce', text: '낙하 시험을 개시한다. 전원 중앙 발판으로 이동하라.' },
+  { kind: 'announce', text: '조건이 변경되었다. 이번 구간의 중력 계수는 공개하지 않는다.' },
+  { kind: 'readout',  text: '기록을 공개한다. 무리 평균 1.8미터, 전환 직후 3초 구간의 편차가 가장 크다.' },
+  { kind: 'readout',  text: '주장 판정. SUBJECT 03 의 해명은 기록과 일치한다.' },
+  { kind: 'alarm',    text: '격리. SUBJECT 05 의 의심도가 100에 도달했다.' },
+  // 길이 캡 확인용 — 예산(cap.ts)을 넘겨서 끝난 문장까지만 읽히는지 들어본다
   {
     kind: 'announce',
     text:
-      '전 노드에 고지한다. 이번 라운드부터 모든 송신은 규격 헤더를 선행하며, ' +
-      '헤더가 누락된 송신은 응답 지연으로 간주해 판독 대상에 올린다. ' +
-      '또한 중앙 라인 이탈은 그 자체로 위반이며, 이탈이 반복될 경우 폐기 정원과 무관하게 별도 조치한다.',
+      '전원에게 고지한다. 이번 시험부터 조건값은 어떤 경우에도 공개하지 않으며, ' +
+      '기록은 무리 평균 대비 편차로만 제시된다. 시스템은 아무도 판정하지 않는다 — ' +
+      '의심도를 움직이는 것은 전적으로 여러분의 발언과 지목이다.',
   },
 ];
 
@@ -214,11 +220,30 @@ export function TtsFeature() {
   return (
     <main style={{ padding: 64, maxWidth: 640 }}>
       <BackToRoot />
-      <h2>TTS — 리더 방송</h2>
+      <h2>TTS — 관리 AI 방송 · 좌석 목소리</h2>
       <p style={{ opacity: 0.7 }}>
-        보낸 방송은 전역 큐에 쌓여 순서대로 재생되고, 경보는 재생 중인 방송을 끊고 맨 앞에 선다.
-        엔진은 ElevenLabs(워커 프록시) — 실패하면 Web Speech 로 읽는다. 교체는 <code>engine.ts</code>.
-        <br />
+        이 화면은 <strong>두 가지</strong>다. 「인간인 척」의 소리는 성격이 정반대인 두 갈래로 나뉜다
+        (<code>docs/VOICE.md</code> §8):
+      </p>
+      <table style={{ opacity: 0.8, fontSize: 13, borderCollapse: 'collapse', marginBottom: 12 }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: '2px 12px 2px 0', whiteSpace: 'nowrap' }}>🔊 <strong>관리 AI</strong></td>
+            <td style={{ padding: '2px 0' }}>
+              시설 방송 <strong>하나</strong>. 정체가 비밀이 아니라 목소리가 튀어도 잃을 게 없다 —
+              안 되면 브라우저 음성으로라도 읽는다.
+            </td>
+          </tr>
+          <tr>
+            <td style={{ padding: '2px 12px 2px 0', whiteSpace: 'nowrap' }}>👥 <strong>참가자</strong></td>
+            <td style={{ padding: '2px 0' }}>
+              방에 앉은 <strong>아홉</strong>. 한 좌석만 소리가 다르면 그게 정답표가 되므로,
+              안 되면 <strong>방 전체가 조용해진다</strong>. 아래 「좌석 명부 캐스팅」이 그 아홉을 고르는 자리다.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p style={{ opacity: 0.7, fontSize: 13 }}>
         폴백 목소리:{' '}
         {voice === undefined ? '확인 중…' : (voice ?? '한국어 목소리 없음 — 브라우저 기본으로 읽는다')}
       </p>
@@ -236,6 +261,14 @@ export function TtsFeature() {
         {spoken.by === 'fallback' && `⚠ Web Speech 로 읽었다 (ElevenLabs 실패: ${spoken.reason})`}
       </div>
 
+      <h3 style={{ marginBottom: 4 }}>🔊 관리 AI 방송 — 시설 방송 하나</h3>
+      <p style={{ opacity: 0.6, fontSize: 13, marginTop: 0 }}>
+        보낸 방송은 전역 큐에 쌓여 순서대로 재생되고, 경보는 재생 중인 방송을 끊고 맨 앞에 선다.
+        기본 음색은 <strong>시설 방송</strong>이다 — 관리 AI 는 시스템임을 모두가 알고 시작하므로
+        참가자와 <strong>달라야</strong> 한다(방송인지 발언인지 귀로 갈려야 토론이 안 엉킨다).
+        <br />
+        <strong>이 칸의 소리로 좌석 아홉을 고르면 안 된다</strong> — 조리법이 다르다(아래 캐스팅 칸).
+      </p>
       {/* 음색은 말로 합의가 안 되고 귀로 고르는 것이라, 갈아 듣는 손잡이를 화면에 둔다 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
         {MODES.map((m) => (
@@ -293,8 +326,21 @@ export function TtsFeature() {
           [{KIND_LABEL[kind]}] {t}
         </button>
       ))}
-      <h3>배역 시청 — 대본 화자 목소리 고르기</h3>
+      {/*
+        ── 옛 판 도구 ──
+        과학자 · 정부요원 · UNIT-07 은 「인간인 척」에 없는 인물들이다. 그래도 지우지 않는 이유는
+        /world · /scenario2 가 **아직 그 대본과 구운 클립으로 돌기 때문**이다 — 저 화면들을 손볼 때
+        여전히 필요한 도구다. 다만 이 화면의 본론이 아니므로 접어 둔다.
+      */}
+      <details style={{ marginTop: 24, opacity: 0.75 }}>
+        <summary style={{ cursor: 'pointer', fontSize: 14 }}>
+          배역 시청 — <strong>옛 판(/world · /scenario2) 전용</strong>. 이 게임과는 무관하다
+        </summary>
       <p style={{ opacity: 0.7, fontSize: 13 }}>
+        과학자 · 정부요원 · UNIT-07 은 「인간인 척」에 없다. 저 화면들이 아직 구운 클립으로 돌아서
+        남겨 둔 도구다. <strong>후보 소리</strong>는 위 「관리 AI 방송」의 목소리 드롭다운에서 고른
+        후보로 읽는다.
+        <br />
         <strong>게임 소리</strong>는 지금 게임이 트는 구운 클립 그대로다(공짜). 어느 목소리로 구워졌는지는
         배역 줄 끝의 <strong>게임:</strong> 에 적혀 있다 — <strong>(임시)</strong> 는 캐스팅표의 한국어
         보이스가 계정에 없어 fallback 영어 보이스로 구운 것이다. <strong>후보 소리</strong>는 위 목소리 드롭다운에서 고른 후보로 같은 줄을 같은
@@ -346,12 +392,16 @@ export function TtsFeature() {
               : `⚠ [${heard.role}] 클립을 못 틀었다 — public/world/voice/ 파일을 확인한다`)}
         </div>
       )}
-      <h3>후보 찾기 — Voice Library</h3>
-      <p style={{ opacity: 0.7, fontSize: 13 }}>
-        한국어 보이스만 검색된다. <strong>미리듣기</strong>는 그 보이스의 자체 샘플(원음, 필터 없음)이다 —
-        배역 필터를 입혀 들으려면 ElevenLabs 웹에서 <strong>Add to My Voices</strong> 한 뒤, 위 목소리
-        드롭다운에 뜨면 배역 줄의 [후보 소리]로 듣는다. <strong>캐스팅 복사</strong>는{' '}
-        <code>voice-cast.json</code> 의 library 항목 모양 그대로다 — 승자를 붙여 보내 주면 된다.
+      </details>
+      <h3 style={{ marginBottom: 4 }}>후보 찾기 — Voice Library</h3>
+      <p style={{ opacity: 0.7, fontSize: 13, marginTop: 0 }}>
+        한국어 보이스만 검색된다. 좌석 아홉을 여기서 찾는다 — <strong>미리듣기</strong>로 훑고,
+        쓸 만하면 <strong>[계정에 추가]</strong> 를 누른 뒤 아래 캐스팅 칸에서 게임 조리법으로
+        확인한다. 라이브러리 id 는 <strong>그대로 못 쓴다</strong> — 계정에 넣어야 쓸 수 있는 id 가 나온다.
+        <br />
+        <span style={{ opacity: 0.7 }}>
+          (<strong>캐스팅 복사</strong>는 옛 판용이다 — <code>voice-cast.json</code> 의 library 항목 모양.)
+        </span>
       </p>
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
         <input
