@@ -35,8 +35,10 @@ const FORMAT = 'mp3_44100_64';
 
 /** 받아 둔 소리. 열쇠는 문장이다 — 대본이 고정이라 이걸로 충분하다 */
 const clips = new Map<string, Promise<AudioBuffer | null>>();
-/** 받아 둔 소리의 길이(초) — 자막 속도를 여기 맞춘다 (prologueClipMs) */
+/** 받아 둔 소리의 길이(초) — **앞머리 무음을 뺀 말의 길이**다. 자막 속도를 여기 맞춘다 (prologueClipMs) */
 const seconds = new Map<string, number>();
+/** 그 소리의 앞머리 무음(초) — 재생을 여기서부터 시작한다 (leadingSilenceSec) */
+const leads = new Map<string, number>();
 
 let playing: AudioBufferSourceNode | null = null;
 /** 이 판에서 몇 번 잇달아 실패했나 — 세 번이면 그만 부른다 (키가 없는 판) */
@@ -53,6 +55,66 @@ export function voiceOf(line: PrologueLine): { voiceId?: string; pa: boolean } |
   if (line.who === 'stage') return null;
   if (line.who === 'control') return { pa: true };
   return { voiceId: OPENING_CAST[(line.n ?? 1) - 1]?.voiceId, pa: false };
+}
+
+/* ───────────────────────────── 앞머리 무음 ───────────────────────────── */
+
+/**
+ * 합성기가 붙여 보내는 앞머리 무음을 재는 데 쓰는 값들.
+ *
+ * 문턱은 **클립의 봉우리에 맞춰** 잡는다 — 절대값 하나로 자르면 조용히 녹은 클립이 통째로
+ * 무음이 된다. 바닥(FLOOR)은 그 밑에 두는 안전선이다: 봉우리가 이보다도 작으면 말이 아니다.
+ * 찾은 자리에서 GUARD 만큼 물러선다 — 첫 자음은 서서히 오르므로 문턱에 닿는 자리에서 바로
+ * 자르면 그 자음이 깎인다. 상한(MAX)을 넘는 무음은 안 자른다: 그건 앞머리가 아니라 깨진 클립이다.
+ */
+const SILENCE_REL = 0.02;
+const SILENCE_FLOOR = 0.003;
+const GUARD_SEC = 0.03;
+const MAX_LEAD_SEC = 1;
+
+/** AudioBuffer 에서 이 함수가 보는 것만 — 시험이 WebAudio 없이 부를 수 있게 */
+export interface ClipSamples {
+  sampleRate: number;
+  length: number;
+  numberOfChannels: number;
+  getChannelData(channel: number): Float32Array;
+}
+
+/**
+ * 클립 앞머리의 무음이 몇 초인가 — 합성기가 붙여 보내는 「숨 고르는 자리」다.
+ *
+ * 자막은 줄이 뜨는 순간부터 소리 길이에 맞춰 찍힌다 (DialogueBox 의 paceFor). 그 길이에
+ * 앞머리 무음까지 들어 있으면 **글자만 먼저 굴러가고 목소리는 늦게 붙는다** — 2026-09-05
+ * 사용자: 「정부 통제실에서 말하는 게 tts 가 시작이 더 늦어. 사람1은 타이밍 맞게 나오고 있거든」.
+ *
+ * 통제실만 늦은 것은 그 줄만 다른 발성으로 합성되기 때문이다: 피실험자는 readout ·
+ * OPENING_SETTINGS(stability 0.45 · speed 1.0), 통제실은 announce(stability 0.85 · speed 0.95,
+ * worker/src/tts.ts) — 단조롭고 느리게 읽는 목소리일수록 첫 소리 앞의 여백이 길다.
+ * 화면 쪽(PA 체인)은 아니다: 마른 소리가 0.72 로 그대로 지나가고, 늦는 마디는 천장(압축기)의
+ * 6ms 뿐이라 귀에 안 잡힌다.
+ *
+ * **재기만 한다.** 자르는 것은 재생부의 몫이다 (speakPrologueLine 의 start 오프셋).
+ */
+export function leadingSilenceSec(buf: ClipSamples): number {
+  const chans: Float32Array[] = [];
+  for (let c = 0; c < buf.numberOfChannels; c += 1) chans.push(buf.getChannelData(c));
+  if (!chans.length) return 0;
+
+  let peak = 0;
+  for (const d of chans) for (let i = 0; i < d.length; i += 1) peak = Math.max(peak, Math.abs(d[i]));
+  // 통째로 조용한 클립 — 잘라 낼 앞머리가 아니라 그냥 소리가 없는 것이다
+  if (peak <= SILENCE_FLOOR) return 0;
+
+  const gate = Math.max(SILENCE_FLOOR, peak * SILENCE_REL);
+  const limit = Math.min(buf.length, Math.ceil(MAX_LEAD_SEC * buf.sampleRate));
+  for (let i = 0; i < limit; i += 1) {
+    for (const d of chans) {
+      if (Math.abs(d[i]) < gate) continue;
+      return Math.max(0, i / buf.sampleRate - GUARD_SEC);
+    }
+  }
+  // 상한까지 조용하다 — 앞머리로 보기엔 너무 길다. 건드리지 않는다
+  return 0;
 }
 
 function fetchClip(line: PrologueLine, voiceId: string | undefined): Promise<AudioBuffer | null> {
@@ -76,8 +138,24 @@ function fetchClip(line: PrologueLine, voiceId: string | undefined): Promise<Aud
     .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
     .then((b) => audioContext().decodeAudioData(b))
     .then((buf) => {
-      // 자막이 이 길이에 맞춰 찍힌다 (prologueClipMs) — 소리를 받아 봐야 아는 값이다
-      seconds.set(key, buf.duration);
+      /*
+       * 자막이 이 길이에 맞춰 찍힌다 (prologueClipMs) — 소리를 받아 봐야 아는 값이다.
+       * 재는 것은 **말의 길이**지 클립의 길이가 아니다: 앞머리 무음까지 세면 글자가 먼저
+       * 굴러가고 목소리가 늦게 붙는다 (leadingSilenceSec).
+       */
+      const lead = leadingSilenceSec(buf);
+      leads.set(key, lead);
+      seconds.set(key, Math.max(0, buf.duration - lead));
+      /*
+       * 개발 중에는 잰 값을 적어 둔다 — 「누가 늦나」는 귀로는 갈리지만 눈으로는 안 보이는 자리다.
+       * 열한 줄이 한 표로 찍히므로 통제실만 앞머리가 긴지, 전부 그런지가 한눈에 갈린다.
+       *
+       * info 다 — debug 는 DevTools 가 기본으로 숨긴다(Verbose 를 켜야 보인다). 보라고 적는
+       * 줄이 안 보이면 없는 것만 못하다.
+       */
+      if (import.meta.env.DEV) {
+        console.info(`[prologue] ${line.who} 앞머리 ${Math.round(lead * 1000)}ms · 말 ${Math.round((buf.duration - lead) * 1000)}ms — ${key}`);
+      }
       return buf;
     })
     .catch(() => {
@@ -102,7 +180,8 @@ export function prefetchPrologue(lines: readonly PrologueLine[]): void {
 }
 
 /**
- * 그 줄의 소리가 몇 ms 인가 — **받아 둔 것만** 안다 (아직 안 왔거나 실패했으면 null).
+ * 그 줄의 **말이** 몇 ms 인가 — 받아 둔 것만 안다 (아직 안 왔거나 실패했으면 null).
+ * 앞머리 무음은 빠져 있다: 재생도 그 자리부터 시작하므로 자막과 소리가 같은 0 초를 본다.
  *
  * 자막 속도를 여기 맞춘다 (DialogueBox 의 voiceMsOf). 안 맞추면 자막은 글자 속도(글자당 31ms)로
  * 찍혀 먼저 끝나고, 안내 방송 속도(글자당 182ms)인 통제실의 긴 줄에서는 다 찍힌 글을 보며 소리만
@@ -166,6 +245,7 @@ export async function speakPrologueLine(line: PrologueLine): Promise<void> {
       resolve();
     };
     playing = src;
-    src.start();
+    // 앞머리 무음을 건너뛰고 **말이 시작되는 자리**부터 — 자막이 재는 길이도 그 자리부터다 (leadingSilenceSec)
+    src.start(0, leads.get(line.text) ?? 0);
   });
 }
