@@ -24,7 +24,8 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { prologueLines } from './prologue';
+import { PROLOGUE, prologueLines } from './prologue';
+import { prefetchPrologue, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal } from './hud/Panels';
@@ -373,6 +374,11 @@ export function InterrogationFeature() {
    */
   const [prologue, setPrologue] = useState<ChatLine[]>([]);
   const prologuePlayed = useRef<number | null>(null);
+  /**
+   * 지금 그 줄을 읽고 있나 — 상자에 건네면 **다 읽을 때까지 상자가 붙잡는다** (DialogueBox 의 speaking).
+   * 박자를 여기서 세지 않는 이유가 이것이다: 상자가 이미 줄을 넘기는 주인이라, 두 곳에서 세면 어긋난다.
+   */
+  const [prologueSpeaking, setPrologueSpeaking] = useState(false);
   const startedAt = wire?.startedAt ?? null;
   const testsDone = wire?.testsDone ?? 0;
   useEffect(() => {
@@ -383,8 +389,31 @@ export function InterrogationFeature() {
     if (phase !== 'discussion' || testsDone !== 0 || startedAt === null) return;
     if (prologuePlayed.current === startedAt) return;
     prologuePlayed.current = startedAt;
+    /*
+     * 소리는 미리 받아 둔다 — 합성 왕복이 300~800ms 라, 줄이 뜬 뒤에 받기 시작하면 첫 줄만
+     * 자막이 먼저 뜨고 소리가 뒤늦게 붙는다 (prologueVoice 머리말).
+     */
+    resetPrologueVoice();
+    prefetchPrologue(PROLOGUE);
     setPrologue(prologueLines(seatsRef.current, startedAt));
   }, [phase, testsDone, startedAt]);
+
+  /**
+   * 상자가 한 줄을 띄웠다 — 그 줄을 읽는다.
+   *
+   * 줄의 key 가 `prologue-<씨앗>-<번호>` 라(prologue.ts 의 prologueLines) 번호로 대본을 되찾는다.
+   * 상자가 넘기는 주인이고 여기는 소리만 얹는다 — 읽는 동안 speaking 을 세워 두면 상자가 기다린다.
+   */
+  const onPrologueLine = useCallback((key: string) => {
+    const i = Number(key.slice(key.lastIndexOf('-') + 1));
+    const line = Number.isInteger(i) ? PROLOGUE[i] : undefined;
+    if (!line) return;
+    setPrologueSpeaking(true);
+    void speakPrologueLine(line).finally(() => setPrologueSpeaking(false));
+  }, []);
+
+  // 화면을 떠나는데 통제실이 계속 말하고 있으면 안 된다
+  useEffect(() => () => stopPrologue(), []);
 
   // 판이 떠 있는 동안은 잠금을 푼다 — 결과 모달 · 끝 화면 · 역할 카드 · 대기
   const modalUp = phase === 'result' || phase === 'ended' || phase === 'lobby' || showRole;
@@ -469,8 +498,16 @@ export function InterrogationFeature() {
 
   return (
     <div ref={rootRef} className="ig-root" onClick={lock}>
-      {/* 프롤로그 대화창 — 화면 아래 가운데, 채팅 판과 별개 (prologue.ts). 줄이 다 지나면 상자가 스스로 사라진다 */}
-      <DialogueBox messages={prologue} selfId={null} touch={false} />
+      {/* 프롤로그 대화창 — 화면 아래 가운데, 채팅 판과 별개 (prologue.ts). 줄이 다 지나면 상자가 스스로 사라진다.
+          speaking · onLine 을 준다 = **소리는 이쪽이 낸다** (DialogueBox 의 speaking 머리말). 상자는 줄을
+          넘기는 주인이고 여기는 그 줄을 읽고 「아직 읽는 중」이라고만 알린다 — 그래야 한 줄이 끝나야 다음 줄이 뜬다 */}
+      <DialogueBox
+        messages={prologue}
+        selfId={null}
+        touch={false}
+        speaking={prologueSpeaking}
+        onLine={onPrologueLine}
+      />
       <HallScene
         mySeatId={mySeatId}
         myBody={myBody}
