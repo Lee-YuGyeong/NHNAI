@@ -24,6 +24,7 @@ import { ttsActions, ttsSelectors } from './ttsSlice';
  */
 import { SeatCasting } from '@/features/voice/SeatCasting';
 import { LeaderTones } from './LeaderTones';
+import { OpeningCast } from './OpeningCast';
 
 /**
  * 방송 파이프라인 테스트 화면 — 여기서 보낸 방송도 실제 게임과 같은 경로를 탄다:
@@ -454,6 +455,8 @@ export function TtsFeature() {
           </span>
         </div>
       ))}
+      <OpeningCast voices={voices} />
+
       {/*
         참가자 좌석 아홉은 **지금 쓰지 않는다** (2026-09-04 사용자: 「참여자 목소리는 안 넣어도 돼」).
         지우지 않고 접어 둔다 — 규칙(P11)과 관로는 docs/VOICE.md 에 그대로 살아 있고,
