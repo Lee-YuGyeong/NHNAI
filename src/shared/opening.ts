@@ -96,6 +96,12 @@ export const OPENING_SOURCES: OpeningSource[] = [
   { src: '/opening/opening.mp4', type: 'video/mp4' },
 ];
 
+/**
+ * 영상을 **이 초부터** 튼다 (2026-09-05 사용자: "시작구간 15초에서 시작되게"). 앞 15초는 건너뛴다 —
+ * OpeningVideo 가 길이를 받아 온 순간(loadedmetadata) currentTime 을 여기로 놓는다. ← 로 그 앞으로 되돌아갈 수는 있다.
+ */
+export const OPENING_START_SEC = 15;
+
 const SEEN_KEY = 'wih:opening-seen';
 
 /** 이 브라우저에서 오프닝을 이미 봤나 (끝까지 봤든 건너뛰었든 같다 — 두 번 보여주지 않는다) */

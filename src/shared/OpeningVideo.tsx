@@ -16,8 +16,12 @@
  * ┌─ 자동재생은 막히는 것이 정상이다 ────────────────────────────────────────┐
  * │ 소리가 있는 영상을 사람이 누르지 않았는데 시작하는 것은 브라우저 대부분이 │
  * │ 막는다. 그래서 이 화면은 **막힌 경우를 예외가 아니라 기본으로** 다룬다:  │
- * │ play() 가 거절당하면 가운데에 큰 재생 단추를 내민다. 누르면 전체화면으로   │
- * │ 들어가면서 처음부터 소리와 함께 돈다.                                     │
+ * │ 소리 있는 play() 가 거절당하면 **소리를 끄고 바로 돌린다**(소리 없는       │
+ * │ 자동재생은 어디서나 통한다) — 검은 화면 대신 그림은 흐른다 — 그리고       │
+ * │ 가운데에 「소리 켜기」 단추를 낸다. 그 단추든 화면 어디든 **첫 손길**       │
+ * │ (누름 · 자판)에 소리를 켠다 (2026-09-05 사용자: "음성도 나오게").          │
+ * │                                                                          │
+ * │ 시작은 OPENING_START_SEC(15초)부터다 — 길이를 받아 온 순간 거기로 놓는다. │
  * │                                                                          │
  * │ 그리고 무슨 일이 있어도 **건너뛰기는 사라지지 않는다** — 파일을 못 받아 와도│
  * │ 그 한 단추로 게임에 들어갈 수 있어야 한다.                                │
@@ -25,7 +29,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { OPENING_SOURCES, markOpeningSeen } from './opening';
+import { OPENING_SOURCES, OPENING_START_SEC, markOpeningSeen } from './opening';
 import './opening.css';
 
 /**
@@ -47,7 +51,7 @@ export interface OpeningVideoProps {
 export function OpeningVideo({ onDone, remember = true }: OpeningVideoProps) {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  /** 소리 있는 자동재생이 막혔다 — 가운데에 큰 재생 단추를 낸다 */
+  /** 소리 있는 자동재생이 막혔다 — 소리 없이 돌리는 중이고, 가운데에 「소리 켜기」 단추를 낸다 */
   const [tap, setTap] = useState(false);
   /** 전체화면에 들어가 있나. 못 들어간 판에서는 왼쪽 위에 손잡이를 낸다 */
   const [full, setFull] = useState(false);
@@ -90,11 +94,27 @@ export function OpeningVideo({ onDone, remember = true }: OpeningVideoProps) {
     onDone();
   }, [onDone, remember]);
 
+  /** 소리를 켠다 — 멈춰 있었으면(소리 없는 재생도 막힌 판) 같이 튼다 */
+  const unmute = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = false;
+    if (v.paused) {
+      try {
+        void v.play()?.catch(() => {});
+      } catch {
+        /* 이 판에서는 영상이 안 돈다. 건너뛰기가 남아 있다 */
+      }
+    }
+    setTap(false);
+  }, []);
+
   /*
    * 열자마자 둘을 시도한다 — 전체화면과 **소리 있는 재생.**
    * 사람이 누른 직후(루트의 시험 단추)면 둘 다 통하고, 주소를 타고 그냥 들어온
-   * 경우(로비의 관문)면 둘 다 거절당한다. 거절은 규칙이므로 조용히 받고,
-   * 대신 손잡이(전체화면)와 큰 재생 단추를 남긴다.
+   * 경우(로비의 관문)면 둘 다 거절당한다. 거절은 규칙이므로 조용히 받는다 —
+   * 소리를 끄고 다시 틀어 그림은 흐르게 하고, 손잡이(전체화면)와 「소리 켜기」 단추를 남긴다.
+   * 첫 손길(누름 · 자판)이 오면 단추를 안 눌러도 소리를 켠다.
    */
   useEffect(() => {
     goFull();
@@ -102,30 +122,49 @@ export function OpeningVideo({ onDone, remember = true }: OpeningVideoProps) {
     document.addEventListener('fullscreenchange', onChange);
 
     const v = videoRef.current;
+    const blocked = () => {
+      setTap(true);
+      if (!v) return;
+      v.muted = true;
+      try {
+        void v.play()?.catch(() => {});
+      } catch {
+        /* 소리 없이도 안 돈다 — 단추와 건너뛰기가 남아 있다 */
+      }
+    };
     try {
       const started = v?.play();
-      // jsdom 에는 play() 가 없다 — 있으면 promise 고, 거절되면 그때 단추를 낸다
-      if (started && typeof started.catch === 'function') started.catch(() => setTap(true));
+      // jsdom 에는 play() 가 없다 — 있으면 promise 고, 거절되면 그때 소리를 끄고 돌린다
+      if (started && typeof started.catch === 'function') started.catch(blocked);
     } catch {
-      setTap(true);
+      blocked();
     }
 
-    return () => document.removeEventListener('fullscreenchange', onChange);
-  }, [goFull]);
+    // 첫 손길에 소리 — 화면 어디를 누르든, 어느 키를 치든 (한 번만)
+    const onTouch = () => {
+      if (videoRef.current?.muted) unmute();
+    };
+    document.addEventListener('pointerdown', onTouch);
+    document.addEventListener('keydown', onTouch);
 
-  /** 가운데 재생 단추 — 전체화면 + 처음부터 소리와 함께 */
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+      document.removeEventListener('pointerdown', onTouch);
+      document.removeEventListener('keydown', onTouch);
+    };
+  }, [goFull, unmute]);
+
+  /** 가운데 「소리 켜기」 단추 — 전체화면 + 소리. 돌던 자리 그대로 잇는다 (처음으로 되감지 않는다) */
   const play = () => {
     goFull();
+    unmute();
+  };
+
+  /** 길이를 받아 온 순간 시작점으로 — 앞 OPENING_START_SEC 초는 건너뛴다. 이미 그 뒤면(다시 받아 옴) 손대지 않는다 */
+  const startAt = () => {
     const v = videoRef.current;
     if (!v) return;
-    v.muted = false;
-    v.currentTime = 0;
-    try {
-      void v.play()?.catch(() => {});
-    } catch {
-      /* 이 판에서는 영상이 안 돈다. 건너뛰기가 남아 있다 */
-    }
-    setTap(false);
+    if (v.currentTime < OPENING_START_SEC) v.currentTime = OPENING_START_SEC;
   };
 
   /*
@@ -203,6 +242,7 @@ export function OpeningVideo({ onDone, remember = true }: OpeningVideoProps) {
         autoPlay
         playsInline
         preload="auto"
+        onLoadedMetadata={startAt}
         onEnded={finish}
         onPlaying={() => {
           setTap(false);
@@ -269,14 +309,14 @@ export function OpeningVideo({ onDone, remember = true }: OpeningVideoProps) {
       ) : null}
 
       {tap && !broken ? (
-        <button type="button" className="ov-tap" data-sfx="clank" onClick={play} aria-label="소리와 함께 재생">
+        <button type="button" className="ov-tap" data-sfx="clank" onClick={play} aria-label="소리 켜기">
           <span className="ov-tap__ring" aria-hidden>
             <svg width="26" height="30" viewBox="0 0 26 30" aria-hidden>
               <path d="M2 2 L24 15 L2 28 Z" fill="#cfe6f5" />
             </svg>
           </span>
-          <span className="ov-tap__label">소리와 함께 재생</span>
-          <span className="ov-tap__sub">전체화면으로 시작한다</span>
+          <span className="ov-tap__label">소리 켜기</span>
+          <span className="ov-tap__sub">전체화면으로 · 화면 아무 데나 눌러도 켜진다</span>
         </button>
       ) : null}
     </div>

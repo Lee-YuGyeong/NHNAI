@@ -181,8 +181,8 @@ describe('DiscEngine', () => {
     expect(typeof last.theta).toBe('number');
     expect(typeof last.omega).toBe('number');
     const wire = JSON.stringify(sent);
-    expect(wire).not.toMatch(/grip|mu\b|friction/);
-    expect(wire).not.toContain('0.35'); // DISC_GRIP 의 값 — 우연히 좌표에 나올 수 있어 약한 검사지만 기준선이다
+    // 키 이름으로 본다 — 값('0.35')으로 찾으면 좌표에 우연히 찍힐 때 시각에 따라 실패한다
+    expect(wire).not.toMatch(/"(grip|mu|friction|condition)"/);
   });
 
   it('사람의 걷기 명령이 자리를 옮기고, 가장자리를 넘으면 trial_fell 이 나가고 2초 뒤 다시 선다', () => {

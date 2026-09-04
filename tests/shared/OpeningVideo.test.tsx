@@ -101,6 +101,43 @@ describe('화살표로 10초씩', () => {
   });
 });
 
+describe('시작점과 소리 (2026-09-05 사용자: 15초부터 · 음성도 나오게)', () => {
+  it('길이를 받아 오면 15초로 놓는다', () => {
+    const { video, now } = renderVideo({ at: 0 });
+    fireEvent.loadedMetadata(video);
+    expect(now()).toBe(15);
+  });
+
+  it('이미 15초 뒤면(다시 받아 옴) 되감지 않는다', () => {
+    const { video, now } = renderVideo({ at: 100 });
+    fireEvent.loadedMetadata(video);
+    expect(now()).toBe(100);
+  });
+
+  it('소리 있는 자동재생이 막히면 소리를 끄고 돌리고, 첫 손길에 소리를 켠다', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play');
+    play.mockImplementationOnce(() => Promise.reject(new Error('NotAllowedError'))).mockImplementation(() => Promise.resolve());
+    const { video } = renderVideo({ at: 0 });
+    // 거절이 돌아온 뒤 — 소리 없이 다시 틀었고 「소리 켜기」가 떠 있다
+    await screen.findByRole('button', { name: /소리 켜기/ });
+    expect(video.muted).toBe(true);
+    expect(play).toHaveBeenCalledTimes(2);
+    fireEvent.pointerDown(document.body);
+    expect(video.muted).toBe(false);
+    expect(screen.queryByRole('button', { name: /소리 켜기/ })).toBeNull();
+  });
+
+  it('「소리 켜기」 단추도 같은 일을 한다 — 되감지 않고 그 자리에서 잇는다', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play');
+    play.mockImplementationOnce(() => Promise.reject(new Error('NotAllowedError'))).mockImplementation(() => Promise.resolve());
+    const { video, now } = renderVideo({ at: 40 });
+    const btn = await screen.findByRole('button', { name: /소리 켜기/ });
+    fireEvent.click(btn);
+    expect(video.muted).toBe(false);
+    expect(now()).toBe(40);
+  });
+});
+
 describe('나가는 길', () => {
   it('Esc 로 건너뛴다', () => {
     const { onDone } = renderVideo();
