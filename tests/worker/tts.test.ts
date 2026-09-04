@@ -75,10 +75,19 @@ describe('거절 — 상류를 부르지 않아야 한다', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('보이스가 없으면 503', async () => {
+  /**
+   * 예전에는 여기서 503 이었다 — 「보이스가 없다」. 이제 관리 AI 목소리가 **소스에** 있어서
+   * (worker/src/tts.ts 의 LEADER_VOICE = Ethan, 2026-09-05 사용자) 그 상태가 존재하지 않는다.
+   * 환경 변수를 비워 두는 것이 정상이고, 그때도 시설은 말한다 — 넣은 사람과 안 넣은 사람이
+   * 다른 게임을 하지 않게 하려는 것이 그 변경의 요지였다.
+   */
+  it('환경 변수가 비어도 말한다 — 목소리가 소스에 있다', async () => {
+    stubUpstream(() => new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'audio/mpeg' } }));
     const res = await handleTts(post({ text: '안녕' }), { ELEVENLABS_API_KEY: 'k' });
-    expect(res.status).toBe(503);
-    expect(calls).toHaveLength(0);
+    expect(res.status).toBe(200);
+    expect(calls).toHaveLength(1);
+    // 상류로 간 것이 그 목소리인가 — 기본값이 조용히 바뀌면 시설 목소리가 통째로 바뀐다
+    expect(calls[0].url).toContain('K349x43DIDecCYoQWw7U');
   });
 
   it('키는 어떤 응답에도 실려 나가지 않는다', async () => {

@@ -1,5 +1,5 @@
 /**
- * 인트로 — 영화 오프닝 프레임으로 열리고, 아래로 브리핑이 이어지는 랜딩. "누가 인간인가?"
+ * 인트로 — 영화 오프닝 프레임으로 열리고, 아래로 브리핑이 이어지는 랜딩. 「특수인공지능대응센터」
  *
  * 원작(humanish /intro)은 "Who is AI?" — 사람 8 속의 AI 하나를 찾는 판이었다.
  * 이 프로젝트는 진영을 뒤집은 속편이라(PLANNING.md), 인트로도 뒤집는다:
@@ -95,7 +95,7 @@ export function IntroFeature() {
             ))}
           </div>
           <span className="intro-live">
-            LIVE <span className="intro-dot" aria-hidden>·</span> SECTOR <b>2098</b>
+            LIVE <span className="intro-dot" aria-hidden>·</span> CENTER <b>2026</b>
           </span>
         </div>
       </nav>
@@ -110,18 +110,23 @@ export function IntroFeature() {
 
         <div className="intro-hero-body">
           <div className="intro-block">
-            <span className="intro-tag">SOCIAL DEDUCTION&nbsp;&nbsp;//&nbsp;&nbsp;EP.01</span>
+            <span className="intro-tag">SOCIAL DEDUCTION&nbsp;&nbsp;//&nbsp;&nbsp;대한민국 정부</span>
+            {/*
+              제목은 이 게임의 배경 그 자체다 — 3D 홀 끝벽 간판(world/map/govcenter/layout.ts 의 TITLE,
+              「대한민국 정부 특수인공지능대응센터」)과 같은 글자다. 랜딩이 곧 그 건물의 정면이 된다.
+              앰버 형광펜은 「인간」에서 「인공지능」으로 옮겼다 — 이 판에서 표지가 붙어야 하는 쪽이다.
+            */}
             <h1 className="intro-title">
-              <span>누가</span>
               <span>
-                <span className="intro-human">인간</span>인가?
+                특수<span className="intro-human">인공지능</span>
               </span>
+              <span>대응센터</span>
             </h1>
-            <p className="intro-sub">WHO IS HUMAN? ONE OF US NEVER WAS.</p>
+            <p className="intro-sub">SPECIAL AI RESPONSE CENTER · FOUR SIT. TWO LEAVE.</p>
             <ul className="intro-lines">
-              <li>이 방의 대부분은 진짜 사람이다.</li>
-              <li>표식 없는 무언가가 그 틈에 섞여 숨 쉬는 척한다.</li>
-              <li>몸은 못 속인다. 말은 속일 수 있다.</li>
+              <li>넷이 앉는다. 사람이 덜 모이면 그만큼 AI가 앉는다.</li>
+              <li>센터는 기록만 내놓는다 — 아무도 판정하지 않는다.</li>
+              <li>판이 끝나려면 둘이 나가야 한다.</li>
             </ul>
             <div className="intro-cta">
               <button type="button" className="intro-btn intro-btn--primary" onClick={enter}>

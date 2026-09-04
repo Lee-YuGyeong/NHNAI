@@ -246,13 +246,15 @@
 .intro-title {
   margin: 0 0 clamp(12px, 2.2vh, 28px);
   font-weight: 900;
-  font-size: clamp(56px, 6.9vw, 132px);
+  /* 아랫값이 56 → 40 이다: 제목이 「누가 / 인간인가?」(5자)에서 「특수인공지능 / 대응센터」(6자)로
+     길어졌다. 좁은 화면(≤812px)에서 6.9vw 가 56 밑으로 못 내려가면 첫 줄이 블록을 넘는다 */
+  font-size: clamp(40px, 6.9vw, 132px);
   line-height: 0.95;
   letter-spacing: -0.02em;
   color: #fff;
 }
 .intro-title span { display: block; }
-/* '인간' — 앰버 글자 + 형광펜(또는 검열 바) */
+/* '인공지능' — 앰버 글자 + 형광펜(또는 검열 바) */
 .intro-human {
   position: relative;
   display: inline !important;

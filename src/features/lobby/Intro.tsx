@@ -202,7 +202,7 @@ export function LobbyIntro() {
 
       <header className="bl-top">
         <div style={{ display: 'flex', alignItems: 'center', gap: 26, minWidth: 0 }}>
-          <span className="bl-logo">Who is human</span>
+          <span className="bl-logo">특수인공지능대응센터</span>
           <nav className="bl-nav">
             {NAV.map((id) => (
               <button
