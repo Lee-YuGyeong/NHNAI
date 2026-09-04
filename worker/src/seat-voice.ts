@@ -277,6 +277,41 @@ export async function handleSeatClip(
 }
 
 /**
+ * 지금 워커에 들어간 명부를 돌려준다 (/tts 의 「설정된 명부」) — **개발에서만.**
+ *
+ * 진짜 판에서 배정표는 클라이언트로 **절대 안 내려간다**(docs/VOICE.md §3, P8 과 같은 태도).
+ * 브라우저가 받는 것은 어느 목소리인지 알 수 없는 서명 토큰뿐이다. 그래서 이 경로도
+ * SEAT_VOICE_DEV 뒤에 둔다 — 명부를 채운 뒤 「제대로 들어갔나」를 눈으로 보는 자리일 뿐이다.
+ *
+ * id 만 돌려주면 무엇을 넣었는지 알 수 없어서, 계정 목록에서 이름을 맞춰 같이 준다.
+ * 이름을 못 맞춘 id 는 **계정에 없는 것**이다 — 그 좌석은 합성에서 503 이 되고, 그러면
+ * 방이 통째로 조용해진다. 그 사실이 화면에 보여야 고칠 수 있다.
+ */
+export async function handleSeatRoster(request: Request, env: SeatVoiceEnv): Promise<Response> {
+  if (env.SEAT_VOICE_DEV !== '1') return fail('없는 경로다', 404);
+  if (request.method !== 'GET') return fail('GET 만 받는다', 405);
+
+  const ids = seatVoiceIds(env);
+  const names: Record<string, string> = {};
+  if (env.ELEVENLABS_API_KEY && ids.length > 0) {
+    const up = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: { 'xi-api-key': env.ELEVENLABS_API_KEY },
+    });
+    if (up.ok) {
+      const data = (await up.json()) as { voices?: { voice_id: string; name: string }[] };
+      for (const v of data.voices ?? []) names[v.voice_id] = v.name;
+    }
+  }
+
+  return new Response(
+    JSON.stringify({
+      seats: ids.map((id, index) => ({ index, id, name: names[id] ?? '', known: id in names })),
+    }),
+    { headers: { 'content-type': 'application/json; charset=utf-8' } },
+  );
+}
+
+/**
  * 시연용 토큰 발급 (/voice) — **개발에서만.**
  *
  * 진짜 판에서 토큰은 RoomDO 가 chat 을 중계하며 만든다(§5). 그런데 그 게임이 아직 없어서,

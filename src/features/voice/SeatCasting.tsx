@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { audioContext, masterOut } from '@/features/tts/engine';
 import { DISCUSSION_LINES } from './lines';
-import { ROSTER_SIZE } from './roster';
+import { ROSTER_SIZE, SEAT_GENDERS, genderOf } from './roster';
 
 export interface AccountVoice {
   id: string;
@@ -67,6 +67,15 @@ async function auditionSeat(voiceId: string, text: string): Promise<void> {
   src.start();
 }
 
+/** 워커에 실제로 들어간 명부 한 자리 (GET /api/tts/seats) */
+interface LiveSeat {
+  index: number;
+  id: string;
+  name: string;
+  /** 계정 목록에서 이름을 찾았나. 못 찾았으면 그 좌석은 합성에서 503 이 된다 */
+  known: boolean;
+}
+
 export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
   const [roster, setRoster] = useState<AccountVoice[]>(load);
   const [picked, setPicked] = useState('');
@@ -74,6 +83,21 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
   const [said, setSaid] = useState<{ state: 'idle' | 'loading' | 'ok' | 'fail'; why?: string }>({ state: 'idle' });
   const [copied, setCopied] = useState(false);
   const seq = useRef(0);
+  /** 지금 워커가 쓰고 있는 명부 — null 은 아직 안 물어봤거나 개발 스위치가 꺼진 것 */
+  const [live, setLive] = useState<{ state: 'loading' | 'off' | 'done'; seats: LiveSeat[] }>({
+    state: 'loading',
+    seats: [],
+  });
+
+  const reloadLive = useCallback(() => {
+    setLive((p) => ({ ...p, state: 'loading' }));
+    void fetch('/api/tts/seats')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: { seats: LiveSeat[] }) => setLive({ state: 'done', seats: d.seats }))
+      .catch(() => setLive({ state: 'off', seats: [] }));
+  }, []);
+
+  useEffect(reloadLive, [reloadLive]);
 
   useEffect(() => {
     try {
@@ -121,6 +145,66 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
         <code>SEAT_VOICE_DEV=1</code> 이 있어야 이 칸이 돈다 (없으면 404).
       </p>
 
+      {/*
+        ── 지금 워커에 들어간 명부 ──
+        ELEVENLABS_SEAT_VOICE_IDS 를 이미 채운 뒤에는 이게 본론이다. 아래 「새로 짜기」는
+        명부를 처음 만들 때 쓰는 자리고, 이미 넣었다면 여기서 아홉을 하나씩 들어 보면 된다.
+        id 만으로는 무엇이 들어갔는지 알 수 없어서 워커가 계정 목록에서 이름을 맞춰 준다.
+      */}
+      <div style={{ margin: '12px 0 20px', padding: '10px 12px', border: '1px solid #2b3a4a', borderRadius: 6 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+          <strong style={{ fontSize: 14 }}>지금 워커에 들어간 명부</strong>
+          <button onClick={reloadLive} style={{ fontSize: 12 }}>
+            다시 읽기
+          </button>
+          {live.state === 'done' && (
+            <span style={{ opacity: 0.65, fontSize: 13 }}>
+              {live.seats.length}/{ROSTER_SIZE}
+              {live.seats.length === ROSTER_SIZE ? ' — 다 찼다' : ' — 모자라면 방 전체가 무음이다'}
+            </span>
+          )}
+        </div>
+
+        {live.state === 'loading' && <div style={{ opacity: 0.6, fontSize: 13 }}>⋯ 읽는 중</div>}
+        {live.state === 'off' && (
+          <div style={{ opacity: 0.7, fontSize: 13 }}>
+            못 읽었다 — 워커가 떠 있는지, <code>SEAT_VOICE_DEV=1</code> 인지 확인한다.
+          </div>
+        )}
+        {live.state === 'done' && live.seats.length === 0 && (
+          <div style={{ opacity: 0.7, fontSize: 13 }}>
+            <code>ELEVENLABS_SEAT_VOICE_IDS</code> 가 비어 있다. 아래에서 아홉을 짜서 넣는다.
+          </div>
+        )}
+        {live.seats.map((s) => (
+          <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '2px 0', fontSize: 14 }}>
+            <span style={{ width: 22, opacity: 0.5 }}>{s.index}</span>
+            {/* 성별은 표시일 뿐이다 — 배정은 이 값을 안 본다 (roster.ts 의 SEAT_GENDERS) */}
+            <span style={{ width: 22, opacity: 0.6 }}>{genderOf(s.index)}</span>
+            <span style={{ flex: 1, color: s.known ? undefined : '#e08a6a' }}>
+              {s.known ? s.name : `${s.id.slice(0, 10)}… — 계정에 없는 id`}
+            </span>
+            <button onClick={() => hear(s.id)}>듣기</button>
+          </div>
+        ))}
+        {live.state === 'done' && live.seats.length > 0 && (
+          <p style={{ opacity: 0.55, fontSize: 12, margin: '8px 0 0' }}>
+            성별 표시는 <code>roster.ts</code> 의 <code>SEAT_GENDERS</code> 다(앞 다섯 남 · 뒤 넷 여).
+            <strong> 배정은 이 값을 보지 않는다</strong> — 판마다 균등 순열이라 성별은 좌석에 저절로
+            흩어진다. 명부를 갈아 끼우면 그 표도 같이 고쳐야 화면이 거짓말을 안 한다.
+            {live.seats.some((s) => !s.known) && (
+              <>
+                <br />
+                <span style={{ color: '#e08a6a' }}>
+                  계정에 없는 id 가 있다 — 그 좌석은 합성에서 503 이 되고, 그러면 방 전체가 조용해진다.
+                </span>
+              </>
+            )}
+          </p>
+        )}
+      </div>
+
+      <h4 style={{ margin: '0 0 4px' }}>명부 새로 짜기</h4>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '8px 0' }}>
         <select value={picked} style={{ flex: 1 }} disabled={!voices?.length} onChange={(e) => setPicked(e.target.value)}>
           <option value="">계정 목소리에서 고른다…</option>
@@ -152,7 +236,11 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
       )}
 
       <h4 style={{ margin: '16px 0 4px' }}>
-        명부 {roster.length}/{ROSTER_SIZE}
+        짜는 중 {roster.length}/{ROSTER_SIZE}
+        <span style={{ fontWeight: 400, opacity: 0.55, fontSize: 13, marginLeft: 8 }}>
+          목표 구성: {SEAT_GENDERS.filter((g) => g === '남').length}남 ·{' '}
+          {SEAT_GENDERS.filter((g) => g === '여').length}여
+        </span>
       </h4>
       {roster.length === 0 && (
         <p style={{ opacity: 0.6, fontSize: 13 }}>
@@ -162,7 +250,9 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
       )}
       {roster.map((v, i) => (
         <div key={v.id} style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '2px 0', fontSize: 14 }}>
-          <span style={{ width: 24, opacity: 0.5 }}>{i}</span>
+          <span style={{ width: 22, opacity: 0.5 }}>{i}</span>
+          {/* 이 자리에 넣기로 한 성별 — 넣는 순서가 SEAT_GENDERS 와 맞는지 보면서 채운다 */}
+          <span style={{ width: 22, opacity: 0.6 }}>{genderOf(i)}</span>
           <span style={{ flex: 1 }}>{v.name}</span>
           <button onClick={() => hear(v.id)}>듣기</button>
           <button onClick={() => setRoster((r) => r.filter((x) => x.id !== v.id))}>빼기</button>
