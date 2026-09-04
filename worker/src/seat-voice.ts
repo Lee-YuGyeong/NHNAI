@@ -72,6 +72,11 @@ export interface SeatVoiceEnv {
    */
   ELEVENLABS_SEAT_VOICE_IDS?: string;
   /**
+   * 관리 AI 방송 목소리 **하나**(worker/src/tts.ts). 여기 쉼표로 여럿이 들어 있으면
+   * 명부로도 읽어 준다 (seatVoiceIds 머리말) — 흔한 오해라 막지 않고 받아 준다.
+   */
+  ELEVENLABS_VOICE_ID?: string;
+  /**
    * 클립 토큰 서명 열쇠. 없으면 ELEVENLABS_API_KEY 에서 파생한다 —
    * 키가 있어야 합성이 되니, 이렇게 두면 **새 실패 지점이 생기지 않는다.**
    * 따로 돌리고 싶을 때만 채운다.
@@ -210,12 +215,37 @@ export function createClipBudget(limit: number = CLIP_BUDGET_CHARS): ClipBudget 
 
 /* ─────────────────────────── 엔드포인트 ─────────────────────────── */
 
-/** 명부 — 순서가 곧 번호다 */
-export function seatVoiceIds(env: SeatVoiceEnv): string[] {
-  return (env.ELEVENLABS_SEAT_VOICE_IDS ?? '')
+function splitIds(raw: string | undefined): string[] {
+  return (raw ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/** 명부를 어디서 읽었나 — 화면이 「옮기는 게 낫다」를 말해 주려고 (handleSeatRoster) */
+export type RosterSource = 'seat-ids' | 'voice-id' | 'none';
+
+/**
+ * 명부 — 순서가 곧 번호다.
+ *
+ * ★ `ELEVENLABS_VOICE_ID` 에 쉼표로 여럿을 넣어 둔 경우도 명부로 읽는다 (2026-09-04 사용자).
+ *   그 변수는 원래 **관리 AI 방송 목소리 하나**를 담는 자리다. 거기에 아홉을 넣는 것은
+ *   자연스러운 오해다 — 이름이 「보이스 아이디」니까. 못 읽은 척하고 방을 조용하게 두는 것보다
+ *   읽어 주고 **화면에서 옮기라고 말하는** 편이 낫다.
+ *
+ *   하나만 있으면 명부로 치지 않는다. 그건 원래 용도(방송 목소리 하나) 그대로다.
+ */
+export function seatVoiceIds(env: SeatVoiceEnv): string[] {
+  const own = splitIds(env.ELEVENLABS_SEAT_VOICE_IDS);
+  if (own.length > 0) return own;
+  const shared = splitIds(env.ELEVENLABS_VOICE_ID);
+  return shared.length > 1 ? shared : [];
+}
+
+export function rosterSource(env: SeatVoiceEnv): RosterSource {
+  if (splitIds(env.ELEVENLABS_SEAT_VOICE_IDS).length > 0) return 'seat-ids';
+  if (splitIds(env.ELEVENLABS_VOICE_ID).length > 1) return 'voice-id';
+  return 'none';
 }
 
 export async function handleSeatClip(
@@ -274,6 +304,42 @@ export async function handleSeatClip(
   });
   ctx.waitUntil(cache.put(request, res.clone()));
   return res;
+}
+
+/**
+ * 지금 워커에 들어간 명부를 돌려준다 (/tts 의 「설정된 명부」) — **개발에서만.**
+ *
+ * 진짜 판에서 배정표는 클라이언트로 **절대 안 내려간다**(docs/VOICE.md §3, P8 과 같은 태도).
+ * 브라우저가 받는 것은 어느 목소리인지 알 수 없는 서명 토큰뿐이다. 그래서 이 경로도
+ * SEAT_VOICE_DEV 뒤에 둔다 — 명부를 채운 뒤 「제대로 들어갔나」를 눈으로 보는 자리일 뿐이다.
+ *
+ * id 만 돌려주면 무엇을 넣었는지 알 수 없어서, 계정 목록에서 이름을 맞춰 같이 준다.
+ * 이름을 못 맞춘 id 는 **계정에 없는 것**이다 — 그 좌석은 합성에서 503 이 되고, 그러면
+ * 방이 통째로 조용해진다. 그 사실이 화면에 보여야 고칠 수 있다.
+ */
+export async function handleSeatRoster(request: Request, env: SeatVoiceEnv): Promise<Response> {
+  if (env.SEAT_VOICE_DEV !== '1') return fail('없는 경로다', 404);
+  if (request.method !== 'GET') return fail('GET 만 받는다', 405);
+
+  const ids = seatVoiceIds(env);
+  const names: Record<string, string> = {};
+  if (env.ELEVENLABS_API_KEY && ids.length > 0) {
+    const up = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: { 'xi-api-key': env.ELEVENLABS_API_KEY },
+    });
+    if (up.ok) {
+      const data = (await up.json()) as { voices?: { voice_id: string; name: string }[] };
+      for (const v of data.voices ?? []) names[v.voice_id] = v.name;
+    }
+  }
+
+  return new Response(
+    JSON.stringify({
+      source: rosterSource(env),
+      seats: ids.map((id, index) => ({ index, id, name: names[id] ?? '', known: id in names })),
+    }),
+    { headers: { 'content-type': 'application/json; charset=utf-8' } },
+  );
 }
 
 /**

@@ -22,7 +22,13 @@ import { handleLabAct, handleLabCast, handleLabFree, handleLabTalk, handleWorldB
 import { LobbyDO, handleRooms } from './lobby-do';
 import { RoomDO } from './room-do';
 import { handleTts, handleTtsLibrary, handleTtsVoices } from './tts';
-import { handleLibraryAdd, handleSeatAudition, handleSeatClip, handleSeatClipMint } from './seat-voice';
+import {
+  handleLibraryAdd,
+  handleSeatAudition,
+  handleSeatClip,
+  handleSeatClipMint,
+  handleSeatRoster,
+} from './seat-voice';
 
 export { LobbyDO, RoomDO };
 
@@ -125,6 +131,9 @@ export default {
      */
     if (url.pathname === '/api/tts/seat-audition') return handleSeatAudition(request, env, ctx);
     if (url.pathname === '/api/tts/library/add') return handleLibraryAdd(request, env);
+    // 지금 워커에 들어간 명부 — 채운 뒤 「제대로 들어갔나」를 눈으로 보는 자리.
+    // 진짜 판에서 배정표는 클라이언트로 안 내려간다(P8·§3), 그래서 이것도 개발 뒤에 둔다
+    if (url.pathname === '/api/tts/seats') return handleSeatRoster(request, env);
 
     const match = ROOM_PATH.exec(url.pathname);
     // 방 경로가 아니면 정적 파일로 넘긴다 (없는 경로는 assets 설정에 따라 index.html).
