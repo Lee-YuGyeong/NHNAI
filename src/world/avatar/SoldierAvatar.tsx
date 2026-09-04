@@ -20,6 +20,50 @@ import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.j
 import { useAsset } from '../assets/loader';
 import type { BodyId } from '../mp/bodies';
 import type { AnimState } from '../mp/protocol';
+import { EYES, buildBlinkMorph } from './blink';
+
+/* ─────────────────────────────── 눈 깜빡임 ─────────────────────────────── */
+
+/**
+ * 감은 눈 모프를 **GLB 마다 한 번** 만들어 지오메트리에 붙인다 (clone 은 지오메트리를 공유하므로 영향값만 몸마다 다르다).
+ * 눈 중심은 blink.ts 의 EYES 표(모델 좌표)를 속성 공간으로 옮겨 쓴다 — 속성 공간 변환은 스킨의 바인드 행렬에서 잰다.
+ */
+const blinkReady = new WeakSet<THREE.BufferGeometry>();
+function attachBlinkMorph(mesh: THREE.SkinnedMesh, body: BodyId): void {
+  const geo = mesh.geometry;
+  if (blinkReady.has(geo)) return;
+  blinkReady.add(geo);
+  const eyes = EYES[body];
+  if (!eyes) return;
+  const pa = geo.getAttribute('position');
+  const n = pa.count;
+  const flat = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    flat[i * 3] = pa.getX(i);
+    flat[i * 3 + 1] = pa.getY(i);
+    flat[i * 3 + 2] = pa.getZ(i);
+  }
+  const bone = mesh.skeleton.bones[0];
+  const T = new THREE.Matrix4().multiplyMatrices(mesh.bindMatrixInverse, new THREE.Matrix4().multiplyMatrices(bone.matrixWorld, mesh.skeleton.boneInverses[0])).multiply(mesh.bindMatrix);
+  const e = T.elements;
+  const morph = buildBlinkMorph(flat, n, eyes, { scale: e[0], offset: [e[12], e[13], e[14]] });
+  if (morph.eyes.length === 0) return;
+  geo.morphTargetsRelative = true;
+  geo.morphAttributes.position = [new THREE.BufferAttribute(morph.delta, 3)];
+}
+
+/** 깜빡임 한 번의 시간표(초) — 감기 0.08 · 감은 채 0.04 · 뜨기 0.12. 다음 깜빡임까지 2~6초, 열에 하나는 곧바로 한 번 더 */
+const BLINK_CLOSE = 0.08;
+const BLINK_HOLD = 0.04;
+const BLINK_OPEN = 0.12;
+const BLINK_TOTAL = BLINK_CLOSE + BLINK_HOLD + BLINK_OPEN;
+function blinkAmount(t: number): number {
+  if (t < 0 || t >= BLINK_TOTAL) return 0;
+  if (t < BLINK_CLOSE) return t / BLINK_CLOSE;
+  if (t < BLINK_CLOSE + BLINK_HOLD) return 1;
+  return 1 - (t - BLINK_CLOSE - BLINK_HOLD) / BLINK_OPEN;
+}
+const nextBlinkDelay = () => 2 + Math.random() * 4;
 
 /** 모델 키를 이 값으로 맞춘다 (RobotAvatar 와 같다 — 눈높이 1.62 와 어울린다) */
 const TARGET_HEIGHT = 1.72;
@@ -82,15 +126,19 @@ export function SoldierAvatar({
   const scene = useMemo(() => cloneSkeleton(gltf.scene), [gltf.scene]);
   const clips = useMemo(() => stripRootMotion(gltf.animations), [gltf.animations]);
 
-  const { scale, mixer, actions } = useMemo(() => {
+  const { scale, mixer, actions, skinnedMeshes } = useMemo(() => {
     scene.updateMatrixWorld(true);
     // 스킨 먹인 실제 크기로 잰다 — 뼈가 움직여도 경계구가 틀리지 않게 컬링도 끈다
     const box = new THREE.Box3();
     let skinned = false;
+    const skinnedMeshes: THREE.SkinnedMesh[] = [];
     scene.traverse((o) => {
       const m = o as THREE.SkinnedMesh;
       if (!m.isSkinnedMesh) return;
       m.frustumCulled = false;
+      attachBlinkMorph(m, body);
+      m.updateMorphTargets();
+      skinnedMeshes.push(m);
       // 얼굴을 비스듬히 볼 때 눈·입의 결이 뭉개지지 않게 — GLTFLoader 기본은 1 이다 (corridor/part.tsx 와 같은 손)
       const mat = m.material as THREE.MeshStandardMaterial;
       for (const tex of [mat.map, mat.normalMap, mat.roughnessMap, mat.metalnessMap]) if (tex) tex.anisotropy = 8;
@@ -124,8 +172,11 @@ export function SoldierAvatar({
       idle.timeScale = 0;
       actions.idle = idle;
     }
-    return { scale, mixer, actions };
-  }, [scene, clips]);
+    return { scale, mixer, actions, skinnedMeshes };
+  }, [scene, clips, body]);
+
+  /** 깜빡임 시계 — 다음 깜빡임까지 남은 초와, 깜빡이는 중이면 시작한 뒤 흐른 초 */
+  const blink = useRef({ wait: 1 + Math.random() * 3, t: -1 });
 
   const state = useRef<ClipKey>('idle');
   useEffect(() => {
@@ -157,6 +208,23 @@ export function SoldierAvatar({
       state.current = next;
     }
     mixer.update(Math.min(delta, 0.1));
+
+    // 눈 깜빡임 — 모프 영향값만 몸마다 움직인다 (지오메트리는 공유)
+    const b = blink.current;
+    const dt = Math.min(delta, 0.1);
+    if (b.t < 0) {
+      b.wait -= dt;
+      if (b.wait <= 0) b.t = 0;
+    } else {
+      b.t += dt;
+      if (b.t >= BLINK_TOTAL) {
+        b.t = -1;
+        // 열에 하나는 곧바로 한 번 더 — 사람은 가끔 두 번 연달아 깜빡인다
+        b.wait = Math.random() < 0.1 ? 0.25 : nextBlinkDelay();
+      }
+    }
+    const amount = b.t < 0 ? 0 : blinkAmount(b.t);
+    for (const m of skinnedMeshes) if (m.morphTargetInfluences && m.morphTargetInfluences.length > 0) m.morphTargetInfluences[0] = amount;
   });
 
   return <primitive object={scene} scale={scale} />;
