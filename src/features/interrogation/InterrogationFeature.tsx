@@ -17,9 +17,11 @@
  *   띄우려면 이 파일을 `return <WorldFeature map="interrogation" />` 로 바꾸거나 새 라우트를 하나 준다.
  */
 
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { ArenaFeature } from '@/features/arena/ArenaFeature';
+import { RoleBriefing } from './RoleBriefing';
 
 export function InterrogationFeature() {
   const [params] = useSearchParams();
@@ -29,5 +31,10 @@ export function InterrogationFeature() {
    * 시나리오 2 는 이 무대를 **자기 마지막 방으로 빌려 쓴다** — 판 자체는 여기 것 그대로다.
    */
   const from = params.get('from');
+  // PLANNING §1.2: 입장 → 브리핑 → 시행. 브리핑을 확인하기 전에는 시행이 열리지 않는다
+  // (autoStart 든 아니든 마찬가지다 — 이야기를 거쳐 왔어도 배역은 알아야 한다).
+  const [briefed, setBriefed] = useState(false);
+
+  if (!briefed) return <RoleBriefing onEnter={() => setBriefed(true)} />;
   return <ArenaFeature autoStart={from === 'central' || from === 'scenario2'} />;
 }
