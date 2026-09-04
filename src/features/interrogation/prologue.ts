@@ -17,6 +17,7 @@
  * 피실험자 01 · 02 · 03 은 좌석 가운데 **무작위로** 셋을 뽑는다. 다만 네 사람의 화면이 서로 다른 사람을
  * 가리키면 안 되므로 난수는 판이 열린 서버 시각(GameStateWire.startedAt)으로 심는다 — 전원이 같은 배역을 본다.
  */
+import { speechMs } from '@/features/tts/cap';
 import type { GameSeat } from '@/world/mp/game-protocol';
 import type { ChatEntry } from './interrogationSlice';
 
@@ -51,8 +52,46 @@ export const PROLOGUE: readonly PrologueLine[] = [
   { who: 'control', text: '판별을 시작합니다.', gap: 3200 },
 ];
 
-/** 대본 전체 길이(ms) — 첫 토론(GAME_FIRST_DISCUSSION_MS) 안에 다 흐른다 */
-export const PROLOGUE_MS = PROLOGUE.reduce((t, l) => t + l.gap, 0);
+/**
+ * 줄 사이의 숨 — 앞 줄을 **다 읽은 뒤** 다음 줄까지 (2026-09-05 사용자: 「한 대사 끝나면 그 다음 대사」).
+ *
+ * 재생부는 이제 gap 으로 예약을 걸지 않는다. gap 은 **글자용**으로 잡힌 값이라 소리가 그보다
+ * 길어서 대사가 겹쳤다 — 그래서 앞 줄이 끝나는 것을 기다리고, 그다음 이만큼만 쉰다
+ * (features/interrogation/prologueVoice.ts).
+ *
+ * 짧게 잡는 이유는 예산이다: 첫 토론이 40초인데 소리로 읽으면 대본이 33초쯤 된다.
+ * 아래 PROLOGUE_MS 가 그 합을 지키고, 시험이 40초를 넘지 않는지 본다.
+ */
+export const PROLOGUE_BEAT_MS = 600;
+
+/**
+ * 합성음은 `speechMs` 의 어림보다 **빠르다** — 2026-09-05 실측: 대본의 말하는 줄 열한 개가
+ * 26.4초인데 어림은 30.8초였다(0.86배).
+ *
+ * `speechMs` 는 **안내 방송**(rate 0.95, 초당 5.5자) 기준으로 잡은 자다. 프롤로그는 speed 1.0 에
+ * multilingual 모델이라 그보다 빠르다 — 같은 자로 재면 대본이 실제보다 길다고 나오고, 그 값으로
+ * 예산을 잡으면 넣을 수 있는 줄을 못 넣는다.
+ *
+ * 대본을 고치면 다시 재는 게 맞다. 재는 법은 워커를 띄우고 각 줄을 /api/tts 로 받아 ffprobe 로
+ * 길이를 합치는 것이다 (지문은 소리가 없으니 뺀다).
+ */
+const SPOKEN_FACTOR = 0.86;
+
+/**
+ * 대본 전체 길이(ms) — 첫 토론(GAME_FIRST_DISCUSSION_MS) 안에 다 흐른다.
+ *
+ * ★ **소리 기준**이다. 예전에는 gap 의 합이었는데, 재생이 순차로 바뀌면서 그 값은 실제 길이와
+ *   상관이 없어졌다 (gap 은 이제 안 쓴다). 지금은 「각 줄을 읽는 데 걸리는 시간 + 줄 사이 숨」이고,
+ *   읽는 시간은 자막이 머무는 시간과 같은 자(cap.ts 의 speechMs)로 잰다 — 소리가 나오든 안 나오든
+ *   같은 박자라 한 값으로 둘 다 덮는다.
+ *
+ *   실제 합성음이 이 어림보다 길 수 있다. 그래서 시험이 40초에 **여유를 두고** 걸린다.
+ */
+export const PROLOGUE_MS = PROLOGUE.reduce(
+  // 지문은 소리가 없다 — 글자를 읽는 시간 그대로다. 보정은 합성음에만 건다
+  (t, l) => t + speechMs(l.text) * (l.who === 'stage' ? 1 : SPOKEN_FACTOR) + PROLOGUE_BEAT_MS,
+  0,
+);
 
 /** 결정적 난수 (mulberry32) — 같은 씨앗이면 네 화면이 같은 순서를 뽑는다 */
 function mulberry32(seed: number): () => number {

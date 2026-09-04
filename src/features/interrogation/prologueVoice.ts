@@ -17,13 +17,15 @@
  *   대본이 고정 문장이라 판이 열릴 때 한꺼번에 받아 두면 되고, 워커가 같은 문장을 캐시하므로
  *   두 번째 판부터는 크레딧도 안 나간다.
  *
- * ★ **한 번에 한 줄.** 대본은 사람들이 주고받는 장면이라 겹치면 안 들린다. 앞 줄이 아직
- *   울고 있으면 끊고 새 줄을 낸다 — 대본의 gap 은 글자용으로 잡힌 값이라 소리가 그보다
- *   길 때가 있는데, 그때 겹쳐 두면 두 사람이 동시에 말하는 것처럼 들린다.
+ * ★ **한 줄이 끝나야 다음 줄이다** (2026-09-05 사용자). 부르는 쪽이 이 함수를 await 해서
+ *   순서를 만든다 — 대본의 gap 은 **글자용**으로 잡힌 값이라 소리가 그보다 길고, 그 값으로
+ *   예약을 걸면 대사가 겹친다. 처음에 그렇게 짰고 그게 「왜 동시에 나와?」였다.
+ *   그래서 이 함수는 **다 읽은 뒤에** resolve 한다.
  *
  * 소리가 안 나와도 대본은 그대로 흐른다 — 자막이 본체고 소리는 얹는 것이다.
  */
 
+import { speechMs } from '@/features/tts/cap';
 import { audioContext, masterOut, paOut } from '@/features/tts/engine';
 import { OPENING_CAST, OPENING_SETTINGS } from '@/features/tts/openingSpeakers';
 import type { PrologueLine } from './prologue';
@@ -109,17 +111,24 @@ export function resetPrologueVoice(): void {
 }
 
 /**
- * 그 줄을 읽는다. 지문·실패·음소거는 조용히 지나간다 — 자막이 본체다.
- * 앞 줄이 아직 울고 있으면 끊는다 (머리말 ★).
+ * 그 줄을 읽고, **다 읽을 때까지 기다린다** (2026-09-05 사용자: 「한 대사 끝나면 그 다음 대사」).
+ *
+ * ★ resolve 시점이 이 함수의 전부다. 시작할 때 끝내면 부르는 쪽이 다음 줄로 넘어가 버려서
+ *   대사가 겹친다 — 처음에 그렇게 짰고, 그게 「왜 동시에 나와?」였다.
+ *
+ * 소리가 없는 줄(지문 · 합성 실패 · 키 없음)은 **글자 수로 어림한 시간만큼** 기다린다.
+ * 그래야 소리가 안 나오는 판에서도 대본이 같은 박자로 흐른다 — 자막만 순식간에 지나가면
+ * 읽을 새가 없다. features/tts/cap.ts 의 speechMs 를 쓰는 이유가 그것이다
+ * (「소리를 껐다고 자막이 빨리 지나가면 같은 판을 보는 두 사람이 다른 속도로 게임을 한다」).
  */
 export async function speakPrologueLine(line: PrologueLine): Promise<void> {
   const v = voiceOf(line);
-  if (!v || fails >= GIVE_UP) return;
+  if (!v || fails >= GIVE_UP) return hold(line.text);
 
   const buf = await fetchClip(line, v.voiceId);
   if (!buf) {
     fails += 1;
-    return;
+    return hold(line.text);
   }
   fails = 0;
 
@@ -127,13 +136,21 @@ export async function speakPrologueLine(line: PrologueLine): Promise<void> {
   if (ctx.state === 'suspended') await ctx.resume().catch(() => undefined);
   stopPrologue();
 
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.connect(v.pa ? paOut() : masterOut());
-  src.onended = () => {
-    if (playing === src) playing = null;
-    src.disconnect();
-  };
-  playing = src;
-  src.start();
+  await new Promise<void>((resolve) => {
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(v.pa ? paOut() : masterOut());
+    src.onended = () => {
+      if (playing === src) playing = null;
+      src.disconnect();
+      resolve();
+    };
+    playing = src;
+    src.start();
+  });
+}
+
+/** 소리 없이 그 줄이 화면에 머무는 시간 */
+function hold(text: string): Promise<void> {
+  return new Promise((r) => setTimeout(r, speechMs(text)));
 }

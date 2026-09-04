@@ -24,7 +24,7 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { PROLOGUE, prologueEntries } from './prologue';
+import { PROLOGUE, PROLOGUE_BEAT_MS, prologueEntries } from './prologue';
 import { prefetchPrologue, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { BigClock, Board, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TopBar } from './hud/Panels';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
@@ -362,33 +362,58 @@ export function InterrogationFeature() {
    * 같은 판(startedAt)에서는 한 번만. 국면이 먼저 넘어가도 남은 줄은 그대로 흘러 로그에 남고, 화면을 떠날 때만 걷는다.
    */
   const prologuePlayed = useRef<number | null>(null);
-  const prologueTimers = useRef<number[]>([]);
+  /** 이 판의 대본 진행 — 올리면 돌던 것이 스스로 멎는다 (타이머가 아니라 순차 루프라 이렇게 끊는다) */
+  const prologueRun = useRef(0);
+  /** 아직 대본을 흘려도 되는 국면인가 — 루프가 매 줄 확인한다 */
+  const prologueLive = useRef(false);
   const startedAt = wire?.startedAt ?? null;
   const testsDone = wire?.testsDone ?? 0;
+  // 첫 토론이 끝나거나 시행이 시작되면 대본은 그 자리에서 멎는다 (아래 루프가 이 값을 본다)
+  prologueLive.current = phase === 'discussion' && testsDone === 0;
   useEffect(() => {
-    if (phase !== 'discussion' || testsDone !== 0 || startedAt === null) return;
+    if (!prologueLive.current || startedAt === null) return;
     if (prologuePlayed.current === startedAt) return;
     prologuePlayed.current = startedAt;
+
     /*
-     * 소리는 미리 받아 둔다 — 합성 왕복이 300~800ms 라, 차례에 받기 시작하면 자막이 먼저 뜨고
-     * 소리가 뒤늦게 붙는다. 대본은 박자가 곧 연출이라 그 어긋남이 그대로 보인다 (prologueVoice).
+     * ★ **한 줄이 끝나야 다음 줄이다** (2026-09-05 사용자: 「한 대사 끝나면 그 다음 대사」).
+     *
+     * 처음에는 대본의 gap 으로 타이머를 한꺼번에 걸었는데, 그 값은 **글자용**이라 소리가 그보다
+     * 길어서 대사가 겹쳤다. 이제 앞 줄을 await 하고 다음 줄을 낸다 — 자막과 소리가 같은 줄에서
+     * 같이 시작해 같이 끝난다. 소리가 없는 줄(지문 · 키 없음)도 글자 수만큼 머무르므로
+     * 소리가 안 나오는 판에서도 박자가 같다 (prologueVoice 의 hold).
+     *
+     * 소리는 미리 받아 둔다 — 차례에 받기 시작하면 첫 줄만 자막이 먼저 뜨고 소리가 뒤늦게 붙는다.
      */
     resetPrologueVoice();
     prefetchPrologue(PROLOGUE);
-    prologueEntries(seatsRef.current, startedAt).forEach(({ at, entry }, i) => {
-      prologueTimers.current.push(
-        window.setTimeout(() => {
-          dispatch(gameActions.chatReceived(entry));
-          // 자막과 **같은 시각**에 낸다. 소리가 안 나와도 대본은 그대로 흐른다 — 자막이 본체다
-          void speakPrologueLine(PROLOGUE[i]);
-        }, at),
-      );
-    });
+    const run = ++prologueRun.current;
+    const entries = prologueEntries(seatsRef.current, startedAt);
+    void (async () => {
+      for (let i = 0; i < entries.length; i += 1) {
+        /*
+         * 국면이 넘어갔으면 **거기서 멎는다.** 예산(첫 토론 40초)에 2초쯤밖에 안 남아서,
+         * 합성이 하루 느리거나 대본이 한 줄 길어지면 시행이 시작된 뒤에도 대사가 이어진다 —
+         * 글자만 흐를 때는 로그에 남는 정도였지만, 소리가 붙은 지금은 **시행 중에 통제실이
+         * 계속 말하는** 일이 된다. 예산으로 막지 않고 여기서 막는다.
+         */
+        if (prologueRun.current !== run || !prologueLive.current) {
+          stopPrologue();
+          return;
+        }
+        dispatch(gameActions.chatReceived(entries[i].entry));
+        await speakPrologueLine(PROLOGUE[i]);
+        if (prologueRun.current !== run || !prologueLive.current) {
+          stopPrologue();
+          return;
+        }
+        await new Promise((r) => setTimeout(r, PROLOGUE_BEAT_MS));
+      }
+    })();
   }, [phase, testsDone, startedAt, dispatch]);
   useEffect(
     () => () => {
-      for (const t of prologueTimers.current) window.clearTimeout(t);
-      prologueTimers.current = [];
+      prologueRun.current += 1; // 돌던 대본을 멎게 한다
       stopPrologue(); // 화면을 떠나는데 통제실이 계속 말하고 있으면 안 된다
     },
     [],

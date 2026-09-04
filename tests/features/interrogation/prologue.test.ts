@@ -42,7 +42,8 @@ describe('prologueEntries — 대본을 채팅 줄로', () => {
   it('대본과 같은 수 · 같은 순서 · 누적 시각이 늘어난다', () => {
     expect(entries).toHaveLength(PROLOGUE.length);
     for (let i = 1; i < entries.length; i++) expect(entries[i].at).toBeGreaterThan(entries[i - 1].at);
-    expect(entries[entries.length - 1].at).toBe(PROLOGUE_MS);
+    // at 은 로그 순서(ts)용으로 남았다 — 재생은 순차라 이 값으로 예약하지 않는다
+    expect(entries[entries.length - 1].at).toBe(PROLOGUE.reduce((t, l) => t + l.gap, 0));
   });
 
   it('정부 통제실은 control, 지문은 system, 피실험자는 chat 이고 이름표에 번호와 좌석 이름이 붙는다', () => {
@@ -65,6 +66,7 @@ describe('prologueEntries — 대본을 채팅 줄로', () => {
   });
 
   it('대본 전체가 첫 토론 안에 흐른다 — 40초 안', () => {
+    // 소리로 읽는 실제 길이(실측 37.6초). 넘겨도 국면이 바뀌면 루프가 멎지만, 대본은 첫 토론 안에 끝나야 한다
     expect(PROLOGUE_MS).toBeLessThan(40_000);
   });
 });
