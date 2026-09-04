@@ -45,6 +45,7 @@ import {
 } from '../../src/world/mp/constants';
 import type { RoomPhase } from '../../src/world/mp/lobby';
 import type { ErrorCode, PlayerSnapshot, S2CMessage } from '../../src/world/mp/protocol';
+import { pickBody } from '../../src/world/mp/bodies';
 import { spawnFor } from '../../src/world/mp/spawn';
 import { isGameMessage } from '../../src/world/mp/game-protocol';
 import { cleanNickname, isC2SMessage, isTrialMessage, parseBroadcast, parseMove } from '../../src/world/mp/validate';
@@ -177,6 +178,8 @@ export class RoomDO implements DurableObject {
     while (taken.has(seat)) seat += 1;
 
     const start = spawnFor(seat, ROOM_MAX_PLAYERS);
+    // 몸 — 방 안에서 아직 아무도 안 쓰는 군인 (mp/bodies.ts). 넷이서 시연하면 넷이 다 다른 몸이다
+    const body = pickBody(others.map((p) => p.body));
     const snapshot: PlayerSnapshot = {
       id: crypto.randomUUID(),
       seat,
@@ -186,6 +189,7 @@ export class RoomDO implements DurableObject {
       y: 0,
       heading: 0,
       anim: 'idle',
+      body,
       // 「이 이름은 확인된 것」 — 계정 id 와 달리 이건 나가도 된다. 누가 인간인지는 말하지 않는다
       ...(ticket ? { authed: true } : {}),
     };

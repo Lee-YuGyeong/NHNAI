@@ -1,6 +1,9 @@
 /**
  * 자유 보행 1인칭 — world/scene/WorldScene 의 LocalRig 에서 이 판에 필요한 것만 남긴 다리다
- * (WASD · 점프 · 시야 · 벽/가구 충돌 · 10Hz 송신). 이모트 · 의심도 감지 · 경비 밀기는 없다.
+ * (WASD · Shift+W 달리기 · Space 점프 · 시야 · 벽/가구 충돌 · 10Hz 송신). 이모트 · 의심도 감지 · 경비 밀기는 없다.
+ *
+ * 달리기와 점프는 **몸(body)에 따라 다르다** (mp/bodies.ts, 2026-09-04 사용자): 비만인 둘은 달리기가 느리고 점프가 낮다.
+ * 걷기는 넷이 같다. 달리기는 앞(W)으로 갈 때만 — 옆·뒤로는 Shift 를 눌러도 걷는다.
  *
  * 토론과 낙하 생존 · 색 사냥에서 쓴다. 낙하 생존 동안은 마당(bounds)이 좁아진다 — 서버가 그 범위 안에서만
  * 떨어뜨리고 판정하므로 밖으로 나가면 기록이 안 남는다.
@@ -10,6 +13,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { LOOK_SENSITIVITY, MAX_PITCH, attachKeyboard, input, resetInput } from '@/world/input/input';
 import { MAPS, type MapDef } from '@/world/map';
+import { BODIES, type BodyId } from '@/world/mp/bodies';
 import { EYE_HEIGHT, GRAVITY, JUMP_SPEED, MOVE_THROTTLE_MS, WALK_SPEED, WORLD } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 
@@ -26,6 +30,7 @@ export interface Teleport {
 
 export function FreeRig({
   spawn,
+  body,
   teleport,
   bounds,
   composing,
@@ -33,6 +38,8 @@ export function FreeRig({
   sendMove,
 }: {
   spawn: { x: number; z: number };
+  /** 내 몸 — 없으면(옛 워커) 기본 물리 */
+  body: BodyId | null;
   teleport: Teleport | null;
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number } | null;
   composing: boolean;
@@ -95,17 +102,20 @@ export function FreeRig({
     forward.current.normalize();
     right.current.crossVectors(forward.current, UP).normalize();
 
+    const spec = body ? BODIES[body] : null;
     let anim: AnimState = 'idle';
     if (ax !== 0 || az !== 0) {
-      const speed = WALK_SPEED * Math.min(delta, 0.1);
+      // Shift + 앞(W) 이면 달린다 — 속도는 몸이 정한다. 공중에서는 달리기로 안 바뀐다 (뛰던 속도 유지가 아니라 그냥 걷는 속도)
+      const running = active && input.run && az > 0 && grounded.current;
+      const speed = (running ? (spec?.run ?? WALK_SPEED * 2) : WALK_SPEED) * Math.min(delta, 0.1);
       const len = Math.hypot(ax, az);
       const fit = len > 1 ? 1 / len : 1;
       pos.current.addScaledVector(forward.current, az * fit * speed);
       pos.current.addScaledVector(right.current, ax * fit * speed);
-      anim = 'walk';
+      anim = running ? 'run' : 'walk';
     }
     if (active && input.jump && grounded.current) {
-      vy.current = JUMP_SPEED;
+      vy.current = spec?.jump ?? JUMP_SPEED;
       grounded.current = false;
     }
 

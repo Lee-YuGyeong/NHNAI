@@ -98,6 +98,8 @@ export interface InputState {
   moveZ: number;
   /** 점프 키가 **눌려 있는가**. */
   jump: boolean;
+  /** 달리기 키(Shift)가 눌려 있는가 — 앞으로 갈 때만 달린다 (검문소 FreeRig, 2026-09-04 사용자: "쉬프트를 누르고 w") */
+  run: boolean;
   /** 아직 카메라에 반영하지 않은 시야 변화(라디안). 읽는 쪽이 0으로 비운다. */
   lookX: number;
   lookY: number;
@@ -106,7 +108,7 @@ export interface InputState {
 }
 
 /** ★ 제자리에서 변형된다. 이 객체를 복사해 들고 있지 말 것 */
-export const input: InputState = { moveX: 0, moveZ: 0, jump: false, lookX: 0, lookY: 0, emote: null };
+export const input: InputState = { moveX: 0, moveZ: 0, jump: false, run: false, lookX: 0, lookY: 0, emote: null };
 
 /** 전부 놓은 상태로 되돌린다. 눌린 키 목록까지 비운다. */
 export function resetInput(): void {
@@ -114,6 +116,7 @@ export function resetInput(): void {
   input.moveX = 0;
   input.moveZ = 0;
   input.jump = false;
+  input.run = false;
   input.lookX = 0;
   input.lookY = 0;
   input.emote = null;
@@ -137,6 +140,7 @@ function recompute(): void {
   input.moveX = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
   input.moveZ = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
   input.jump = Boolean(keys.Space);
+  input.run = Boolean(keys.ShiftLeft || keys.ShiftRight);
 }
 
 /** 키보드를 `input` 에 연결한다. 반환값은 정리 함수다. 입력창에 치는 동안은 조작키가 아니다. */

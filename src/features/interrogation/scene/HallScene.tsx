@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
 import { MAPS, type MapDef } from '@/world/map';
 import { EYE_HEIGHT, FALL_ARENA } from '@/world/mp/constants';
+import type { BodyId } from '@/world/mp/bodies';
 import type { AnimState, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
 import { AdaptiveFov, Exposure, MouseLook } from '@/world/scene/WorldScene';
@@ -43,6 +44,8 @@ const def: MapDef = MAPS.govcenter;
 
 export interface HallSceneProps {
   mySeatId: string | null;
+  /** 내 몸 — 달리기 속도·점프 높이 (mp/bodies.ts). 없으면 기본값 */
+  myBody: BodyId | null;
   /** 내 레인(좌석 번호 − 1). 좌석이 없으면 0 */
   myLane: number;
   /** 남의 좌석 id 들 (나 제외, 격리된 몸은 빠진다) */
@@ -97,7 +100,7 @@ export function HallScene(p: HallSceneProps) {
       {stopline && p.mySeatId ? (
         <StopRig myId={p.mySeatId} lane={p.myLane} myAttempts={p.myAttempts} onAccel={p.onAccel} onBrake={p.onBrake} sendMove={p.sendMove} />
       ) : (
-        <FreeRig spawn={p.spawn} teleport={p.teleport} bounds={fall ? FALL_ARENA : null} composing={p.composing} paused={p.paused} sendMove={p.sendMove} />
+        <FreeRig spawn={p.spawn} body={p.myBody} teleport={p.teleport} bounds={fall ? FALL_ARENA : null} composing={p.composing} paused={p.paused} sendMove={p.sendMove} />
       )}
       <MouseLook />
     </WorldCanvas>

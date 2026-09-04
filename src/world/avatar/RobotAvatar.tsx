@@ -163,6 +163,11 @@ const CLIPS: Record<ClipName, Clip> = {
     out.hipY = -0.012 * (0.5 - 0.5 * Math.cos(2 * p));
   },
 
+  /** 달리기(검문소의 군인 몸에만 클립이 있다) — 로봇은 걷는 것으로 그린다 */
+  run(t, clock, out) {
+    CLIPS.walk(t, clock, out);
+  },
+
   jump(t, _clock, out) {
     stand(out);
     const tuck = smooth(t / 0.15);

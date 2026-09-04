@@ -12,6 +12,7 @@ import {
   type GameStateWire,
 } from '@/world/mp/game-protocol';
 import type { TrialResultWire } from '@/world/mp/protocol';
+import { BODIES, type BodyId } from '@/world/mp/bodies';
 import type { ChatEntry } from '../interrogationSlice';
 import { ResultTable, TEST_TITLE } from './ResultTable';
 
@@ -261,12 +262,15 @@ export function LobbyPanel({
   wire,
   players,
   selfId,
+  myBody = null,
   reject,
   onStart,
 }: {
   wire: GameStateWire;
   players: Record<string, string>;
   selfId: string | null;
+  /** 서버가 뽑아 준 내 몸 — 1인칭이라 제 몸은 안 보이니 여기서 알려 준다 (mp/bodies.ts) */
+  myBody?: BodyId | null;
   reject: string | null;
   onStart: (fillTo: number) => void;
 }) {
@@ -274,12 +278,18 @@ export function LobbyPanel({
   const isHost = !!selfId && wire.hostId === selfId;
   const [fillTo, setFillTo] = useState(Math.max(GAME_MIN_HUMANS, online));
   const canStart = isHost && online >= 1;
+  const body = myBody ? BODIES[myBody] : null;
   return (
     <div className="ig-lobby">
       <h2>소집 대기</h2>
       <p>
         실제 플레이어 {GAME_MIN_HUMANS}~{GAME_MAX_HUMANS}명 + AI 1좌석. 사람이 모자라면 대역이 채운다 — 판이 열리면 좌석이 섞이고 전원 SUBJECT 번호로만 불린다.
       </p>
+      {body ? (
+        <p>
+          내 몸: <b>{body.name}</b> · Shift+W 달리기 · Space 점프{body.heavy ? ' — 비만이라 달리기가 느리고 점프가 낮다' : ''}
+        </p>
+      ) : null}
       <ul>
         {Object.entries(players).map(([id, nick]) => (
           <li key={id} className={id === wire.hostId ? 'host' : undefined}>

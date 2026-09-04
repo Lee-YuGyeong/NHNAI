@@ -16,7 +16,7 @@
  *   - 물리 조건값은 어디에도 없다 (P8). 색 사냥이 내려주는 것은 **겉보기 색**뿐이다.
  */
 
-import type { TrialGame, TrialResultWire } from './protocol';
+import type { BodyId, TrialGame, TrialResultWire } from './protocol';
 
 /** 배역 — 사람(일반) · AI 설계자 · AI. 설계자는 실제 플레이어 중에서 뽑히고, AI 는 따로 합류하는 좌석이다 (§1.1) */
 export type GameRole = 'human' | 'designer' | 'ai';
@@ -42,6 +42,8 @@ export interface GameSeat {
   isolated: boolean;
   /** 격리된 뒤 공개된 정체. 살아 있으면 없다 */
   revealed?: GameRole;
+  /** 이 좌석의 몸 (mp/bodies.ts) — 사람은 입장 때 받은 몸 그대로, 대역·AI 는 판이 열릴 때 남은 몸에서 뽑는다 */
+  body?: BodyId;
 }
 
 /** 판이 끝난 이유와 결과 (§1.3) */

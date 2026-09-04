@@ -39,6 +39,7 @@ import {
   type GameTestInfo,
   type LeaderKind,
 } from '../../../src/world/mp/game-protocol';
+import { pickBody, type BodyId } from '../../../src/world/mp/bodies';
 import { WALK_SPEED } from '../../../src/world/mp/constants';
 import type { PlayerSnapshot, S2CMessage, TrialGame, TrialPlayerResult, TrialResultWire } from '../../../src/world/mp/protocol';
 import { spawnFor } from '../../../src/world/mp/spawn';
@@ -80,6 +81,8 @@ interface Seat {
   tamperLeft: number;
   /** 마지막으로 말한 시각 — 봇 차례 뽑기용 */
   lastSpokeAt: number;
+  /** 몸 (mp/bodies.ts) — 사람은 입장 때 받은 것, 대역·AI 는 판이 열릴 때 남은 몸에서 */
+  body?: BodyId;
 }
 
 interface ChatLine {
@@ -290,6 +293,8 @@ export class GameRuntime {
     const npcCount = target - roster.length;
 
     const personas = personaPool(this.rand);
+    // 몸 — 사람은 입장 때 받은 몸 그대로, 대역·AI 는 남은 몸에서 뽑는다 (mp/bodies.ts). 겹치지 않게 쓴 몸을 적어 간다
+    const usedBodies: (BodyId | undefined)[] = roster.map((p) => p.body);
     const humans: Seat[] = roster.map((p) => ({
       id: `seat-${p.id}`,
       name: '',
@@ -300,8 +305,11 @@ export class GameRuntime {
       isolated: false,
       tamperLeft: 0,
       lastSpokeAt: 0,
+      body: p.body,
     }));
     for (let i = 0; i < npcCount; i += 1) {
+      const body = pickBody(usedBodies, this.rand);
+      usedBodies.push(body);
       humans.push({
         id: `npc-${i + 1}-${Math.floor(this.rand() * 1e6)}`,
         name: '',
@@ -312,6 +320,7 @@ export class GameRuntime {
         isolated: false,
         tamperLeft: 0,
         lastSpokeAt: 0,
+        body,
       });
     }
     const ai: Seat = {
@@ -324,6 +333,7 @@ export class GameRuntime {
       isolated: false,
       tamperLeft: 0,
       lastSpokeAt: 0,
+      body: pickBody(usedBodies, this.rand),
     };
 
     const assignment = assignRoles(
@@ -933,7 +943,7 @@ export class GameRuntime {
   }
 
   private publicSeat(s: Seat): GameSeat {
-    return { id: s.id, name: s.name, seat: s.seat, isolated: s.isolated, ...(s.isolated ? { revealed: s.role } : {}) };
+    return { id: s.id, name: s.name, seat: s.seat, isolated: s.isolated, ...(s.isolated ? { revealed: s.role } : {}), ...(s.body ? { body: s.body } : {}) };
   }
 
   private rolesMap(): Record<string, GameRole> {

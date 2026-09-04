@@ -28,6 +28,7 @@ import { Board, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultM
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
+import type { BodyId } from '@/world/mp/bodies';
 import { fallState } from './scene/fallState';
 import { runnerState } from './scene/stopline/runnerState';
 import './interrogation.css';
@@ -63,6 +64,8 @@ export function InterrogationFeature() {
   const [bubbleTick, setBubbleTick] = useState(0);
   const [showRole, setShowRole] = useState(false);
   const [teleport, setTeleport] = useState<Teleport | null>(null);
+  /** 로비에서 받은 내 몸 (welcome). 판이 열리면 좌석의 body 가 이긴다 — 같은 값이다 */
+  const [lobbyBody, setLobbyBody] = useState<BodyId | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const connRef = useRef<GameConnection | null>(null);
   if (connRef.current === null) connRef.current = new GameConnection();
@@ -85,6 +88,8 @@ export function InterrogationFeature() {
   const seats = wire?.seats ?? [];
   const mySeatId = me?.seatId ?? null;
   const mySeat = seats.find((s) => s.id === mySeatId) ?? null;
+  /** 내 몸 — 달리기 속도·점프 높이가 여기서 갈린다 (mp/bodies.ts, FreeRig) */
+  const myBody: BodyId | null = mySeat?.body ?? lobbyBody;
   const nameOf = useCallback((id: string) => (id === 'LEADER' ? '관리 AI' : (seats.find((s) => s.id === id)?.name ?? id)), [seats]);
 
   /* ─────────────────────────────── 연결 ─────────────────────────────── */
@@ -125,7 +130,7 @@ export function InterrogationFeature() {
             for (const s of msg.state.seats) {
               if (s.id === meRef.current?.seatId || remotePlayers.get(s.id)) continue;
               const spot = seatSpot(s, total);
-              addPlayer({ id: s.id, seat: s.seat, nickname: s.name, x: spot.x, z: spot.z, y: 0, heading: 0, anim: 'idle' });
+              addPlayer({ id: s.id, seat: s.seat, nickname: s.name, x: spot.x, z: spot.z, y: 0, heading: 0, anim: 'idle', body: s.body });
               runnerState.setLane(s.id, s.seat - 1);
             }
           }
@@ -217,6 +222,8 @@ export function InterrogationFeature() {
     conn.connect(worldWsBase(), roomCode, nickname, {
       onWelcome: (id, list) => {
         for (const p of list) if (p.id !== id) addPlayer(p);
+        // 내 몸 — 서버가 입장 때 뽑아 준 군인. 판이 열리면 좌석(GameSeat.body)이 같은 값을 다시 준다
+        setLobbyBody(list.find((p) => p.id === id)?.body ?? null);
         dispatch(gameActions.welcomed({ selfId: id, players: list.map((p) => ({ id: p.id, nickname: p.nickname })) }));
       },
       onJoined: (p) => {
@@ -332,6 +339,7 @@ export function InterrogationFeature() {
     <div ref={rootRef} className="ig-root" onClick={lock}>
       <HallScene
         mySeatId={mySeatId}
+        myBody={myBody}
         myLane={mySeat ? mySeat.seat - 1 : 0}
         others={others}
         getSuspicion={getSuspicion}
@@ -380,7 +388,7 @@ export function InterrogationFeature() {
           </p>
         ) : null}
 
-        {wire && phase === 'lobby' ? <LobbyPanel wire={wire} players={players} selfId={selfId} reject={reject} onStart={onStart} /> : null}
+        {wire && phase === 'lobby' ? <LobbyPanel wire={wire} players={players} selfId={selfId} myBody={myBody} reject={reject} onStart={onStart} /> : null}
         {reject && phase !== 'lobby' ? <p className="ig-banner alarm">{reject}</p> : null}
         {phase === 'result' && latestResult ? <ResultModal result={latestResult} nameOf={nameOf} mySeatId={mySeatId} endsAt={wire?.phaseEndsAt ?? null} /> : null}
         {phase === 'ended' && outcome ? (
