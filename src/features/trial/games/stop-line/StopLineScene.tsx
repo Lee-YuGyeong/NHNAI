@@ -13,6 +13,7 @@ import { MAPS } from '@/world/map';
 import { EYE_HEIGHT } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { AdaptiveFov, Exposure, MouseLook, Remotes } from '@/world/scene/WorldScene';
+import { SelfAvatar } from '../common/SelfAvatar';
 import { WorldCanvas } from '@/world/scene/WorldCanvas';
 import { RunnerAvatar } from './RunnerAvatar';
 import { TrackDressing } from './TrackDressing';
@@ -67,6 +68,7 @@ export function StopLineScene({ myId, roster, aiIds, phase, gameKey, myAttempts,
       ))}
 
       <TrialRig myId={myId} gameKey={gameKey} myAttempts={myAttempts} onAccel={onAccel} onBrake={onBrake} sendMove={sendMove} />
+      <SelfAvatar />
       <MouseLook />
     </WorldCanvas>
   );

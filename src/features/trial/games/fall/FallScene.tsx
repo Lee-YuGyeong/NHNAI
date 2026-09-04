@@ -10,6 +10,7 @@ import { MAPS } from '@/world/map';
 import { EYE_HEIGHT, FALL_ARENA } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { AdaptiveFov, Exposure, MouseLook, Remotes } from '@/world/scene/WorldScene';
+import { SelfAvatar } from '../common/SelfAvatar';
 import { WorldCanvas } from '@/world/scene/WorldCanvas';
 import { DODGE_SPAWN, DodgeRig } from './DodgeRig';
 import { DodgerAvatar } from './DodgerAvatar';
@@ -86,6 +87,7 @@ export function FallScene({ roster, aiIds, sendMove }: FallSceneProps) {
       ))}
 
       <DodgeRig sendMove={sendMove} />
+      <SelfAvatar />
       <MouseLook />
     </WorldCanvas>
   );
