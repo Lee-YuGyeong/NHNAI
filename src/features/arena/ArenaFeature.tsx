@@ -573,13 +573,21 @@ const say = (body: TalkRequest, signal?: AbortSignal) =>
 
 /**
  * autoStart — 이야기로 들어왔을 때(검증실 문 → 암전 → /interrogation?from=central). 「게임 시작」 버튼을 기다리지 않고
- * 곧장 판을 열고, 앞 화면의 암전을 이어받아 밝아진다. 로비에서 판만 열 때(/arena · /interrogation)는 예전 그대로 버튼 하나다.
+ * 곧장 판을 열고, 앞 화면의 암전을 이어받아 밝아진다 — 인계 서류(HandoverCard) · 챕터 방송 ·
+ * 암전 커튼이 전부 이 값 하나에 딸려 온다. **이야기를 실제로 거쳐 왔을 때만 켠다.**
  *
- * onStart — 판이 실제로 열리는 그 순간(makeCast, 버튼을 눌렀든 autoStart 든 같다) 한 번 불린다.
- * features/interrogation 의 역할 브리핑 카드가 이 순간에 맞춰 뜬다 — 3D 시설에 이미 들어와
- * 있는 채로, 판이 열리는 것과 같은 박자에 카드가 위를 덮는다("게임 시작"이 곧 배역 통보다).
+ * skipButton — 이야기는 안 거쳤지만(로비의 「검문소 (판만)」) 그래도 버튼 없이 곧장 여는 길
+ * (2026-09-04 사용자: "게임 시작 버튼 없애고 바로 게임 시작되게"). autoStart 와 달리 인계
+ * 서류·챕터 방송·암전 커튼은 하나도 안 붙는다 — 그냥 버튼을 대신 눌러 주는 것뿐이다.
+ *
+ * onStart — 판이 실제로 열리는 그 순간(makeCast, 버튼을 눌렀든 autoStart·skipButton 이든 같다)
+ * 한 번 불린다. features/interrogation 의 역할 브리핑 카드가 이 순간에 맞춰 뜬다.
  */
-export function ArenaFeature({ autoStart = false, onStart }: { autoStart?: boolean; onStart?: () => void } = {}) {
+export function ArenaFeature({
+  autoStart = false,
+  skipButton = false,
+  onStart,
+}: { autoStart?: boolean; skipButton?: boolean; onStart?: () => void } = {}) {
   const dispatch = useAppDispatch();
   const [phase, setPhase] = useState<Phase>('idle');
   const [trial, setTrial] = useState<FreeTrial | null>(null);
@@ -2235,6 +2243,18 @@ export function ArenaFeature({ autoStart = false, onStart }: { autoStart?: boole
     dispatch(broadcastAnnounce({ text: arrivalLine(handover, series(), TRIAL_PARTY) }));
     makeCast(); // 여기서 리더의 지시(HUNT_ORDER)가 이어 나간다
   }, [autoStart, makeCast, dispatch, handover]);
+
+  /**
+   * skipButton — 버튼만 없앤 길이다. autoStart 와 같은 ref(autoStarted)를 같이 봐서, 이야기로
+   * 들어온 판(autoStart)에서는 이 효과가 다시 makeCast 를 부르지 않는다 — 둘 다 켜질 일은
+   * 실제로 없지만(features/interrogation 이 둘을 배타적으로 준다), 그래도 안전하게 막아 둔다.
+   * 인계 서류·챕터 방송·arrivalLine 은 붙이지 않는다 — makeCast 자체가 HUNT_ORDER 는 낸다.
+   */
+  useEffect(() => {
+    if (!skipButton || autoStarted.current) return;
+    autoStarted.current = true;
+    makeCast();
+  }, [skipButton, makeCast]);
 
   useEffect(() => {
     if (phase !== 'designing') return;
