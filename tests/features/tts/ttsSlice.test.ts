@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { ttsActions, ttsSlice, type TtsState } from '@/features/tts/ttsSlice';
-import { broadcastAnnounce, broadcastMute, broadcastSkip } from '@/shared/broadcast';
+import { broadcastAnnounce, broadcastMute } from '@/shared/broadcast';
 import { budgetChars } from '@/features/tts/cap';
 
 const r = ttsSlice.reducer;
@@ -136,38 +136,5 @@ describe('음소거', () => {
       return [s.current?.text ?? null, ...texts(s)];
     };
     expect(run(true)).toEqual(run(false));
-  });
-});
-
-/*
- * 대사 스킵(T) — 검증실은 소리를 방송으로 내므로 넘기는 것도 여기서 끊는다 (shared/broadcast 의 broadcastSkip).
- * 자막만 넘기고 소리를 안 끊으면 목소리가 앞 줄을 계속 읽는다.
- */
-describe('스킵 — broadcastSkip', () => {
-  it('읽고 있던 한 줄을 비운다 — 그 순간 재생기가 소리를 끊는다', () => {
-    let s = r(init(), broadcastAnnounce({ text: '지시문' }));
-    s = r(s, ttsActions.playNext());
-    expect(s.current?.text).toBe('지시문');
-
-    s = r(s, broadcastSkip());
-    expect(s.current).toBeNull();
-  });
-
-  it('대기 중인 방송은 그대로 남는다 — 한 번 누른 것은 한 줄이다', () => {
-    let s = init();
-    for (const t of ['지시문', '판독']) s = r(s, broadcastAnnounce({ text: t }));
-    s = r(s, ttsActions.playNext());
-
-    s = r(s, broadcastSkip());
-    expect(texts(s)).toEqual(['판독']);
-    s = r(s, ttsActions.playNext()); // 재생기가 곧바로 다음을 꺼낸다
-    expect(s.current?.text).toBe('판독');
-  });
-
-  it('읽고 있는 것이 없을 때 눌러도 판이 흐트러지지 않는다', () => {
-    let s = r(init(), broadcastAnnounce({ text: '지시문' }));
-    s = r(s, broadcastSkip());
-    expect(s.current).toBeNull();
-    expect(texts(s)).toEqual(['지시문']);
   });
 });

@@ -194,9 +194,8 @@ function patch(p: Partial<Chapter3State>) {
   if (p.phase) dossier.at('재검실');
   notify();
 }
-/** line 은 「이건 대사 한 줄이다」 — 앞당기기가 집는 것은 대사뿐이다 */
-function later(ms: number, fn: () => void, line = false) {
-  clock.later(ms, fn, undefined, line);
+function later(ms: number, fn: () => void) {
+  clock.later(ms, fn);
 }
 function clearTimers() {
   clock.clear();
@@ -222,7 +221,7 @@ function play(lines: readonly Line[], after?: () => void): number {
        * 글자와 같은 순간에 보낸다: 방송이 자막을 따로 그리지 않으니 둘이 갈라질 자리가 없어야 한다.
        */
       if (line.live) speak?.(text);
-    }, true);
+    });
     // 지은 줄은 합성이 늦게 오므로 글자 수로 잰 길이보다 오래 세워 둔다
     t += line.live ? Math.max(LIVE_MIN_MS, lineDurationFor(nickname, text, self)) : lineDurationFor(nickname, text, self);
   }
@@ -354,18 +353,6 @@ export const chapter3 = {
   subscribe(fn: () => void): () => void {
     listeners.add(fn);
     return () => listeners.delete(fn);
-  },
-  /**
-   * **대화 스킵** — 다음 대사를 지금 부르고 뒤의 예약을 그만큼 당긴다 (schedule 의 pull). 대화창의 T 가 부른다.
-   * 묻는 중에는 안 당긴다 (state.pending) — 그 초읽기는 절대 시각으로 재고 있고, 답할 시간을 내가 깎을 이유도 없다
-   * (chapter2.skip 과 같은 규칙).
-   *
-   * ★ 그 자리에서 지은 감독의 말(Line.live)은 합성이 늦게 오는데, 앞당겨도 자막과 소리가 갈라지지는 않는다 —
-   *   방송은 자막을 따로 그리지 않고 같은 순간에 나간다 (play 의 speak).
-   */
-  skip(): boolean {
-    if (state.pending) return false;
-    return clock.pull() > 0;
   },
   /**
    * feature 가 마운트될 때 — 대사 출구·내 이름·나갈 때 옮기는 콜백, 그리고 **감독의 목소리**.

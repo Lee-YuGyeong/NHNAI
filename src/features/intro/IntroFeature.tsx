@@ -289,8 +289,10 @@ export function IntroFeature() {
         <div className="intro-wide">
           <div className="intro-steps-head">
             <span className="intro-index">03 // HOW TO PLAY</span>
+            {/* 뒷박자 「쌓이기만 한다」는 새 기획과 모순이다(§1.2 상승·하강 대칭) — 라이브 인트로와
+                같은 이유로 맞춘다(2026-09-04 절충). 앞박자는 그대로 — 시험의 region 이름이 그걸 본다 */}
             <h2 id="intro-rules-h" className="intro-h2">
-              시행은 계속된다. <span className="dim">의심은 쌓이기만 한다.</span>
+              시행은 계속된다. <span className="dim">의심은 말로만 움직인다.</span>
             </h2>
           </div>
           <ol className="intro-steps">

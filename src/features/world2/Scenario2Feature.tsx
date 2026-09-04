@@ -58,25 +58,7 @@ export function Scenario2Feature() {
   const [locked, setLocked] = useState(false);
   const [touch, setTouch] = useState(getTouchMode);
   const [room, setRoom] = useState<Room>('corridor');
-  const [skip, setSkip] = useState(0);
   const [, bump] = useReducer((n: number) => n + 1, 0);
-  /**
-   * 지금 대사가 흐르고 있나 — **Space 를 가로챌지 정하는 값**이다. Space 는 원래 점프라,
-   * 읽을 것이 없을 때까지 뺏으면 안 된다. 줄이 하나 나올 때마다 켜고, 그 줄이 끝날 때쯤 끈다.
-   */
-  const flowing = useRef(false);
-  const flowTimer = useRef(0);
-  // 화면에 「SPACE 넘기기」를 띄우고 지우려면 상태도 있어야 한다 (ref 만으로는 꺼질 때 안 다시 그린다)
-  const [flowOn, setFlowOn] = useState(false);
-
-  /**
-   * 아직 안 나온 줄을 지금 내보낸다 — 상자의 T·단추가 부르는 곳(DialogueBox 의 onSkip)이자 아래 Space 창구가 부르는 곳.
-   * 입력줄이 열려 있으면 안 한다: 그때 자판은 문장을 적는 손이다.
-   */
-  const skipFlow = useCallback(() => {
-    if (scenario2.get().talking) return;
-    scenario2.skip();
-  }, []);
 
   useEffect(() => subscribeTouchMode(() => setTouch(getTouchMode())), []);
   useEffect(() => scenario2.subscribe(bump), []);
@@ -100,19 +82,6 @@ export function Scenario2Feature() {
         void voiceLines.play(line.nickname, line.text, false);
       }
       return;
-    }
-    if (line.portrait) {
-      // 이 줄이 화면에 머무는 동안은 Space 가 「스킵」이다 (그 뒤로는 다시 점프)
-      flowing.current = true;
-      setFlowOn(true);
-      window.clearTimeout(flowTimer.current);
-      flowTimer.current = window.setTimeout(
-        () => {
-          flowing.current = false;
-          setFlowOn(false);
-        },
-        lineDurationFor(line.nickname, line.text, line.self) + 2000,
-      );
     }
     setMessages((prev) =>
       [
@@ -158,7 +127,6 @@ export function Scenario2Feature() {
   useEffect(
     () => () => {
       scenario2.leave();
-      window.clearTimeout(flowTimer.current);
       bystanders.clear();
       probe.clear(true);
       resetInput();
@@ -198,7 +166,7 @@ export function Scenario2Feature() {
        * 글 치는 칸에서 온 키는 이 창구의 것이 아니다 — 본판(WorldFeature)·검증실(ArenaFeature)의
        * 창구들이 처음부터 걸어 두는 잣대인데 여기만 없었다. 말 걸기 입력줄은 st.talking 으로
        * 가려져 있어 여태 티가 안 났지만, 오른쪽 수첩(shared/NotePad)처럼 **talking 밖에서 열리는
-       * 칸**이 생기면 그 칸에 치는 space 가 대사 넘기기가 되고 e 가 개체 뒤로 서기가 된다.
+       * 칸**이 생기면 그 칸에 치는 e 가 개체에게 말 걸기가 된다.
        * 수첩 쪽에서도 막지만(stopPropagation), 막는 자리는 양쪽에 있어야 한다.
        */
       const el = ev.target as HTMLElement | null;
@@ -219,22 +187,6 @@ export function Scenario2Feature() {
        * 여기서 ESC 를 또 잡으면 입력줄의 것과 두 번 돈다.
        */
       if (st.talking) return;
-
-      /*
-       * **대화 스킵** — Space 로 한 칸 넘긴다 (찍는 중이면 문장을 끝내고, 다 찍혔으면 다음 줄로).
-       * T 도 같은 일을 한다 — 그쪽 창구는 상자가 들고 있다 (DialogueBox 의 SKIP_KEY, 위 onSkip).
-       * 아직 안 나온 줄은 이야기 쪽이 앞당겨 주고(scenario2.skip), 대화창은 그 줄을 넘긴다.
-       * 방을 옮기거나 목표를 바꾸는 연출은 안 앞당긴다 — 한 번 누른 것으로 마지막 방까지 가 버리면 안 된다.
-       * ★ Space 는 원래 점프다. 대사가 흐르는 동안만 가로챈다 (읽을 게 없으면 그냥 뛴다).
-       */
-      if (ev.code === 'Space') {
-        if (flowing.current) {
-          ev.preventDefault();
-          skipFlow();
-          setSkip((n) => n + 1);
-        }
-        return;
-      }
 
       /*
        * **[E] — 겨눈 개체에게 말을 건다** (2026-09-03 사용자: 「로봇한테 말을 걸면 E를 눌러서 말을 걸수있게해줘」).
@@ -260,7 +212,7 @@ export function Scenario2Feature() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [started, skipFlow]);
+  }, [started]);
 
   const resume = useCallback(() => {
     if (scenario2.get().talking) scenario2.closeTalk();
@@ -318,9 +270,7 @@ export function Scenario2Feature() {
             <br />
             WASD 이동 · 마우스 시야 · 개체를 <b>겨누고 [E]</b> 로 말을 건다 — 걸어다니는 것도 붙잡힌다
             <br />
-            곁에 서 있으면 <b>Enter</b> 로도 열린다 · 치고 Enter 로 보낸다
-            <br />
-            <b>Space</b> 로 대사를 넘긴다 · ESC 로 물러난다
+            곁에 서 있으면 <b>Enter</b> 로도 열린다 · 치고 Enter 로 보낸다 · ESC 로 물러난다
           </p>
           <button type="button" onClick={begin} style={{ marginTop: 22, padding: '10px 18px', fontSize: 14 }}>
             들어간다
@@ -398,16 +348,10 @@ export function Scenario2Feature() {
       <NotePad room={ROOM_TITLE[room]} touch={touch} />
 
       {/*
-        넘기기는 두 자판이다 — **T**(상자가 제 오른쪽 아래에 「T | SKIP」으로 적어 둔다)와 **Space**(이 방의 오랜 손버릇).
-        어느 쪽으로 눌러도 하는 일은 같다: 아직 안 나온 줄을 지금 내보내고(scenario2.skip), 상자는 한 칸 넘긴다.
-      */}
-      {/*
         본판과 같은 배치 (2026-09-03 사용자: 「world1 과 동일하게 위치·UI」): 입력줄은 화면 맨 아래(TalkPanel · bottom 24px),
         열리면 대화창이 그 높이(--dlg-lift)만큼 올라가 자리를 내주고, 왼쪽 아래 「나」 로그도 같이 올라간다 (WorldFeature 와 같은 값 54)
       */}
-      <DialogueBox messages={messages} selfId={SELF_ID} touch={touch} lifted={!!talking && !touch} skip={skip} onSkip={skipFlow} onShowing={scenario2.boxShowing} />
-      {/* 대사가 흐르는 동안만 — 오른쪽 아래에 아주 작게. T 는 상자에 적혀 있으니 여기선 Space 만 일러 준다 */}
-      {flowOn && !talking ? <div className="s2 s2-skip">SPACE 넘기기</div> : null}
+      <DialogueBox messages={messages} selfId={SELF_ID} touch={touch} lifted={!!talking && !touch} onShowing={scenario2.boxShowing} />
       <TalkLog entries={talkLog} touch={touch} lift={talking && !touch ? 54 : 0} />
 
       {/*

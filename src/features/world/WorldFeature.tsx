@@ -402,19 +402,6 @@ export function WorldFeature({ map = 'corridor', children }: { map?: MapId; chil
     setDraft('');
   }, [locked, composing]);
 
-  /**
-   * **T 로 대사를 넘길 때** (대화창의 onSkip) — 상자가 지금 줄을 넘기고, 여기서 대본의 다음 줄을 당긴다.
-   * 안 당기면 다음 줄은 제 시각에 매달려 있어 넘긴 만큼 그대로 정적이 된다.
-   *
-   * 세 대본이 이 화면 하나를 나눠 쓴다 (복도·중앙 시설·재검실). 지금 누구 차례인지는 대본이 안다 —
-   * 앞당길 줄이 없는 대본은 아무것도 안 하고 false 를 주므로 차례로 물어보면 된다.
-   */
-  const skipLine = useCallback(() => {
-    if (chapter1.skip()) return;
-    if (chapter2.skip()) return;
-    chapter3.skip();
-  }, []);
-
   const resumeWalking = useCallback(() => {
     if (touchMode || !rootRef.current) return; // iOS 에는 포인터 잠금이 없다
     requestLock(rootRef.current);
@@ -790,7 +777,7 @@ export function WorldFeature({ map = 'corridor', children }: { map?: MapId; chil
         ) : null
       ) : (
         <>
-          <DialogueBox messages={messages} selfId={selfId} touch={touchMode} lifted={composing && !touchMode} onSkip={skipLine} />
+          <DialogueBox messages={messages} selfId={selfId} touch={touchMode} lifted={composing && !touchMode} />
           {/* 내가 친 말 — 대화창이 아니라 화면 로그로 */}
           <SelfChatLog messages={messages} selfId={selfId} touch={touchMode} lift={composing && !touchMode ? 54 : 0} />
         </>

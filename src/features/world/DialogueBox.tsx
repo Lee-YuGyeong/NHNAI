@@ -12,9 +12,6 @@
  * 흐름: 새 메시지가 오면 줄을 선다 → 한 글자씩 찍는다(구두점 뒤엔 잠깐 멈춤) → 다 찍히면 잠시 머물다 다음 줄로 → 줄이 비면 사라진다.
  * 상자를 클릭하면 찍는 중엔 다 보여주고, 다 찍혔으면 다음으로 넘긴다. 걷기(포인터 잠금)를 방해하지 않게 상자 밖은 pointer-events 없음.
  *
- * **넘기기는 T** (2026-09-02 사용자) — 자판으로도, 오른쪽 아래의 「T | SKIP」 단추로도 같은 한 칸이다 (skipHere).
- * 소리를 바깥에서 내는 화면(speaking)에서는 열지 않는다: 상자가 못 끊는 목소리를 두고 자막만 넘길 수는 없다.
- *
  * 성능: 타자는 setTimeout 사슬 하나 — 프레임 루프를 돌리지 않는다. 메시지 큐는 ref 로, 렌더는 현재 줄·찍힌 글자 수만.
  */
 
@@ -65,18 +62,6 @@ const PORTRAITS: Record<PortraitKind, string> = {
 export function portraitFor(kind: PortraitKind | undefined, _isSelf: boolean): string {
   return PORTRAITS[kind ?? 'robot'];
 }
-
-/**
- * 글 치는 칸에서 온 키인가 — 여기서 막지 않으면 입력줄에 「T」를 치는 순간 대사가 넘어간다.
- * 방들의 창구가 쓰는 것과 같은 잣대다 (shared/NotePad 의 typing, world/input 의 attachKeyboard).
- */
-function typingTarget(target: EventTarget | null): boolean {
-  const el = target as HTMLElement | null;
-  return el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.isContentEditable === true;
-}
-
-/** 대사를 넘기는 자판 — 화면 오른쪽 아래의 단추에도 같은 글자가 적힌다 (dlg__skip) */
-export const SKIP_KEY = 'KeyT';
 
 /** 글자만 놓고 잰 타자 시간(ms). scale 은 목소리에 맞춘 늘임 (paceFor) */
 function typingTime(text: string, scale = 1): number {
@@ -174,19 +159,6 @@ export interface DialogueBoxProps {
   /** 입력줄이 열려 있다 — 상자를 그 높이만큼 올려 입력줄이 **상자 아래**에 놓이게 (2026-08-30 사용자: 대사 위가 아니라 아래에) */
   lifted?: boolean;
   /**
-   * **대화 스킵** — 이 수가 오를 때마다 상자를 클릭한 것과 똑같이 한 칸 넘긴다
-   * (찍는 중이면 문장을 끝내고, 다 찍혔으면 다음 줄로). 상자는 이미 클릭으로 그걸 하고 있었는데,
-   * 자판으로도 하려면 바깥에서 부를 손잡이가 하나 있어야 한다 (features/world2 가 Space 에 걸었다).
-   * 안 주면 아무 일도 안 일어난다 — 본판의 호출부는 건드리지 않는다.
-   */
-  skip?: number;
-  /**
-   * **T 로 넘길 때** 이야기 쪽도 같이 앞당기라고 부르는 곳. 상자는 제가 들고 있는 줄만 넘길 수 있어서,
-   * 다음 줄이 대본의 타이머에 매달려 있으면 넘겨 봐야 정적만 남는다 — 그 타이머를 당기는 것은 대본의 몫이다
-   * (world2 의 scenario2.skip 이 그렇게 한다). 안 주면 상자만 넘어간다.
-   */
-  onSkip?: () => void;
-  /**
    * **상자가 화면에 서 있는가**를 바깥에 알린다 — 뜰 때 true, 사라질 때 false.
    *
    * 검증실(features/arena)이 이걸 쓴다: 리더가 방송하는 동안 구역 통신 패널을 내리는데
@@ -201,15 +173,13 @@ export interface DialogueBoxProps {
   onShowing?: (showing: boolean) => void;
 }
 
-export function DialogueBox({ messages, selfId, touch, speaking, lifted = false, skip = 0, onSkip, onShowing }: DialogueBoxProps) {
+export function DialogueBox({ messages, selfId, touch, speaking, lifted = false, onShowing }: DialogueBoxProps) {
   const queue = useRef<Line[]>([]);
   /** 마지막으로 줄 세운 메시지의 열쇠. undefined = 아직 기준선을 안 잡았다, '' = 마운트 때 기록이 비어 있었다 */
   const seen = useRef<string | undefined>(undefined);
   const [current, setCurrent] = useState<Line | null>(null);
   const [shown, setShown] = useState(0);
   const [visible, setVisible] = useState(false);
-  /** 자판·단추로 넘긴 횟수 — 바깥에서 온 skip 과 같은 문으로 흘려보낸다 (아래 lastSkip) */
-  const [nudge, setNudge] = useState(0);
   const timer = useRef<number | null>(null);
   /**
    * 지금 상자가 뭘 하는 중인가 — typing(찍는 중) · holding(다 찍고 머무는 중) · lingering(줄이 비어 사라지길 기다리는 중) · idle(없음).
@@ -250,7 +220,7 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
   /**
    * 다음 줄로 — 줄이 비면 잠시 뒤 사라진다.
    *
-   * `now` 는 **내 손으로 넘긴 것**이라는 표시다 (T · 단추 · 상자 클릭). 그때는 여운(LINGER_MS)을 안 둔다:
+   * `now` 는 **내 손으로 넘긴 것**이라는 표시다 (상자 클릭). 그때는 여운(LINGER_MS)을 안 둔다:
    * 저절로 끝난 대사는 잠깐 남아 여운이 되지만, 넘긴 대사는 **치우라는 뜻**이라 그 1.8초가 그대로 답답함이 된다
    * (2026-09-02 사용자: 한 번 더 누르면 말풍선이 끝나고 없어져야 한다).
    */
@@ -384,75 +354,6 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
     else advance(true);
   };
 
-  /**
-   * 여기서 넘길 수 있는가 — **끊을 수 있는 소리만 넘긴다.**
-   *
-   * 상자가 제 클립을 트는 화면(/world·/world2)은 늘 넘길 수 있다 — 넘기면서 voiceLines.stop 으로 제 소리를 끊는다.
-   *
-   * `speaking` 을 주는 화면(심문소·검증실의 리더 방송)은 소리를 **바깥에서** 낸다. 거기서 글자만 넘기면
-   * 자막은 다음 줄로 가는데 목소리는 앞 줄을 계속 읽는다. 그래서 그 화면은 **소리를 끊을 손잡이(onSkip)를
-   * 줄 때만** 넘길 수 있다 — 검증실은 broadcastSkip 을 그리로 건다 (2026-09-02 사용자: 걸어 다닐 때도 T 가 먹어야 한다).
-   */
-  const canSkip = speaking === undefined || onSkip !== undefined;
-  /** 지금 띄운 줄이 있나 — 자판 창구가 렌더마다 다시 붙지 않도록 ref 한 칸에 실어 둔다 */
-  const showing = useRef(false);
-  showing.current = current !== null;
-  /** 상자가 아직 제 손으로 보여 줄 것이 남았나 — 찍는 중이거나, 줄이 서 있거나 */
-  const holdingBack = useRef(false);
-  holdingBack.current = (current !== null && shown < current.text.length) || queue.current.length > 0;
-
-  /**
-   * 한 칸 넘긴다 (T · 오른쪽 아래 단추). 대본이 다음 줄을 타이머로 들고 있으면 그것도 당겨 달라 부른다(onSkip) —
-   * 상자만 넘기면 읽을 것이 사라지고 정적만 남는다.
-   */
-  const skipRef = useRef(onSkip);
-  skipRef.current = onSkip;
-  const skipHere = useCallback(() => {
-    if (!showing.current) return;
-    /*
-     * 대본을 부르는 것은 **상자가 더 보여 줄 게 없을 때뿐**이다. 찍는 중에 누른 한 번은 문장을 끝내는 것이고,
-     * 줄이 서 있으면 그 줄이 먼저다 — 그때까지 대본을 당기면 누를 때마다 이야기가 저 앞으로 달아나고
-     * 대사에 맞춰 둔 연출만 먼저 지나간다. 클릭이 하던 것과 같은 차례다: 끝내고, 그다음에 넘긴다.
-     */
-    if (!holdingBack.current) skipRef.current?.();
-    setNudge((n) => n + 1);
-  }, []);
-
-  /*
-   * T 로 넘긴다 (2026-09-02 사용자). window 에 한 번만 붙는다 — 글자마다 다시 붙이면 타자 중에 창구가 계속 갈린다.
-   * ★ 글 치는 칸에서 온 키는 그냥 글자다 (typingTarget) — 입력줄에 「티」를 치다 대사가 넘어가면 안 된다.
-   * ★ 꾹 눌러 반복되는 키(repeat)는 한 번으로 친다. 조합키가 얹힌 것은 브라우저의 몫이다 (⌘T 는 새 탭이다).
-   */
-  useEffect(() => {
-    if (!canSkip) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.code !== SKIP_KEY || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (typingTarget(e.target)) return;
-      if (!showing.current) return;
-      e.preventDefault();
-      skipHere();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [canSkip, skipHere]);
-
-  /*
-   * 바깥에서 온 스킵 — 클릭과 같은 일을 하되 **소리도 같이 끊는다** (2026-09-02 사용자:
-   * 「대화 스킵은 음성까지 다 스킵이 되어야 해」). 안 끊으면 글자는 넘어갔는데 앞 줄의 목소리가
-   * 계속 흐르고, 다음 줄은 그 소리가 끝나기를 기다린다(paceFor 의 hold) — 빨리 넘기려는데 더 느려진다.
-   *
-   * 자판(T)·단추가 부른 스킵도 같은 문으로 들어온다 (nudge) — 넘기는 방법이 여럿이어도 넘기는 자리는 하나다.
-   */
-  const lastSkip = useRef(0);
-  useEffect(() => {
-    const n = skip + nudge;
-    if (n === lastSkip.current) return;
-    lastSkip.current = n;
-    if (n <= 0) return;
-    voiceLines.stop();
-    onClick();
-  });
-
   /*
    * 서 있는지를 바깥에 알린다 (onShowing 머리말). 재는 값이 `visible` 인 것은 그것이 곧
    * 아래 렌더 조건이기 때문이다 — 줄이 서면 참이 되고, 마지막 줄이 여운(LINGER_MS)까지
@@ -493,24 +394,6 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
         <span className={`dlg__next ${done ? 'dlg__next--on' : ''} ${more ? 'dlg__next--more' : ''}`} aria-hidden="true">
           ▼
         </span>
-        {/*
-          「T | SKIP」 — 오른쪽 아래. **자판이 있다는 것을 화면이 말해 준다**: 넘길 수 있다는 걸 모르면 없는 기능이다.
-          누르는 것도 T 와 똑같은 한 칸이다 (skipHere). 상자 클릭까지 겹쳐 두 칸 넘어가지 않게 여기서 물길을 끊는다.
-        */}
-        {canSkip ? (
-          <button
-            type="button"
-            className="dlg__skip"
-            aria-label="대사 건너뛰기 (T)"
-            onClick={(e) => {
-              e.stopPropagation();
-              skipHere();
-            }}
-          >
-            <b aria-hidden="true">T</b>
-            <span>SKIP</span>
-          </button>
-        ) : null}
         <span className="dlg__deco" aria-hidden="true">
           <i />
           <i />

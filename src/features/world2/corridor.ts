@@ -79,10 +79,10 @@ export interface Host {
   quiet(): boolean;
   /** 지금 흐르는 대사가 끝나는 시각 — FIRST_LOOK 은 앞 줄이 아직 화면에 있으면 그 뒤로 미룬다 */
   busyUntil(): number;
-  /** 타이머 — scenario2 의 later 와 같다. 'line' 은 스킵이 앞당기고 'cue' 는 제 시각에 그대로 */
-  later(ms: number, fn: () => void, kind?: 'line' | 'cue'): void;
+  /** 타이머 — scenario2 의 later 와 같다 */
+  later(ms: number, fn: () => void): void;
   /** 조작권부터 ms 뒤에 — 손을 대기 전이면 줄을 서고, 대는 순간부터 센다 (gates.controlGate). 나에게 일어나는 일의 시계는 전부 이것이다 */
-  afterControl(ms: number, fn: () => void, kind?: 'line' | 'cue'): void;
+  afterControl(ms: number, fn: () => void): void;
   /** 손을 댄 뒤 흐른 ms — 아직이면 −1 */
   sinceControl(): number;
   /** 이 방을 나간다 — 격납문의 E */
@@ -134,7 +134,7 @@ export interface Host {
 /**
  * 저쪽이 먼저 말을 거는 때 — **과학자의 설명(INTRO)이 실제로 끝나고** 이만큼 뒤 (2026-09-03 사용자: 「과학자가 설명하는 중에 로봇이 다가와 묻는 트리거를
  * 설명이 끝나면 오는 걸로 — 스킵 버튼도 고려해서」). 예전 「복도 진입 12초 뒤」는 인트로 다섯 줄(≈ 30 초)보다 먼저라 설명 도중에 걸어왔다.
- * 「끝났다」는 시계가 아니라 **대화창이 비는 순간**이다 (scenario2 가 INTRO 의 마지막 줄 뒤 대화창이 비면 introDone 을 부른다) — T · Space 로 넘기면 그만큼 당겨진다.
+ * 「끝났다」는 시계가 아니라 **대화창이 비는 순간**이다 (scenario2 가 INTRO 의 마지막 줄 뒤 대화창이 비면 introDone 을 부른다) — 상자를 눌러 넘기면 그만큼 당겨진다.
  * 조작권 규칙은 그대로다: 그 시각이 와도 손을 안 댔으면 손을 댈 때 온다 (afterControl(0))
  */
 export const FIRST_LOOK_AFTER_INTRO_MS = 1500;
@@ -197,7 +197,7 @@ function dist(a: Readonly<Vec2>, b: Readonly<Vec2>): number {
  * 앞 줄이 아직 흐르면 address 가 그 뒤로 미룬다: 읽지도 못한 줄 밑에서 열렸다 닫히는 3 초 창은 없다
  */
 function scheduleFirstLook(waitMs: number) {
-  host?.later(Math.max(0, waitMs) + FIRST_LOOK_AFTER_INTRO_MS, () => host?.afterControl(0, startFirstLook), 'cue');
+  host?.later(Math.max(0, waitMs) + FIRST_LOOK_AFTER_INTRO_MS, () => host?.afterControl(0, startFirstLook));
 }
 
 /**
@@ -382,7 +382,7 @@ export const corridor = {
 
   /**
    * 과학자의 설명이 **실제로** 끝났다 — 마지막 줄이 나가고 대화창이 빈 순간 scenario2 가 부른다(더 기다릴 것이 있으면 waitMs).
-   * 스킵(T · Space)으로 줄을 넘기면 대화창이 그만큼 일찍 비므로 저쪽도 그만큼 일찍 걸어온다 — 시계로 재면 스킵을 못 본다
+   * 상자를 눌러 줄을 넘기면 대화창이 그만큼 일찍 비므로 저쪽도 그만큼 일찍 걸어온다 — 시계로 재면 그 손을 못 본다
    */
   introDone(waitMs: number): void {
     if (!host || host.room() !== 'corridor') return;

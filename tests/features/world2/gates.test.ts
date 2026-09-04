@@ -163,9 +163,9 @@ describe('자리 · 방향', () => {
 describe('★ 조작권 시계 — 손을 대기 전에는 아무 시계도 안 돈다 (controlGate)', () => {
   it('손을 대기 전에 건 것은 줄을 서고, 대는 순간부터 센다', () => {
     const g = controlGate();
-    const run: { ms: number; kind: string }[] = [];
+    const run: { ms: number }[] = [];
     const fired: string[] = [];
-    const runner = (ms: number, fn: () => void, kind: 'line' | 'cue') => void run.push({ ms, kind });
+    const runner = (ms: number) => void run.push({ ms });
     expect(g.taken()).toBe(false);
     expect(g.since(5000)).toBe(-1);
     g.after(12_000, () => fired.push('first-look'), 1000, runner);
@@ -177,7 +177,7 @@ describe('★ 조작권 시계 — 손을 대기 전에는 아무 시계도 안 
     expect(g.take(30_000, runner)).toBe(true);
     expect(g.at()).toBe(30_000);
     expect(g.since(35_000)).toBe(5000);
-    expect(run).toEqual([{ ms: 12_000, kind: 'cue' }]);
+    expect(run).toEqual([{ ms: 12_000 }]);
     expect(fired).toEqual(['door-clock']);
     expect(g.pending()).toBe(0);
     // 두 번째 손은 아무것도 안 한다
