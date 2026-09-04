@@ -143,6 +143,9 @@ export const ASSETS = {
    * (features/trial/games/fall/FallingBalls). trial_pod 는 그 전의 낙하물(화물 포드) — 지금은 안 쓴다.
    */
   trial_pod: { url: '/world/trial/trial_pod.glb' },
+  /** 낙하 생존 — 천장 배출 호퍼. 마당 위를 격자로 덮어 공이 "기계에서 나온다"로 읽히게 (FallScene 의 격자).
+   *  Tripo 크레딧 0 이라 tools/trial-hopper-glb.py 로 **코드 생성** — 정점색 단일 프리미티브다 */
+  trial_hopper: { url: '/world/trial/trial_hopper.glb' },
   ball_basketball: { url: '/world/trial/ball_basketball.glb' },
   ball_soccer: { url: '/world/trial/ball_soccer.glb' },
   ball_baseball: { url: '/world/trial/ball_baseball.glb' },

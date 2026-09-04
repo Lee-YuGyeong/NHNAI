@@ -1,0 +1,39 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>soldier portrait</title>
+<!--
+  역할 카드(「배정 통보」)에 쓰는 **군인 넷의 얼굴**을 찍는다 — 카드가 보여주는 얼굴은
+  그 판에서 내가 쓰는 몸(mp/bodies.ts)의 얼굴이어야 하므로, 사진이 아니라 게임의 GLB 를 그대로 찍는다.
+  프레임·조명은 카드에 맞춰 고정이다: 정면 직교 · 앰버 다운라이트 · 3:4.
+    dev 서버(5173) 를 띄우고,
+    for b in sol_fit_m sol_fit_f sol_heavy_m sol_heavy_f; do \
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --use-angle=metal \
+        --hide-scrollbars --virtual-time-budget=8000 --window-size=720,960 --screenshot=/tmp/face-$b.png \
+        "http://localhost:5173/tools/soldier-portrait.html?b=$b"; \
+      sips -s format jpeg -s formatOptions 72 /tmp/face-$b.png --out public/interrogation/body-$b.jpg; done
+  (같은 몸을 눈 기준으로 재는 도구는 soldier-eye-shot.mjs 다 — 그쪽은 눈 좌표표를 위한 것이다.)
+-->
+<style>html,body{margin:0;background:#0a0f18;overflow:hidden}canvas{display:block}</style></head>
+<body><script type="module">
+// 임시 — 군인 넷의 얼굴을 역할 카드용으로 찍는다. 프레임/조명은 카드(role-card.module.css)에 맞춘다.
+import * as THREE from '/node_modules/three/build/three.module.js';
+import { GLTFLoader } from '/node_modules/three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from '/node_modules/three/examples/jsm/libs/meshopt_decoder.module.js';
+const id = new URLSearchParams(location.search).get('b') ?? 'sol_fit_m';
+const W = 720, H = 960;
+const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H; document.body.appendChild(canvas);
+const r = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+r.setClearColor('#0a0f18'); r.outputColorSpace = THREE.SRGBColorSpace;
+const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+const g = await loader.loadAsync(`/world/soldier/${id}.glb`);
+const scene = new THREE.Scene();
+scene.add(g.scene);
+// 빛은 이 게임의 규칙대로 위 앞쪽에서 — 앰버 다운라이트(--tung)와 차가운 되비침
+const key = new THREE.DirectionalLight('#ffd9ac', 3.1); key.position.set(0.35, 1.5, 1.6); scene.add(key);
+const rim = new THREE.DirectionalLight('#7fa8d8', 1.5); rim.position.set(-1.6, 0.6, -0.5); scene.add(rim);
+scene.add(new THREE.HemisphereLight('#8899bb', '#0a0f18', 0.5));
+// 정면 직교 — 머리와 어깨까지 (모델 키 ≈0.979). 3:4 로 잘라 카드의 사진 창과 같은 비율로 둔다
+const halfW = 0.15, top = 1.005, bottom = 0.605;
+const cam = new THREE.OrthographicCamera(-halfW, halfW, top, bottom, 0.01, 10);
+cam.position.set(0, 0, 2); cam.lookAt(0, 0, 0);
+r.render(scene, cam);
+document.title = 'ready';
+</script></body></html>

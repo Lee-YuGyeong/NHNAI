@@ -82,10 +82,38 @@
   letter-spacing: 0.1em;
 }
 
-/* ── 지시문 (테스트 중 화면 위) ── */
+/* ── 미니 게임의 남은 초 (상단줄 바로 아래, 큰 숫자 · 시험 국면에만) ──
+   /trial 의 시계와 같은 얼굴이다 (44px 모노 · 마지막 10초는 붉게). 위 가운데 기둥은 이렇게 쌓인다:
+   상단줄(12) → 이 시계(50) → 지시문(104) → 목표색(142). 하나가 움직이면 아래가 같이 움직여야 한다 */
+.ig-clock {
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--linen);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ig-clock span {
+  font-size: 14px;
+  margin-left: 6px;
+  color: var(--dust);
+}
+.ig-clock.urgent {
+  color: var(--signal);
+}
+
+/* ── 지시문 (테스트 중 화면 위) — 시계 아래 ── */
 .ig-order {
   position: absolute;
-  top: 58px;
+  top: 104px;
   left: 50%;
   transform: translateX(-50%);
   padding: 6px 14px;
@@ -792,10 +820,10 @@
   mix-blend-mode: multiply;
   transition: background 0.5s ease;
 }
-/* 목표색 알림 — 지시문(.ig-order) 바로 아래 */
+/* 목표색 알림 — 지시문(.ig-order) 바로 아래 (기둥의 순서는 .ig-clock 머리말) */
 .ig-hunttarget {
   position: absolute;
-  top: 96px;
+  top: 142px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;

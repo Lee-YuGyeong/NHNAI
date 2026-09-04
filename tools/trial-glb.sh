@@ -20,6 +20,7 @@ TABLE='
 trial_gate|6|512|1
 trial_beacon|2|512|1
 trial_pod|3|512|1
+trial_hopper|2|512|1
 ball_basketball|2|512|1
 ball_soccer|2|512|1
 ball_baseball|2|512|1
