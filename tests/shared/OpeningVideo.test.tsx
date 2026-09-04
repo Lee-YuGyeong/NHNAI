@@ -17,6 +17,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OpeningVideo } from '@/shared/OpeningVideo';
+import { OPENING_START_SEC } from '@/shared/opening';
 
 /** jsdom 에는 재생이 없다 — 없다고 시끄럽게 굴지 않게 조용한 것으로 갈아 끼운다 */
 beforeEach(() => {
@@ -101,14 +102,16 @@ describe('화살표로 10초씩', () => {
   });
 });
 
-describe('시작점과 소리 (2026-09-05 사용자: 15초부터 · 음성도 나오게)', () => {
-  it('길이를 받아 오면 15초로 놓는다', () => {
+describe('시작점과 소리 (2026-09-05 사용자: who_is_AI 를 0초부터 · 음성도 나오게)', () => {
+  /* 예전 오프닝은 15초부터였다. who_is_AI 로 바꾸며 0 — 앞을 건너뛰지 않는다 (OPENING_START_SEC) */
+  it('길이를 받아 와도 0초 그대로다 — 앞을 건너뛰지 않는다', () => {
     const { video, now } = renderVideo({ at: 0 });
     fireEvent.loadedMetadata(video);
-    expect(now()).toBe(15);
+    expect(now()).toBe(OPENING_START_SEC);
+    expect(now()).toBe(0);
   });
 
-  it('이미 15초 뒤면(다시 받아 옴) 되감지 않는다', () => {
+  it('이미 돌던 자리면(다시 받아 옴) 되감지 않는다', () => {
     const { video, now } = renderVideo({ at: 100 });
     fireEvent.loadedMetadata(video);
     expect(now()).toBe(100);

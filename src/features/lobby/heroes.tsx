@@ -5,9 +5,14 @@
  * 정했다. 나머지 다섯(지금·극장·송출·단말·정렬·문)은 이 파일에 없다 — 그 커밋에 있다:
  * `git show 58ddd2b:src/features/lobby/heroes.tsx`.
  *
- * 이 벌만 **그려진 그림**(/intro/corridor.jpg)을 쓴다 — 남의 사진을 빌리지 않는다.
- * 똑같이 생긴 칸이 소실점까지 늘어서고 그 중 하나만 따뜻하다: 이 게임이 무슨 게임인지
- * 한 장으로 말하는 그림이다.
+ * 이 벌은 원래 **그려진 복도 그림**(/intro/corridor.jpg) 위에 글을 앉혔다 — 똑같이 생긴 칸이
+ * 소실점까지 늘어서고 그 중 하나만 따뜻한, 이 게임이 무슨 게임인지 한 장으로 말하는 그림.
+ * 2026-09-05 에 배경 영상(who_is_AI)이 들어오면서 그림은 **영상이 오기 전의 자리**가 됐고,
+ * 그러자 두 장면이 안 이어졌다 (사용자: "영상 나오기 전에 외부 이상한 이미지가 나오는데").
+ * 그래서 그림을 **영상의 첫 장면**(INTRO_VIDEO_START_SEC 초의 프레임, /intro/who_is_ai-22s.jpg)
+ * 으로 바꿨다 — 영상이 오기 전엔 그 장면이 서 있고, 오면 같은 자리에서 움직이기 시작한다.
+ * 영상이 안 도는 판(주소 없음 · 실패 · 모션 줄임)에서도 같은 장면이 표지다.
+ * corridor.jpg 는 public 에 그대로 있다 — 영상을 걷어내면 다시 그 그림이다.
  *
  * ★ 사진에 lobby.css 의 .bl-hero__art 를 안 쓴다. 저쪽은 luminosity + brightness(0.82) 로
  *   사진을 파랗게 담그는데, 그러면 이 그림에서 유일하게 중요한 **주황이 통째로 죽는다.**
@@ -16,8 +21,9 @@
  *   그대로 두면 흰 글자와 빛이 서로 싸운다.
  * ★ 개체 수는 한 줄도 안 적는다 — 그림 속 칸도 셀 수 없게 멀어진다 (Intro.tsx 머리말의 규칙).
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LEADER_NAME } from '@/lab/personas';
+import { WHO_IS_AI_SRC } from '@/shared/opening';
 import { ArrowIcon } from './console';
 import { Typed } from './live';
 import './heroes.css';
@@ -134,25 +140,46 @@ function Guest({ guest, className = '' }: { guest: () => void; className?: strin
  * ★ INTRO_VIDEO_START_SEC 초부터 튼다 (2026-09-05 사용자: "22초부터 시작"). 끝나면 다시 거기로 —
  *   loop 속성은 0초로 되감기 때문에 안 쓰고 ended 에서 직접 되감는다.
  *
- * ┌─ 파일은 **faststart** 여야 한다 (2026-09-05 확인) ────────────────────────┐
- * │ 처음 올린 who_is_AI.mp4 는 색인(moov)이 260MB 짜리 mdat **뒤**에 있었다.    │
- * │ 그러면 브라우저는 파일을 끝까지 다 받아야 첫 장면을 그릴 수 있어 「시작이   │
- * │ 안 된다」. ffmpeg -c copy -movflags +faststart 로 색인을 앞으로 옮긴 것을    │
- * │ 같은 버킷에 who_is_AI.faststart.mp4 로 올렸다 (원본은 그대로 있다).        │
- * │ 새 영상을 올릴 때도 같은 처리를 한다 — docs/DEVELOPMENT.md 「오프닝 영상」. │
- * └──────────────────────────────────────────────────────────────────────────┘
+ * ┌─ 시작점은 **두 길**로 놓는다 — loadedmetadata 와 마운트 직후 (2026-09-05 사용자: "22초 … 다시 돌아왔는데") ┐
+ * │ 처음 오는 브라우저는 파일을 받아 오는 데 몇백 ms 가 걸려 loadedmetadata 가 React 가 <video> 를     │
+ * │ 문서에 붙인 **뒤**에 오고, 그때는 onLoadedMetadata 가 22초로 놓는다. 그런데 같은 파일을 한 번 받아  │
+ * │ 둔 브라우저(로비 오프닝이 같은 파일이라 이제 흔하다)는 metadata 가 **수십 ms** 만에 오는데, React 는  │
+ * │ 요소를 만들어 src 를 걸고(렌더) 문서에 붙이기(커밋)까지 사이에 브라우저에 자리를 내준다. 그 틈에   │
+ * │ 온 이벤트는 React 가 「아직 안 붙은 요소」의 것으로 보고 **버린다** — 핸들러가 한 번도 안 불리고     │
+ * │ 영상은 0초부터 돈다. 헤드리스 크롬에서 두 번째 로드마다 재현됐다.                                   │
+ * │ 그래서 커밋 직후(useEffect)에 **이미 길이를 알고 있으면 그 자리에서 놓는다.** 그 뒤에 오는 metadata │
+ * │ 는 붙은 요소의 것이라 정상으로 핸들러에 온다. 두 길 중 어느 쪽이든 먼저 닿는 쪽이 놓고, 늦은 쪽은   │
+ * │ currentTime < startSec 검사에서 손대지 않는다.                                                       │
+ * └──────────────────────────────────────────────────────────────────────────────────────────────────┘
+ * ★ poster 는 **그 초의 프레임**(INTRO_VIDEO_POSTER)이다. 파일이 260MB 라 첫 장면까지 몇 초가 비는데,
+ *   그동안 <video> 는 투명이라 밑의 그림이 보인다. 밑의 그림도 같은 프레임이라(HeroKey) 영상이
+ *   시작되는 순간 화면이 바뀌지 않는다. 시작점을 옮기면 **프레임도 다시 딴다**:
+ *     ffmpeg -ss 22 -i <who_is_AI.faststart.mp4 주소> -frames:v 1 -vf scale=1920:-2 -q:v 3 public/intro/who_is_ai-22s.jpg
+ *
+ * ★ 주소는 shared/opening.ts 의 WHO_IS_AI_SRC 다 — 로비 오프닝(처음 접속한 사람에게 한 번)과
+ *   **같은 파일**을 본다 (2026-09-05 사용자). faststart 여야 하는 사정도 거기 적혀 있다.
  */
-export const INTRO_VIDEO_SRC = 'https://pub-016e853b3b9840f9a2cca5d4125552b7.r2.dev/who_is_AI.faststart.mp4';
+export const INTRO_VIDEO_SRC = WHO_IS_AI_SRC;
 /** 이 초부터 튼다 — 앞 22초는 건너뛴다 (2026-09-05 사용자: 20 → 22) */
 export const INTRO_VIDEO_START_SEC = 22;
+/** INTRO_VIDEO_START_SEC 초의 프레임 — 영상이 오기 전에 서 있는 장면. 시작점을 옮기면 같이 다시 딴다 (위 ffmpeg 한 줄) */
+export const INTRO_VIDEO_POSTER = '/intro/who_is_ai-22s.jpg';
 
-export function HeroVideo({ src = INTRO_VIDEO_SRC, startSec = INTRO_VIDEO_START_SEC }: { src?: string; startSec?: number }) {
+export function HeroVideo({
+  src = INTRO_VIDEO_SRC,
+  startSec = INTRO_VIDEO_START_SEC,
+  poster = INTRO_VIDEO_POSTER,
+}: {
+  src?: string;
+  startSec?: number;
+  poster?: string;
+}) {
   /** 로드가 죽었다 — 이 판에서는 다시 시도하지 않고 그림으로 내려앉는다 */
   const [dead, setDead] = useState(false);
-  /** 시작점으로 놓고 튼다 — 길이를 받아 온 순간과 끝난 순간 (되감기) */
-  const restart = useCallback(
-    (e: { currentTarget: HTMLVideoElement }) => {
-      const v = e.currentTarget;
+  const ref = useRef<HTMLVideoElement | null>(null);
+  /** 시작점으로 놓고 튼다 — 길이를 받아 온 순간 · 끝난 순간(되감기) · 마운트 직후(아래) */
+  const place = useCallback(
+    (v: HTMLVideoElement) => {
       if (v.currentTime < startSec || v.ended) v.currentTime = startSec;
       try {
         void v.play()?.catch(() => {});
@@ -162,6 +189,16 @@ export function HeroVideo({ src = INTRO_VIDEO_SRC, startSec = INTRO_VIDEO_START_
     },
     [startSec],
   );
+  const restart = useCallback((e: { currentTarget: HTMLVideoElement }) => place(e.currentTarget), [place]);
+  /*
+   * 커밋 직후 — metadata 가 커밋보다 먼저 왔으면(캐시가 따뜻한 두 번째 로드) 그 이벤트는 React 가 버렸다.
+   * readyState ≥ 1(HAVE_METADATA)이면 길이를 이미 아는 것이니 여기서 놓는다. 아직 0 이면 뒤에 올
+   * loadedmetadata 가 붙은 요소의 것이라 restart 로 정상히 온다 (파일 머리말의 「두 길」).
+   */
+  useEffect(() => {
+    const v = ref.current;
+    if (v && v.readyState >= 1) place(v);
+  }, [place]);
   // jsdom 에는 matchMedia 가 없다 — 없으면 움직이는 쪽으로 둔다 (Typed 와 같은 규칙)
   const still =
     typeof window !== 'undefined' &&
@@ -170,8 +207,10 @@ export function HeroVideo({ src = INTRO_VIDEO_SRC, startSec = INTRO_VIDEO_START_
   if (!src || dead || still) return null;
   return (
     <video
+      ref={ref}
       className="hero-key__video"
       src={src}
+      poster={poster}
       autoPlay
       muted
       playsInline
@@ -195,15 +234,16 @@ function Cue({ next, className = '' }: { next: () => void; className?: string })
 }
 
 /* ══════════════════════ 복도 ══════════════════════════════════════════════
-   그려진 복도 한 장 위에 글을 앉힌다. 배경이 밝고 복잡해서, 여기서 할 일의 절반은
-   「무엇을 더할까」가 아니라 「글이 앉을 어둠을 어디에 깔까」다.
+   영상의 첫 장면 한 장 위에 글을 앉히고, 영상이 오면 그 자리에서 움직인다. 배경이 밝고
+   복잡해서, 여기서 할 일의 절반은 「무엇을 더할까」가 아니라 「글이 앉을 어둠을 어디에 깔까」다.
    ════════════════════════════════════════════════════════════════════════ */
 
 export function HeroKey({ titled, onTitled, enter, guest, rules, next }: HeroProps) {
   return (
     <>
       <span className="hero-key__art" aria-hidden>
-        <img src="/intro/corridor.jpg" alt="" />
+        {/* 영상과 같은 장면 — 영상이 오기 전·안 도는 판의 표지. 이게 다른 그림이면 영상이 켜지는 순간 화면이 튄다 */}
+        <img src={INTRO_VIDEO_POSTER} alt="" />
         <HeroVideo />
       </span>
       <span className="hero-key__far" aria-hidden />
