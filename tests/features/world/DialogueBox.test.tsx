@@ -48,9 +48,11 @@ const TAIL = 450;
 
 const SHORT = '정렬한다.';
 
-/** T 한 번 — 창구는 window 에 붙어 있다 (DialogueBox 의 SKIP_KEY) */
-function pressT(target: Window | HTMLElement = window) {
-  act(() => { fireEvent.keyDown(target, { code: 'KeyT', key: 't' }); });
+/** 상자를 한 번 누른다 — 넘기는 손은 이것 하나다 (DialogueBox 의 onClick) */
+function clickBox() {
+  const el = document.querySelector('.dlg__box');
+  if (!el) throw new Error('상자가 화면에 없다');
+  act(() => { fireEvent.click(el); });
 }
 
 function box(speaking?: boolean) {
@@ -170,11 +172,13 @@ describe('/interrogation — 소리가 끝날 때까지 붙잡는다', () => {
 });
 
 /*
- * 대화 스킵 — **T** (2026-09-02 사용자). 상자를 클릭하는 것과 같은 일을 하되 소리도 같이 끊는다.
- * 여기서 보려는 것은 「누른 것이 먹히는가」와 **「먹히면 안 되는 자리에서 안 먹히는가」** 둘 다다 —
- * 자판 창구는 window 에 붙어 있어서, 막는 곳을 하나 빠뜨리면 글을 치다 대사가 넘어간다.
+ * 넘기는 손은 **상자를 누르는 것 하나다.** 찍는 중이면 그 문장을 끝까지 보여주고,
+ * 다 찍혔으면 다음 줄로 간다 — 비주얼 노벨이 늘 하던 그것이다.
+ *
+ * 여기서 같이 세워 두는 것은 **넘긴 것과 저절로 끝난 것의 차이**다: 손으로 넘긴 줄에는
+ * 여운(1.8초)을 안 두고 곧바로 치운다. 그 둘이 섞이면 넘겨도 안 넘어간 것처럼 보인다.
  */
-describe('T 로 넘긴다', () => {
+describe('상자를 눌러 넘긴다', () => {
   const LONG = '이 문장은 아직 다 찍히지 않았다.';
 
   it('찍는 중이면 문장을 끝까지 보여준다 — 한 번 더 누를 것이 남아 있어야 한다', () => {
@@ -183,7 +187,7 @@ describe('T 로 넘긴다', () => {
     wait(PER_CHAR); // 몇 글자만 찍혔다
     expect(onScreen(LONG)).toBe(false);
 
-    pressT();
+    clickBox();
     expect(onScreen(LONG)).toBe(true);
   });
 
@@ -192,78 +196,20 @@ describe('T 로 넘긴다', () => {
     show([line(SHORT), line('다음 줄이다.', 1)]);
     typeOut(SHORT);
 
-    pressT();
+    clickBox();
     typeOut('다음 줄이다.'); // 넘어간 자리에서 둘째 줄이 찍히기 시작한다
     expect(onScreen(SHORT)).toBe(false);
     expect(onScreen('다음 줄이다.')).toBe(true);
   });
 
-  it('넘길 때 소리도 끊는다 — 글자만 넘어가면 앞 줄의 목소리가 다음 줄을 붙잡는다', () => {
-    const { show, wait } = box();
-    show([line(LONG)]);
-    wait(PER_CHAR);
-    pressT();
-    expect(voiceLines.stop).toHaveBeenCalled();
-  });
-
-  it('다 찍힌 줄을 넘길 때 대본 쪽도 같이 당겨 달라 부른다 (onSkip) — 상자만 넘기면 정적만 남는다', () => {
-    const onSkip = vi.fn();
-    const view = render(<DialogueBox messages={[]} selfId={null} touch={false} onSkip={onSkip} />);
-    const show = (msgs: ChatLine[]) =>
-      act(() => { view.rerender(<DialogueBox messages={msgs} selfId={null} touch={false} onSkip={onSkip} />); });
-    show([line(SHORT)]);
-    for (let i = 0; i < SHORT.length; i += 1) act(() => { vi.advanceTimersByTime(PER_CHAR); });
-
-    pressT();
-    expect(onSkip).toHaveBeenCalledTimes(1);
-  });
-
-  it('찍는 중에 누른 한 번은 문장을 끝낼 뿐 — 대본은 아직 안 부른다', () => {
-    /*
-     * 여기서 대본을 당기면 누를 때마다 이야기가 저 앞으로 달아난다: 상자는 아직 이 문장을 찍고 있는데
-     * 대사에 맞춰 둔 연출(조명·정지)만 먼저 지나간다. 클릭이 하던 차례 그대로 — 끝내고, 그다음에 넘긴다.
-     */
-    const onSkip = vi.fn();
-    const view = render(<DialogueBox messages={[]} selfId={null} touch={false} onSkip={onSkip} />);
-    act(() => { view.rerender(<DialogueBox messages={[line(LONG)]} selfId={null} touch={false} onSkip={onSkip} />); });
-    act(() => { vi.advanceTimersByTime(PER_CHAR); });
-
-    pressT();
-    expect(onSkip).not.toHaveBeenCalled();
-    expect(screen.queryByText(LONG)).not.toBeNull(); // 문장은 끝까지 보여 준다
-
-    pressT(); // 두 번째가 넘기는 손이다
-    expect(onSkip).toHaveBeenCalledTimes(1);
-  });
-
-  it('띄운 줄이 없으면 아무 일도 안 한다 — 빈 화면에서 누른 T 는 그냥 T 다', () => {
-    const onSkip = vi.fn();
-    render(<DialogueBox messages={[]} selfId={null} touch={false} onSkip={onSkip} />);
-    pressT();
-    expect(onSkip).not.toHaveBeenCalled();
-  });
-
-  it('입력줄에 친 「t」는 넘기지 않는다 — 창구가 window 라 여기서 안 막으면 글을 치다 대사가 날아간다', () => {
-    const { show, wait, onScreen } = box();
-    show([line(LONG)]);
-    wait(PER_CHAR);
-
-    const input = document.createElement('input');
-    document.body.appendChild(input);
-    pressT(input);
-    expect(onScreen(LONG)).toBe(false);
-    input.remove();
-  });
-
   it('넘길 줄이 없으면 곧바로 사라진다 — 여운(1.8초)은 저절로 끝난 대사의 몫이다', () => {
-    // 2026-09-02 사용자: 다 나온 자막에서 한 번 더 누르면 말풍선이 끝나고 없어져야 한다.
     // 저절로 끝난 대사는 잠깐 남아 여운이 되지만, 넘긴 대사에 그 1.8초는 그대로 답답함이다
     const { show, typeOut, onScreen } = box();
     show([line(SHORT)]);
     typeOut(SHORT);
     expect(onScreen(SHORT)).toBe(true);
 
-    pressT();
+    clickBox();
     expect(onScreen(SHORT)).toBe(false); // 시간을 안 밀었는데도 사라졌다
   });
 
@@ -278,61 +224,10 @@ describe('T 로 넘긴다', () => {
     expect(onScreen(SHORT)).toBe(false);
   });
 
-  it('상자를 눌러 넘길 때도 곧바로 사라진다 — 손으로 넘긴 것은 다 같다', () => {
-    const { show, typeOut, onScreen } = box();
+  it('넘기는 단추를 따로 달지 않는다 — 대사는 상자를 눌러야만 넘어간다', () => {
+    const { show, typeOut } = box();
     show([line(SHORT)]);
     typeOut(SHORT);
-
-    act(() => { screen.getByLabelText('대사 건너뛰기 (T)').click(); });
-    expect(onScreen(SHORT)).toBe(false);
-  });
-
-  it('오른쪽 아래 단추도 같은 한 칸이다 — 폰에는 T 가 없다', () => {
-    const { show, wait, onScreen } = box();
-    show([line(LONG)]);
-    wait(PER_CHAR);
-
-    act(() => { screen.getByLabelText('대사 건너뛰기 (T)').click(); });
-    expect(onScreen(LONG)).toBe(true);
-  });
-
-  it('단추를 눌러도 한 칸만 넘어간다 — 상자 클릭까지 겹치면 두 칸이다', () => {
-    const { show, typeOut, onScreen } = box();
-    show([line(SHORT), line('둘째 줄.', 1), line('셋째 줄.', 2)]);
-    typeOut(SHORT);
-
-    act(() => { screen.getByLabelText('대사 건너뛰기 (T)').click(); });
-    typeOut('둘째 줄.');
-    expect(onScreen('둘째 줄.')).toBe(true);
-  });
-
-  it('소리를 바깥에서 내는 화면이라도 끊을 손잡이(onSkip)를 주면 넘어간다 — 검증실이 그렇다', () => {
-    // 리더의 방송은 상자가 못 끊는다. 대신 화면이 broadcastSkip 을 onSkip 으로 준다 (ArenaFeature).
-    const onSkip = vi.fn();
-    const view = render(<DialogueBox messages={[]} selfId={null} touch={false} speaking onSkip={onSkip} />);
-    const show = (msgs: ChatLine[]) =>
-      act(() => { view.rerender(<DialogueBox messages={msgs} selfId={null} touch={false} speaking onSkip={onSkip} />); });
-    show([line(SHORT)]);
-    for (let i = 0; i < SHORT.length; i += 1) act(() => { vi.advanceTimersByTime(PER_CHAR); });
-
-    expect(screen.queryByLabelText('대사 건너뛰기 (T)')).not.toBeNull();
-    pressT();
-    expect(onSkip).toHaveBeenCalledTimes(1);
-  });
-
-  it('소리를 바깥에서 내는데 손잡이도 없으면 단추를 안 단다 — 눌러도 못 끊는 목소리다', () => {
-    const { show, typeOut } = box(true);
-    show([line(SHORT)]);
-    typeOut(SHORT);
-    expect(screen.queryByLabelText('대사 건너뛰기 (T)')).toBeNull();
-  });
-
-  it('소리를 바깥에서 내는 화면(speaking)은 T 를 안 받는다 — 상자가 못 끊는 목소리다', () => {
-    // 자막만 넘어가면 리더는 앞 줄을 계속 읽는다. 그 화면들은 클릭으로 넘기는 것도 이미 막아 두었다
-    const { show, wait, onScreen } = box(true);
-    show([line(LONG)]);
-    wait(PER_CHAR);
-    pressT();
-    expect(onScreen(LONG)).toBe(false);
+    expect(document.querySelector('.dlg__skip')).toBeNull();
   });
 });
