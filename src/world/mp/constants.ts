@@ -213,3 +213,34 @@ export const HUNT_RESPAWN_JITTER = 1.5;
 export const HUNT_BOARD = { x: 0, z: 7.4 } as const;
 /** 조명 전환 램프(ms) — 클라 연출용. 판정과 무관하다 */
 export const HUNT_LIGHT_RAMP_MS = 500;
+
+/* ───────────────────────────── 물리 미니게임 — 회전 원판 생존 ───────────────────────────── */
+
+/**
+ * 회전 원판 생존의 **공개** 상수 — 숨는 것은 원판 표면의 마찰계수(worker/src/trial/condition.ts 의 DISC_GRIP)뿐이다.
+ * 원판은 심문소 홀 가운데 마당(FALL_ARENA 와 같은 빈 바닥)에 놓인 지름 11m 의 강판이다. 서버가 회전(각도 · 각속도)과
+ * 모든 참가자의 자리를 적분해 스냅샷(trial_disc)으로 내려 보내고, 클라는 자기 걷기 입력(trial_walk)만 올린다 —
+ * 미끄러짐은 마찰계수가 정하므로 클라가 스스로 계산할 수 없다(P8). 상세 설계는 worker/src/trial/disc/sim.ts 머리말.
+ */
+export const DISC_CENTER = { x: 0, z: -1.5 } as const;
+/** 원판 반지름(m). 이 밖으로 나가면 떨어진다 */
+export const DISC_R = 5.5;
+/** 원판 윗면 높이(m) — 홀 바닥에서 이만큼 떠 있다. 떨어지면 이 높이만큼 추락한다 */
+export const DISC_TOP = 0.75;
+/** 가운데 회전축 기둥의 반지름(m) — 이 안으로는 못 들어간다. 그래서 「가장 안정한 자리」는 점이 아니라 기둥 둘레의 고리다 */
+export const DISC_HUB_R = 0.9;
+/** 사람 몸 반지름(m) — 기둥·가장자리 판정에 더한다 */
+export const DISC_BODY_R = 0.35;
+/** 원판 위 걷기 · 달리기(Shift) 속도(m/s) — 원판 표면 기준. 서버가 이 상한으로 자른다 */
+export const DISC_WALK_SPEED = WALK_SPEED;
+export const DISC_RUN_SPEED = 4.8;
+/** 각속도 상한(rad/s). 가장자리(5.5m)에서 접선 속도 ≈ 8.8 m/s, 원심가속도 ≈ 14 m/s² */
+export const DISC_OMEGA_MAX = 1.6;
+/** 떨어진 뒤 다시 올라오기까지(ms) · 다시 서는 반지름(m) */
+export const DISC_RESPAWN_MS = 2000;
+export const DISC_RESPAWN_R = 2.4;
+/** 서버 물리 틱과 스냅샷 주기(ms) — 낙하 생존과 같다 */
+export const DISC_TICK_MS = 50;
+export const DISC_SNAPSHOT_MS = 100;
+/** 걷기 입력이 이만큼(ms) 안 오면 손을 뗀 것으로 본다 (클라는 바뀔 때만 보낸다 — 끊긴 사람이 영영 걷지 않게) */
+export const DISC_WALK_STALE_MS = 1500;

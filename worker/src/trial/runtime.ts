@@ -16,7 +16,9 @@ import type { PlayerSnapshot, S2CMessage, TrialGame, TrialResultWire } from '../
 import type { TrialC2SMessage } from '../../../src/world/mp/validate';
 import type { GameEngine } from './engine';
 import { ColorhuntEngine } from './colorhunt/engine';
+import { DiscEngine } from './disc/engine';
 import { FallEngine } from './fall/engine';
+import { PlatformEngine } from './platform/engine';
 import { appendHistory, readHistory } from './history';
 import { groupStats } from './scoring';
 import { StoplineEngine } from './stopline-engine';
@@ -61,14 +63,18 @@ export class TrialRuntime {
       case 'trial_pick':
         if (this.active() && this.isConnected(snap.id)) this.engine?.onPick(snap.id, msg.objectId);
         return;
+      case 'trial_walk':
+        // 회전 원판 — 걷기 명령. 크기는 엔진이 자른다 (worker/src/trial/disc/engine.ts onWalk)
+        if (this.active() && this.isConnected(snap.id)) this.engine?.onWalk?.(snap.id, msg.x, msg.z, Date.now());
+        return;
       default:
         return;
     }
   }
 
   /** room-do.ts 의 move 처리 뒤에 불린다 — 시간제 게임(낙하 생존)이 사람의 자리를 아는 유일한 길 */
-  onMove(id: string, x: number, z: number, now: number): void {
-    if (this.active() && this.isConnected(id)) this.engine?.onMove(id, x, z, now);
+  onMove(id: string, x: number, z: number, now: number, y = 0): void {
+    if (this.active() && this.isConnected(id)) this.engine?.onMove(id, x, z, now, y);
   }
 
   /** room-do.ts 의 기존 30초 청소 알람에서 매번 불린다 — 멈춰 선 라운드를 강제로 닫는 안전망. */
@@ -98,12 +104,13 @@ export class TrialRuntime {
     if (this.active() && this.engine) {
       // 도중에 들어왔다 — 지금 라운드를 알려 준다. 시행은 이 순간부터 받는다
       this.engine.join(id);
-      this.sendFn(ws, { t: 'trial_round_start', game: this.engine.game, round: this.round, startAt: this.startedAt, durationMs: this.engine.durationMs });
+      this.sendFn(ws, { t: 'trial_round_start', game: this.engine.game, round: this.round, startAt: this.startedAt, durationMs: this.engine.durationMs, ...paceOf(this.engine, this.round) });
       return;
     }
     // 판이 없거나(처음) 다 끝났다 — 이 사람이 고른 게임으로 새 판을 연다. 지난 판의 기록은 storage 에 그대로 쌓여 로그 탭에 남는다
     this.engine?.stop();
-    this.engine = game === 'fall' ? new FallEngine() : game === 'colorhunt' ? new ColorhuntEngine() : new StoplineEngine();
+    this.engine =
+      game === 'fall' ? new FallEngine() : game === 'colorhunt' ? new ColorhuntEngine() : game === 'platform' ? new PlatformEngine() : game === 'disc' ? new DiscEngine() : new StoplineEngine();
     this.round = 0;
     this.finished = false;
     this.aiIds = [];
@@ -125,7 +132,7 @@ export class TrialRuntime {
     }
 
     const realIds = this.rosterFn().map((p) => p.id);
-    this.broadcastFn({ t: 'trial_round_start', game: engine.game, round: this.round, startAt: this.startedAt, durationMs: engine.durationMs });
+    this.broadcastFn({ t: 'trial_round_start', game: engine.game, round: this.round, startAt: this.startedAt, durationMs: engine.durationMs, ...paceOf(engine, this.round) });
     engine.start(this.round, realIds, this.aiIds, {
       broadcast: this.broadcastFn,
       finish: () => void this.finalizeRound(),
@@ -167,4 +174,10 @@ export class TrialRuntime {
 /** TrialResult(내부) → TrialResultWire(와이어). condition 을 뗀다 — room-do.ts 의 publicOf 와 같은 모양의 규칙. */
 function stripCondition({ condition: _drop, ...wire }: TrialResult): TrialResultWire {
   return wire;
+}
+
+/** 라운드 시작에 공개로 싣는 발판 배속 — 움직이는 플랫폼만 (엔진의 paceFor). 없는 엔진은 빈 객체 */
+export function paceOf(engine: GameEngine, intensity: number): { pace?: number } {
+  const pace = engine.paceFor?.(intensity);
+  return pace === undefined ? {} : { pace };
 }

@@ -24,7 +24,7 @@ export const WORLD = `2026년. 정부가 AI 식별 표식 부착을 의무화했
 움직이는 것은 사람들의 말과 실시간 지목뿐이고, 100%에 닿는 사람은 그 자리에서 격리된다.
 이 방에는 표식 없는 AI 가 **정확히 하나** 있다.`;
 
-export const TEST_NAME: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥' };
+export const TEST_NAME: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판' };
 
 /** 테스트마다 기록의 열 이름 — 해설·판정 프롬프트와 화면이 같은 말을 쓴다 */
 export const METRIC_LABEL: Record<string, string> = {
@@ -39,6 +39,12 @@ export const METRIC_LABEL: Record<string, string> = {
   wrongPicks: '오답 수',
   hesitationMs: '조명이 바뀐 뒤 첫 선택까지(ms)',
   picks: '선택 수',
+  jumps: '점프 수',
+  landingRate: '착지 성공률',
+  centerRate: '발판 중앙 착지율',
+  misses: '점프 실패 수',
+  meanOffset: '중심에서 벗어난 거리(m)',
+  recoveryMs: '착지 후 균형 회복(ms)',
 };
 
 /* ───────────────────────────── 공개 사실을 글로 ───────────────────────────── */
@@ -274,7 +280,7 @@ const DESIGN_TOOL: ToolSpec = {
   input_schema: {
     type: 'object',
     properties: {
-      game: { type: 'string', enum: ['stopline', 'fall', 'colorhunt'], description: '테스트 종류' },
+      game: { type: 'string', enum: ['stopline', 'fall', 'colorhunt', 'platform', 'disc'], description: '테스트 종류' },
       intensity: { type: 'integer', minimum: 1, maximum: 3, description: '조건 강도. 1 = 기준 조건. 그 종류의 첫 실행이면 반드시 1' },
       reason: { type: 'string', description: '한 줄' },
     },
@@ -297,7 +303,7 @@ export async function designNext(
 ): Promise<DesignOut> {
   const played = (g: TrialGame) => args.history.filter((h) => h.game === g).length;
   const ruleBased = (): DesignOut => {
-    const order: TrialGame[] = ['stopline', 'fall', 'colorhunt'];
+    const order: TrialGame[] = ['stopline', 'fall', 'colorhunt', 'platform', 'disc'];
     const pick = order.filter((g) => args.available.includes(g)).sort((a, b) => played(a) - played(b))[0] ?? 'stopline';
     const n = played(pick);
     return { game: pick, intensity: n === 0 ? 1 : ((1 + Math.floor(Math.random() * 2) + 1) as 2 | 3) };
@@ -341,6 +347,20 @@ const COMMENT_TOOL: ToolSpec = {
 /** 결과 공개 직후 방송 — 편차를 짚어 토론에 불을 붙인다. 정체표 없음(P5). 못 받으면 표에서 가장 먼 사람을 규칙으로 짚는다 */
 export async function leaderComment(brain: Brain, r: TrialResultWire, nameOf: (id: string) => string): Promise<string> {
   const fallback = () => {
+    /*
+     * 움직이는 플랫폼 — 열 번 뛰어 열 번 정중앙이면 그것이 곧 표식이다 (2026-09-05 사용자 스펙). 판정은 않는다 —
+     * 눈금은 여전히 사람들의 지목으로만 움직인다 (P1). 여기서는 그 기록을 방송으로 짚어 토론에 올릴 뿐이다.
+     */
+    if (r.game === 'platform') {
+      const perfect = r.players.filter((p) => (p.metrics.jumps ?? 0) >= 8 && p.metrics.centerRate >= 0.999);
+      if (perfect.length) {
+        const p = perfect[0];
+        return `움직이는 플랫폼 ${r.round}회차. ${nameOf(p.id)} — ${p.metrics.jumps}번 뛰어 ${p.metrics.jumps}번 모두 발판 정중앙. 사람의 발은 그렇게 안 내린다. 해석은 너희 몫이다.`;
+      }
+      const rate = r.groupMean.centerRate;
+      const far = [...r.players].filter((p) => Number.isFinite(p.metrics.centerRate)).sort((a, b) => b.metrics.centerRate - a.metrics.centerRate)[0];
+      if (far && Number.isFinite(rate)) return `움직이는 플랫폼 ${r.round}회차. 중앙 착지율 무리 평균 ${fmt(rate)}. ${nameOf(far.id)}의 착지가 가장 고르다. 해석은 너희 몫이다.`;
+    }
     const key = 'transitionError';
     const mean = r.groupMean[key] ?? 0;
     const far = [...r.players].sort((a, b) => Math.abs(b.transitionError - mean) - Math.abs(a.transitionError - mean))[0];

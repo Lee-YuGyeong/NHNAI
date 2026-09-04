@@ -27,6 +27,8 @@ import { Executioner } from './Executioner';
 import { SelfAvatar } from './SelfAvatar';
 import { selfPose } from './selfPose';
 import { FallObjects } from './FallObjects';
+import { PlatformCourse } from './PlatformCourse';
+import { PLATFORM_ARENA } from '@/world/mp/platform';
 // 색 사냥의 구슬 · 견본판 · E 키는 /trial 과 같은 부품이다 — 상태(huntState)가 하나라 화면도 하나로 그린다
 import { HuntOrbs, SampleBoard } from '@/features/trial/games/color-hunt/HuntObjects';
 import { PickKey } from '@/features/trial/games/color-hunt/PickKey';
@@ -81,6 +83,7 @@ export function HallScene(p: HallSceneProps) {
   const stopline = p.test?.game === 'stopline';
   const fall = p.test?.game === 'fall';
   const hunt = p.test?.game === 'colorhunt';
+  const platform = p.test?.game === 'platform';
 
   return (
     <WorldCanvas
@@ -104,6 +107,12 @@ export function HallScene(p: HallSceneProps) {
       </Suspense>
       {def.Effects ? <def.Effects /> : null}
       {fall ? <FallObjects /> : null}
+      {/* 움직이는 플랫폼 — 발판 열은 platformState 로 프레임마다 자리를 잡는다 (PlatformCourse 머리말) */}
+      {platform ? (
+        <Suspense fallback={null}>
+          <PlatformCourse />
+        </Suspense>
+      ) : null}
       {hunt ? (
         <group>
           <HuntOrbs />
@@ -127,7 +136,7 @@ export function HallScene(p: HallSceneProps) {
           spawn={p.spawn}
           body={p.myBody}
           teleport={p.teleport}
-          bounds={fall ? FALL_ARENA : hunt ? HUNT_ARENA : null}
+          bounds={fall ? FALL_ARENA : hunt ? HUNT_ARENA : platform ? PLATFORM_ARENA : null}
           composing={p.composing}
           paused={p.paused}
           sendMove={p.sendMove}

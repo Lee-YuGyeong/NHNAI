@@ -20,7 +20,8 @@ export interface TrialEvents {
   /** 남의 좌표 — 방 안에서 그 사람의 로봇을 그리는 데 쓴다 (WorldScene 의 Remotes) */
   onMoved(id: string, x: number, z: number, y: number, heading: number, anim: AnimState): void;
   onHistory(results: TrialResultWire[]): void;
-  onRoundStart(game: TrialGame, round: number, startAt: number, durationMs: number | undefined): void;
+  /** pace — 움직이는 플랫폼의 발판 배속(공개). 다른 게임은 undefined */
+  onRoundStart(game: TrialGame, round: number, startAt: number, durationMs: number | undefined, pace?: number): void;
   onRunning(id: string, startAt: number): void;
   onWaypoints(id: string, brakeAt: number, brakePos: number, stopAt: number, stopPos: number): void;
   /** 낙하 생존 — 서버 물리 스냅샷(~10Hz). 클라는 보간해 그릴 뿐이다 */
@@ -32,6 +33,10 @@ export interface TrialEvents {
   onPicked(id: string, objectId: number): void;
   /** 색 사냥 — 같은 색이 근처에 다시 돋았다 */
   onOrb(orb: ColorOrb): void;
+  /** 회전 원판 — 서버 물리 스냅샷(~10Hz): 원판 각도·각속도와 전원의 자리. 사람의 자리도 여기로 온다 */
+  onDisc(msg: Extract<S2CMessage, { t: 'trial_disc' }>): void;
+  /** 회전 원판 — 누가 떨어졌다 */
+  onFell(id: string): void;
   onResult(result: TrialResultWire): void;
   onError(code: ErrorCode | 'connection_failed'): void;
   onClose(): void;
@@ -117,7 +122,7 @@ export class TrialConnection {
           events.onHistory(msg.results);
           break;
         case 'trial_round_start':
-          events.onRoundStart(msg.game, msg.round, msg.startAt, msg.durationMs);
+          events.onRoundStart(msg.game, msg.round, msg.startAt, msg.durationMs, msg.pace);
           break;
         case 'trial_running':
           events.onRunning(msg.id, msg.startAt);
@@ -139,6 +144,12 @@ export class TrialConnection {
           break;
         case 'trial_orb':
           events.onOrb(msg.orb);
+          break;
+        case 'trial_disc':
+          events.onDisc(msg);
+          break;
+        case 'trial_fell':
+          events.onFell(msg.id);
           break;
         case 'trial_result':
           events.onResult(msg.result);
@@ -174,6 +185,11 @@ export class TrialConnection {
   /** 색 사냥 — E. 어느 구슬인지만 보낸다. 판정은 전부 서버다 (PickKey 머리말) */
   sendPick(objectId: number): boolean {
     return this.send({ t: 'trial_pick', objectId });
+  }
+
+  /** 회전 원판 — 걷기 명령(월드 기준 속도). 자리는 안 보낸다, 서버가 적분한다 (DiscRig 머리말) */
+  sendWalk(x: number, z: number): boolean {
+    return this.send({ t: 'trial_walk', x, z });
   }
 
   private send(msg: { t: string } & Record<string, unknown>): boolean {

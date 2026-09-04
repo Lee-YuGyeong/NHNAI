@@ -15,6 +15,10 @@ export interface TrialState {
   roundDurationMs: number | null;
   /** 낙하 생존 — 이번 라운드에 내가 맞은 횟수 (연출·HUD 용, 기록은 서버가 한다) */
   myHitsThisRound: number;
+  /** 회전 원판 — 이번 라운드에 내가 떨어진 횟수 (HUD 용, 기록은 서버가 한다) */
+  myFallsThisRound: number;
+  /** 회전 원판 — 지금 각속도(rad/s). HUD 의 회전 표시 — 눈에 보이는 값이라 비밀이 아니다 */
+  discOmega: number;
   /** 이번 라운드에 내가 마친 시행 수(0~3) — StopLineScene 이 다음 W 를 언제 받을지 여기로 안다 */
   myAttemptsThisRound: number;
   /** 색 사냥 — 이번 라운드에 내가 주운 횟수. 정오는 여기 없다 — 서버만 알고, 전원이 결과에서 처음 본다 */
@@ -37,6 +41,8 @@ const initialState: TrialState = {
   roundStartAt: 0,
   roundDurationMs: null,
   myHitsThisRound: 0,
+  myFallsThisRound: 0,
+  discOmega: 0,
   myAttemptsThisRound: 0,
   myPicksThisRound: 0,
   hunt: null,
@@ -73,6 +79,8 @@ export const trialSlice = createSlice({
       s.roundDurationMs = a.payload.durationMs;
       s.myAttemptsThisRound = 0;
       s.myHitsThisRound = 0;
+      s.myFallsThisRound = 0;
+      s.discOmega = 0;
       s.myPicksThisRound = 0;
       s.hunt = null;
       s.liveResult = null;
@@ -88,6 +96,15 @@ export const trialSlice = createSlice({
     /** 낙하물에 맞았다(trial_hit) — 그게 내 id일 때만 센다 */
     hitRecorded(s, a: PayloadAction<string>) {
       if (a.payload === s.selfId) s.myHitsThisRound += 1;
+    },
+    /** 회전 원판 — 누가 떨어졌다(trial_fell). 내 것일 때만 센다 */
+    fellRecorded(s, a: PayloadAction<string>) {
+      if (a.payload === s.selfId) s.myFallsThisRound += 1;
+    },
+    /** 회전 원판 — 스냅샷의 각속도. 0.1 단위로만 받아 리렌더를 줄인다 (자리는 discState 가 든다) */
+    discSynced(s, a: PayloadAction<number>) {
+      const v = Math.round(a.payload * 10) / 10;
+      if (v !== s.discOmega) s.discOmega = v;
     },
     /** 시행 하나가 서버 판정을 받았다(trial_stopline_waypoints) — 그게 내 id일 때만 센다 */
     attemptRecorded(s, a: PayloadAction<string>) {
@@ -117,6 +134,8 @@ export const trialSlice = createSlice({
     selectRound: (s) => s.round,
     selectMyAttempts: (s) => s.myAttemptsThisRound,
     selectMyHits: (s) => s.myHitsThisRound,
+    selectMyFalls: (s) => s.myFallsThisRound,
+    selectDiscOmega: (s) => s.discOmega,
     selectMyPicks: (s) => s.myPicksThisRound,
     selectHunt: (s) => s.hunt,
     selectRoundStartAt: (s) => s.roundStartAt,

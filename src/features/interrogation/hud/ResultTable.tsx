@@ -19,9 +19,15 @@ const LABEL: Record<string, string> = {
   wrongPicks: '오답',
   hesitationMs: '머뭇(ms)',
   picks: '선택',
+  jumps: '점프',
+  landingRate: '착지 성공률',
+  centerRate: '중앙 착지율',
+  misses: '실패',
+  meanOffset: '중심 오차(m)',
+  recoveryMs: '균형 회복(ms)',
 };
 
-export const TEST_TITLE: Record<string, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥' };
+export const TEST_TITLE: Record<string, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판' };
 
 function fmt(v: number | null | undefined): string {
   if (typeof v !== 'number' || !Number.isFinite(v)) return '—';

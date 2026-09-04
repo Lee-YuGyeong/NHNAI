@@ -14,7 +14,8 @@ import { SoldierAvatar } from '@/world/avatar/SoldierAvatar';
 import type { BodyId } from '@/world/mp/bodies';
 import { selfPose } from './selfPose';
 
-export function SelfAvatar({ body }: { body?: BodyId | null }) {
+/** @param groundY 발이 닿는 바닥 높이 — 회전 원판(0.75m 단) 위에서는 그 높이가 「땅」이다. 없으면 0 */
+export function SelfAvatar({ body, groundY = 0 }: { body?: BodyId | null; groundY?: number }) {
   const group = useRef<Group>(null);
   const shadow = useRef<Mesh>(null);
   useFrame(() => {
@@ -24,8 +25,8 @@ export function SelfAvatar({ body }: { body?: BodyId | null }) {
     g.rotation.y = selfPose.heading;
     // 그림자는 늘 바닥에 — 점프가 "위로 간 것"으로 읽히게 (WorldScene 의 RemoteAvatar 와 같다)
     if (shadow.current) {
-      shadow.current.position.y = 0.02 - selfPose.y;
-      const k = Math.max(0.45, 1 - selfPose.y * 0.35);
+      shadow.current.position.y = 0.02 - (selfPose.y - groundY);
+      const k = Math.max(0.45, 1 - (selfPose.y - groundY) * 0.35);
       shadow.current.scale.set(k, k, 1);
     }
   });
@@ -33,9 +34,9 @@ export function SelfAvatar({ body }: { body?: BodyId | null }) {
     <group ref={group}>
       <Suspense fallback={null}>
         {body ? (
-          <SoldierAvatar body={body} getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > 0.02} />
+          <SoldierAvatar body={body} getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > groundY + 0.02} />
         ) : (
-          <RobotAvatar getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > 0.02} />
+          <RobotAvatar getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > groundY + 0.02} />
         )}
         <mesh ref={shadow} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.34, 20]} />

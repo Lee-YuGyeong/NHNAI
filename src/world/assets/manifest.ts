@@ -122,6 +122,16 @@ export const ASSETS = {
   executioner_gun: { url: '/world/executioner/gun.glb' },
 
   /**
+   * 물리 미니게임 — 움직이는 플랫폼(2026-09-05). 공중 부양 팔각 발판과 출발·도착 비콘.
+   * Tripo Studio text-to-model(tools/platform-parts.json → tripo-studio-parts.sh) → tools/platform-glb.sh. 알베도는 버리고 노멀맵만 쓴다
+   */
+  hover_pad: { url: '/world/platform/hover_pad.glb' },
+  pad_beacon: { url: '/world/platform/pad_beacon.glb' },
+  /** 회전 원판 생존(features/trial/games/disc) — Tripo Studio(tools/disc-parts.json → tripo-studio-parts.sh → disc-glb.sh). 원판 자체는 코드 기하 + 힉스필드 텍스처 */
+  disc_hub: { url: '/world/disc/disc_hub.glb' },
+  disc_beacon: { url: '/world/disc/disc_beacon.glb' },
+
+  /**
    * 물리 미니게임 — 정지선(features/trial). 심문소 홀 안에 레인을 깔고 그 위에 세우는 소품 둘:
    * 목표 정지선의 게이트(레인마다 하나)와 출발선의 비콘. Tripo text-to-model(힉스필드 MCP tripo_3d, 2026-09-04)
    * → tools/trial-glb.sh. 프롬프트는 tools/trial-parts.json. 리깅도 클립도 없다.

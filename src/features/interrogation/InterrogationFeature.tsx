@@ -31,6 +31,8 @@ import type { Teleport } from './scene/FreeRig';
 import type { BodyId } from '@/world/mp/bodies';
 import { fallState } from './scene/fallState';
 import { EXECUTION_MS, executioner } from './scene/executionerStore';
+import { platformState } from './scene/platformState';
+import { PAD_START_Z } from '@/world/mp/platform';
 import { runnerState } from './scene/stopline/runnerState';
 // 색 사냥의 구슬 상태·오버레이 색은 /trial 과 같은 모듈이다 — 화면은 달라도 게임은 하나다 (huntState 머리말)
 import { huntState, softLight } from '@/features/trial/games/color-hunt/huntState';
@@ -58,6 +60,7 @@ export function InterrogationFeature() {
   const myAttempts = useAppSelector(gameSelectors.selectMyAttempts);
   const myHits = useAppSelector(gameSelectors.selectMyHits);
   const myPicks = useAppSelector(gameSelectors.selectMyPicks);
+  const myLand = useAppSelector(gameSelectors.selectMyLandings, (a, b) => a.landings === b.landings && a.centers === b.centers && a.misses === b.misses);
   const hunt = useAppSelector(gameSelectors.selectHunt);
   const latestResult = useAppSelector(gameSelectors.selectLatestResult);
   const roles = useAppSelector(gameSelectors.selectRoles);
@@ -107,6 +110,7 @@ export function InterrogationFeature() {
     runnerState.clear();
     fallState.clear();
     executioner.reset();
+    platformState.clear();
     huntState.clear();
     dispatch(gameActions.connecting());
 
@@ -203,8 +207,18 @@ export function InterrogationFeature() {
           runnerState.resetAll();
           fallState.clear();
           huntState.clear();
+          // 움직이는 플랫폼 — 발판 열이 서고(platformState), 전원이 출발 발판 위에서 시작한다 (좌석 번호로 나란히)
+          if (msg.game === 'platform') {
+            platformState.start(msg.startAt, msg.pace);
+            const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
+            const x = seat ? -0.6 + ((seat.seat - 1) % 4) * 0.4 : 0;
+            setTeleport({ x, z: PAD_START_Z, key: `platform-${msg.startAt}` });
+          } else platformState.clear();
           return;
         }
+        case 'trial_landed':
+          dispatch(gameActions.landingRecorded({ id: msg.id, center: msg.center, missed: msg.missed }));
+          return;
         case 'trial_running':
           // 내 것은 W 를 누른 순간 이미 로컬로 달리기 시작했다 (StopRig)
           if (msg.id !== meRef.current?.seatId) runnerState.running(msg.id, msg.startAt);
@@ -221,7 +235,8 @@ export function InterrogationFeature() {
             if (!p) continue;
             const moved = Math.hypot(p.pose.x - a.x, p.pose.z - a.z) > 0.03;
             const heading = moved ? Math.atan2(a.x - p.pose.x, a.z - p.pose.z) : p.pose.heading;
-            remotePlayers.move(a.id, a.x, a.z, 0, heading, moved ? 'walk' : 'idle', at);
+            // y — 움직이는 플랫폼의 봇은 발판 위(0.5)에 서고 뛴다. 다른 게임은 안 실려 0
+            remotePlayers.move(a.id, a.x, a.z, a.y ?? 0, heading, moved ? 'walk' : 'idle', at);
           }
           return;
         }
@@ -242,6 +257,7 @@ export function InterrogationFeature() {
           return;
         case 'trial_result':
           dispatch(gameActions.resultReceived(msg.result));
+          platformState.clear();
           // 정지선 레일에서 내려온다 — 내 좌석 자리로
           {
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
@@ -370,6 +386,8 @@ export function InterrogationFeature() {
             ? `W 달리기 · S 브레이크 · 붉은 선에 정확히 서라 (시행 ${myAttempts})`
             : test.game === 'fall'
               ? `떨어지는 것을 피하라 — WASD (피격 ${myHits})`
+              : test.game === 'platform'
+                ? `움직이는 발판을 건너라 — W 앞으로 · Space 점프 (착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses})`
               : hunt
                 ? `「${hunt.target}」 구슬만 E 로 주워라 (주움 ${myPicks}) — 헷갈리면 견본판과 대조하라`
                 : '지시된 색의 구슬을 E 로 주워라'

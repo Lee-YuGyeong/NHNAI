@@ -57,13 +57,38 @@ const SPEC: Record<TrialGame, Spec> = {
     curveLabel: '선택 간격 추이 (차단 구간, 초)',
     dirLabel: '오답 방향 (합류색 + / 무관한 색 −)',
   },
+  platform: {
+    primary: { key: 'centerRate', label: '발판 중앙 착지율', unit: '', digits: 2 },
+    rows: [
+      { key: 'landingRate', label: '착지 성공률', unit: '', digits: 2 },
+      { key: 'meanOffset', label: '중심에서 벗어난 거리', unit: 'm', digits: 2 },
+      { key: 'recoveryMs', label: '착지 후 균형 회복', unit: 'ms', digits: 0 },
+      { key: 'misses', label: '점프 실패', unit: '회', digits: 0 },
+      { key: 'jumps', label: '점프', unit: '회', digits: 0 },
+    ],
+    curveLabel: '착지 오차 추이 (점프 1 → 2 → 3 …, m)',
+    dirLabel: '오차 방향 (일찍 + / 늦게 −)',
+  },
+  disc: {
+    primary: { key: 'walked', label: '이동거리 (원판 위에서 걸은 거리)', unit: 'm', digits: 1 },
+    rows: [
+      { key: 'radiusStd', label: '자리 흔들림 (반지름 편차)', unit: 'm', digits: 2 },
+      { key: 'meanRadius', label: '평균 반지름 (축에서)', unit: 'm', digits: 2 },
+      { key: 'reactionMs', label: '회전이 바뀐 뒤 반응까지', unit: 'ms', digits: 0 },
+      { key: 'transitionError', label: '바닥이 바뀐 직후 미끄러진 거리', unit: 'm', digits: 2 },
+      { key: 'slideTotal', label: '미끄러진 거리 합', unit: 'm', digits: 2 },
+      { key: 'falls', label: '낙하', unit: '회', digits: 0 },
+    ],
+    curveLabel: '미끄러진 거리 추이 (에피소드 1 → 2 → 3 …, m)',
+    dirLabel: '미끄러진 뒤 자리 (바깥으로 밀림 + / 안쪽으로 고침 −)',
+  },
 };
 
 function fmt(v: unknown, unit: string, digits: number): string {
   return typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(digits)}${unit}` : '—';
 }
 
-const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥' };
+const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판' };
 
 export function Scoreboard({ result, roster }: { result: TrialResultWire; roster: Record<string, string> }) {
   const spec = SPEC[result.game] ?? SPEC.stopline;

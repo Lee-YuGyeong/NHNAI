@@ -19,3 +19,9 @@ export const FALL_GRAVITY: readonly number[] = [9.8, 5.88, 13.72];
 
 /** 색 사냥 3라운드의 차단 파장. PR2(색 사냥)에서 쓴다. */
 export const COLORHUNT_BLOCK: readonly (string | null)[] = [null, 'red', 'green'];
+
+/**
+ * 회전 원판 3구간의 표면 마찰계수 — 강판(기준) → 젖은 강판 → 고무 깔개. μg 가 곧 「버틸 수 있는 원심가속도」다:
+ * 0.6·9.8 ≈ 5.9 · 3.4 · 8.3 m/s². 각속도 1.6 rad/s 면 버티는 반지름이 2.3m · 1.3m · 3.3m 로 달라진다 (worker/src/trial/disc/sim.ts).
+ */
+export const DISC_GRIP: readonly number[] = [0.6, 0.35, 0.85];

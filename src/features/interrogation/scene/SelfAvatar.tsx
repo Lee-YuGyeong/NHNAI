@@ -10,6 +10,7 @@ import type { Group, Mesh } from 'three';
 import { RobotAvatar } from '@/world/avatar/RobotAvatar';
 import { SoldierAvatar } from '@/world/avatar/SoldierAvatar';
 import type { BodyId } from '@/world/mp/bodies';
+import { platformState } from './platformState';
 import { selfPose } from './selfPose';
 
 export function SelfAvatar({ body }: { body: BodyId | null }) {
@@ -27,7 +28,8 @@ export function SelfAvatar({ body }: { body: BodyId | null }) {
     }
   });
   const getAnim = () => selfPose.anim;
-  const getAirborne = () => selfPose.y > 0.02;
+  // 발판 위(움직이는 플랫폼)는 공중이 아니다 — SeatAvatar 와 같은 규칙
+  const getAirborne = () => selfPose.y > platformState.groundAt(selfPose.x, selfPose.z, selfPose.y) + 0.02;
   return (
     <group ref={group}>
       <Suspense fallback={null}>

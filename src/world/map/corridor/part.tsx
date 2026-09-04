@@ -37,6 +37,12 @@ export const PART_NAMES = {
   wall_arm: '검사 암',
   // 작업 구역 맵 (world2/map/work.tsx)
   incinerator: '소각로 화구',
+  // 물리 미니게임 — 움직이는 플랫폼 (features/interrogation/scene/PlatformCourse)
+  hover_pad: '부양 발판',
+  pad_beacon: '발판 비콘',
+  // 회전 원판 생존 (features/trial/games/disc)
+  disc_hub: '원판 회전축',
+  disc_beacon: '원판 비콘',
   // 특수인공지능대응센터 홀 (map/govcenter.tsx) — 유리 방 소품 · 철문 · 벽등
   gov_server_rack: '서버 랙',
   gov_workstation: '워크스테이션',

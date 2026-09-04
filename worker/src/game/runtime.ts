@@ -202,10 +202,10 @@ export class GameRuntime {
   }
 
   /** room-do.ts 의 move — 시간제 테스트(낙하 생존)가 사람의 자리를 아는 길 */
-  onMove(playerId: string, x: number, z: number, now: number): void {
+  onMove(playerId: string, x: number, z: number, now: number, y = 0): void {
     if (this.phase !== 'test' || !this.engine) return;
     const seat = this.seatOfPlayer(playerId);
-    if (seat && !seat.isolated) this.engine.onMove(seat.id, x, z, now);
+    if (seat && !seat.isolated) this.engine.onMove(seat.id, x, z, now, y);
   }
 
   /**
@@ -296,6 +296,10 @@ export class GameRuntime {
       case 'trial_pick':
         // 색 사냥 — 줍기. 거리·쿨다운·정오는 엔진이 본다 (worker/src/trial/colorhunt/engine.ts)
         this.engine.onPick(seat.id, msg.objectId);
+        return;
+      case 'trial_walk':
+        // 회전 원판 — 걷기 명령 (worker/src/trial/disc/engine.ts)
+        this.engine.onWalk?.(seat.id, msg.x, msg.z, this.now());
         return;
       default:
         return;
@@ -519,7 +523,9 @@ export class GameRuntime {
     this.finishing = false;
 
     this.leader(LINES.testOpen(design.game, run, INSTRUCTION[design.game]), 'announce');
-    this.deps.broadcast({ t: 'trial_round_start', game: design.game, round: run, startAt, durationMs: engine.durationMs });
+    // pace — 움직이는 플랫폼의 발판 배속(공개, mp/platform.ts). 다른 엔진은 안 싣는다
+    const pace = engine.paceFor?.(design.intensity);
+    this.deps.broadcast({ t: 'trial_round_start', game: design.game, round: run, startAt, durationMs: engine.durationMs, ...(pace === undefined ? {} : { pace }) });
     // 마감: 시간제는 엔진이 스스로 finish 를 부르고, 이벤트제는 상한에서 강제로 닫는다
     this.setPhase('test', startAt + (engine.durationMs ?? GAME_TEST_MAX_MS) + 1_500);
     engine.start(design.intensity, realIds, botIds, { broadcast: (m) => this.deps.broadcast(m), finish: () => void this.finishTest() }, tuning);

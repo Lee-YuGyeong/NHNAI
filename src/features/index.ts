@@ -140,6 +140,8 @@ export const FEATURES: FeatureDef[] = [
       { title: '물리 미니게임 · 정지선 (마찰 · 관성)', to: '/trial?code=1234&game=stopline' },
       { title: '물리 미니게임 · 낙하 생존 (중력 · 공기저항)', to: '/trial?code=1234&game=fall' },
       { title: '물리 미니게임 · 색 사냥 (빛과 색)', to: '/trial?code=1234&game=colorhunt' },
+      { title: '물리 미니게임 · 움직이는 플랫폼 (점프 정확도)', to: '/trial?code=1234&game=platform' },
+      { title: '물리 미니게임 · 회전 원판 생존 (원심력 · 마찰)', to: '/trial?code=1234&game=disc' },
     ],
   },
 ];

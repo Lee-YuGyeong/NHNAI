@@ -5,6 +5,10 @@ export interface TrialCondition {
   gravity?: readonly number[];
   friction?: readonly number[];
   lightFilter?: readonly (string | null)[];
+  /** 회전 원판 — 구간별 표면 마찰계수 (DISC_GRIP) */
+  grip?: readonly number[];
+  /** 움직이는 플랫폼 — 구간별 발판 배속. 눈에 보이는 값이라 비밀은 아니지만 기록으로 남긴다 */
+  platformPace?: readonly number[];
 }
 
 /**

@@ -29,6 +29,16 @@ const COLS: Record<TrialGame, Col[]> = {
     { key: 'hesitationMs', label: '빛 바뀐 직후', unit: 'ms', digits: 0 },
     { key: 'wrongPicks', label: '오답', unit: '회', digits: 0 },
   ],
+  platform: [
+    { key: 'centerRate', label: '중앙 착지율', unit: '', digits: 2 },
+    { key: 'landingRate', label: '착지 성공률', unit: '', digits: 2 },
+    { key: 'recoveryMs', label: '균형 회복', unit: 'ms', digits: 0 },
+  ],
+  disc: [
+    { key: 'walked', label: '이동거리', unit: 'm', digits: 1 },
+    { key: 'falls', label: '낙하', unit: '회', digits: 0 },
+    { key: 'radiusStd', label: '자리 흔들림', unit: 'm', digits: 2 },
+  ],
 };
 
 function fmt(v: unknown, unit: string, digits: number): string {

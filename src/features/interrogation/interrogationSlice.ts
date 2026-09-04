@@ -37,6 +37,10 @@ export interface GameState {
   myHits: number;
   /** 색 사냥 — 이번 테스트에 내가 주운 횟수. 정오는 여기 없다 — 전원이 결과 모달에서 처음 본다 */
   myPicks: number;
+  /** 움직이는 플랫폼 — 이번 테스트에서 내가 발판에 내린 횟수 · 그중 정중앙 · 실패 (trial_landed) */
+  myLandings: number;
+  myCenters: number;
+  myMisses: number;
   /** 색 사냥 — 지금 조명과 목표색 (trial_colorhunt). HUD 스와치(원색)와 조명 오버레이가 그린다 */
   hunt: { light: string; target: string; targetHex: string } | null;
   /** 결과 모달이 그릴 것 — 서버 trial_result. 모달이 닫힌 뒤에도 HUD 요약으로 남는다 */
@@ -65,6 +69,9 @@ const initialState: GameState = {
   myAttempts: 0,
   myHits: 0,
   myPicks: 0,
+  myLandings: 0,
+  myCenters: 0,
+  myMisses: 0,
   hunt: null,
   latestResult: null,
   history: [],
@@ -183,6 +190,9 @@ export const interrogationSlice = createSlice({
       s.myAttempts = 0;
       s.myHits = 0;
       s.myPicks = 0;
+      s.myLandings = 0;
+      s.myCenters = 0;
+      s.myMisses = 0;
       s.hunt = null;
     },
     /** 색 사냥 — 테스트가 열렸거나 조명이 바뀌었다(trial_colorhunt). 구슬은 huntState(가변)가 든다 */
@@ -195,6 +205,15 @@ export const interrogationSlice = createSlice({
     },
     attemptRecorded(s, a: PayloadAction<string>) {
       if (s.me && a.payload === s.me.seatId) s.myAttempts += 1;
+    },
+    /** 움직이는 플랫폼 — 누가 착지했다(trial_landed). 내 좌석이면 센다: 착지 · 정중앙 · 실패 */
+    landingRecorded(s, a: PayloadAction<{ id: string; center: boolean; missed: boolean }>) {
+      if (!s.me || a.payload.id !== s.me.seatId) return;
+      if (a.payload.missed) s.myMisses += 1;
+      else {
+        s.myLandings += 1;
+        if (a.payload.center) s.myCenters += 1;
+      }
     },
     hitRecorded(s, a: PayloadAction<string>) {
       if (s.me && a.payload === s.me.seatId) s.myHits += 1;
@@ -230,6 +249,7 @@ export const gameSelectors = {
   selectMyAttempts: (r: Root) => r.interrogation.myAttempts,
   selectMyHits: (r: Root) => r.interrogation.myHits,
   selectMyPicks: (r: Root) => r.interrogation.myPicks,
+  selectMyLandings: (r: Root) => ({ landings: r.interrogation.myLandings, centers: r.interrogation.myCenters, misses: r.interrogation.myMisses }),
   selectHunt: (r: Root) => r.interrogation.hunt,
   selectLatestResult: (r: Root) => r.interrogation.latestResult,
   selectHistory: (r: Root) => r.interrogation.history,

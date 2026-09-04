@@ -18,7 +18,11 @@ import type { AnimState, PlayerSnapshot, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
 import { ColorHuntScene } from './games/color-hunt/ColorHuntScene';
 import { huntState, softLight } from './games/color-hunt/huntState';
+import { DiscScene } from './games/disc/DiscScene';
+import { discState } from './games/disc/discState';
 import { FallScene } from './games/fall/FallScene';
+import { PlatformScene } from './games/platform/PlatformScene';
+import { platformState } from '@/features/interrogation/scene/platformState';
 import { fallState } from './games/fall/fallState';
 import { StopLineScene } from './games/stop-line/StopLineScene';
 import { runnerState } from './games/stop-line/runnerState';
@@ -32,7 +36,8 @@ export function TrialFeature() {
   const dispatch = useAppDispatch();
   const [params] = useSearchParams();
   const roomCode = params.get('code') ?? '1234';
-  const wantGame: TrialGame = params.get('game') === 'fall' ? 'fall' : params.get('game') === 'colorhunt' ? 'colorhunt' : 'stopline';
+  const wantGame: TrialGame =
+    params.get('game') === 'fall' ? 'fall' : params.get('game') === 'colorhunt' ? 'colorhunt' : params.get('game') === 'platform' ? 'platform' : params.get('game') === 'disc' ? 'disc' : 'stopline';
   const nickname = useMemo(() => loadGuestNick() || `테스터${Math.floor(100 + Math.random() * 900)}`, []);
 
   const status = useAppSelector(trialSelectors.selectStatus);
@@ -44,6 +49,8 @@ export function TrialFeature() {
   const roundStartAt = useAppSelector(trialSelectors.selectRoundStartAt);
   const roundDurationMs = useAppSelector(trialSelectors.selectRoundDurationMs);
   const myHits = useAppSelector(trialSelectors.selectMyHits);
+  const myFalls = useAppSelector(trialSelectors.selectMyFalls);
+  const discOmega = useAppSelector(trialSelectors.selectDiscOmega);
   const myAttempts = useAppSelector(trialSelectors.selectMyAttempts);
   const myPicks = useAppSelector(trialSelectors.selectMyPicks);
   const hunt = useAppSelector(trialSelectors.selectHunt);
@@ -81,6 +88,7 @@ export function TrialFeature() {
     runnerState.clear();
     fallState.clear();
     huntState.clear();
+    discState.clear();
     remotePlayers.clear();
     setAiIds([]);
     setMyBody(null);
@@ -110,10 +118,14 @@ export function TrialFeature() {
       },
       onMoved: (id, x, z, y, heading, anim) => remotePlayers.move(id, x, z, y, heading, anim, performance.now()),
       onHistory: (results) => dispatch(trialActions.historyReceived(results)),
-      onRoundStart: (g, r, startAt, durationMs) => {
+      onRoundStart: (g, r, startAt, durationMs, pace) => {
         runnerState.resetAll();
         fallState.clear();
         huntState.clear();
+        discState.clear();
+        // 움직이는 플랫폼 — 발판 열은 platformState 가 서버와 같은 함수로 그린다 (interrogation/scene/platformState)
+        if (g === 'platform') platformState.start(startAt, pace);
+        else platformState.clear();
         dispatch(trialActions.roundStarted({ game: g, round: r, startAt, durationMs: durationMs ?? null }));
       },
       onRunning: (id, startAt) => {
@@ -129,6 +141,8 @@ export function TrialFeature() {
       onSnapshot: (msg) => {
         for (const a of msg.ai) seeParticipant(a.id);
         fallState.push(msg);
+        // 움직이는 플랫폼의 봇은 y(발판 위 · 공중)가 실린다 — platformState 가 보간해 PlatformScene 이 그린다
+        if (platformState.active) platformState.pushBots(msg.at, msg.ai);
       },
       onHit: (id) => {
         dispatch(trialActions.hitRecorded(id));
@@ -143,7 +157,20 @@ export function TrialFeature() {
         dispatch(trialActions.pickRecorded(id));
       },
       onOrb: (orb) => huntState.orb(orb),
-      onResult: (result) => dispatch(trialActions.resultReceived(result)),
+      onDisc: (msg) => {
+        // 회전 원판 — AI 좌석은 여기 처음 등장한다. 자리는 discState(가변), 각속도만 슬라이스(HUD)
+        for (const p of msg.players) if (p.id.startsWith('SUBJECT_')) seeParticipant(p.id);
+        discState.push(msg);
+        dispatch(trialActions.discSynced(msg.omega));
+      },
+      onFell: (id) => {
+        dispatch(trialActions.fellRecorded(id));
+        if (id === selfIdRef.current) setFlash(Date.now());
+      },
+      onResult: (result) => {
+        platformState.clear();
+        dispatch(trialActions.resultReceived(result));
+      },
       onError: (code) => dispatch(trialActions.errorOccurred(code)),
       onClose: () => dispatch(trialActions.closed()),
     });
@@ -193,6 +220,8 @@ export function TrialFeature() {
   const sendMove = useCallback((x: number, z: number, y: number, heading: number, anim: AnimState) => connRef.current?.sendMove(x, z, y, heading, anim), []);
 
   const others = useMemo(() => Object.keys(roster).filter((id) => id !== selfId).map((id) => ({ id })), [roster, selfId]);
+  const othersNamed = useMemo(() => Object.entries(roster).filter(([id]) => id !== selfId).map(([id, nickname]) => ({ id, nickname })), [roster, selfId]);
+  const sendWalk = useCallback((x: number, z: number) => connRef.current?.sendWalk(x, z), []);
 
   const secondsLeft = roundDurationMs === null ? 0 : Math.max(0, Math.ceil((roundStartAt + roundDurationMs - clock) / 1000));
   const over = liveResult !== null || (round > 0 && roundDurationMs !== null && secondsLeft === 0);
@@ -211,6 +240,10 @@ export function TrialFeature() {
             ? '끝났다'
             : game === 'fall'
               ? `맞음 ${myHits} — WASD 로 피해라. 바닥 그림자가 진해지면 온다`
+              : game === 'platform'
+                ? '움직이는 발판을 건너라 — W 앞으로 · Space 점프 · 발판 한가운데에 내려라'
+              : game === 'disc'
+                ? `낙하 ${myFalls}회 · 회전 ${Math.abs(discOmega).toFixed(1)} rad/s ${discOmega > 0 ? '↻' : discOmega < 0 ? '↺' : ''} — 원판 위에서 버텨라. WASD 걷기 · Shift 달리기`
               : game === 'colorhunt'
                 ? hunt
                   ? `주움 ${myPicks} — 「${hunt.target}」 구슬만 E 로 주워라. 헷갈리면 견본판 앞으로`
@@ -219,7 +252,7 @@ export function TrialFeature() {
                   ? '시행 다 썼다'
                   : `시행 ${myAttempts}회 — W 달리기 · S 브레이크 · 붉은 선에 멈춰라`;
   const shownGame = game ?? wantGame;
-  const title = shownGame === 'fall' ? '낙하 생존' : shownGame === 'colorhunt' ? '색 사냥' : '정지선';
+  const title = shownGame === 'fall' ? '낙하 생존' : shownGame === 'colorhunt' ? '색 사냥' : shownGame === 'platform' ? '움직이는 플랫폼' : shownGame === 'disc' ? '회전 원판 생존' : '정지선';
   const flashing = Date.now() - flash < 350;
 
   return (
@@ -228,6 +261,10 @@ export function TrialFeature() {
         <FallScene myBody={myBody} roster={others} aiIds={aiIds} sendMove={sendMove} />
       ) : shownGame === 'colorhunt' ? (
         <ColorHuntScene roster={others} aiIds={aiIds} sendMove={sendMove} onPick={onPick} />
+      ) : shownGame === 'platform' ? (
+        <PlatformScene myBody={myBody} roster={others} aiIds={aiIds} sendMove={sendMove} />
+      ) : shownGame === 'disc' ? (
+        <DiscScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} />
       ) : (
         <StopLineScene
           myId={selfId}

@@ -49,7 +49,7 @@ export function MainFeature() {
    * /trial 은 닉네임을 URL 이 아니라 shared/guest.ts(localStorage)로 읽으므로 여기서 먼저 저장해 둔다.
    * 위의 방 코드 입력칸을 그대로 재사용한다 — 같은 코드를 두 탭에 치면 같은 방(RoomDO)에서 만난다.
    */
-  const enterTrial = (game: 'stopline' | 'fall' | 'colorhunt') => {
+  const enterTrial = (game: 'stopline' | 'fall' | 'colorhunt' | 'platform' | 'disc') => {
     const nick = nickname.trim();
     if (!nick) {
       setError('닉네임을 입력하라');
@@ -231,7 +231,7 @@ function TrialListPanel() {
  * 물리 미니게임(worker/src/trial/) 테스트 문 — TrialListPanel(아레나 카탈로그)과는 다른 시스템이다.
  * 3종이 다 찼다 (PLANNING §2) — 더 늘지 않는다.
  */
-function PhysicsTrialPanel({ onEnter }: { onEnter: (game: 'stopline' | 'fall' | 'colorhunt') => void }) {
+function PhysicsTrialPanel({ onEnter }: { onEnter: (game: 'stopline' | 'fall' | 'colorhunt' | 'platform' | 'disc') => void }) {
   return (
     <section style={{ display: 'grid', gap: 6 }}>
       <h3 style={{ margin: 0, fontSize: 13, color: '#999' }}>물리 미니게임 (테스트)</h3>
@@ -239,7 +239,7 @@ function PhysicsTrialPanel({ onEnter }: { onEnter: (game: 'stopline' | 'fall' | 
         진짜 서버 권위 멀티플레이 — 심문소 홀 안에서, 한 판 1분. 위 방 코드로 여러 탭을 열면 같은 방에서 같이 한다.
         정지선(마찰 · 관성) · 낙하 생존(중력 · 공기저항) · 색 사냥(빛과 색).
       </p>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button type="button" style={{ padding: 8 }} onClick={() => onEnter('stopline')}>
           정지선 테스트
         </button>
@@ -248,6 +248,14 @@ function PhysicsTrialPanel({ onEnter }: { onEnter: (game: 'stopline' | 'fall' | 
         </button>
         <button type="button" style={{ padding: 8 }} onClick={() => onEnter('colorhunt')}>
           색 사냥 테스트
+        </button>
+        {/* 넷째 — 움직이는 플랫폼 (2026-09-05). 다른 단추는 그대로다 */}
+        <button type="button" style={{ padding: 8 }} onClick={() => onEnter('platform')}>
+          움직이는 플랫폼 테스트
+        </button>
+        {/* 다섯째 — 회전 원판 생존 (2026-09-05). 다른 단추는 그대로다 */}
+        <button type="button" style={{ padding: 8 }} onClick={() => onEnter('disc')}>
+          회전 원판 테스트
         </button>
       </div>
     </section>

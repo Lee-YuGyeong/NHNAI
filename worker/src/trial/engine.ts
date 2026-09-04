@@ -35,10 +35,15 @@ export interface GameEngine {
   join(id: string): void;
   onAccel(id: string): void;
   onBrake(id: string): void;
-  onMove(id: string, x: number, z: number, now: number): void;
+  /** 사람의 자리 (move 10Hz). y 는 발 높이 — 움직이는 플랫폼이 점프·착지를 이걸로 읽는다 (다른 엔진은 무시) */
+  onMove(id: string, x: number, z: number, now: number, y?: number): void;
   /** 색 사냥: 구슬을 줍는다(E). 다른 게임은 무시한다 */
   onPick(id: string, objectId: number): void;
+  /** 회전 원판: 걷기 입력(월드 기준 속도, m/s). 이 게임만 구현한다 — 다른 엔진은 없어도 된다 */
+  onWalk?(id: string, x: number, z: number, now: number): void;
   /** 이 라운드를 닫아도 되나. waiting(id) 는 "그 사람을 아직 기다려야 하는가"(AI 이거나 방에 붙어 있다) */
+  /** 라운드 시작 메시지에 공개로 실을 배속 — 움직이는 플랫폼만 (mp/platform.ts). 없는 엔진은 안 싣는다 */
+  paceFor?(intensity: number): number;
   done(waiting: (id: string) => boolean): boolean;
   results(): TrialPlayerResult[];
 }

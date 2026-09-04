@@ -96,7 +96,13 @@ export type C2SMessage =
    * 판정한다(worker/src/trial/colorhunt/engine.ts). 정오는 본인에게도 실시간으로 알려 주지 않는다 —
    * 전원이 기록 공개에서 처음 안다 (docs/COLORHUNT.md §6).
    */
-  | { t: 'trial_pick'; objectId: number };
+  | { t: 'trial_pick'; objectId: number }
+  /**
+   * 회전 원판: 걷기 입력 — **월드 기준** 속도 벡터(m/s). 바뀔 때만 10Hz 로 보내고, 손을 떼면 (0, 0) 을 보낸다.
+   * 자리는 싣지 않는다 — 원판이 사람을 실어 나르고 미끄러뜨리는 것은 서버가 적분한다(worker/src/trial/disc/engine.ts).
+   * 크기는 서버가 DISC_RUN_SPEED 로 자른다 (규칙 4: 위조돼도 「빨리 걷기」 이상이 안 된다).
+   */
+  | { t: 'trial_walk'; x: number; z: number };
 
 /**
  * 접속이 끊기는 이유.
@@ -106,8 +112,8 @@ export type C2SMessage =
  */
 export type ErrorCode = 'version_mismatch' | 'room_full' | 'bad_request' | 'kicked' | 'banned';
 
-/** 물리 미니게임 3종의 식별자. 색 사냥·낙하 생존 타입은 각각 PR2·PR3에서 실배선된다. */
-export type TrialGame = 'stopline' | 'colorhunt' | 'fall';
+/** 물리 미니게임의 식별자. 'platform' 은 움직이는 플랫폼(2026-09-05, mp/platform.ts) — 넷째 게임 */
+export type TrialGame = 'stopline' | 'colorhunt' | 'fall' | 'platform' | 'disc';
 
 /** 판정 대상 한 명의 결과 한 라운드치. 게임마다 metrics 의 키가 다르다 (PLANNING P1~P4). */
 export interface TrialPlayerResult {
@@ -165,7 +171,11 @@ export type S2CMessage =
   | { t: 'broadcast'; text: string; kind: BroadcastKind; ts: number }
   | { t: 'error'; code: ErrorCode }
   /** 새 라운드가 열렸다 — 조건값은 없다. 트랙 기하 등 공개 상수는 클라가 이미 안다 (mp/constants). durationMs 는 시간제 게임(낙하 생존)만 */
-  | { t: 'trial_round_start'; game: TrialGame; round: number; startAt: number; durationMs?: number }
+  /**
+   * 새 라운드. pace 는 움직이는 플랫폼의 발판 배속(mp/platform.ts) — 눈에 보이는 값이라 숨기지 않는다(P8 의 비밀은 아니다).
+   * 클라가 발판 자리를 서버와 같은 함수로 그려야 착지 판정이 화면과 맞는다. 규칙 2 대로 추가만 하는 필드
+   */
+  | { t: 'trial_round_start'; game: TrialGame; round: number; startAt: number; durationMs?: number; pace?: number }
   /** 누군가 달리기 시작했다(W) — 다른 사람 화면에도 보이도록. 판정은 안 실려 있다, 그저 연출용 */
   | { t: 'trial_running'; id: string; startAt: number }
   /**
@@ -177,7 +187,12 @@ export type S2CMessage =
    * 낙하 생존 — 서버가 돌리는 물리의 스냅샷(~10Hz). 클라는 이걸 보간해 그릴 뿐 물체를 스스로 떨어뜨리지 않는다.
    * 중력값은 없다 — 위치만 온다(P8). 실제 사람의 좌표는 player_moved 로 따로 오고, 여기 ai 는 서버가 움직이는 좌석뿐이다.
    */
-  | { t: 'trial_snapshot'; at: number; objects: { id: number; k: number; x: number; y: number; z: number }[]; ai: { id: string; x: number; z: number }[] }
+  | { t: 'trial_snapshot'; at: number; objects: { id: number; k: number; x: number; y: number; z: number }[]; ai: { id: string; x: number; z: number; y?: number }[] }
+  /**
+   * 움직이는 플랫폼 — 누가 착지했다(또는 놓쳤다). 화면의 「정중앙!」 같은 피드백용이고 판정은 서버가 이미 했다.
+   * center 는 발판 중앙(PAD_CENTER_R) 안, missed 는 발판을 놓쳐 바닥에 떨어진 것. 오차 거리는 안 실린다 — 기록(trial_result)에만
+   */
+  | { t: 'trial_landed'; id: string; pad: number; center: boolean; missed: boolean }
   /** 낙하물에 맞았다 — 맞은 사람 화면의 연출용. 기록은 서버가 이미 했다 */
   | { t: 'trial_hit'; id: string; objectId: number }
   /**
@@ -190,6 +205,21 @@ export type S2CMessage =
   | { t: 'trial_picked'; id: string; objectId: number }
   /** 색 사냥 — 주워진 자리 근처에 같은 색이 다시 돋았다 (색 분포 유지, docs/COLORHUNT.md §6) */
   | { t: 'trial_orb'; orb: ColorOrb }
+  /**
+   * 회전 원판 — 서버 물리 스냅샷(~10Hz). `theta` 는 원판의 회전각(rad, +y 축), `omega` 는 각속도(rad/s) — 클라는 다음
+   * 스냅샷까지 이 둘로 원판을 돌린다. `players` 는 **실제 사람과 AI 좌석 전부**의 월드 자리다 — 이 게임은 사람의 자리도
+   * 서버가 적분하므로 player_moved 가 아니라 여기로 온다. `s` 는 그 사람의 미끄러짐 속도(원판 기준, m/s) — 자기 몸의
+   * 예측에만 쓴다. 마찰계수는 없다(P8) — 미끄러진 결과만 온다. `f` 는 떨어진 상태(1) · `m` 은 걷기(1) · 달리기(2).
+   */
+  | {
+      t: 'trial_disc';
+      at: number;
+      theta: number;
+      omega: number;
+      players: { id: string; x: number; z: number; y: number; h: number; m: number; f: number; sx: number; sz: number }[];
+    }
+  /** 회전 원판 — 누가 떨어졌다. 떨어진 사람 화면의 연출용. 기록은 서버가 이미 했다 */
+  | { t: 'trial_fell'; id: string }
   | { t: 'trial_result'; result: TrialResultWire }
   /** (재)입장 시 지금까지의 전체 기록을 백필한다 — 로그 탭은 이걸로 채운다 */
   | { t: 'trial_history'; results: TrialResultWire[] };

@@ -23,6 +23,7 @@ import { BODIES, type BodyId } from '@/world/mp/bodies';
 import { GRAVITY, JUMP_SPEED, MOVE_THROTTLE_MS, WALK_SPEED, WORLD } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, forwardOf, placeChaseCamera } from './chase';
+import { platformState } from './platformState';
 import { selfPose } from './selfPose';
 
 /** 막는 벽은 **보이는 벽과 같은 맵**의 것이어야 한다 — 배경을 갈아끼운 자리는 HallScene 의 def (머리말) */
@@ -144,12 +145,22 @@ export function FreeRig({
       grounded.current = false;
     }
 
+    /*
+     * 움직이는 플랫폼 — 발판 위에 서 있으면 발판이 나를 실어 나른다 (platformState.carryX). 맵의 충돌 상자는 정지해 있어
+     * 발판은 여기서 따로 본다: 바닥 높이는 맵과 발판 가운데 높은 쪽이다.
+     */
+    const nowMs = Date.now();
+    if (platformState.active && grounded.current) {
+      const pad = platformState.padUnder(pos.current.x, pos.current.z, nowMs);
+      if (pad && pos.current.y >= platformState.PAD_TOP - 0.02) pos.current.x += platformState.carryX(pad.k, nowMs, Math.min(delta, 0.1) * 1000);
+    }
+
     map.resolveColliders(pos.current, pos.current.y);
     const b = bounds ?? map.bounds ?? WORLD;
     pos.current.x = Math.min(Math.max(pos.current.x, b.minX + 0.4), b.maxX - 0.4);
     pos.current.z = Math.min(Math.max(pos.current.z, b.minZ + 0.4), b.maxZ - 0.4);
 
-    const ground = map.groundHeightAt(pos.current.x, pos.current.z, pos.current.y);
+    const ground = Math.max(map.groundHeightAt(pos.current.x, pos.current.z, pos.current.y), platformState.groundAt(pos.current.x, pos.current.z, pos.current.y, nowMs));
     if (grounded.current && pos.current.y > ground + 0.02) grounded.current = false;
     if (grounded.current) pos.current.y = ground;
     else {

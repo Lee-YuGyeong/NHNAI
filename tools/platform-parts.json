@@ -1,0 +1,10 @@
+[
+  {
+    "id": "hover_pad",
+    "prompt": "Sci-fi floating hover platform for a jumping course: a wide flat octagonal metal pad with a slightly raised anti-slip top surface, a thick beveled rim with a continuous recessed light strip, two small thruster pods and a glowing emitter ring underneath, dark gunmetal steel with brushed panel lines, top view clean and flat, hovering level, simple clean geometry, centered"
+  },
+  {
+    "id": "pad_beacon",
+    "prompt": "Small sci-fi landing beacon post: a short cylindrical steel pylon with a ring of segmented light panels at the top and a flared base plate, dark gunmetal with panel lines, standing upright, simple clean geometry, centered"
+  }
+]
