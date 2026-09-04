@@ -4,7 +4,7 @@
  * 여기서 반드시 잡는 것 셋:
  *   1. 와이어에 정체가 없다 — game_state 의 좌석 어디에도 kind/role 이 없고, 격리 전엔 revealed 도 없다 (P-원칙).
  *   2. 판이 도는 동안 사람의 채팅은 좌석 이름으로 나간다 (플레이어 id · 닉네임이 사라진다).
- *   3. 의심도는 지목으로만 움직이고, 100 이면 격리 · 정체 공개 · 승패로 이어진다 (P1 · §1.2 · §1.3).
+ *   3. 의심도는 말로만 움직이고(말 속의 지목 · 관리 AI 의 말 읽기), 100 이면 격리 · 정체 공개 · 승패로 이어진다 (P1 · §1.2 · §1.3).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -160,6 +160,45 @@ describe('GameRuntime — 판 한 바퀴', () => {
     await vi.advanceTimersByTimeAsync(6_000);
     h.rt.onChat('p1', '아 배고파');
     expect(h.lastState().suspicion[other.id]).toBe(8);
+  });
+
+  it('관리 AI 가 오간 말을 읽고 의심도를 움직인다 — 지목 없이', async () => {
+    let target = '';
+    let asked = 0;
+    const brain: Brain = {
+      mode: 'api',
+      ask: async ({ tool }) => {
+        if (tool.name !== 'read_room') return null;
+        asked += 1;
+        return { marks: [{ name: target, amount: 9, reason: '소수점까지 읽었다' }], broadcast: '' };
+      },
+    };
+    const h = harness({ brain });
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    const p1Seat = h.roleOf('p1')!.seatId;
+    target = h.lastState().seats.find((s) => s.id === p1Seat)!.name;
+
+    // 한 마디로는 안 읽는다 — 몇 마디가 한 장면이다 (READ_MIN_LINES)
+    h.rt.onChat('p1', '나는 정지선에서 0.42m 초과했다');
+    await vi.advanceTimersByTimeAsync(20);
+    expect(asked).toBe(0);
+
+    h.rt.onChat('p1', '전환 직후 오차는 0.08m 였다');
+    await vi.advanceTimersByTimeAsync(20);
+    expect(asked).toBe(1);
+    expect(h.lastState().suspicion[p1Seat]).toBe(9);
+    const leader = [...h.sent].reverse().find((m): m is Extract<GameS2CMessage, { t: 'game_leader' }> => m.t === 'game_leader')!;
+    expect(leader.text).toContain('발화 분석');
+    // 겨눔은 안 생긴다 — 말에 붙은 값이라 철회로 걷히지 않는다
+    expect(h.lastState().accusations).toEqual({});
+
+    // 바로 이어 떠들어도 다음 장면은 READ_EVERY_MS 뒤에야 읽는다
+    h.rt.onChat('p1', '아무튼 나는 사람이다');
+    h.rt.onChat('p1', '믿어라');
+    await vi.advanceTimersByTimeAsync(20);
+    expect(asked).toBe(1);
+    expect(h.lastState().suspicion[p1Seat]).toBe(9);
   });
 
   it('브리핑 → 토론 → 테스트 → 결과 모달 → 토론 으로 흐른다', async () => {

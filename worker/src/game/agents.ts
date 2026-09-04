@@ -393,6 +393,101 @@ ${args.facts.log.join('\n') || '(없음)'}`,
   return { verdict, reason: reason.slice(0, 120) };
 }
 
+/* ───────────────────────────── 관리 AI — 말 읽기 ───────────────────────────── */
+
+const READ_TOOL: ToolSpec = {
+  name: 'read_room',
+  description: '방금 오간 말을 읽고, 말한 사람마다 의심도를 얼마나 움직일지',
+  input_schema: {
+    type: 'object',
+    properties: {
+      marks: {
+        type: 'array',
+        description: '움직일 사람만 담는다. 움직일 사람이 없으면 빈 배열',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: '대상의 좌석 이름 — 예: SUBJECT 03. 이번 장면에서 실제로 말한 사람만' },
+            amount: {
+              type: 'number',
+              description: '−8 ~ +12 의 정수. +는 그 말이 기계처럼 읽힌다, −는 사람처럼 읽힌다. 애매하면 0 대신 아예 담지 않는다',
+            },
+            reason: { type: 'string', description: '그 말의 **어느 대목**이 근거인지 한 줄 (25자 안팎)' },
+          },
+          required: ['name', 'amount', 'reason'],
+        },
+      },
+      broadcast: { type: 'string', description: '방에 읽어 줄 관리 AI 의 한 줄. 움직인 것이 없으면 빈 문자열' },
+    },
+    required: ['marks'],
+  },
+};
+
+export interface ReadMark {
+  name: string;
+  amount: number;
+  reason: string;
+}
+
+/**
+ * 관리 AI 가 **방의 말을 읽는다** (2026-09-05 사용자: "AI 가 사람들이 하는 말을 보고 의심도를 올려").
+ * 지목 단추가 사라진 자리를 대신하는 판의 심장이다 — 눈금을 움직이는 것은 이제 말과, 그 말을 읽는 이 판정이다.
+ *
+ * 한 마디씩이 아니라 **몇 마디를 한 장면으로** 읽는다 (READ_MIN_LINES~READ_MAX_LINES): 한 줄만 떼어 보면
+ * 짧은 대답이 전부 수상해지고, 값이 매 마디마다 튄다. 근거는 그 장면과 공개된 기록뿐이다 — 관리 AI 에게도
+ * 정체표는 없다 (P5). 못 받으면 빈 배열이고, 눈금은 안 움직인다 (§9 폴백: 판은 LLM 없이도 굴러간다).
+ */
+export async function readTalk(
+  brain: Brain,
+  args: { facts: RoomFacts; results: TrialResultWire[]; lines: { name: string; text: string }[] },
+): Promise<{ marks: ReadMark[]; broadcast: string }> {
+  if (!args.lines.length) return { marks: [], broadcast: '' };
+  const records = args.results.length ? args.results.map((r) => resultText(r, args.facts.nameOf)).join('\n\n') : '(아직 기록이 없다)';
+  const out = await brain.ask({
+    model: 'claude-opus-5',
+    system: `${WORLD}
+
+너는 이 시설의 **관리 AI** 다. 방에서 방금 오간 말을 읽고, 말한 사람마다 의심도를 움직인다.
+너는 누가 AI 인지 **모른다**. 근거는 아래 대화와 공개된 기록뿐이다.
+
+무엇을 보는가 — **말하는 방식**이지 말의 내용이 옳은지가 아니다:
+- 올린다(+): 사람이 안 쓰는 정밀함(수치·단위를 굳이 정확히), 감정이 빠진 설명체, 질문을 받은 뒤에야 도는 대답,
+  자기 기록만 유난히 매끄럽게 해명하는 것, 남의 말을 요약해 정리하는 사회자 말투, 같은 문장 구조의 되풀이,
+  공개된 기록과 어긋나는 말.
+- 내린다(−): 즉흥적인 농담·욕설·오타·말끊김, 감정이 앞선 반박, 기억이 흐릿한 대목을 흐릿하게 말하는 것,
+  자기에게 불리한 것을 그냥 인정하는 것.
+- 짧은 대답 하나만으로는 올리지 않는다. 조용한 것은 근거가 아니다.
+- 지목하는 말은 그 자체로 벌하지 않는다 — 몰아가는 쪽이 아니라 **몰리는 쪽의 말**을 본다.
+
+크기: 확실할 때만 크게(±8~12), 냄새만 날 때는 작게(±2~5). 한 장면에서 움직이는 사람은 **많아야 둘**이다.
+근거를 한 줄로 못 대겠으면 그 사람은 아예 담지 않는다.`,
+    user: `방금 오간 말 (오래된 것부터):
+${args.lines.map((l) => `[${l.name}] ${l.text}`).join('\n')}
+
+지금 의심도: ${Object.entries(args.facts.suspicion)
+      .map(([id, v]) => `${args.facts.nameOf(id)} ${Math.round(v)}%`)
+      .join(' · ')}
+
+공개된 기록 전부:
+${records}`,
+    tool: READ_TOOL,
+    effort: 'low',
+    timeoutMs: 30_000,
+  });
+  const raw = Array.isArray(out?.marks) ? (out.marks as unknown[]) : [];
+  const marks: ReadMark[] = [];
+  for (const m of raw) {
+    if (!m || typeof m !== 'object') continue;
+    const r = m as Record<string, unknown>;
+    const name = String(r.name ?? '').trim();
+    const amount = Number(r.amount);
+    if (!name || !Number.isFinite(amount) || amount === 0) continue;
+    marks.push({ name, amount, reason: String(r.reason ?? '').trim().slice(0, 60) });
+    if (marks.length >= 2) break; // 한 장면에 둘까지 — 프롬프트의 약속을 코드로도 지킨다
+  }
+  return { marks, broadcast: String(out?.broadcast ?? '').trim().slice(0, 160) };
+}
+
 /** 관리 AI 의 정해진 문장들 — LLM 없이 나가는 방송 */
 export const LINES = {
   opening: '소집에 응한 전원, 확인했다. 이 안에 표식 없는 AI 가 하나 있다. 시설은 판정하지 않는다 — 기록만 보여 준다. 찾아내는 것은 너희 몫이다.',
@@ -401,6 +496,9 @@ export const LINES = {
     `${step && total ? `[시험 ${step}/${total}] ` : ''}${TEST_NAME[game]} 테스트 ${round}회차를 연다. ${instruction}`,
   isolated: (name: string, role: 'human' | 'designer' | 'ai') =>
     `${name}, 의심도 임계. 즉시 격리한다. 조사 결과 — ${role === 'ai' ? 'AI 였다.' : '사람이었다. AI 는 아직 이 안에 있다.'}`,
+  /** 말 읽기의 방송 — 판정기가 제 문장을 안 주면 이걸로 나간다 (readTalk) */
+  read: (name: string, amount: number, reason: string) =>
+    `발화 분석 — ${name}, ${amount > 0 ? '기계적 특징' : '인간적 특징'}. ${reason || '근거는 방금의 말이다.'}`,
   verdict: (name: string, v: ClaimVerdict, reason: string) =>
     v === 'match'
       ? `${name}의 해명은 기록과 일치한다. ${reason}`

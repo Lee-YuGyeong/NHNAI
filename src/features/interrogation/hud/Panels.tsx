@@ -1,32 +1,23 @@
 /**
- * 판 위의 판들 — 상단 줄 · 좌석판(의심도 · 지목) · 채팅 · 기록 요약 · 결과 모달 · 대기 · 설계자 조작 · 끝 화면.
+ * 판 위의 판들 — 시계 · 채팅 · 기록 요약 · 결과 모달 · 대기 · 설계자 조작 · 끝 화면.
  * 전부 서버가 준 상태(gameSlice)를 그리기만 한다. 값을 만들지 않는다.
+ *
+ * ★ **상단 줄(방 번호 · 국면 · 남은 초 · 테스트 n/3 · 격리 n/2)과 좌석판(SUBJECTS 카드)은 걷었다**
+ *   (2026-09-05 사용자: "이거 카드는 안보여도돼. 머리위에 의심도만 보이면 돼" · "방 1234 … 격리 0/2
+ *   이것도 안보이게"). 의심도는 이제 몸 위의 막대 하나로만 읽는다 (scene/SuspicionBar).
+ *   카드에 달려 있던 지목·동조·철회 단추도 같이 사라졌다 — 눈금을 움직이는 것은 **관리 AI 가 사람들의
+ *   말을 읽는 것**이고(2026-09-05 사용자: "AI 가 사람들이 하는 말을 보고 의심도를 올려",
+ *   worker/src/game/agents.ts 의 readTalk), 말 속의 지목은 서버가 알아서 읽는다(runtime 의 accusationIn).
+ *   걷어낸 판은 git 31b8829 이전에 있다.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 /* 대화창이 새 말을 따라갈지 — 규칙은 /arena 와 한 곳을 본다. 두 벌로 두면 반드시 어긋난다 */
 import { followsBottom } from '@/features/arena/feedscroll';
-import {
-  GAME_MAX_HUMANS,
-  GAME_MIN_HUMANS,
-  GAME_TEST_ORDER,
-  type GameOutcome,
-  type GameRole,
-  type GameSeat,
-  type GameStateWire,
-} from '@/world/mp/game-protocol';
+import { GAME_MAX_HUMANS, GAME_MIN_HUMANS, type GameOutcome, type GameRole, type GameSeat, type GameStateWire } from '@/world/mp/game-protocol';
 import type { TrialResultWire } from '@/world/mp/protocol';
 import { BODIES, type BodyId } from '@/world/mp/bodies';
 import type { ChatEntry } from '../interrogationSlice';
 import { ResultTable, TEST_TITLE } from './ResultTable';
-
-export const PHASE_LABEL: Record<GameStateWire['phase'], string> = {
-  lobby: '소집 중',
-  briefing: '배역 통보',
-  discussion: '토론 · 지목',
-  test: '물리 테스트',
-  result: '기록 공개',
-  ended: '판정 종료',
-};
 
 export const ROLE_LABEL: Record<GameRole, string> = { human: '사람', designer: 'AI 설계자', ai: 'AI' };
 
@@ -46,31 +37,6 @@ export function useCountdown(endsAt: number | null): number | null {
   return left;
 }
 
-/* ─────────────────────────────── 상단 줄 ─────────────────────────────── */
-
-export function TopBar({ wire, roomCode }: { wire: GameStateWire; roomCode: string }) {
-  const left = useCountdown(wire.phaseEndsAt);
-  const alive = wire.seats.filter((s) => !s.isolated).length;
-  const isolated = wire.seats.length - alive;
-  return (
-    <div className="ig-top">
-      <span>방 {roomCode}</span>
-      <span className={wire.phase === 'test' ? 'ig-phase-test' : undefined}>
-        <b>{PHASE_LABEL[wire.phase]}</b>
-        {wire.currentTest ? ` · ${TEST_TITLE[wire.currentTest.game]} ${wire.currentTest.round}회차` : ''}
-      </span>
-      {left !== null ? <span className="ig-timer">{left}s</span> : null}
-      {/* 차례표가 셋으로 고정이라 「몇째 중 몇」이 읽힌다 — 판이 언제 끝나는지가 첫 화면부터 보인다 (GAME_TEST_ORDER) */}
-      <span>
-        테스트 {wire.testsDone}/{GAME_TEST_ORDER.length}
-      </span>
-      <span>
-        격리 {isolated}/{wire.quota}
-      </span>
-    </div>
-  );
-}
-
 /**
  * 미니 게임의 남은 초 — 위 가운데 큰 숫자, 30 29 28 … (2026-09-05 사용자: "실제 게임할때 몇초 남았는지
  * 위에 보이게" · "대화 40초는 안 보여도 돼. 미니게임 30초만"). 그래서 **시험 국면에만** 선다.
@@ -87,68 +53,6 @@ export function BigClock({ endsAt, maxSeconds, urgentBelow = 10 }: { endsAt: num
     <div aria-live="off" className={`ig-clock${left <= urgentBelow ? ' urgent' : ''}`}>
       {left}
       <span>초</span>
-    </div>
-  );
-}
-
-/* ─────────────────────────────── 좌석판 ─────────────────────────────── */
-
-export function Board({
-  wire,
-  mySeatId,
-  aiId,
-  onAccuse,
-  onWithdraw,
-}: {
-  wire: GameStateWire;
-  mySeatId: string | null;
-  /** 설계자에게만 온 AI 의 좌석 — 표시는 나에게만 */
-  aiId: string | null;
-  onAccuse: (id: string) => void;
-  onWithdraw: () => void;
-}) {
-  const myTarget = mySeatId ? wire.accusations[mySeatId] : undefined;
-  const meAlive = !!mySeatId && !wire.seats.find((s) => s.id === mySeatId)?.isolated;
-  const canAct = meAlive && (wire.phase === 'discussion' || wire.phase === 'test');
-  const nameOf = (id: string) => wire.seats.find((s) => s.id === id)?.name ?? id;
-  const accusersOf = (id: string) => Object.entries(wire.accusations).filter(([, t]) => t === id).map(([by]) => by);
-
-  return (
-    <div className="ig-board">
-      <h3>
-        <span>SUBJECTS</span>
-        <span>의심도</span>
-      </h3>
-      {wire.seats.map((s) => {
-        const v = wire.suspicion[s.id] ?? 0;
-        const accusers = accusersOf(s.id);
-        const mine = myTarget === s.id;
-        return (
-          <div key={s.id} className={`ig-seat${s.id === mySeatId ? ' me' : ''}${s.isolated ? ' isolated' : ''}${accusers.length ? ' accused' : ''}`}>
-            <div className="ig-seat-name">
-              <span>
-                {s.name}
-                {s.id === mySeatId ? ' (나)' : ''}
-                {s.revealed ? <span className={`ig-tag${s.revealed === 'ai' ? ' ai' : ''}`}> · {ROLE_LABEL[s.revealed]}</span> : null}
-                {!s.revealed && aiId === s.id ? <span className="ig-tag ai"> · AI</span> : null}
-              </span>
-              {accusers.length ? <small>지목: {accusers.map(nameOf).join(', ')}</small> : null}
-              <div className={`ig-gauge${v >= 70 ? ' hot' : ''}`}>
-                <i style={{ width: `${v}%` }} />
-              </div>
-            </div>
-            <span className="ig-seat-val">{Math.round(v)}%</span>
-            {s.id === mySeatId || s.isolated ? (
-              <span />
-            ) : (
-              <button type="button" className={mine ? 'on' : undefined} disabled={!canAct} onClick={() => (mine ? onWithdraw() : onAccuse(s.id))}>
-                {mine ? '철회' : accusers.length ? '동조' : '지목'}
-              </button>
-            )}
-          </div>
-        );
-      })}
-      <div className="ig-acc">지목 +8 · 동조 +5 · 몰이 가산 · 철회 −8 · 해명 판정 ±10. 100%면 즉시 격리.</div>
     </div>
   );
 }

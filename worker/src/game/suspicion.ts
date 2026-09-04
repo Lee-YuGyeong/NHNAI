@@ -1,7 +1,8 @@
 /**
  * 의심도 상태머신 — 순수 클래스다. 시각도 소켓도 모른다 (PLANNING §1.2 · P1).
  *
- * 의심도를 움직이는 것은 **오직 발언(지목 · 동조 · 철회)과 관리 AI 의 주장 판정뿐**이다.
+ * 의심도를 움직이는 것은 **오직 말뿐**이다 — 발언(지목 · 동조 · 철회), 관리 AI 의 주장 판정,
+ * 그리고 관리 AI 가 방의 대화를 읽고 내리는 판정(read).
  * 물리 테스트의 어떤 수치도 여기로 자동으로 흘러들지 않는다 — 그 값은 화면에 뜨고, 사람이 그걸 보고
  * 지목해야만 눈금이 움직인다. 이 파일에 테스트 결과 타입을 import 하지 않는 것이 그 약속이다.
  *
@@ -16,6 +17,7 @@
  *   몰이            2인 이상이 같은 대상을 겨누는 동안, 발언마다 +2 가산 — 몰이 한 번(episode)에 +6 까지
  *   철회            겨누기를 거두면 **그동안 그 대상에 얹은 만큼** 되돌린다 ("건 만큼 되돌림")
  *   주장 판정       일치 −10 · 불일치 +10 (§4.2 가 곧 이 트리거다)
+ *   말 읽기         관리 AI 가 몇 마디를 한 장면으로 읽고 −8 ~ +12 (read) — 겨눔이 아니라 그 사람의 말에 붙는 값이라 철회로 안 걷힌다
  *   100             격리 — 눈금이 얼어붙고, 그 사람이 건 지목은 전부 철회된다 (죽은 사람은 몰지 못한다)
  */
 
@@ -126,6 +128,20 @@ export class SuspicionBook {
     if (this.accusersOf(target).length < 2) this.mobGiven.delete(target);
     this.bump(target, -amount);
     return [{ target, amount: -amount, by, why: '철회' }];
+  }
+
+  /**
+   * 관리 AI 가 **말을 읽고** 움직이는 눈금 (2026-09-05 사용자: "AI 가 사람들이 하는 말을 보고 의심도를 올려").
+   * 지목처럼 「누가 누구를 겨눈다」가 아니라 그 사람의 **말 자체**에 대한 판정이라, 겨눔(pointing)도
+   * 되돌림(staked)도 남기지 않는다 — 철회로 걷히지 않는 값이다. 걸음의 크기는 여기서 상한만 지킨다
+   * (SUSPICION.readMin ~ readMax): 판정기가 무슨 숫자를 불러도 판이 한 번에 뒤집히지 않게.
+   */
+  read(id: string, amount: number, why: string): SuspicionDelta | null {
+    if (!this.value.has(id) || this.frozen.has(id)) return null;
+    const clamped = Math.round(Math.max(SUSPICION.readMin, Math.min(SUSPICION.readMax, amount)));
+    if (clamped === 0) return null;
+    this.bump(id, clamped);
+    return { target: id, amount: clamped, by: 'LEADER', why };
   }
 
   /** 관리 AI 의 주장 판정 (§4.2) — 그 사람의 눈금이 움직인다 */

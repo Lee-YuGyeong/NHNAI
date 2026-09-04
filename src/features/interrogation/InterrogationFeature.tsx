@@ -24,7 +24,7 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { BigClock, Board, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TopBar } from './hud/Panels';
+import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal } from './hud/Panels';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
@@ -376,8 +376,6 @@ export function InterrogationFeature() {
   const onPick = useCallback((objectId: number) => conn.sendPick(objectId), [conn]);
   const onWalk = useCallback((x: number, z: number) => conn.sendWalk(x, z), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
-  const onAccuse = useCallback((target: string) => conn.game({ t: 'game_accuse', target }), [conn]);
-  const onWithdraw = useCallback(() => conn.game({ t: 'game_withdraw' }), [conn]);
   const onStart = useCallback(
     (fillTo: number) => {
       dispatch(gameActions.clearReject());
@@ -407,7 +405,7 @@ export function InterrogationFeature() {
             .map((id) => ({ id })),
     [inGame, seats, mySeatId, players, selfId, dying],
   );
-  /** 내가 지금 겨누고 있는 좌석 — 그 몸의 이름표에 👉 가 붙는다 (좌석판의 「철회」와 같은 값) */
+  /** 내가 지금 겨누고 있는 좌석 — 그 몸의 이름표에 👉 가 붙는다. 단추는 없다: 말에서 읽어 낸 지목이다 (runtime 의 accusationIn) */
   const markId = mySeatId ? (wire?.accusations[mySeatId] ?? null) : null;
   const spawn = useMemo(() => (mySeat ? seatSpot(mySeat, seats.length) : { x: 0, z: 4 }), [mySeat, seats.length]);
   const hud =
@@ -430,7 +428,7 @@ export function InterrogationFeature() {
                     ? `「${hunt.target}」 구슬만 E 로 주워라 (주움 ${myPicks}) — 헷갈리면 견본판과 대조하라`
                     : '지시된 색의 구슬을 E 로 주워라'
           : phase === 'discussion'
-            ? 'WASD 이동 · Enter 채팅 · 왼쪽 판에서 지목'
+            ? 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
             : '';
 
   return (
@@ -465,8 +463,7 @@ export function InterrogationFeature() {
         <div className="ig-corner">
           <BackToRoot />
         </div>
-        {wire ? <TopBar wire={wire} roomCode={roomCode} /> : null}
-        {/* 미니 게임 30초만 큰 숫자로 — 토론 40초는 상단줄의 작은 초로 족하다 (사용자, BigClock 머리말) */}
+        {/* 미니 게임 30초만 큰 숫자로 — 토론은 시계 없이 간다 (사용자, BigClock 머리말) */}
         {wire && phase === 'test' ? <BigClock endsAt={wire.phaseEndsAt} maxSeconds={(test?.durationMs ?? GAME_TEST_MS) / 1000} /> : null}
         {phase === 'test' && wire?.currentTest ? <div className="ig-order">{wire.currentTest.instruction}</div> : null}
         {/* 색 사냥 — 목표색. 스와치는 **기준광 원색**(조명 밖 UI): 맵 안 견본판(조명색)과의 대비가 「조명이 색을 바꿨다」를 가르친다 */}
@@ -477,7 +474,11 @@ export function InterrogationFeature() {
           </div>
         ) : null}
 
-        {wire && inGame ? <Board wire={wire} mySeatId={mySeatId} aiId={me?.aiId ?? null} onAccuse={onAccuse} onWithdraw={onWithdraw} /> : null}
+        {/*
+          * 좌석 카드(SUBJECTS)는 없다 — 눈금은 **머리 위 막대**가 말한다 (scene/SuspicionBar, 2026-09-05 사용자:
+          * "카드는 안보여도돼. 머리위에 의심도만 보이면 돼"). 단추로 지목하는 짓도 같이 사라졌다:
+          * 눈금을 움직이는 것은 **관리 AI 가 사람들의 말을 읽는 것**이다 (worker/src/game/agents.ts 의 readTalk).
+          */}
         {inGame && latestResult && phase !== 'result' ? <RecordPanel result={latestResult} nameOf={nameOf} mySeatId={mySeatId} /> : null}
         {me?.role === 'designer' && wire && inGame && phase !== 'ended' ? (
           <DesignerPanel seats={seats} mySeatId={mySeatId} tamperLeft={me.tamperLeft} phase={phase} onTamper={onTamper} />
