@@ -103,16 +103,24 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
     seats: LiveSeat[];
     /** 어느 변수에서 읽었나 — 'voice-id' 면 방송용 자리에 넣어 둔 것이다 */
     source?: 'seat-ids' | 'voice-id' | 'none';
+    /** 못 읽은 사유 — 워커가 준 말 그대로 */
+    why?: string;
   }>({ state: 'loading', seats: [] });
 
   const reloadLive = useCallback(() => {
     setLive((p) => ({ ...p, state: 'loading' }));
     void fetch('/api/tts/seats')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: { seats: LiveSeat[]; source?: 'seat-ids' | 'voice-id' | 'none' }) =>
-        setLive({ state: 'done', seats: d.seats, source: d.source }),
-      )
-      .catch(() => setLive({ state: 'off', seats: [] }));
+      .then(async (r) => {
+        if (r.ok) return (await r.json()) as { seats: LiveSeat[]; source?: 'seat-ids' | 'voice-id' | 'none' };
+        // 워커가 붙여 보낸 사유를 그대로 들고 올라간다 — 「꺼져 있다」와 「안 떠 있다」는
+        // 화면에서 똑같이 보이는데 고치는 법이 정반대다
+        const said = (await r.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(said?.error ?? `HTTP ${r.status}`);
+      })
+      .then((d) => setLive({ state: 'done', seats: d.seats, source: d.source }))
+      .catch((e: unknown) =>
+        setLive({ state: 'off', seats: [], why: e instanceof Error ? e.message : String(e) }),
+      );
   }, []);
 
   useEffect(reloadLive, [reloadLive]);
@@ -217,9 +225,26 @@ export function SeatCasting({ voices }: { voices: AccountVoice[] | null }) {
         </div>
 
         {live.state === 'loading' && <div style={{ opacity: 0.6, fontSize: 13 }}>⋯ 읽는 중</div>}
+        {/*
+          「꺼져 있다」와 「안 떠 있다」는 화면에서 똑같이 보이는데 고치는 법이 정반대다.
+          워커가 사유를 붙여 보내므로(404 본문) 그걸 그대로 적고, 무엇을 할지도 갈라 적는다.
+          두 줄을 하나로 뭉쳐 뒀더니 워커를 멀쩡히 띄워 놓고 계속 워커를 의심했다 (2026-09-04).
+        */}
         {live.state === 'off' && (
-          <div style={{ opacity: 0.7, fontSize: 13 }}>
-            못 읽었다 — 워커가 떠 있는지, <code>SEAT_VOICE_DEV=1</code> 인지 확인한다.
+          <div style={{ fontSize: 13 }}>
+            {live.why?.includes('SEAT_VOICE_DEV') ? (
+              <span style={{ color: '#d9b06a' }}>
+                ⚠ 워커는 떠 있다. <strong>개발 스위치가 꺼져 있다</strong> —{' '}
+                <code>.dev.vars</code> 에 <code>SEAT_VOICE_DEV=1</code> 을 넣고 워커를 다시 띄운다.
+                (<code>.dev.vars</code> 는 워커가 <strong>시작할 때만</strong> 읽는다.)
+              </span>
+            ) : (
+              <span style={{ opacity: 0.75 }}>
+                못 읽었다 — <code>npm run worker:dev</code> 가 떠 있는지 확인한다.
+                <br />
+                <span style={{ opacity: 0.6 }}>사유: {live.why ?? '알 수 없음'}</span>
+              </span>
+            )}
           </div>
         )}
         {live.state === 'done' && live.seats.length === 0 && (
