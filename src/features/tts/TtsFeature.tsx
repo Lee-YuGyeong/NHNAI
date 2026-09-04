@@ -17,6 +17,12 @@ import {
 } from './audition';
 import { getFx, lastSpeech, setFx, setVoiceId, voiceName } from './engine';
 import { ttsActions, ttsSelectors } from './ttsSlice';
+/*
+ * 좌석 명부 캐스팅 — 이 화면의 나머지는 **리더 방송**(관리 AI)이고, 저 칸은 **참가자 아홉**이다.
+ * 폴더가 features/voice 인 것은 좌석 규칙을 방송 규칙과 섞지 않기 위해서다 (docs/VOICE.md §8) —
+ * 두 쪽의 조리법도 폴백 원칙도 정면으로 다르다. 화면에만 여기 얹는다.
+ */
+import { SeatCasting } from '@/features/voice/SeatCasting';
 
 /**
  * 방송 파이프라인 테스트 화면 — 여기서 보낸 방송도 실제 게임과 같은 경로를 탄다:
@@ -98,6 +104,8 @@ export function TtsFeature() {
     voices: [],
   });
   const [copied, setCopied] = useState('');
+  /** 라이브러리 → 계정 추가 상태. 아홉을 넣는 동안 어느 것을 이미 넣었는지 놓치지 않게 */
+  const [added, setAdded] = useState<Record<string, 'adding' | 'ok' | 'fail'>>({});
   /** 미리듣기 — 원음 그대로(필터 없음), 한 번에 하나 */
   const previewRef = useRef<HTMLAudioElement | null>(null);
 
@@ -120,6 +128,28 @@ export function TtsFeature() {
     const a = new Audio(v.previewUrl);
     previewRef.current = a;
     void a.play().catch(() => undefined);
+  };
+
+  /**
+   * 라이브러리 보이스를 계정에 넣는다 (좌석 명부용). 성공하면 목소리 목록을 다시 받아
+   * 아래 「좌석 명부 캐스팅」 드롭다운에 바로 뜨게 한다 — 다시 불러오지 않으면 방금 넣은
+   * 것을 못 골라서, 아홉을 채우는 동안 화면을 계속 새로고침하게 된다.
+   */
+  const addToAccount = (v: LibraryVoice) => {
+    setAdded((p) => ({ ...p, [v.id]: 'adding' }));
+    void fetch('/api/tts/library/add', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ownerId: v.ownerId, voiceId: v.id, name: v.name }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then(() => fetch('/api/tts/voices'))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: { voices: VoiceOption[] }) => {
+        setVoices(d.voices);
+        setAdded((p) => ({ ...p, [v.id]: 'ok' }));
+      })
+      .catch(() => setAdded((p) => ({ ...p, [v.id]: 'fail' })));
   };
 
   /** 캐스팅에 필요한 셋 — voice-cast.json 의 library 항목 모양 그대로 */
@@ -356,6 +386,11 @@ export function TtsFeature() {
         <div key={v.id} style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '4px 0' }}>
           <button onClick={() => preview(v)} disabled={!v.previewUrl}>미리듣기</button>
           <button onClick={() => copyCasting(v)}>{copied === v.id ? '복사됨 ✓' : '캐스팅 복사'}</button>
+          {/* 라이브러리 id 는 그대로 합성에 못 쓴다 — 계정에 넣어야 쓸 수 있는 id 가 나온다.
+              아홉 번 반복할 일이라 여기서 누르게 한다 (SEAT_VOICE_DEV=1 일 때만 산다) */}
+          <button onClick={() => addToAccount(v)} disabled={added[v.id] === 'adding'}>
+            {added[v.id] === 'ok' ? '추가됨 ✓' : added[v.id] === 'adding' ? '추가 중…' : '계정에 추가'}
+          </button>
           <span style={{ fontSize: 14 }}>
             {v.name}
             <span style={{ opacity: 0.55, fontSize: 12, marginLeft: 8 }}>
@@ -366,6 +401,7 @@ export function TtsFeature() {
           </span>
         </div>
       ))}
+      <SeatCasting voices={voices} />
       <h3>상태</h3>
       <div>재생 중: {current ? `[${KIND_LABEL[current.kind]}] ${current.text}` : '—'}</div>
       <div>

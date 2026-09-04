@@ -22,6 +22,7 @@ import { handleLabAct, handleLabCast, handleLabFree, handleLabTalk, handleWorldB
 import { LobbyDO, handleRooms } from './lobby-do';
 import { RoomDO } from './room-do';
 import { handleTts, handleTtsLibrary, handleTtsVoices } from './tts';
+import { handleLibraryAdd, handleSeatAudition, handleSeatClip, handleSeatClipMint } from './seat-voice';
 
 export { LobbyDO, RoomDO };
 
@@ -40,6 +41,16 @@ export interface Env {
   ELEVENLABS_API_KEY?: string;
   /** 기본 목소리 ID. 대시보드 Voices 에서 고른 값 */
   ELEVENLABS_VOICE_ID?: string;
+  /**
+   * 참가자 좌석 목소리 명부 — voice id 를 쉼표로 나열한다. 순서가 곧 명부 번호다.
+   * 아홉을 채우는 것이 기본이고, 비거나 모자라면 **그 방은 통째로 조용해진다** —
+   * 일부 좌석만 소리가 나면 그게 정답표가 된다 (docs/VOICE.md §3, P11).
+   */
+  ELEVENLABS_SEAT_VOICE_IDS?: string;
+  /** 클립 토큰 서명 열쇠. 비우면 ELEVENLABS_API_KEY 에서 파생한다 (seat-voice.ts) */
+  TTS_CLIP_SECRET?: string;
+  /** '1' 이면 /voice 가 토큰을 직접 받아 간다. **배포에서는 켜지 않는다** (seat-voice.ts) */
+  SEAT_VOICE_DEV?: string;
   /**
    * 계정 (worker/src/auth.ts) — humanish 와 **같은 Supabase 프로젝트**를 쓴다.
    * 셋 중 하나라도 비면 로그인이 통째로 꺼지고, 화면은 게스트 닉네임만으로 돈다.
@@ -61,7 +72,8 @@ const CORS = {
 };
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  // ctx 는 좌석 음성이 쓴다 — 엣지 캐시에 넣는 일(cache.put)을 응답 뒤로 미룬다 (seat-voice.ts)
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
@@ -95,6 +107,24 @@ export default {
     if (url.pathname === '/api/tts') return handleTts(request, env);
     if (url.pathname === '/api/tts/voices') return handleTtsVoices(request, env);
     if (url.pathname === '/api/tts/library') return handleTtsLibrary(request, env);
+
+    /*
+     * 참가자 좌석 음성 (worker/src/seat-voice.ts). 위의 /api/tts 와 **다른 관로다** —
+     * 저쪽은 리더 한 사람이 방송하는 자리라 POST 로 그때그때 합성하지만, 이쪽은 방 안
+     * 아홉 명이 같은 줄을 듣는 자리라 서명된 GET 으로 받아 엣지 캐시에 태운다.
+     * 안 그러면 한 줄에 크레딧이 아홉 번 나가고, 아홉 번의 왕복이 제각각이라 사람마다
+     * 누가 먼저 말한 것처럼 들리는지가 달라진다 (docs/VOICE.md §5).
+     */
+    if (url.pathname === '/api/tts/clip') return handleSeatClip(request, env, ctx);
+    // 시연 화면(/voice)이 토큰을 받아 가는 자리 — SEAT_VOICE_DEV=1 일 때만 산다
+    if (url.pathname === '/api/tts/clip/mint') return handleSeatClipMint(request, env);
+    /*
+     * 명부 캐스팅(/tts) — 역시 SEAT_VOICE_DEV=1 일 때만.
+     * 시청은 **게임이 실제로 낼 조리법**으로 낸다(seat-voice.ts 의 SEAT_SETTINGS). 방송용
+     * 조리법으로 들려주면 게임이 안 내는 소리를 듣고 아홉을 고르게 된다.
+     */
+    if (url.pathname === '/api/tts/seat-audition') return handleSeatAudition(request, env, ctx);
+    if (url.pathname === '/api/tts/library/add') return handleLibraryAdd(request, env);
 
     const match = ROOM_PATH.exec(url.pathname);
     // 방 경로가 아니면 정적 파일로 넘긴다 (없는 경로는 assets 설정에 따라 index.html).
