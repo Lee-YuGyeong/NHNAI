@@ -138,6 +138,11 @@ export class TrialConnection {
     };
   }
 
+  /** 판이 끝난 뒤 새 판을 청한다 — 판이 도는 중이면 서버가 그 판을 다시 알려 줄 뿐이다 */
+  rejoin(game: TrialGame): boolean {
+    return this.send({ t: 'trial_join', game });
+  }
+
   /** 내 좌표. LocalRig 과 같은 규칙으로 TrialRig 이 보낸다 — 남의 화면에 내 로봇이 서게 하는 것뿐, 판정과 무관하다 */
   sendMove(x: number, z: number, y: number, heading: number, anim: AnimState): void {
     this.send({ t: 'move', x, z, y, heading, anim });

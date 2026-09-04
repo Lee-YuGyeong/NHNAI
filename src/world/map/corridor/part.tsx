@@ -41,6 +41,11 @@ export const PART_NAMES = {
   trial_gate: '정지선 게이트',
   trial_beacon: '레인 비콘',
   trial_pod: '낙하 포드',
+  ball_basketball: '농구공',
+  ball_soccer: '축구공',
+  ball_baseball: '야구공',
+  ball_pingpong: '탁구공',
+  ball_bowling: '볼링공',
 } as const satisfies Partial<Record<AssetId, string>>;
 
 export type PartId = keyof typeof PART_NAMES;

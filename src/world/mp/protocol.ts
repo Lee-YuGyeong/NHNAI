@@ -148,7 +148,7 @@ export type S2CMessage =
    * 낙하 생존 — 서버가 돌리는 물리의 스냅샷(~10Hz). 클라는 이걸 보간해 그릴 뿐 물체를 스스로 떨어뜨리지 않는다.
    * 중력값은 없다 — 위치만 온다(P8). 실제 사람의 좌표는 player_moved 로 따로 오고, 여기 ai 는 서버가 움직이는 좌석뿐이다.
    */
-  | { t: 'trial_snapshot'; at: number; objects: { id: number; x: number; y: number; z: number }[]; ai: { id: string; x: number; z: number }[] }
+  | { t: 'trial_snapshot'; at: number; objects: { id: number; k: number; x: number; y: number; z: number }[]; ai: { id: string; x: number; z: number }[] }
   /** 낙하물에 맞았다 — 맞은 사람 화면의 연출용. 기록은 서버가 이미 했다 */
   | { t: 'trial_hit'; id: string; objectId: number }
   | { t: 'trial_result'; result: TrialResultWire }

@@ -26,18 +26,19 @@ interface Spec {
 
 const SPEC: Record<TrialGame, Spec> = {
   stopline: {
-    primary: { key: 'transitionError', label: '전환 직후 오차', unit: 'm', digits: 2 },
+    primary: { key: 'transitionError', label: '바닥이 바뀐 직후의 오차', unit: 'm', digits: 2 },
     rows: [
+      { key: 'meanAbsError', label: '정지 오차 평균 (|오차|)', unit: 'm', digits: 2 },
       { key: 'stopError', label: '마지막 정지 오차 (초과 + / 미달 −)', unit: 'm', digits: 2 },
-      { key: 'brakeTiming', label: '브레이크 시점의 잔여 거리', unit: 'm', digits: 2 },
+      { key: 'attempts', label: '시행', unit: '회', digits: 0 },
     ],
-    curveLabel: '적응 곡선 (시행 1 → 2 → 3, |오차|)',
+    curveLabel: '적응 곡선 (시행 순서대로, |오차|)',
     dirLabel: '오차 방향 (초과 + / 미달 −)',
   },
   fall: {
     primary: { key: 'minDistanceAvoid', label: '낙하 지점에서 벗어난 거리', unit: 'm', digits: 2 },
     rows: [
-      { key: 'transitionError', label: '구역 초반 5초의 회피 거리', unit: 'm', digits: 2 },
+      { key: 'transitionError', label: '중력이 바뀐 직후의 회피 거리', unit: 'm', digits: 2 },
       { key: 'unnecessaryMoves', label: '불필요한 이동', unit: '회', digits: 0 },
       { key: 'hitCount', label: '충돌', unit: '회', digits: 0 },
       { key: 'survivalTime', label: '첫 충돌까지', unit: '초', digits: 1 },
@@ -48,7 +49,7 @@ const SPEC: Record<TrialGame, Spec> = {
   colorhunt: {
     primary: { key: 'accuracy', label: '정답률', unit: '', digits: 2 },
     rows: [],
-    curveLabel: '라운드별 오답률',
+    curveLabel: '구간별 오답률',
     dirLabel: '판정 방향',
   },
 };
@@ -57,14 +58,19 @@ function fmt(v: unknown, unit: string, digits: number): string {
   return typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(digits)}${unit}` : '—';
 }
 
+const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥' };
+
 export function Scoreboard({ result, roster }: { result: TrialResultWire; roster: Record<string, string> }) {
   const spec = SPEC[result.game] ?? SPEC.stopline;
   const label = (id: string) => roster[id] ?? id;
   const p = spec.primary;
+  const when = result.endedAt ? new Date(result.endedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '';
 
   return (
     <div className="trial-scoreboard">
-      <header className="trial-scoreboard__head">ROUND {result.round}</header>
+      <header className="trial-scoreboard__head">
+        {GAME_LABEL[result.game] ?? result.game} {when ? `· ${when}` : ''}
+      </header>
 
       <section>
         <div className="trial-scoreboard__row trial-scoreboard__row--mean">

@@ -8,7 +8,7 @@
  */
 
 import { STOPLINE_TARGET } from '../../../src/world/mp/constants';
-import { frictionForRound, runDistance, runSpeed } from './stopline';
+import { frictionForPhase, runDistance, runSpeed } from './stopline';
 
 export interface StoplineProfile {
   /** 이 좌석이 "평소 감각"으로 여기는 마찰계수 — 1라운드(기준 조건)에 맞춰져 있다가 매 시행마다 조금씩 갱신된다 */
@@ -31,7 +31,7 @@ const SEARCH_MAX_MS = 8000;
 export function makeStoplineProfile(precision?: number): StoplineProfile {
   const p = precision === undefined ? Math.random() * 0.4 : Math.min(1, Math.max(0, precision));
   return {
-    assumedFriction: frictionForRound(1), // 다들 1라운드(기준=콘크리트)에 맞춰 시작한다
+    assumedFriction: frictionForPhase(1), // 다들 첫 구간(기준=콘크리트)에 맞춰 시작한다
     jitterMs: 200 - 180 * p + (precision === undefined ? Math.random() * 60 : 0),
     adaptRate: 0.3 + 0.7 * p,
   };
@@ -40,11 +40,11 @@ export function makeStoplineProfile(precision?: number): StoplineProfile {
 /**
  * 이번 시행의 accel~brake 경과 시간(ms)을 만든다. profile.assumedFriction 을 실제 마찰 쪽으로
  * 한 걸음 당긴 **뒤에** 그 값으로 "이 감각이면 목표 정지선에 서려면 언제 브레이크를 밟아야 하는가"를
- * 역산한다 — 그래서 라운드의 마지막 시행일수록 실제 마찰에 더 가깝게 반응한다(사람의 "몇 번
+ * 역산한다 — 그래서 한 구간의 뒤 시행일수록 실제 마찰에 더 가깝게 반응한다(사람의 "몇 번
  * 겪으면 는다"를 흉내).
  */
-export function nextStoplineElapsedMs(profile: StoplineProfile, round: number): number {
-  const trueFriction = frictionForRound(round);
+export function nextStoplineElapsedMs(profile: StoplineProfile, phase: number): number {
+  const trueFriction = frictionForPhase(phase);
   profile.assumedFriction += profile.adaptRate * (trueFriction - profile.assumedFriction);
 
   const decel = Math.max(0.01, profile.assumedFriction * GRAVITY_ACCEL);

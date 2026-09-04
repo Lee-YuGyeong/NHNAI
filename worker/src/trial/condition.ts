@@ -14,11 +14,8 @@
  */
 export const STOPLINE_FRICTION: readonly number[] = [0.6, 0.05, 0.9];
 
-/** 낙하 생존 3구역의 중력(m/s²) — 100% · 60% · 140%. 1구역이 기준. */
+/** 낙하 생존 3구간의 중력(m/s²) — 100% · 60% · 140%. 1구간이 기준. 공기저항·반발은 공마다 공개 표(mp/constants FALL_BALLS)다 */
 export const FALL_GRAVITY: readonly number[] = [9.8, 5.88, 13.72];
-/** 낙하물 공기저항 계수(v² 비례) · 바닥 반발계수 — 스펙의 "공기저항 적용 · 반발계수 0.4" */
-export const FALL_DRAG = 0.02;
-export const FALL_RESTITUTION = 0.4;
 
 /** 색 사냥 3라운드의 차단 파장. PR2(색 사냥)에서 쓴다. */
 export const COLORHUNT_BLOCK: readonly (string | null)[] = [null, 'red', 'green'];

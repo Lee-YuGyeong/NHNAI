@@ -11,21 +11,22 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { LOOK_SENSITIVITY, MAX_PITCH, input } from '@/world/input/input';
-import { EYE_HEIGHT, MOVE_THROTTLE_MS, STOPLINE_ATTEMPTS_PER_ROUND } from '@/world/mp/constants';
+import { EYE_HEIGHT, MOVE_THROTTLE_MS, STOPLINE_MAX_ATTEMPTS } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { runnerState } from './runnerState';
 import { START_Z, laneX, zAt } from './track';
 
 export function TrialRig({
   myId,
-  round,
+  gameKey,
   myAttempts,
   onAccel,
   onBrake,
   sendMove,
 }: {
   myId: string | null;
-  round: number;
+  /** 판이 바뀌면 자세를 처음으로 — 판 시작 시각이면 된다 */
+  gameKey: number;
   myAttempts: number;
   onAccel: () => void;
   onBrake: () => void;
@@ -48,7 +49,7 @@ export function TrialRig({
 
   useEffect(() => {
     phase.current = 'idle';
-  }, [round]);
+  }, [gameKey]);
 
   useEffect(() => {
     if (myAttempts === lastAttempts.current) return;
@@ -58,7 +59,7 @@ export function TrialRig({
 
   useEffect(() => {
     function keydown(e: KeyboardEvent): void {
-      if (e.repeat || !myId || myAttempts >= STOPLINE_ATTEMPTS_PER_ROUND) return;
+      if (e.repeat || !myId || myAttempts >= STOPLINE_MAX_ATTEMPTS) return;
       if (e.code === 'KeyW' && phase.current === 'idle' && runnerState.atStart(myId, Date.now())) {
         phase.current = 'running';
         runnerState.running(myId, Date.now()); // 서버 알림(trial_running)을 기다리지 않고 바로 달린다 — 남의 화면은 서버 시각으로 맞춘다

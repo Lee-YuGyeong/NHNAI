@@ -136,10 +136,18 @@ export const STOPLINE_TARGET = 16;
 export const STOPLINE_TOP_SPEED = 6;
 /** 가속도(m/s²). 탑스피드까지 STOPLINE_TOP_SPEED / STOPLINE_ACCEL 초 걸린다. */
 export const STOPLINE_ACCEL = 4;
-/** 한 라운드에 허용되는 시행 횟수. */
-export const STOPLINE_ATTEMPTS_PER_ROUND = 3;
-/** 정지선 미니게임의 총 라운드 수. */
-export const STOPLINE_ROUNDS = 3;
+/**
+ * 미니게임 하나 = 1분. 그 안에서 20초마다 조건(마찰 · 중력)이 몰래 바뀐다 — "라운드"는 없다
+ * (2026-09-04 사용자: "1분간 게임 하게 하고 … 라운드는 하나밖에 없어"). 세 구간의 조건표는
+ * worker/src/trial/condition.ts 에만 있다.
+ */
+export const TRIAL_GAME_MS = 60_000;
+export const TRIAL_PHASE_MS = 20_000;
+/** 끝난 뒤 요약을 보여 주는 시간(ms) */
+export const TRIAL_SUMMARY_MS = 10_000;
+
+/** 1분 동안 허용되는 시행 횟수 상한. */
+export const STOPLINE_MAX_ATTEMPTS = 9;
 
 /* ───────────────────────────── 물리 미니게임 — 낙하 생존 ───────────────────────────── */
 
@@ -148,16 +156,31 @@ export const STOPLINE_ROUNDS = 3;
  * 무대(z < -14)와 옆벽 선반을 피한 빈 바닥이다. 서버가 이 범위 안에 물체를 떨어뜨리고, 클라는 이 범위로 발을 막는다.
  */
 export const FALL_ARENA = { minX: -6, maxX: 6, minZ: -11, maxZ: 8 } as const;
-/** 한 구역(라운드)의 길이(ms). 구역이 바뀔 때마다 중력이 바뀐다 */
-export const FALL_ROUND_MS = 20_000;
-export const FALL_ROUNDS = 3;
 /** 낙하물 스폰 간격(ms) — 사용자 스펙 1.5초 */
 export const FALL_SPAWN_MS = 1500;
 /** 낙하물이 놓이는 높이(m). 처마(9)보다 살짝 아래 */
 export const FALL_SPAWN_Y = 8.5;
-/** 낙하물 반지름(m) · 사람 몸 반지름(m) — 둘의 합이 맞는 거리다 */
-export const FALL_OBJECT_R = 0.45;
+/** 사람 몸 반지름(m) — 공 반지름과 더한 것이 맞는 거리다 */
 export const FALL_BODY_R = 0.35;
+/** 위협 반경·회피 방향 기준에 쓰는 대표 공 반지름(m) — 실제 판정은 공마다 자기 반지름으로 */
+export const FALL_OBJECT_R = 0.24;
+
+/**
+ * 떨어지는 공들 — 공마다 무게가 다르다. 진공이면 다 같이 떨어지지만 여기엔 공기가 있다: 공기저항은
+ * 단면적에 비례하고 무게로 나뉘므로 **가볍고 성긴 탁구공이 늦게, 무겁고 촘촘한 볼링공이 빨리** 닿는다
+ * (종단속도 v = √(2mg / ρ·Cd·A)). 물리 계산은 실제 반지름(realR)·무게로, 화면·충돌은 보이게 키운 반지름(r)으로.
+ * 이 표는 공개다 — 숨기는 것은 중력 배율뿐(worker/src/trial/condition.ts).
+ */
+export const FALL_BALLS = [
+  { id: 'basketball', label: '농구공', r: 0.24, realR: 0.12, mass: 0.62, restitution: 0.75 },
+  { id: 'soccer', label: '축구공', r: 0.22, realR: 0.11, mass: 0.43, restitution: 0.65 },
+  { id: 'baseball', label: '야구공', r: 0.16, realR: 0.037, mass: 0.145, restitution: 0.5 },
+  { id: 'pingpong', label: '탁구공', r: 0.12, realR: 0.02, mass: 0.0027, restitution: 0.8 },
+  { id: 'bowling', label: '볼링공', r: 0.22, realR: 0.108, mass: 7.0, restitution: 0.1 },
+] as const;
+export type FallBallKind = (typeof FALL_BALLS)[number]['id'];
+/** 공기저항을 실제보다 진하게 — 8.5m 낙하에서 공마다 닿는 시각 차이가 눈에 보이려면 이만큼은 필요하다(실제 ×1 이면 0.25초 차) */
+export const FALL_DRAG_GAIN = 2.5;
 /** 서버 물리 틱과 스냅샷 주기(ms). 틱은 판정용, 스냅샷은 그리기용 */
 export const FALL_TICK_MS = 50;
 export const FALL_SNAPSHOT_MS = 100;

@@ -1,6 +1,6 @@
 /**
- * 낙하 생존 — 심문소 홀 가운데 마당에서 천장(트러스 아래)에서 떨어지는 화물 포드를 피한다.
- * StopLineScene 과 같은 재료(맵 · 조명 · 후처리 · Remotes) 위에 다리(DodgeRig)와 낙하물(FallingPods)만 바꿔 끼운다.
+ * 낙하 생존 — 심문소 홀 가운데 마당에서 천장(트러스 아래)에서 떨어지는 공들(무게가 다르다)을 피한다.
+ * StopLineScene 과 같은 재료(맵 · 조명 · 후처리 · Remotes) 위에 다리(DodgeRig)와 공(FallingBalls)만 바꿔 끼운다.
  * 물체는 서버 스냅샷대로만 떨어진다 — 중력값은 이 화면 어디에도 없다.
  */
 import { Suspense } from 'react';
@@ -13,7 +13,7 @@ import { AdaptiveFov, Exposure, MouseLook, Remotes } from '@/world/scene/WorldSc
 import { WorldCanvas } from '@/world/scene/WorldCanvas';
 import { DODGE_SPAWN, DodgeRig } from './DodgeRig';
 import { DodgerAvatar } from './DodgerAvatar';
-import { FallingPods } from './FallingPods';
+import { FallingBalls } from './FallingBalls';
 
 const def = MAPS.interrogation;
 const ARENA_W = FALL_ARENA.maxX - FALL_ARENA.minX;
@@ -72,9 +72,9 @@ export function FallScene({ roster, aiIds, sendMove }: FallSceneProps) {
         <def.Scene quality="high" />
         <ArenaEdge />
       </Suspense>
-      {/* 낙하물은 홀과 따로 기다린다 — 홀(부품 여럿)이 늦게 와도 떨어지는 것부터 보여야 피한다 */}
+      {/* 공은 홀과 따로 기다린다 — 홀(부품 여럿)이 늦게 와도 떨어지는 것부터 보여야 피한다 */}
       <Suspense fallback={null}>
-        <FallingPods />
+        <FallingBalls />
       </Suspense>
       {def.Effects ? <def.Effects /> : null}
 

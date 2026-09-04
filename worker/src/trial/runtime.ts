@@ -12,7 +12,6 @@
  *   라운드는 영영 안 끝난다 (2026-09-04 확인).
  */
 
-import { FALL_ROUNDS, STOPLINE_ROUNDS } from '../../../src/world/mp/constants';
 import type { PlayerSnapshot, S2CMessage, TrialGame, TrialResultWire } from '../../../src/world/mp/protocol';
 import type { TrialC2SMessage } from '../../../src/world/mp/validate';
 import type { GameEngine } from './engine';
@@ -24,10 +23,8 @@ import type { TrialResult } from './types';
 
 /** 실제 사람이 방 정원(ROOM_MAX_PLAYERS=3)만큼도 안 모여도 판이 허전하지 않을 최소 총원. */
 const TRIAL_PARTY_SIZE = 4;
-/** 실제 사람이 멈춰 서 버렸을 때의 안전망. room-do.ts 의 30초 청소 알람에 얹혀 확인한다. */
-const ROUND_TIMEOUT_MS = 45_000;
-
-const ROUNDS: Record<TrialGame, number> = { stopline: STOPLINE_ROUNDS, fall: FALL_ROUNDS, colorhunt: 3 };
+/** 판이 어떤 이유로든 안 닫혔을 때의 안전망(1분 판 + 여유). room-do.ts 의 30초 청소 알람에 얹혀 확인한다. */
+const ROUND_TIMEOUT_MS = 90_000;
 
 export class TrialRuntime {
   private engine: GameEngine | null = null;
@@ -158,8 +155,8 @@ export class TrialRuntime {
     await appendHistory(this.storage, result);
     this.broadcastFn({ t: 'trial_result', result: wire });
 
-    if (this.round < ROUNDS[engine.game]) await this.startRound();
-    else this.finished = true;
+    // 미니게임 하나 = 판 하나(1분). 다음 판은 누가 다시 trial_join 을 보낼 때 열린다 (onJoin)
+    this.finished = true;
   }
 }
 

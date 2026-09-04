@@ -57,3 +57,60 @@
   color: var(--grime);
   font-size: 13px;
 }
+
+/* 판이 끝났을 때 10초 보여 주는 짧은 요약 (Summary.tsx) */
+.trial-summary {
+  font-family: var(--font-mono);
+  color: var(--bone);
+  background: rgba(11, 8, 5, 0.94);
+  border: 1px solid var(--iron);
+  border-radius: 6px;
+  padding: 16px 20px;
+  display: grid;
+  gap: 12px;
+  min-width: 420px;
+}
+
+.trial-summary__head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--dust);
+}
+
+.trial-summary__table {
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.trial-summary__table th,
+.trial-summary__table td {
+  padding: 4px 12px;
+  text-align: right;
+  /* 참가자를 색·아이콘으로 구분하지 않는다 — 전부 같은 색이다 */
+  color: var(--bone);
+}
+
+.trial-summary__table th {
+  font-weight: 400;
+  color: var(--dust);
+  font-size: 12px;
+}
+
+.trial-summary__table td:first-child,
+.trial-summary__table th:first-child {
+  text-align: left;
+}
+
+.trial-summary__mean td {
+  border-top: 1px solid var(--iron);
+  color: var(--linen);
+  font-weight: 700;
+}
+
+.trial-summary__foot {
+  margin: 0;
+  font-size: 11px;
+  color: var(--grime);
+}

@@ -236,8 +236,8 @@ function PhysicsTrialPanel({ onEnter }: { onEnter: (game: 'stopline' | 'fall') =
     <section style={{ display: 'grid', gap: 6 }}>
       <h3 style={{ margin: 0, fontSize: 13, color: '#999' }}>물리 미니게임 (테스트)</h3>
       <p style={{ margin: 0, color: '#666', fontSize: 12, lineHeight: 1.6 }}>
-        진짜 서버 권위 멀티플레이 — 심문소 홀 안에서 1인칭으로. 위 방 코드로 여러 탭을 열면 같은 방에서 같이 한다.
-        정지선(마찰 · 관성) · 낙하 생존(중력). 색 사냥(빛 · 색)은 아직.
+        진짜 서버 권위 멀티플레이 — 심문소 홀 안에서 1인칭으로, 한 판 1분. 위 방 코드로 여러 탭을 열면 같은 방에서 같이 한다.
+        정지선(마찰 · 관성) · 낙하 생존(중력 · 공기저항). 색 사냥(빛 · 색)은 아직.
       </p>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" style={{ padding: 8 }} onClick={() => onEnter('stopline')}>

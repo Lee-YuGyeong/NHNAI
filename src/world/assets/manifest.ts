@@ -101,8 +101,16 @@ export const ASSETS = {
    */
   trial_gate: { url: '/world/trial/trial_gate.glb' },
   trial_beacon: { url: '/world/trial/trial_beacon.glb' },
-  /** 낙하 생존의 낙하물 — 천장에서 떨어지는 화물 포드. 위치는 서버 스냅샷이 준다(features/trial/games/fall) */
+  /**
+   * 낙하 생존의 공들 — 무게가 다른 다섯(mp/constants FALL_BALLS 와 같은 순서·id). 위치는 서버 스냅샷이 준다
+   * (features/trial/games/fall/FallingBalls). trial_pod 는 그 전의 낙하물(화물 포드) — 지금은 안 쓴다.
+   */
   trial_pod: { url: '/world/trial/trial_pod.glb' },
+  ball_basketball: { url: '/world/trial/ball_basketball.glb' },
+  ball_soccer: { url: '/world/trial/ball_soccer.glb' },
+  ball_baseball: { url: '/world/trial/ball_baseball.glb' },
+  ball_pingpong: { url: '/world/trial/ball_pingpong.glb' },
+  ball_bowling: { url: '/world/trial/ball_bowling.glb' },
 } satisfies Record<string, AssetDef>;
 
 export type AssetId = keyof typeof ASSETS;

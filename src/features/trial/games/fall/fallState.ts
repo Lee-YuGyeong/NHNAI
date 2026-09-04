@@ -30,6 +30,8 @@ function lerp(a: number, b: number, u: number): number {
 
 export interface PodFrame extends Point3 {
   id: number;
+  /** 공 종류 — FALL_BALLS 의 인덱스 */
+  k: number;
 }
 
 export const fallState = {
@@ -52,7 +54,7 @@ export const fallState = {
     const out: PodFrame[] = [];
     for (const b of next.objects) {
       const a = prev.objects.find((o) => o.id === b.id);
-      out.push(a ? { id: b.id, x: lerp(a.x, b.x, u), y: lerp(a.y, b.y, u), z: lerp(a.z, b.z, u) } : b);
+      out.push(a ? { id: b.id, k: b.k, x: lerp(a.x, b.x, u), y: lerp(a.y, b.y, u), z: lerp(a.z, b.z, u) } : b);
     }
     return out;
   },

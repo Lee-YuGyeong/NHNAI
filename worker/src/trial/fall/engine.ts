@@ -1,18 +1,20 @@
 /**
- * 낙하 생존 엔진 — 시간제. 라운드 동안 setInterval 로 물리 틱(50ms)을 돌리고 스냅샷(100ms)을 뿌린다.
- * 라운드가 끝나면 타이머를 **즉시** 지운다 — 대기 중인 타이머가 DO 를 깨워 두므로(과금), 깨어 있는
- * 창을 라운드 길이(20초)로 꽉 묶는다. 라운드 사이의 토론 시간은 지금과 똑같이 잠든다.
+ * 낙하 생존 엔진 — 1분 시간제. setInterval 로 물리 틱(50ms)을 돌리고 스냅샷(100ms)을 뿌린다. 그 1분 안에서
+ * 20초마다 중력이 몰래 바뀐다(phase.ts). 끝나면 타이머를 **즉시** 지운다 — 대기 중인 타이머가 DO 를 깨워
+ * 두므로(과금), 깨어 있는 창을 판 길이로 꽉 묶는다. 판 사이의 토론 시간은 지금과 똑같이 잠든다.
  *
  * 판정 대상은 전부 서버가 계산한다: 물체의 위치(적분), 맞았는가(겹침), 얼마나 벗어났는가(착지 순간 거리).
  * 실제 사람의 위치는 그 사람이 보내는 move(10Hz)로 안다 — 하늘 위치를 지어내는 건 room-do.ts 가 범위로,
  * 순간이동은 걷기 속도로 막는다(onMove).
  */
-import { FALL_ARENA, FALL_ROUND_MS, FALL_SNAPSHOT_MS, FALL_SPAWN_MS, FALL_TICK_MS, WALK_SPEED } from '../../../../src/world/mp/constants';
+import { FALL_ARENA, FALL_SNAPSHOT_MS, FALL_SPAWN_MS, FALL_TICK_MS, TRIAL_GAME_MS, WALK_SPEED } from '../../../../src/world/mp/constants';
 import type { TrialPlayerResult } from '../../../../src/world/mp/protocol';
+import { FALL_GRAVITY } from '../condition';
 import type { EngineContext, GameEngine, SeatTuning } from '../engine';
+import { phaseAt, phaseStarts } from '../phase';
 import type { TrialCondition } from '../types';
 import { makeDodgeProfile, makeDodger, stepDodger, type DodgeProfile, type Dodger } from './npc';
-import { LINGER_MS, THREAT_R, clampToArena, gravityForRound, horizontalDist, overlapsBody, spawnObject, stepObject, timeToGround, type FallObject } from './sim';
+import { LINGER_MS, THREAT_R, clampToArena, gravityForPhase, horizontalDist, overlapsBody, spawnObject, stepObject, timeToGround, type FallObject } from './sim';
 import { DodgeStats } from './stats';
 
 /** 사람이 순간이동했다고 볼 속도 — 걷기의 2배. 그보다 빠른 move 는 버린다 (서버는 범위만 봤다, room-do.ts) */
@@ -22,11 +24,11 @@ const AIM_RATIO = 0.7;
 
 export class FallEngine implements GameEngine {
   readonly game = 'fall' as const;
-  readonly durationMs = FALL_ROUND_MS;
+  readonly durationMs = TRIAL_GAME_MS;
 
   private ctx: EngineContext | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
-  private gravity = gravityForRound(1);
+  private gravity = gravityForPhase(1);
   private startedAt = 0;
   private endedAt = 0;
   private lastTick = 0;
@@ -38,14 +40,14 @@ export class FallEngine implements GameEngine {
   private dodgers: Dodger[] = [];
   private profiles = new Map<string, DodgeProfile>();
 
-  condition(round: number): TrialCondition {
-    return { gravity: gravityForRound(round) };
+  condition(): TrialCondition {
+    return { gravity: FALL_GRAVITY };
   }
 
-  start(round: number, realIds: readonly string[], aiIds: readonly string[], ctx: EngineContext, tuning?: Record<string, SeatTuning>): void {
+  start(_round: number, realIds: readonly string[], aiIds: readonly string[], ctx: EngineContext, tuning?: Record<string, SeatTuning>): void {
     this.stop();
     this.ctx = ctx;
-    this.gravity = gravityForRound(round);
+    this.gravity = gravityForPhase(1);
     const now = Date.now();
     this.startedAt = now;
     this.endedAt = 0;
@@ -114,7 +116,7 @@ export class FallEngine implements GameEngine {
 
   results(): TrialPlayerResult[] {
     const end = this.endedAt || Date.now();
-    return [...this.stats].map(([id, s]) => s.result(id, this.startedAt, end));
+    return [...this.stats].map(([id, s]) => s.result(id, phaseStarts(this.startedAt), this.startedAt, end));
   }
 
   /** "그 자리로 지금 떨어지는 게 있는가" — 2.5초 안에 닿을 물체가 위협 반경 안에 */
@@ -133,12 +135,14 @@ export class FallEngine implements GameEngine {
     const dt = Math.min(0.1, (now - this.lastTick) / 1000);
     this.lastTick = now;
 
-    if (now - this.startedAt >= FALL_ROUND_MS) {
+    if (now - this.startedAt >= TRIAL_GAME_MS) {
       this.endedAt = now;
       this.stop();
       ctx.finish();
       return;
     }
+    // 20초마다 중력이 바뀐다 — 알리지 않는다. 사람은 공이 닿는 박자가 달라진 걸 몸으로 알아채야 한다
+    this.gravity = gravityForPhase(phaseAt(now - this.startedAt));
 
     // 스폰 — 열에 일곱은 참가자 하나를 겨냥해, 나머지는 아무 데나. 새 물체가 누구 머리 위인지 그 순간 기록한다(위협)
     if (now - this.lastSpawn >= FALL_SPAWN_MS) {
@@ -175,7 +179,7 @@ export class FallEngine implements GameEngine {
       ctx.broadcast({
         t: 'trial_snapshot',
         at: now,
-        objects: this.objects.map((o) => ({ id: o.id, x: round2(o.x), y: round2(o.y), z: round2(o.z) })),
+        objects: this.objects.map((o) => ({ id: o.id, k: o.kind, x: round2(o.x), y: round2(o.y), z: round2(o.z) })),
         ai: this.dodgers.map((d) => ({ id: d.id, x: round2(d.x), z: round2(d.z) })),
       });
     }

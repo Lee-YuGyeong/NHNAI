@@ -10,5 +10,25 @@
   {
     "id": "trial_pod",
     "prompt": "sci-fi heavy cargo pod hazard object: a compact rounded cube-shaped dark gunmetal metal canister with chamfered edges, yellow-black hazard stripe band around the middle, small rivets and vents, industrial brushed metal, clean simple silhouette, game asset, isolated object, no ground plane"
+  },
+  {
+    "id": "ball_basketball",
+    "prompt": "orange basketball, classic pebbled leather texture with black seam lines, sports ball, game asset, isolated object, clean simple sphere, no ground plane"
+  },
+  {
+    "id": "ball_soccer",
+    "prompt": "classic soccer ball, white with black pentagon panels, sports ball, game asset, isolated object, clean simple sphere, no ground plane"
+  },
+  {
+    "id": "ball_baseball",
+    "prompt": "white baseball with red stitching seams, leather texture, sports ball, game asset, isolated object, clean simple sphere, no ground plane"
+  },
+  {
+    "id": "ball_pingpong",
+    "prompt": "orange table tennis ping pong ball, matte plastic, thin seam line, sports ball, game asset, isolated object, clean simple sphere, no ground plane"
+  },
+  {
+    "id": "ball_bowling",
+    "prompt": "glossy dark blue bowling ball with three finger holes, marbled swirl pattern, heavy polished sphere, game asset, isolated object, no ground plane"
   }
 ]

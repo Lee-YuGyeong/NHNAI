@@ -8,7 +8,7 @@
  * [0.6, 0.05, 0.9]. 감속에 쓰는 중력가속도는 stopline.ts 안의 9.8 상수.
  */
 import { describe, expect, it } from 'vitest';
-import { frictionForRound, judgeStoplineAttempt, runDistance, runSpeed, summarizeStoplinePlayer } from '../../worker/src/trial/stopline';
+import { frictionForPhase, judgeStoplineAttempt, runDistance, runSpeed, summarizeStoplinePlayer } from '../../worker/src/trial/stopline';
 
 describe('runDistance/runSpeed — 가속 구간의 운동방정식', () => {
   it('탑스피드 전(t=1s)에는 등가속도 공식대로다', () => {
@@ -22,16 +22,16 @@ describe('runDistance/runSpeed — 가속 구간의 운동방정식', () => {
   });
 });
 
-describe('frictionForRound', () => {
-  it('라운드 1~3이 콘크리트→빙판→고무다', () => {
-    expect(frictionForRound(1)).toBeCloseTo(0.6, 10);
-    expect(frictionForRound(2)).toBeCloseTo(0.05, 10);
-    expect(frictionForRound(3)).toBeCloseTo(0.9, 10);
+describe('frictionForPhase', () => {
+  it('구간 1~3이 콘크리트→빙판→고무다', () => {
+    expect(frictionForPhase(1)).toBeCloseTo(0.6, 10);
+    expect(frictionForPhase(2)).toBeCloseTo(0.05, 10);
+    expect(frictionForPhase(3)).toBeCloseTo(0.9, 10);
   });
 });
 
 describe('judgeStoplineAttempt', () => {
-  it('1라운드(콘크리트) — v=6 에서 감속 5.88로 미끄러진 뒤 목표보다 미달한다', () => {
+  it('구간 1(콘크리트) — v=6 에서 감속 5.88로 미끄러진 뒤 목표보다 미달한다', () => {
     const a = judgeStoplineAttempt(0, 2000, 1);
     expect(a.brakePos).toBeCloseTo(7.5, 10);
     expect(a.stopPos).toBeCloseTo(7.5 + 36 / 11.76, 6);
@@ -40,20 +40,20 @@ describe('judgeStoplineAttempt', () => {
     expect(a.brakeTiming).toBeCloseTo(8.5, 10);
   });
 
-  it('2라운드(빙판) — 거의 안 멈춰서 트랙 끝(24)에서 캡된다', () => {
+  it('구간 2(빙판) — 거의 안 멈춰서 트랙 끝(24)에서 캡된다', () => {
     const a = judgeStoplineAttempt(0, 2000, 2);
     expect(a.stopPos).toBeCloseTo(24, 10); // Math.min(..., STOPLINE_TRACK_LENGTH)
     expect(a.stopError).toBeCloseTo(8, 10);
     expect(a.stopError).toBeGreaterThan(0); // 초과 — 부호가 양수
   });
 
-  it('3라운드(고무) — 급감속이라 1라운드보다도 더 못 미친다', () => {
+  it('구간 3(고무) — 급감속이라 구간 1보다도 더 못 미친다', () => {
     const a = judgeStoplineAttempt(0, 2000, 3);
     expect(a.stopPos).toBeCloseTo(7.5 + 36 / 17.64, 6);
     expect(a.stopError).toBeLessThan(0);
   });
 
-  it('같은 라운드라도 accelAt 이 다르면(경과시간이 다르면) 결과가 다르다 — 클라 위치가 아니라 시각만 본다', () => {
+  it('같은 구간이라도 accelAt 이 다르면(경과시간이 다르면) 결과가 다르다 — 클라 위치가 아니라 시각만 본다', () => {
     const early = judgeStoplineAttempt(0, 500, 1);
     const late = judgeStoplineAttempt(0, 2000, 1);
     expect(early.brakePos).toBeLessThan(late.brakePos);
@@ -61,12 +61,14 @@ describe('judgeStoplineAttempt', () => {
 });
 
 describe('summarizeStoplinePlayer', () => {
-  it('transitionError 는 1회차의 |오차|, adaptationCurve/errorDirection 은 시행 전체다', () => {
-    const attempts = [judgeStoplineAttempt(0, 500, 1), judgeStoplineAttempt(0, 1200, 1), judgeStoplineAttempt(0, 1800, 1)];
+  it('transitionError 는 구간마다 첫 시행의 |오차| 평균, adaptationCurve/errorDirection 은 시행 전체다', () => {
+    const attempts = [judgeStoplineAttempt(0, 500, 1), judgeStoplineAttempt(0, 1200, 1), judgeStoplineAttempt(0, 1800, 2)];
     const r = summarizeStoplinePlayer('SUBJECT_01', attempts);
 
     expect(r.id).toBe('SUBJECT_01');
-    expect(r.transitionError).toBeCloseTo(Math.abs(attempts[0].stopError), 10);
+    // 구간 1 의 첫 시행(attempts[0])과 구간 2 의 첫 시행(attempts[2])
+    expect(r.transitionError).toBeCloseTo((Math.abs(attempts[0].stopError) + Math.abs(attempts[2].stopError)) / 2, 10);
+    expect(r.metrics.attempts).toBe(3);
     expect(r.adaptationCurve).toEqual(attempts.map((a) => Math.abs(a.stopError)));
     expect(r.errorDirection).toEqual(attempts.map((a) => (a.stopError >= 0 ? 1 : -1)));
     expect(r.errorDirection).toHaveLength(3);
@@ -75,9 +77,9 @@ describe('summarizeStoplinePlayer', () => {
     expect(r.metrics.brakeTiming).toBeCloseTo(attempts.at(-1)!.brakeTiming, 10);
   });
 
-  it('시행이 하나도 없으면 0으로 방어한다', () => {
+  it('시행이 하나도 없으면 값이 없다(NaN) — 0 이 「완벽」으로 읽히면 안 된다', () => {
     const r = summarizeStoplinePlayer('x', []);
-    expect(r.transitionError).toBe(0);
+    expect(Number.isNaN(r.transitionError)).toBe(true);
     expect(r.adaptationCurve).toEqual([]);
     expect(r.errorDirection).toEqual([]);
   });

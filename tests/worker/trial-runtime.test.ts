@@ -113,85 +113,75 @@ afterEach(() => vi.unstubAllGlobals());
 
 /* ═══════════════════════════════ 시험 ═══════════════════════════════ */
 
-describe('정지선 — 한 방 전체 흐름', () => {
-  it('trial_join 하면 라운드가 열리고, 방 정원보다 적게 모여도 AI 좌석이 채워 3회씩 뛴다', async () => {
+describe('정지선 — 한 방 전체 흐름 (1분 시간제)', () => {
+  it('trial_join 하면 판이 열리고, 방 정원보다 적게 모여도 AI 좌석이 채워 1분치를 미리 뛴다', async () => {
     const doo = new RoomDO(fakeCtx() as never, ENV);
     const me = await knock(doo, '나');
     await send(doo, me, { t: 'trial_join' });
 
-    expect(me.sent).toContainEqual(expect.objectContaining({ t: 'trial_round_start', game: 'stopline', round: 1 }));
+    expect(me.sent).toContainEqual(expect.objectContaining({ t: 'trial_round_start', game: 'stopline', round: 1, durationMs: 60_000 }));
 
     const waypoints = me.sent.filter((m) => m.t === 'trial_stopline_waypoints') as Extract<S2CMessage, { t: 'trial_stopline_waypoints' }>[];
     const aiIds = new Set(waypoints.map((m) => m.id).filter((id) => id.startsWith('SUBJECT_')));
     expect(aiIds.size).toBeGreaterThan(0);
-    for (const id of aiIds) expect(waypoints.filter((m) => m.id === id)).toHaveLength(3);
+    for (const id of aiIds) expect(waypoints.filter((m) => m.id === id).length).toBeGreaterThanOrEqual(6); // 구간 셋 × 최대 3회
   });
 
-  it('실제 플레이어가 3회를 마치면 라운드가 즉시 끝나고, 결과 어디에도 조건값이 없다', async () => {
-    const doo = new RoomDO(fakeCtx() as never, ENV);
-    const me = await knock(doo, '나');
-    const myId = selfIdOf(me); // sent[0]('welcome')을 읽어야 하니, sent를 비우기 전에 잡아 둔다
-    await send(doo, me, { t: 'trial_join' });
-    me.sent = []; // round 1의 round_start/AI 시행은 이미 확인했으니 비우고 다시 본다
+  it('1분이 지나면 판이 닫히고 결과가 온다 — 결과 어디에도 조건값이 없고, 다음 판은 저절로 안 열린다', async () => {
+    vi.useFakeTimers();
+    try {
+      const doo = new RoomDO(fakeCtx() as never, ENV);
+      const me = await knock(doo, '나');
+      const myId = selfIdOf(me);
+      await send(doo, me, { t: 'trial_join' });
+      me.sent = [];
 
-    await runAttempt(doo, me);
-    await runAttempt(doo, me);
-    await runAttempt(doo, me);
-
-    const resultMsg = me.sent.find((m) => m.t === 'trial_result') as Extract<S2CMessage, { t: 'trial_result' }> | undefined;
-    expect(resultMsg).toBeTruthy();
-    expect(resultMsg!.result.round).toBe(1);
-    expect(resultMsg!.result.game).toBe('stopline');
-
-    const myRow = resultMsg!.result.players.find((p) => p.id === myId);
-    expect(myRow).toBeTruthy();
-    expect(myRow!.adaptationCurve).toHaveLength(3);
-    expect(myRow!.errorDirection).toHaveLength(3);
-    expect(typeof myRow!.transitionError).toBe('number');
-    expect(resultMsg!.result.groupMean.stopError).toBeTypeOf('number');
-
-    // ★ P8 — 와이어 어디에도 조건값(마찰계수)이 없다. 타입에도, 실제 JSON 에도.
-    expect('condition' in resultMsg!.result).toBe(false);
-    expect(JSON.stringify(resultMsg)).not.toMatch(/friction/i);
-
-    // 라운드 2가 곧바로 열렸다
-    expect(me.sent).toContainEqual(expect.objectContaining({ t: 'trial_round_start', round: 2 }));
-  });
-
-  it('3라운드까지 돌면 새 라운드를 더 열지 않는다', async () => {
-    const doo = new RoomDO(fakeCtx() as never, ENV);
-    const me = await knock(doo, '나');
-    await send(doo, me, { t: 'trial_join' });
-
-    for (let round = 0; round < 3; round += 1) {
       await runAttempt(doo, me);
+      await vi.advanceTimersByTimeAsync(25_000); // 구간 2
       await runAttempt(doo, me);
-      await runAttempt(doo, me);
+      await vi.advanceTimersByTimeAsync(40_000); // 1분 넘김
+
+      const resultMsg = me.sent.find((m) => m.t === 'trial_result') as Extract<S2CMessage, { t: 'trial_result' }> | undefined;
+      expect(resultMsg).toBeTruthy();
+      expect(resultMsg!.result.game).toBe('stopline');
+      const myRow = resultMsg!.result.players.find((p) => p.id === myId);
+      expect(myRow).toBeTruthy();
+      expect(myRow!.adaptationCurve).toHaveLength(2);
+      expect(myRow!.errorDirection).toHaveLength(2);
+      expect(myRow!.metrics.attempts).toBe(2);
+      expect(resultMsg!.result.groupMean.meanAbsError).toBeTypeOf('number');
+
+      // ★ P8 — 와이어 어디에도 조건값(마찰계수)이 없다. 타입에도, 실제 JSON 에도.
+      expect('condition' in resultMsg!.result).toBe(false);
+      expect(JSON.stringify(resultMsg)).not.toMatch(/friction/i);
+
+      // 미니게임 하나 = 판 하나 — 두 번째 round_start 는 없다
+      expect(me.sent.filter((m) => m.t === 'trial_round_start')).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
     }
-
-    const results = me.sent.filter((m) => m.t === 'trial_result');
-    expect(results).toHaveLength(3);
-    expect(me.sent.some((m) => m.t === 'trial_round_start' && (m as { round: number }).round === 4)).toBe(false);
   });
 
-  it('새로 들어온 사람은 trial_history 로 이미 끝난 라운드 기록을 조건값 없이 백필받는다', async () => {
-    const doo = new RoomDO(fakeCtx() as never, ENV);
-    const host = await knock(doo, '방장');
-    await send(doo, host, { t: 'trial_join' });
-    await runAttempt(doo, host);
-    await runAttempt(doo, host);
-    await runAttempt(doo, host);
+  it('판이 끝난 뒤 다시 trial_join 하면 새 판이 열린다', async () => {
+    vi.useFakeTimers();
+    try {
+      const doo = new RoomDO(fakeCtx() as never, ENV);
+      const me = await knock(doo, '나');
+      await send(doo, me, { t: 'trial_join' });
+      await vi.advanceTimersByTimeAsync(61_000);
+      expect(me.sent.filter((m) => m.t === 'trial_result')).toHaveLength(1);
 
-    const late = await knock(doo, '늦참');
-    await send(doo, late, { t: 'trial_join' });
-
-    const history = late.sent.find((m) => m.t === 'trial_history') as Extract<S2CMessage, { t: 'trial_history' }> | undefined;
-    expect(history).toBeTruthy();
-    expect(history!.results).toHaveLength(1);
-    expect('condition' in history!.results[0]).toBe(false);
+      me.sent = [];
+      await send(doo, me, { t: 'trial_join', game: 'fall' });
+      expect(me.sent).toContainEqual(expect.objectContaining({ t: 'trial_round_start', game: 'fall' }));
+      const history = me.sent.find((m) => m.t === 'trial_history') as Extract<S2CMessage, { t: 'trial_history' }>;
+      expect(history.results).toHaveLength(1); // 지난 판이 기록에 남았다
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  it('라운드 도중 들어온 사람(새로고침 = 새 id)도 지금 라운드를 받고 시행할 수 있다', async () => {
+  it('판 도중 들어온 사람(새로고침 = 새 id)도 지금 판을 받고 시행할 수 있다', async () => {
     const doo = new RoomDO(fakeCtx() as never, ENV);
     const host = await knock(doo, '방장');
     await send(doo, host, { t: 'trial_join' });
@@ -206,37 +196,23 @@ describe('정지선 — 한 방 전체 흐름', () => {
     expect(late.sent.some((m) => m.t === 'trial_stopline_waypoints' && (m as { id: string }).id === lateId)).toBe(true);
   });
 
-  it('나간 사람은 기다리지 않는다 — 남은 사람이 3회를 마치면 라운드가 닫힌다', async () => {
-    const doo = new RoomDO(fakeCtx() as never, ENV);
-    const host = await knock(doo, '방장');
-    const quitter = await knock(doo, '이탈');
-    await send(doo, host, { t: 'trial_join' }); // 둘 다 참가자로 잡힌 채 라운드가 열린다
-
-    quitter.close();
-    await doo.webSocketClose(quitter as never);
-
-    await runAttempt(doo, host);
-    await runAttempt(doo, host);
-    await runAttempt(doo, host);
-    expect(host.sent.some((m) => m.t === 'trial_result')).toBe(true);
-  });
-
-  it('낙하 생존 — 시간제: 20초가 지나면 스스로 닫히고, 스냅샷·결과 어디에도 중력값이 없다', async () => {
+  it('낙하 생존 — 1분이 지나면 스스로 닫히고, 스냅샷·결과 어디에도 중력값이 없다', async () => {
     vi.useFakeTimers();
     try {
       const doo = new RoomDO(fakeCtx() as never, ENV);
       const me = await knock(doo, '나');
       await send(doo, me, { t: 'trial_join', game: 'fall' });
-      expect(me.sent).toContainEqual(expect.objectContaining({ t: 'trial_round_start', game: 'fall', round: 1, durationMs: 20_000 }));
+      expect(me.sent).toContainEqual(expect.objectContaining({ t: 'trial_round_start', game: 'fall', round: 1, durationMs: 60_000 }));
 
       // 마당 안에서 조금 걷는다 — 서버가 내 자리를 알아야 위협·피격을 잰다
       await send(doo, me, { t: 'move', x: 0, z: 0, y: 0, heading: 0, anim: 'walk' });
       await vi.advanceTimersByTimeAsync(3000);
       await send(doo, me, { t: 'move', x: 1.5, z: 0.5, y: 0, heading: 0, anim: 'walk' });
-      await vi.advanceTimersByTimeAsync(18_000);
+      await vi.advanceTimersByTimeAsync(58_000);
 
-      const snapshots = me.sent.filter((m) => m.t === 'trial_snapshot');
-      expect(snapshots.length).toBeGreaterThan(100); // 10Hz × 20초
+      const snapshots = me.sent.filter((m) => m.t === 'trial_snapshot') as Extract<S2CMessage, { t: 'trial_snapshot' }>[];
+      expect(snapshots.length).toBeGreaterThan(300); // 10Hz × 60초
+      expect(snapshots.some((s) => s.objects.some((o) => typeof o.k === 'number'))).toBe(true); // 공 종류가 실린다
       const result = me.sent.find((m) => m.t === 'trial_result') as Extract<S2CMessage, { t: 'trial_result' }> | undefined;
       expect(result).toBeTruthy();
       expect(result!.result.game).toBe('fall');
@@ -247,8 +223,7 @@ describe('정지선 — 한 방 전체 흐름', () => {
 
       // ★ P8 — 스냅샷에도 결과에도 중력이 없다
       expect(JSON.stringify(me.sent)).not.toMatch(/gravity/i);
-      // 라운드 2가 열렸다 (구역이 바뀐다)
-      expect(me.sent).toContainEqual(expect.objectContaining({ t: 'trial_round_start', game: 'fall', round: 2 }));
+      expect(me.sent.filter((m) => m.t === 'trial_round_start')).toHaveLength(1);
     } finally {
       vi.useRealTimers();
     }

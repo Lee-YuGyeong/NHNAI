@@ -12,7 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 import { BackToRoot } from '@/shared/BackToRoot';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { FALL_ROUNDS, STOPLINE_ATTEMPTS_PER_ROUND, STOPLINE_ROUNDS } from '@/world/mp/constants';
+import { STOPLINE_MAX_ATTEMPTS, TRIAL_PHASE_MS, TRIAL_SUMMARY_MS } from '@/world/mp/constants';
 import type { AnimState, PlayerSnapshot, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
 import { FallScene } from './games/fall/FallScene';
@@ -21,8 +21,8 @@ import { StopLineScene } from './games/stop-line/StopLineScene';
 import { runnerState } from './games/stop-line/runnerState';
 import { laneForAi } from './games/stop-line/track';
 import { TrialConnection, worldWsBase } from './net/TrialConnection';
-import { Scoreboard } from './scoreboard/Scoreboard';
 import { ScoreboardLog } from './scoreboard/ScoreboardLog';
+import { Summary } from './scoreboard/Summary';
 import { trialActions, trialSelectors } from './trialSlice';
 
 export function TrialFeature() {
@@ -43,11 +43,11 @@ export function TrialFeature() {
   const myHits = useAppSelector(trialSelectors.selectMyHits);
   const myAttempts = useAppSelector(trialSelectors.selectMyAttempts);
   const history = useAppSelector(trialSelectors.selectHistory);
-  const latestResult = useAppSelector(trialSelectors.selectLatestResult);
+  const liveResult = useAppSelector(trialSelectors.selectLiveResult);
 
   const [tab, setTab] = useState<'live' | 'log'>('live');
-  /** 최종 전광판 — 라운드마다가 아니라 **판(3라운드)이 다 끝났을 때** 한 번 펼친다 (2026-09-04 사용자). 닫으면 기록 탭에 남는다 */
-  const [finalOpen, setFinalOpen] = useState(false);
+  /** 요약 — 판이 끝나면 10초만 (TRIAL_SUMMARY_MS). 지나면 「다시 하기」 */
+  const [summaryUntil, setSummaryUntil] = useState(0);
   const [aiIds, setAiIds] = useState<string[]>([]);
   const [locked, setLocked] = useState(false);
   /** 피격 연출 — 화면 가장자리가 붉게 번쩍인다 */
@@ -131,21 +131,17 @@ export function TrialFeature() {
     return () => conn.close();
   }, [dispatch, roomCode, nickname, wantGame, seeParticipant]);
 
-  // 마지막 라운드의 결과가 오면 판이 끝난 것 — 그때 전광판을 펼친다. 도중엔 아무것도 안 가린다
-  const totalRounds = (g: TrialGame) => (g === 'fall' ? FALL_ROUNDS : STOPLINE_ROUNDS);
-  const seriesDone = latestResult !== null && latestResult.round >= totalRounds(latestResult.game);
+  // 판이 끝나면(결과가 오면) 요약을 10초 — 도중엔 아무것도 화면을 가리지 않는다
   useEffect(() => {
-    if (seriesDone) setFinalOpen(true);
-  }, [seriesDone, latestResult]);
-  /** 이번 판의 라운드들 — 기록 끝에서 라운드 수만큼 */
-  const series = useMemo(() => (latestResult ? history.slice(-totalRounds(latestResult.game)) : []), [history, latestResult]);
+    if (liveResult) setSummaryUntil(Date.now() + TRIAL_SUMMARY_MS);
+  }, [liveResult]);
 
-  // 시간제 라운드의 남은 시간 — 1초마다
+  // 남은 시간 · 요약 카운트다운 — 0.5초마다
   useEffect(() => {
-    if (roundDurationMs === null) return;
+    if (roundDurationMs === null && !summaryUntil) return;
     const id = window.setInterval(() => setClock(Date.now()), 500);
     return () => window.clearInterval(id);
-  }, [roundDurationMs]);
+  }, [roundDurationMs, summaryUntil]);
 
   // 마우스 잠금 — WorldFeature 와 같이 화면의 뿌리 div 에 건다. 잠긴 동안만 시야가 돈다 (TrialRig)
   useEffect(() => {
@@ -167,13 +163,22 @@ export function TrialFeature() {
     }
   };
 
+  const restart = useCallback(() => {
+    setSummaryUntil(0);
+    connRef.current?.rejoin(wantGame);
+  }, [wantGame]);
   const onAccel = useCallback(() => connRef.current?.sendAccel(), []);
   const onBrake = useCallback(() => connRef.current?.sendBrake(), []);
   const sendMove = useCallback((x: number, z: number, y: number, heading: number, anim: AnimState) => connRef.current?.sendMove(x, z, y, heading, anim), []);
 
   const others = useMemo(() => Object.keys(roster).filter((id) => id !== selfId).map((id) => ({ id })), [roster, selfId]);
 
-  const secondsLeft = roundDurationMs === null ? null : Math.max(0, Math.ceil((roundStartAt + roundDurationMs - clock) / 1000));
+  const secondsLeft = roundDurationMs === null ? 0 : Math.max(0, Math.ceil((roundStartAt + roundDurationMs - clock) / 1000));
+  const over = liveResult !== null || (round > 0 && roundDurationMs !== null && secondsLeft === 0);
+  const summaryLeft = Math.max(0, Math.ceil((summaryUntil - clock) / 1000));
+  const showSummary = liveResult !== null && summaryLeft > 0;
+  /** 20초 구간 — 바닥 결이 바뀌는 데만 쓴다. 값(마찰·중력)은 서버만 안다 */
+  const phase = round === 0 ? 1 : Math.min(3, Math.floor(Math.max(0, clock - roundStartAt) / TRIAL_PHASE_MS) + 1);
   const hud =
     status === 'connecting'
       ? '연결하는 중…'
@@ -181,11 +186,13 @@ export function TrialFeature() {
         ? `연결 실패: ${errorText}`
         : round === 0
           ? '판이 열리길 기다리는 중…'
-          : game === 'fall'
-            ? `구역 ${round} · 남은 시간 ${secondsLeft ?? '–'}초 · 맞음 ${myHits} — WASD 로 피해라. 그림자를 봐라`
-            : myAttempts >= STOPLINE_ATTEMPTS_PER_ROUND
-              ? `라운드 ${round} · 내 시행 끝 — 다른 개체를 기다린다`
-              : `라운드 ${round} · 내 시행 ${myAttempts}/${STOPLINE_ATTEMPTS_PER_ROUND} — W 달리기 · S 브레이크 · 붉은 선에 멈춰라`;
+          : over
+            ? '끝났다'
+            : game === 'fall'
+              ? `남은 시간 ${secondsLeft}초 · 맞음 ${myHits} — WASD 로 피해라. 그림자를 봐라`
+              : myAttempts >= STOPLINE_MAX_ATTEMPTS
+                ? `남은 시간 ${secondsLeft}초 · 시행 다 썼다`
+                : `남은 시간 ${secondsLeft}초 · 시행 ${myAttempts}회 — W 달리기 · S 브레이크 · 붉은 선에 멈춰라`;
   const title = (game ?? wantGame) === 'fall' ? '낙하 생존' : '정지선';
   const flashing = Date.now() - flash < 350;
 
@@ -198,7 +205,8 @@ export function TrialFeature() {
           myId={selfId}
           roster={others}
           aiIds={aiIds}
-          round={round}
+          phase={phase}
+          gameKey={roundStartAt}
           myAttempts={myAttempts}
           onAccel={onAccel}
           onBrake={onBrake}
@@ -249,8 +257,15 @@ export function TrialFeature() {
         }}
       >
         {hud}
-        {!locked && status === 'connected' ? <span style={{ display: 'block', color: 'var(--dust)', fontSize: 12, marginTop: 4 }}>화면을 클릭하면 마우스로 둘러볼 수 있다</span> : null}
+        {!locked && status === 'connected' && !over ? <span style={{ display: 'block', color: 'var(--dust)', fontSize: 12, marginTop: 4 }}>화면을 클릭하면 마우스로 둘러볼 수 있다</span> : null}
       </p>
+      {over && !showSummary && status === 'connected' ? (
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 60, display: 'flex', justifyContent: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <button type="button" onClick={restart} style={{ padding: '10px 18px' }}>
+            다시 하기
+          </button>
+        </div>
+      ) : null}
 
       {/* 기록 탭 — 지난 판까지 전부. 참가자 강조·등급 라벨 없음 */}
       {tab === 'log' ? (
@@ -262,34 +277,13 @@ export function TrialFeature() {
         </div>
       ) : null}
 
-      {/* 최종 전광판 — 판(3라운드)이 끝났을 때만. 가운데에 크게, 라운드 셋을 나란히 */}
-      {tab === 'live' && finalOpen && series.length > 0 ? (
+      {/* 판이 끝났을 때 10초 — 짧은 요약. 그 뒤엔 「다시 하기」와 기록 탭 */}
+      {tab === 'live' && showSummary && liveResult ? (
         <div
           onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'grid',
-            placeItems: 'center',
-            background: 'rgba(8, 6, 4, 0.72)',
-          }}
+          style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(8, 6, 4, 0.6)' }}
         >
-          <div style={{ display: 'grid', gap: 12, maxWidth: 'min(1240px, 96vw)', maxHeight: '92vh', overflow: 'auto', padding: 12 }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, fontFamily: 'var(--font-mono)', color: 'var(--linen)' }}>
-              <span style={{ fontSize: 14, letterSpacing: '0.12em' }}>{title} — 판 종료 · 기록 공개</span>
-              <button type="button" onClick={() => setFinalOpen(false)}>
-                닫기
-              </button>
-            </header>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {series.map((r, i) => (
-                <Scoreboard key={`${r.game}-${r.round}-${i}`} result={r} roster={roster} />
-              ))}
-            </div>
-            <p style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--dust)', textAlign: 'center' }}>
-              시스템은 판정하지 않는다 — 숫자를 보고 누가 이상한지는 토론에서 가린다. 닫아도 「기록」 탭에 남는다.
-            </p>
-          </div>
+          <Summary result={liveResult} roster={roster} title={title} secondsLeft={summaryLeft} />
         </div>
       ) : null}
     </div>

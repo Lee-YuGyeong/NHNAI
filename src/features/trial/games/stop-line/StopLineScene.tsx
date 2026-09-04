@@ -27,14 +27,17 @@ export interface StopLineSceneProps {
   roster: readonly { id: string }[];
   /** 서버가 시뮬레이션하는 AI 좌석 id 들 */
   aiIds: readonly string[];
-  round: number;
+  /** 지금 구간(1~3) — 바닥 결만 바뀐다. 마찰값은 여기 없다 */
+  phase: number;
+  /** 판 시작 시각 — 판이 바뀌면 리그 자세를 처음으로 */
+  gameKey: number;
   myAttempts: number;
   onAccel: () => void;
   onBrake: () => void;
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
 }
 
-export function StopLineScene({ myId, roster, aiIds, round, myAttempts, onAccel, onBrake, sendMove }: StopLineSceneProps) {
+export function StopLineScene({ myId, roster, aiIds, phase, gameKey, myAttempts, onAccel, onBrake, sendMove }: StopLineSceneProps) {
   return (
     <WorldCanvas
       quality="high"
@@ -54,7 +57,7 @@ export function StopLineScene({ myId, roster, aiIds, round, myAttempts, onAccel,
 
       <Suspense fallback={null}>
         <def.Scene quality="high" />
-        <TrackDressing round={round} />
+        <TrackDressing phase={phase} />
       </Suspense>
       {def.Effects ? <def.Effects /> : null}
 
@@ -63,7 +66,7 @@ export function StopLineScene({ myId, roster, aiIds, round, myAttempts, onAccel,
         <RunnerAvatar key={id} id={id} label={id} />
       ))}
 
-      <TrialRig myId={myId} round={round} myAttempts={myAttempts} onAccel={onAccel} onBrake={onBrake} sendMove={sendMove} />
+      <TrialRig myId={myId} gameKey={gameKey} myAttempts={myAttempts} onAccel={onAccel} onBrake={onBrake} sendMove={sendMove} />
       <MouseLook />
     </WorldCanvas>
   );

@@ -17,8 +17,10 @@ export interface TrialState {
   myHitsThisRound: number;
   /** 이번 라운드에 내가 마친 시행 수(0~3) — StopLineScene 이 다음 W 를 언제 받을지 여기로 안다 */
   myAttemptsThisRound: number;
-  /** 지금까지 끝난 라운드 전부(오래된 순) — 로그 탭이 이걸 그대로 보여준다 */
+  /** 지금까지 끝난 판 전부(오래된 순) — 로그 탭이 이걸 그대로 보여준다 */
   history: TrialResultWire[];
+  /** 이 화면에 있는 동안 **실제로 끝난** 판의 결과 — 백필된 기록과 구분한다. 요약(10초)은 이것만 띄운다 */
+  liveResult: TrialResultWire | null;
 }
 
 const initialState: TrialState = {
@@ -33,6 +35,7 @@ const initialState: TrialState = {
   myHitsThisRound: 0,
   myAttemptsThisRound: 0,
   history: [],
+  liveResult: null,
 };
 
 export const trialSlice = createSlice({
@@ -64,6 +67,7 @@ export const trialSlice = createSlice({
       s.roundDurationMs = a.payload.durationMs;
       s.myAttemptsThisRound = 0;
       s.myHitsThisRound = 0;
+      s.liveResult = null;
     },
     /** 낙하물에 맞았다(trial_hit) — 그게 내 id일 때만 센다 */
     hitRecorded(s, a: PayloadAction<string>) {
@@ -75,6 +79,7 @@ export const trialSlice = createSlice({
     },
     resultReceived(s, a: PayloadAction<TrialResultWire>) {
       s.history.push(a.payload);
+      s.liveResult = a.payload;
     },
     errorOccurred(s, a: PayloadAction<string>) {
       s.status = 'error';
@@ -100,6 +105,7 @@ export const trialSlice = createSlice({
     selectRoundDurationMs: (s) => s.roundDurationMs,
     selectHistory: (s) => s.history,
     selectLatestResult: (s) => s.history.at(-1) ?? null,
+    selectLiveResult: (s) => s.liveResult,
   },
 });
 

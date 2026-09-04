@@ -32,7 +32,7 @@ describe('Scoreboard', () => {
     const means = screen.getAllByText(/무리 평균/);
     expect(means.length).toBeGreaterThanOrEqual(1);
     expect(means[0]).toHaveTextContent('1.10m');
-    expect(screen.getByText('ROUND 2')).toBeInTheDocument();
+    expect(screen.getByText(/정지선/)).toBeInTheDocument();
   });
 
   it('실제 사람은 닉네임으로, AI 좌석은 id 로 — 전원이 한 화면에', () => {
@@ -45,19 +45,19 @@ describe('Scoreboard', () => {
 
   it('판정 라벨이 없다 — 의심 · 이상치 · 정상', () => {
     const { container } = render(<Scoreboard result={RESULT} roster={{}} />);
-    expect(container.textContent).not.toMatch(/의심|이상치|정상|AI/);
+    expect(container.textContent).not.toMatch(/의심|이상치|정상|AI|라운드|ROUND/);
   });
 });
 
 describe('ScoreboardLog', () => {
-  it('끝난 라운드가 없으면 그렇다고 말한다', () => {
+  it('끝난 판이 없으면 그렇다고 말한다', () => {
     render(<ScoreboardLog history={[]} roster={{}} />);
-    expect(screen.getByText(/아직 끝난 라운드가 없다/)).toBeInTheDocument();
+    expect(screen.getByText(/아직 끝난 판이 없다/)).toBeInTheDocument();
   });
 
-  it('끝난 라운드를 전부 늘어놓는다', () => {
-    render(<ScoreboardLog history={[{ ...RESULT, round: 1 }, RESULT]} roster={{}} />);
-    expect(screen.getByText('ROUND 1')).toBeInTheDocument();
-    expect(screen.getByText('ROUND 2')).toBeInTheDocument();
+  it('끝난 판을 전부 늘어놓는다', () => {
+    render(<ScoreboardLog history={[{ ...RESULT, game: 'fall' }, RESULT]} roster={{}} />);
+    expect(screen.getByText(/낙하 생존/)).toBeInTheDocument();
+    expect(screen.getByText(/정지선/)).toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 /**
  * 심문소 홀 바닥에 까는 정지선 트랙 — 레인 · 출발선 · 목표 정지선 · 트랙 끝, 그리고 GLB 소품 둘
  * (레인마다 목표선 게이트, 출발선 비콘 — tools/trial-parts.json). 마찰계수는 여기 어디에도 없다:
- * 라운드 번호에 따라 **트랙 표면의 재질**만 바뀐다(콘크리트 · 빙판 · 고무) — 사용자 스펙 "바닥 텍스처로만 암시".
+ * 20초 구간에 따라 **트랙 표면의 재질**만 바뀐다(콘크리트 · 빙판 · 고무) — 사용자 스펙 "바닥 텍스처로만 암시".
  */
 import { useMemo } from 'react';
 import * as THREE from 'three';
@@ -13,7 +13,7 @@ const TRACK_HALF_W = (LANES * LANE_GAP) / 2;
 const TRACK_LEN = START_Z - END_Z;
 const TRACK_MID_Z = (START_Z + END_Z) / 2;
 
-/** 라운드별 표면 — 콘크리트 · 빙판 · 고무. 숫자(마찰계수)는 없다, 결만 다르다 */
+/** 구간별 표면 — 콘크리트 · 빙판 · 고무. 숫자(마찰계수)는 없다, 결만 다르다 */
 const SURFACES = [
   { color: '#6f6a62', roughness: 0.95, metalness: 0.05, opacity: 0.55 },
   { color: '#9fc7e6', roughness: 0.08, metalness: 0.35, opacity: 0.6 },
@@ -31,8 +31,8 @@ const LINE_MAT = new THREE.MeshBasicMaterial({ color: '#e8ddcd' });
 const TARGET_MAT = new THREE.MeshBasicMaterial({ color: '#ff3320' });
 const LANE_MAT = new THREE.MeshBasicMaterial({ color: '#9db4d8', transparent: true, opacity: 0.35 });
 
-export function TrackDressing({ round }: { round: number }) {
-  const surface = SURFACES[(round - 1 + SURFACES.length) % SURFACES.length];
+export function TrackDressing({ phase }: { phase: number }) {
+  const surface = SURFACES[(phase - 1 + SURFACES.length) % SURFACES.length];
   const surfaceMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -49,7 +49,7 @@ export function TrackDressing({ round }: { round: number }) {
 
   return (
     <group>
-      {/* 트랙 표면 — 라운드마다 결이 바뀐다 */}
+      {/* 트랙 표면 — 구간마다 결이 바뀐다 */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.015, TRACK_MID_Z]} material={surfaceMat} receiveShadow>
         <planeGeometry args={[TRACK_HALF_W * 2, TRACK_LEN]} />
       </mesh>

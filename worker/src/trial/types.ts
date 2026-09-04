@@ -1,10 +1,10 @@
 import type { TrialResultWire } from '../../../src/world/mp/protocol';
 
-/** 한 라운드의 숨겨진 물리 조건값 — 게임마다 그 게임에 맞는 필드 하나만 채워진다. */
+/** 한 판의 숨겨진 물리 조건값 — 게임마다 그 게임에 맞는 필드 하나만 채워진다. 구간(20초)마다 다르므로 배열이다. */
 export interface TrialCondition {
-  gravity?: number;
-  friction?: number;
-  lightFilter?: string | null;
+  gravity?: readonly number[];
+  friction?: readonly number[];
+  lightFilter?: readonly (string | null)[];
 }
 
 /**

@@ -15,7 +15,7 @@ import { HIT_R, THREAT_R, horizontalDist, type FallObject } from './sim';
 const MOVE_SPEED_MIN = 0.6;
 /** 샘플이 이만큼(ms) 끊기면 멈춘 것으로 본다 (클라는 안 움직이면 안 보낸다) */
 const STILL_AFTER_MS = 300;
-/** 조건 전환 직후로 보는 구간(ms) — 새 중력에 아직 적응 못 한 회피들 */
+/** 조건이 바뀐 직후로 보는 창(ms) — 새 중력에 아직 적응 못 한 회피들. 20초마다 바뀌므로 창이 셋이다 */
 export const TRANSITION_MS = 5000;
 /** 이보다 멀리 벗어나면 "크게 피했다"(+), 아니면 "딱 필요한 만큼"(−) — 오차 방향의 정의 */
 const OVER_DODGE_M = HIT_R + 0.7;
@@ -99,15 +99,18 @@ export class DodgeStats {
     return true;
   }
 
-  result(id: string, roundStart: number, roundEnd: number): TrialPlayerResult {
+  /**
+   * @param phaseStarts 조건이 바뀐 시각들 — 각 시각 뒤 TRANSITION_MS 안에 착지한 위협이 전환 직후 회피다
+   */
+  result(id: string, phaseStarts: readonly number[], gameStart: number, gameEnd: number): TrialPlayerResult {
     const landed = [...this.threats.values()].filter((t): t is Threat & { avoid: number } => t.avoid !== null).sort((a, b) => a.at - b.at);
     const avoid = landed.map((t) => t.avoid);
-    const early = landed.filter((t) => t.at - roundStart <= TRANSITION_MS).map((t) => t.avoid);
+    const early = landed.filter((t) => phaseStarts.some((p) => t.at >= p && t.at - p <= TRANSITION_MS)).map((t) => t.avoid);
     const transitionError = early.length ? mean(early) : Number.NaN;
     return {
       id,
       metrics: {
-        survivalTime: ((this.firstHitAt ?? roundEnd) - roundStart) / 1000,
+        survivalTime: ((this.firstHitAt ?? gameEnd) - gameStart) / 1000,
         hitCount: this.hits,
         unnecessaryMoves: this.unnecessary,
         minDistanceAvoid: avoid.length ? mean(avoid) : Number.NaN,
