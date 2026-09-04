@@ -54,16 +54,29 @@ function stripRootMotion(clips: readonly THREE.AnimationClip[]): THREE.Animation
   });
 }
 
+/** 걸음·달리기 클립이 "1배속"으로 맞는 이동 속도(m/s) — 이보다 느리면 클립도 느리게, 빠르면 빠르게 */
+const WALK_CLIP_SPEED = 2.6;
+const RUN_CLIP_SPEED = 5.2;
+/** 이 속도(m/s) 아래면 서 있는 것이다 — anim 이 walk 로 남아 있어도 걷지 않는다 */
+const STILL_SPEED = 0.12;
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
 export function SoldierAvatar({
   body,
   getAnim,
   getAirborne,
+  getSpeed,
 }: {
   body: BodyId;
   /** 프레임마다 묻는다 — 값으로 받으면 상태가 바뀔 때마다 다시 그려진다 (RobotAvatar 와 같은 약속) */
   getAnim: () => AnimState;
   /** 공중에 떠 있나. 점프 클립을 켜는 조건이다 (높이로만 판단) */
   getAirborne: () => boolean;
+  /**
+   * 화면에서 실제로 움직이는 속도(m/s). 걸음 클립의 빠르기를 여기에 맞추고, 멈춰 있으면 걷기 클립을 안 튼다 —
+   * 보내는 쪽의 anim 과 받는 쪽의 자리가 어긋나도(대역 · 늦은 패킷) 제자리 걸음이 안 난다. 없으면 anim 만 믿는다
+   */
+  getSpeed?: () => number;
 }) {
   const gltf = useAsset(body);
   const scene = useMemo(() => cloneSkeleton(gltf.scene), [gltf.scene]);
@@ -78,6 +91,9 @@ export function SoldierAvatar({
       const m = o as THREE.SkinnedMesh;
       if (!m.isSkinnedMesh) return;
       m.frustumCulled = false;
+      // 얼굴을 비스듬히 볼 때 눈·입의 결이 뭉개지지 않게 — GLTFLoader 기본은 1 이다 (corridor/part.tsx 와 같은 손)
+      const mat = m.material as THREE.MeshStandardMaterial;
+      for (const tex of [mat.map, mat.normalMap, mat.roughnessMap, mat.metalnessMap]) if (tex) tex.anisotropy = 8;
       m.computeBoundingBox();
       if (m.boundingBox) {
         box.union(m.boundingBox.clone().applyMatrix4(m.matrixWorld));
@@ -121,7 +137,16 @@ export function SoldierAvatar({
   }, [mixer, actions]);
 
   useFrame((_, delta) => {
-    const next: ClipKey = getAirborne() ? 'jump' : getAnim();
+    const v = getSpeed?.();
+    let next: ClipKey = getAirborne() ? 'jump' : getAnim();
+    if (v !== undefined && (next === 'walk' || next === 'run')) {
+      if (v < STILL_SPEED) next = 'idle';
+      else {
+        // 발이 바닥을 미끄러지지 않게 — 클립 배속을 실제 속도에 맞춘다 (대역은 사람의 절반 속도로 걷는다)
+        const a = actions[next];
+        if (a) a.timeScale = clamp(v / (next === 'run' ? RUN_CLIP_SPEED : WALK_CLIP_SPEED), 0.55, 1.6);
+      }
+    }
     if (next !== state.current) {
       const from = actions[state.current];
       const to = actions[next] ?? actions.idle;
