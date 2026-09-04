@@ -13,7 +13,7 @@
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { HeroKey } from '@/features/lobby/heroes';
+import { HeroKey, HeroVideo } from '@/features/lobby/heroes';
 
 describe('표식 (HeroKey · 복도)', () => {
   afterEach(cleanup);
@@ -58,5 +58,34 @@ describe('표식 (HeroKey · 복도)', () => {
     const hit = put();
     fireEvent.click(screen.getByRole('button', { name: /SCROLL/ }));
     expect(hit).toEqual(['next']);
+  });
+});
+
+/**
+ * 표지 배경 영상 — 계약 셋: 주소가 없으면 층 자체가 없고, 주소가 있으면 소리 없는 반복
+ * 재생이고, 죽으면 그림으로 내려앉는다. 첫 화면은 어떤 경우에도 성립해야 한다 (heroes.tsx).
+ */
+describe('표지 배경 영상 (HeroVideo)', () => {
+  afterEach(cleanup);
+
+  it('주소가 없으면 아무것도 안 세운다 — 그림이 그대로 표지다', () => {
+    render(<HeroVideo src="" />);
+    expect(document.querySelector('video')).toBeNull();
+  });
+
+  it('주소를 주면 소리 없는 반복 재생으로 선다', () => {
+    render(<HeroVideo src="https://example.com/intro.mp4" />);
+    const v = document.querySelector('video') as HTMLVideoElement;
+    expect(v).not.toBeNull();
+    // 자동재생의 조건이자 이 화면의 소리 규칙 — 소리는 누른 것에만 대답한다
+    expect(v.muted).toBe(true);
+    expect(v).toHaveAttribute('loop');
+    expect(v).toHaveAttribute('playsinline');
+  });
+
+  it('로드가 죽으면 그림으로 내려앉는다 — 다시 시도하지 않는다', () => {
+    render(<HeroVideo src="https://example.com/broken.mp4" />);
+    fireEvent.error(document.querySelector('video') as HTMLVideoElement);
+    expect(document.querySelector('video')).toBeNull();
   });
 });
