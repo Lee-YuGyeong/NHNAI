@@ -226,8 +226,30 @@ export function createClipBudget(limit: number = CLIP_BUDGET_CHARS): ClipBudget 
  * 받고, 대신 **끄는 쪽을 명시적으로** 둔다(빈 값 · 0 · false 는 꺼짐).
  */
 function devOpen(raw: string | undefined): boolean {
-  const v = (raw ?? '').trim().replace(/^["']|["']$/g, '').toLowerCase();
+  // 줄 끝 주석(`1  # 로컬 전용`)까지 값으로 읽히는 파서가 있다 — 첫 낱말만 본다
+  const v = (raw ?? '').trim().split(/[\s#]/)[0].replace(/^["']|["']$/g, '').toLowerCase();
   return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+}
+
+/**
+ * 스위치가 닫혀 있을 때의 404 본문.
+ *
+ * **「값이 아예 없다」와 「값은 있는데 켜짐으로 안 읽힌다」를 갈라 적는다.** 둘은 화면에서
+ * 똑같이 보이는데 할 일이 정반대다 — 앞은 *워커를 다시 띄우는* 일이고(파일에 넣어도 이미
+ * 뜬 워커는 모른다), 뒤는 *값을 고치는* 일이다. 뭉쳐 놓으면 파일에 분명히 넣어 놓고도
+ * 무엇이 틀렸는지 알 수 없어서 같은 자리를 몇 번이고 다시 밟는다 (2026-09-04 실제로 그랬다).
+ *
+ * 값 자체는 안 싣는다 — 이 깃발은 비밀이 아니지만, 환경값을 본문에 실어 보내는 버릇을
+ * 만들면 다음에 비밀이 실린다.
+ */
+function devClosed(raw: string | undefined): Response {
+  const present = (raw ?? '').trim() !== '';
+  return fail(
+    present
+      ? 'SEAT_VOICE_DEV 값이 켜짐으로 안 읽힌다 — 1 · true · yes · on 중 하나여야 한다'
+      : 'SEAT_VOICE_DEV 가 이 워커에 없다 — 값을 넣었다면 워커를 다시 띄워야 읽는다',
+    404,
+  );
 }
 
 function splitIds(raw: string | undefined): string[] {
@@ -333,7 +355,7 @@ export async function handleSeatClip(
  * 방이 통째로 조용해진다. 그 사실이 화면에 보여야 고칠 수 있다.
  */
 export async function handleSeatRoster(request: Request, env: SeatVoiceEnv): Promise<Response> {
-  if (!devOpen(env.SEAT_VOICE_DEV)) return fail('없는 경로다 — SEAT_VOICE_DEV 가 꺼져 있다', 404);
+  if (!devOpen(env.SEAT_VOICE_DEV)) return devClosed(env.SEAT_VOICE_DEV);
   if (request.method !== 'GET') return fail('GET 만 받는다', 405);
 
   const ids = seatVoiceIds(env);
@@ -367,7 +389,7 @@ export async function handleSeatRoster(request: Request, env: SeatVoiceEnv): Pro
  * SEAT_VOICE_DEV 가 '1' 이 아니면 404 다. 있는 줄도 모르게 두는 편이 맞다.
  */
 export async function handleSeatClipMint(request: Request, env: SeatVoiceEnv): Promise<Response> {
-  if (!devOpen(env.SEAT_VOICE_DEV)) return fail('없는 경로다 — SEAT_VOICE_DEV 가 꺼져 있다', 404);
+  if (!devOpen(env.SEAT_VOICE_DEV)) return devClosed(env.SEAT_VOICE_DEV);
   if (request.method !== 'POST') return fail('POST 만 받는다', 405);
 
   const secret = secretOf(env);
@@ -411,7 +433,7 @@ export async function handleSeatAudition(
   env: SeatVoiceEnv,
   ctx: { waitUntil(p: Promise<unknown>): void },
 ): Promise<Response> {
-  if (!devOpen(env.SEAT_VOICE_DEV)) return fail('없는 경로다 — SEAT_VOICE_DEV 가 꺼져 있다', 404);
+  if (!devOpen(env.SEAT_VOICE_DEV)) return devClosed(env.SEAT_VOICE_DEV);
   if (request.method !== 'POST') return fail('POST 만 받는다', 405);
   if (!env.ELEVENLABS_API_KEY) return fail('ELEVENLABS_API_KEY 가 없다', 503);
 
@@ -460,7 +482,7 @@ export async function handleSeatAudition(
  * 아홉 번 반복할 일이라 화면에서 누르게 한다.
  */
 export async function handleLibraryAdd(request: Request, env: SeatVoiceEnv): Promise<Response> {
-  if (!devOpen(env.SEAT_VOICE_DEV)) return fail('없는 경로다 — SEAT_VOICE_DEV 가 꺼져 있다', 404);
+  if (!devOpen(env.SEAT_VOICE_DEV)) return devClosed(env.SEAT_VOICE_DEV);
   if (request.method !== 'POST') return fail('POST 만 받는다', 405);
   if (!env.ELEVENLABS_API_KEY) return fail('ELEVENLABS_API_KEY 가 없다', 503);
 
