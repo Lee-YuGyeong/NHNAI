@@ -77,6 +77,14 @@ export interface SeatVoiceEnv {
    * 따로 돌리고 싶을 때만 채운다.
    */
   TTS_CLIP_SECRET?: string;
+  /**
+   * '1' 이면 /voice 시연 화면이 토큰을 직접 받아 갈 수 있다 (handleSeatClipMint).
+   *
+   * **기본은 꺼짐이고, 배포에서는 켜지 않는다.** 켜면 브라우저가 아무 문장이나 서명받을 수
+   * 있어서, 이 파일이 애초에 막으려던 「콘솔에서 크레딧 태우기」가 다시 열린다.
+   * 게임 본체(RoomDO)가 서면 토큰은 거기서 나오고 이 자리는 사라진다.
+   */
+  SEAT_VOICE_DEV?: string;
 }
 
 /** 토큰이 실어 나르는 것. 좌석 번호도, 역할도 없다 — 워커는 누가 말하는지 알 필요가 없다 */
@@ -266,6 +274,41 @@ export async function handleSeatClip(
   });
   ctx.waitUntil(cache.put(request, res.clone()));
   return res;
+}
+
+/**
+ * 시연용 토큰 발급 (/voice) — **개발에서만.**
+ *
+ * 진짜 판에서 토큰은 RoomDO 가 chat 을 중계하며 만든다(§5). 그런데 그 게임이 아직 없어서,
+ * 이게 없으면 워커 관로를 **끝까지 굴려 볼 방법이 없다** — 서명·캐시·명부가 실제로 맞물리는지
+ * 확인하지 못한 채로 다음 단계를 쌓게 된다.
+ *
+ * SEAT_VOICE_DEV 가 '1' 이 아니면 404 다. 있는 줄도 모르게 두는 편이 맞다.
+ */
+export async function handleSeatClipMint(request: Request, env: SeatVoiceEnv): Promise<Response> {
+  if (env.SEAT_VOICE_DEV !== '1') return fail('없는 경로다', 404);
+  if (request.method !== 'POST') return fail('POST 만 받는다', 405);
+
+  const secret = secretOf(env);
+  if (!secret) return fail('서명 열쇠가 없다 — ELEVENLABS_API_KEY 나 TTS_CLIP_SECRET 이 필요하다', 503);
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return fail('본문이 JSON 이 아니다', 400);
+  }
+
+  const { v, text } = (body ?? {}) as { v?: unknown; text?: unknown };
+  if (typeof v !== 'number' || !Number.isInteger(v) || v < 0) return fail('v 가 명부 번호가 아니다', 400);
+  const clean = typeof text === 'string' ? text.replace(/\s+/g, ' ').trim() : '';
+  if (!clean) return fail('text 가 비었다', 400);
+  if (clean.length > MAX_CHARS) return fail(`text 가 너무 길다 (${clean.length}자 > ${MAX_CHARS}자)`, 400);
+
+  const clip = await mintClip({ v, t: clean, x: Date.now() + CLIP_TTL_MS }, secret);
+  return new Response(JSON.stringify({ clip }), {
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
 }
 
 function fail(error: string, status: number): Response {

@@ -22,7 +22,7 @@ import { handleLabAct, handleLabCast, handleLabFree, handleLabTalk, handleWorldB
 import { LobbyDO, handleRooms } from './lobby-do';
 import { RoomDO } from './room-do';
 import { handleTts, handleTtsLibrary, handleTtsVoices } from './tts';
-import { handleSeatClip } from './seat-voice';
+import { handleSeatClip, handleSeatClipMint } from './seat-voice';
 
 export { LobbyDO, RoomDO };
 
@@ -49,6 +49,8 @@ export interface Env {
   ELEVENLABS_SEAT_VOICE_IDS?: string;
   /** 클립 토큰 서명 열쇠. 비우면 ELEVENLABS_API_KEY 에서 파생한다 (seat-voice.ts) */
   TTS_CLIP_SECRET?: string;
+  /** '1' 이면 /voice 가 토큰을 직접 받아 간다. **배포에서는 켜지 않는다** (seat-voice.ts) */
+  SEAT_VOICE_DEV?: string;
   /**
    * 계정 (worker/src/auth.ts) — humanish 와 **같은 Supabase 프로젝트**를 쓴다.
    * 셋 중 하나라도 비면 로그인이 통째로 꺼지고, 화면은 게스트 닉네임만으로 돈다.
@@ -114,6 +116,8 @@ export default {
      * 누가 먼저 말한 것처럼 들리는지가 달라진다 (docs/VOICE.md §5).
      */
     if (url.pathname === '/api/tts/clip') return handleSeatClip(request, env, ctx);
+    // 시연 화면(/voice)이 토큰을 받아 가는 자리 — SEAT_VOICE_DEV=1 일 때만 산다
+    if (url.pathname === '/api/tts/clip/mint') return handleSeatClipMint(request, env);
 
     const match = ROOM_PATH.exec(url.pathname);
     // 방 경로가 아니면 정적 파일로 넘긴다 (없는 경로는 assets 설정에 따라 index.html).
