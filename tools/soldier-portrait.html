@@ -17,13 +17,18 @@
 import * as THREE from '/node_modules/three/build/three.module.js';
 import { GLTFLoader } from '/node_modules/three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from '/node_modules/three/examples/jsm/libs/meshopt_decoder.module.js';
-const id = new URLSearchParams(location.search).get('b') ?? 'sol_fit_m';
-const W = 720, H = 960;
+const q = new URLSearchParams(location.search);
+const id = q.get('b') ?? 'sol_fit_m';
+// 2026-09-05: ?crop=face 면 **얼굴 클로즈업 정사각**(검문소 프롤로그 대화창의 초상, features/interrogation/prologue.ts),
+// ?src= 로 다른 GLB(처형자)도 찍는다 — 프레임은 모델의 경계 상자 꼭대기(머리)를 기준으로 잡는다
+const FACE = q.get('crop') === 'face';
+const SRC = q.get('src') ?? `/world/soldier/${id}.glb`;
+const W = 720, H = FACE ? 720 : 960;
 const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H; document.body.appendChild(canvas);
 const r = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 r.setClearColor('#0a0f18'); r.outputColorSpace = THREE.SRGBColorSpace;
 const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
-const g = await loader.loadAsync(`/world/soldier/${id}.glb`);
+const g = await loader.loadAsync(SRC);
 const scene = new THREE.Scene();
 scene.add(g.scene);
 // 빛은 이 게임의 규칙대로 위 앞쪽에서 — 앰버 다운라이트(--tung)와 차가운 되비침
@@ -31,9 +36,19 @@ const key = new THREE.DirectionalLight('#ffd9ac', 3.1); key.position.set(0.35, 1
 const rim = new THREE.DirectionalLight('#7fa8d8', 1.5); rim.position.set(-1.6, 0.6, -0.5); scene.add(rim);
 scene.add(new THREE.HemisphereLight('#8899bb', '#0a0f18', 0.5));
 // 정면 직교 — 머리와 어깨까지 (모델 키 ≈0.979). 3:4 로 잘라 카드의 사진 창과 같은 비율로 둔다
-const halfW = 0.15, top = 1.005, bottom = 0.605;
+let halfW = 0.15, top = 1.005, bottom = 0.605;
+let cx = 0;
+if (FACE) {
+  // 얼굴만 — 경계 상자 꼭대기에서 키의 27% 아래까지 (군인은 헬멧 챙 ~ 턱 아래). 정사각이라 폭 = 높이
+  const box = new THREE.Box3().setFromObject(g.scene);
+  const h = box.max.y - box.min.y;
+  top = box.max.y - h * 0.005;
+  bottom = box.max.y - h * 0.235;
+  halfW = (top - bottom) / 2;
+  cx = (box.min.x + box.max.x) / 2;
+}
 const cam = new THREE.OrthographicCamera(-halfW, halfW, top, bottom, 0.01, 10);
-cam.position.set(0, 0, 2); cam.lookAt(0, 0, 0);
+cam.position.set(cx, 0, 2); cam.lookAt(cx, 0, 0);
 r.render(scene, cam);
 document.title = 'ready';
 </script></body></html>

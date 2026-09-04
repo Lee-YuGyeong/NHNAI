@@ -434,18 +434,6 @@
   font-family: var(--font-mono);
   font-size: 11px;
 }
-/* 정부 통제실 — 천장 스피커의 목소리 (prologue.ts). 호박색 줄 전체, 이름표는 남긴다 */
-.ig-line.control {
-  --ig-tone: var(--amber);
-  color: var(--ig-tone);
-}
-.ig-line.control .pip {
-  background: var(--ig-tone);
-  box-shadow: 0 0 7px var(--ig-tone);
-}
-.ig-line.control b {
-  color: var(--ig-tone);
-}
 
 /* ── 입력줄 ── 판의 아랫변이다. 윗변은 로그가 이미 그었고, 왼쪽 선은 판의 것을 그대로 잇는다 */
 .ig-input {

@@ -1,5 +1,6 @@
 /**
- * 검문소 프롤로그 — 판이 열리고 **첫 토론이 시작되는 순간** 구역 통신에 흘러가는 대본 (2026-09-05 사용자).
+ * 검문소 프롤로그 — 판이 열리고 **첫 토론이 시작되는 순간** 비주얼 노벨식 대화창(features/world/DialogueBox)으로 흐르는 대본
+ * (2026-09-05 사용자: "박사 나오는 이런 식의 대화창을 열어 달라. 말하는 대화창은 따로 두고. 얼굴은 군인 얼굴로 클로즈업").
  *
  *   피실험자 01  "뭐야… 여기가 어디야?"
  *   피실험자 02  "문이 안 열려."
@@ -9,16 +10,19 @@
  *   정부 통제실  "판별을 시작합니다."
  *
  * ┌─ 게임 프로세스를 건드리지 않는다 ────────────────────────────────────────┐
- * │ 이 줄들은 **화면에서만** 난다. 서버에 가지 않고, 관리 AI 도 AI 좌석도 이 말을 │
- * │ 못 본다 — 의심도 · 판정 · 대화 기록 어느 것에도 안 실린다. 그저 채팅창에 찍힐  │
- * │ 뿐이다. 정부 통제실은 무대 위 처형자(Executioner)의 목소리다.                │
+ * │ 이 줄들은 **화면에서만** 난다. 서버에 가지 않고, 구역 통신(채팅)에도 안 찍히며, 관리 AI 도 AI 좌석도 │
+ * │ 이 말을 못 본다 — 의심도 · 판정 · 대화 기록 어느 것에도 안 실린다.                                  │
  * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * 초상: 피실험자는 **그 좌석의 몸**(mp/bodies.ts 군인 넷)의 얼굴 클로즈업, 정부 통제실은 무대 위 처형자의 얼굴 —
+ * 둘 다 게임의 GLB 를 tools/soldier-portrait.html (?crop=face) 로 찍은 public/interrogation/face-*.jpg 다.
+ * 지문(「천장 스피커가 켜진다」)은 이름표 없이 흐린 글씨(thought)로, 시설 초상을 단다.
  *
  * 피실험자 01 · 02 · 03 은 좌석 가운데 **무작위로** 셋을 뽑는다. 다만 네 사람의 화면이 서로 다른 사람을
  * 가리키면 안 되므로 난수는 판이 열린 서버 시각(GameStateWire.startedAt)으로 심는다 — 전원이 같은 배역을 본다.
  */
+import type { ChatLine } from '@/features/world/worldSlice';
 import type { GameSeat } from '@/world/mp/game-protocol';
-import type { ChatEntry } from './interrogationSlice';
 
 export type PrologueWho = 'control' | 'subject' | 'stage';
 
@@ -27,32 +31,33 @@ export interface PrologueLine {
   /** 피실험자 번호 (subject 만) */
   n?: 1 | 2 | 3;
   text: string;
-  /** 앞 줄에서 이 줄까지 뜸(ms) */
-  gap: number;
 }
 
-/** 정부 통제실의 이름표 · 좌석 id 자리에 쓰는 표식 */
+/** 정부 통제실의 이름표 · id */
 export const CONTROL_NAME = '정부 통제실';
 export const CONTROL_ID = 'CONTROL';
+/** 처형자 얼굴 — 정부 통제실의 초상 */
+export const CONTROL_FACE = '/interrogation/face-executioner.jpg';
+/** 몸을 모르는 좌석(옛 워커)의 얼굴 */
+export const FALLBACK_FACE = '/interrogation/face-sol_fit_m.jpg';
+/** 지문의 초상 — 시설 방송 */
+export const STAGE_FACE = '/ui/portrait-system.webp';
 
 export const PROLOGUE: readonly PrologueLine[] = [
-  { who: 'subject', n: 1, text: '뭐야… 여기가 어디야?', gap: 1500 },
-  { who: 'subject', n: 2, text: '문이 안 열려.', gap: 2200 },
-  { who: 'stage', text: '천장 스피커가 켜진다.', gap: 2400 },
-  { who: 'control', text: '현재 식별 표지가 없는 휴머노이드가 여러분 사이에 숨어 있습니다.', gap: 1600 },
-  { who: 'stage', text: '잠시 정적.', gap: 3200 },
-  { who: 'subject', n: 3, text: '…우리 중에 AI가 있다고?', gap: 2600 },
-  { who: 'subject', n: 1, text: '난 인간이야.', gap: 2200 },
-  { who: 'subject', n: 2, text: 'AI도 그렇게 말하겠지.', gap: 2200 },
-  { who: 'control', text: '지금부터 판별 테스트를 시작합니다.', gap: 3000 },
-  { who: 'control', text: '각 테스트가 끝날 때마다 인간이 아니라고 생각되는 사람을 의심하십시오.', gap: 3200 },
-  { who: 'subject', n: 3, text: '틀리면?', gap: 2600 },
-  { who: 'control', text: '…인간이 처형됩니다.', gap: 3000 },
-  { who: 'control', text: '판별을 시작합니다.', gap: 3200 },
+  { who: 'subject', n: 1, text: '뭐야… 여기가 어디야?' },
+  { who: 'subject', n: 2, text: '문이 안 열려.' },
+  { who: 'stage', text: '천장 스피커가 켜진다.' },
+  { who: 'control', text: '현재 식별 표지가 없는 휴머노이드가 여러분 사이에 숨어 있습니다.' },
+  { who: 'stage', text: '잠시 정적.' },
+  { who: 'subject', n: 3, text: '…우리 중에 AI가 있다고?' },
+  { who: 'subject', n: 1, text: '난 인간이야.' },
+  { who: 'subject', n: 2, text: 'AI도 그렇게 말하겠지.' },
+  { who: 'control', text: '지금부터 판별 테스트를 시작합니다.' },
+  { who: 'control', text: '각 테스트가 끝날 때마다 인간이 아니라고 생각되는 사람을 의심하십시오.' },
+  { who: 'subject', n: 3, text: '틀리면?' },
+  { who: 'control', text: '…인간이 처형됩니다.' },
+  { who: 'control', text: '판별을 시작합니다.' },
 ];
-
-/** 대본 전체 길이(ms) — 첫 토론(GAME_FIRST_DISCUSSION_MS) 안에 다 흐른다 */
-export const PROLOGUE_MS = PROLOGUE.reduce((t, l) => t + l.gap, 0);
 
 /** 결정적 난수 (mulberry32) — 같은 씨앗이면 네 화면이 같은 순서를 뽑는다 */
 function mulberry32(seed: number): () => number {
@@ -81,23 +86,24 @@ export function castSubjects(seats: readonly GameSeat[], seed: number): GameSeat
   return [0, 1, 2].map((i) => pool[i % pool.length]);
 }
 
-export interface TimedEntry {
-  /** 대본 시작에서 이 줄까지(ms) */
-  at: number;
-  entry: ChatEntry;
+/** 좌석의 얼굴 — 몸(mp/bodies.ts)을 찍은 클로즈업 */
+export function faceOf(seat: GameSeat | undefined): string {
+  return seat?.body ? `/interrogation/face-${seat.body}.jpg` : FALLBACK_FACE;
 }
 
-/** 대본을 채팅 줄로 — at 은 누적 시각. ts 는 startedAt 기준이라 나중에 들어온 사람의 로그에서도 순서가 선다 */
-export function prologueEntries(seats: readonly GameSeat[], seed: number): TimedEntry[] {
+/**
+ * 대본을 대화창 줄(ChatLine)로 — DialogueBox 가 순서대로 한 줄씩 찍고 머문다 (타자 · 머무름은 상자의 것).
+ * key 는 씨앗과 번호로 — 같은 판에서 다시 만들어도 같은 줄이라 상자가 두 번 찍지 않는다.
+ */
+export function prologueLines(seats: readonly GameSeat[], seed: number): ChatLine[] {
   const cast = castSubjects(seats, seed);
-  let at = 0;
-  return PROLOGUE.map((l) => {
-    at += l.gap;
-    const ts = seed + at;
-    if (l.who === 'control') return { at, entry: { id: CONTROL_ID, name: CONTROL_NAME, text: l.text, ts, kind: 'control' } };
-    if (l.who === 'stage') return { at, entry: { id: 'system', name: '', text: l.text, ts, kind: 'system' } };
+  return PROLOGUE.map((l, i) => {
+    const key = `prologue-${seed}-${i}`;
+    const ts = seed + i;
+    if (l.who === 'control') return { key, id: CONTROL_ID, nickname: CONTROL_NAME, text: l.text, ts, portraitSrc: CONTROL_FACE };
+    if (l.who === 'stage') return { key, id: 'system', nickname: ' ', text: l.text, ts, portrait: 'system', portraitSrc: STAGE_FACE, thought: true };
     const seat = cast[(l.n ?? 1) - 1];
     const tag = `피실험자 ${String(l.n ?? 1).padStart(2, '0')}`;
-    return { at, entry: { id: seat?.id ?? 'system', name: seat ? `${tag} · ${seat.name}` : tag, text: l.text, ts, kind: 'chat' } };
+    return { key, id: seat?.id ?? 'system', nickname: seat ? `${tag} · ${seat.name}` : tag, text: l.text, ts, portraitSrc: faceOf(seat) };
   });
 }
