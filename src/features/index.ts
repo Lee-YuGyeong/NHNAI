@@ -33,6 +33,11 @@ const InterrogationFeature = lazy(() =>
 const ProfileFeature = lazy(() => import('./profile/ProfileFeature').then((m) => ({ default: m.ProfileFeature })));
 const LlmFeature = lazy(() => import('./llm/LlmFeature').then((m) => ({ default: m.LlmFeature })));
 const TtsFeature = lazy(() => import('./tts/TtsFeature').then((m) => ({ default: m.TtsFeature })));
+/**
+ * 좌석별 목소리 시연 (docs/VOICE.md). /tts 와 다른 자리다 — 저기는 리더 **한 사람**의 목소리를
+ * 고르는 곳이고, 여기는 **아홉이 한꺼번에 떠들 때** 무엇이 소리가 되고 무엇이 조용한가를 듣는 곳이다.
+ */
+const VoiceFeature = lazy(() => import('./voice/VoiceFeature').then((m) => ({ default: m.VoiceFeature })));
 const LabFeature = lazy(() => import('./lab/LabFeature').then((m) => ({ default: m.LabFeature })));
 const TalkFeature = lazy(() => import('./talk/TalkFeature').then((m) => ({ default: m.TalkFeature })));
 const ArenaFeature = lazy(() => import('./arena/ArenaFeature').then((m) => ({ default: m.ArenaFeature })));
@@ -117,6 +122,7 @@ export const FEATURES: FeatureDef[] = [
   { id: 'profile', title: '프로필',        path: '/profile', owner: 'TBD', Component: ProfileFeature },
   { id: 'llm',     title: 'LLM 테스트',    path: '/llm',     owner: 'TBD', Component: LlmFeature },
   { id: 'tts',     title: 'TTS 리더 방송',   path: '/tts',     owner: 'hbkim507', Component: TtsFeature },
+  { id: 'voice',   title: '좌석별 목소리',    path: '/voice',   owner: 'hbkim507', Component: VoiceFeature },
   // 폴더와 경로가 어긋나 있다: features/talk → /lab (이게 지금 쓰는 판), features/lab → /rules (규정·검사 실험판)
   { id: 'lab',     title: '구역 (AI 5 + 나)',      path: '/lab',   owner: 'TBD', Component: TalkFeature },
   { id: 'rules',   title: '규정·검사판',            path: '/rules', owner: 'TBD', Component: LabFeature },
