@@ -298,7 +298,7 @@ function RoomListScreen({ askCode = null }: { askCode?: string | null }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 26, minWidth: 0 }}>
           {/* 로고는 앞 칸(브리핑)으로 돌아가는 길이다 — 원작 로비의 로고가 /intro 로 갔던 자리다. 이제 정말 /intro 다 */}
           <Link to="/intro" className="bl-logo" style={{ textDecoration: 'none' }}>
-            Who is human
+            특수인공지능대응센터
           </Link>
           {/*
             ★ 탭은 **링크가 아니라 버튼이다** (원작 2026-08-07 결정 그대로). 「기록」이 링크였을 때는

@@ -47,21 +47,22 @@ export function Launcher() {
   return (
     <main style={{ maxWidth: 420, margin: '0 auto', padding: '10vh 24px 64px', display: 'grid', gap: 10 }}>
       {/*
-        위쪽 두 줄은 새 기획(인간인 척, PLANNING.md)의 것이다 (2026-09-04 사용자: "sector의
-        위쪽 문구들도 기획에 맞게 — 기존 프로젝트랑 헷갈려서"). 옛 줄은 「Sector 2098 · AI only /
-        — 기계인 척」 — 옛 세계관(AI 전용 구역에 숨어든 인간)의 문패라 첫 화면부터 딴 게임을
-        말하고 있었다. 새 문패는 새 인트로의 서류철과 같은 이름을 쓴다(FACILITY 2026,
-        IntroFeature 의 DOSSIER 머리). 「Humans only」는 「AI only」의 반전 그대로다 —
-        전원이 인간이어야 하는 방에 하나가 아니다 (ONE OF US NEVER WAS).
+        문패는 게임 이름이고, 게임 이름은 배경 그 자체다 — 3D 홀 끝벽 간판(world/map/govcenter/
+        layout.ts 의 TITLE)과 같은 글자를 쓴다 (2026-09-05 사용자: "SOCIAL DEDUCTION //
+        특수인공지능대응센터 와 관련된 이름으로"). 여기까지 온 이름들: 「Sector 2098 · AI only /
+        — 기계인 척」(옛 세계관) → 「Facility 2026 · Humans only / Who is human — 인간인 척」
+        (2026-09-04) → 지금. 두 번 다 같은 이유로 고쳤다 — 첫 화면이 딴 게임을 말하고 있었다.
         아래 문(버튼)들은 안 건드린다 — 걸린 것은 문패지 문이 아니다.
       */}
       <p className="stencil" style={{ margin: 0, fontSize: 11, color: 'var(--dust)' }}>
-        Facility 2026 · Humans only
+        대한민국 정부 · 2026
       </p>
       <h1 className="engraved" style={{ margin: '0 0 28px', fontSize: 'clamp(28px, 6vw, 38px)', lineHeight: 1.2 }}>
-        Who is human
+        특수인공지능
         <br />
-        <span style={{ color: 'var(--dust)', fontSize: '0.55em' }}>— 인간인 척</span>
+        대응센터
+        <br />
+        <span style={{ color: 'var(--dust)', fontSize: '0.55em' }}>— Special AI Response Center</span>
       </h1>
 
       {/*
