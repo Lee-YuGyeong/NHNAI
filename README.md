@@ -175,13 +175,15 @@ npm install
 npm run dev
 ```
 
-→ **http://localhost:5173/interrogation** 에서 「게임 시작」
-
-3D 멀티플레이(`/world`)를 쓸 때만 다른 터미널에 워커를 띄운다:
+본판(`/interrogation`)은 **방(워커)에 붙어 도는 멀티플레이**라 다른 터미널에 워커를 같이 띄운다:
 
 ```bash
 npm run worker:dev
 ```
+
+→ **http://localhost:5173/interrogation?code=1234** — 방장이 「시작」을 누르면 열린다. 사람이 모자라면 대역이 채운다.
+같은 `?code=` 로 탭을 더 열면 같은 판에 들어온다. 키가 없어도 된다 — 워커의 판이 관리 AI · AI 참가자의 말을
+개발 서버의 구독 경로(`/api/lab/complete`)로 받아 온다.
 
 ### ⚡ 대사가 너무 느리다면
 
@@ -201,8 +203,8 @@ npm run worker:dev   # 다른 터미널 — ANTHROPIC_API_KEY 필요 (크레딧�
 
 | 경로 | 무엇 |
 |---|---|
-| **`/interrogation`** | **본판** — 리더가 시행을 설계하고 판정한다 |
-| `/arena` | 같은 판 (같은 컴포넌트) |
+| **`/interrogation`** | **본판 — 「인간인 척」** ([PLANNING.md](PLANNING.md)). 사람 3~8 + AI 1좌석 + 설계자 0~2, 토론 · 실시간 지목 ⇄ 물리 테스트 → 결과 모달, 의심도 100% 즉시 격리, 격리가 총원 절반이면 끝. 서버는 `worker/src/game`, 화면은 `src/features/interrogation` |
+| `/arena` | 옛 시행판 — 리더가 지시문을 짜고 판정하던 판 (`features/arena`). 본판에서 갈라져 나온 채로 남아 있다 |
 | `/lab` | 구역 — AI 5개와 섞여 그냥 대화한다. 규정도 검사도 없다 |
 | `/world` | 3D 구역 멀티플레이 — 방 번호로 만난다 |
 | `/intro` · `/main` | 랜딩 · 로비 |
@@ -236,7 +238,8 @@ npm run worker:dev   # 다른 터미널 — ANTHROPIC_API_KEY 필요 (크레딧�
 
 ```
 src/features/     화면별 폴더 = 담당자별 작업 단위
-  arena/            시행 — 게임의 본체 (/arena · /interrogation)
+  interrogation/    본판 「인간인 척」 (/interrogation) — 방에 붙어 도는 화면. 판의 진실은 worker/src/game
+  arena/            옛 시행판 (/arena)
   talk/             구역 대화판 (/lab)
   world/            3D 구역 멀티플레이 — 복도 · 중앙 시설 · 재검실의 이야기(챕터 1~3)
   world2/           시나리오 2 — 본판 저장소를 읽지 않는 두 번째 판 (/scenario2)

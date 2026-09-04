@@ -233,6 +233,26 @@ export function labPlugin(): Plugin {
         (body) => `w2say/${(body as { unit?: string }).unit ?? '?'}`,
       );
 
+      /*
+       * 「인간인 척」 판의 관리 AI · AI 참가자 — **워커의 DO 가 여기로 온다** (worker/src/game/brain.ts).
+       * 판의 프롬프트는 DO 안에서 짜인다(정체표가 거기 있으므로). 로컬에서 API 키가 없으면 DO 는
+       * 이 개발 서버의 구독 경로를 두드려 같은 CLI 로 답을 받는다 — `npm run dev` + `npm run worker:dev` 면
+       * 키 없이 판이 돈다. 배포본은 이 경로를 안 탄다 (키로 직접 부른다).
+       */
+      endpoint(
+        '/api/lab/complete',
+        async (body) => {
+          const b = body as { model?: unknown; system?: unknown; user?: unknown; tool?: unknown; effort?: unknown };
+          const tool = b.tool as { name?: unknown; input_schema?: unknown } | undefined;
+          if (typeof b.model !== 'string' || typeof b.system !== 'string' || typeof b.user !== 'string' || !tool || typeof tool.name !== 'string')
+            throw new Error('model · system · user · tool 이 있어야 한다');
+          const effort = b.effort === 'high' || b.effort === 'medium' ? b.effort : 'low';
+          const input = await complete({ model: b.model, system: b.system, user: b.user, tool: tool as never, effort });
+          return { input };
+        },
+        (body) => `complete/${String((body as { tool?: { name?: string } }).tool?.name ?? '?')}`,
+      );
+
       // 대화 방 — 페르소나·색출
       endpoint(
         '/api/lab/talk',

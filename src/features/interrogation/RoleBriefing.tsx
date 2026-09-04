@@ -18,21 +18,19 @@
  * humanish 처럼 몇초보여주고 없어져") — 카드가 판을 여는 관문이 아니라 스치는 알림이어야
  * 한다는 뜻이라, SHOW_MS 뒤 자동으로 닫는다. 「확인」 버튼은 그 전에 먼저 닫고 싶을 때 쓴다.
  *
- * 배역 배정은 아직 서버 자리가 없다 — worker/src/trial 에 진짜 다인원 로스터와 정체표가 붙기
- * 전까지는 이 화면이 PLANNING §1.1 의 표(실제 플레이어 수 → AI 설계자 상한)를 그대로
- * 클라이언트에서 굴려 채운다. TRIAL_PARTY(이 방의 시행 참가 인원, lab/personas)를 "실제
- * 플레이어 수" 자리에 대신 넣는다 — 진짜 배정이 붙으면 rollMyRole 을 그 응답으로 바꿔치면 된다.
+ * 배역은 **서버가 준다** (worker/src/game/roles.ts → game_role, 그 소켓에만). 이 카드는 받은 배역을 그리기만 한다.
+ * AI 설계자에게는 AI 의 좌석 번호가 같이 온다 — §1.1 "브리핑에서 자기 역할이 공개되는 바로 그 순간, AI 의 좌석 · 정체도
+ * 함께 통보받는다". 그 줄이 카드의 마지막 문장이다.
  */
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
-import { TRIAL_PARTY } from '@/lab/personas';
 import cardStyles from './role-card.module.css';
 
-/** 카드가 떠 있는 시간(ms) — 두세 줄 문장을 읽기엔 넉넉하고, 판을 막아 서지는 않을 만큼 */
-const SHOW_MS = 4500;
+/** 카드가 떠 있는 시간(ms) — 서버의 배역 통보 국면(GAME_BRIEFING_MS)보다 조금 짧게, 판이 열리기 전에 걷힌다 */
+const SHOW_MS = 6000;
 /** 닫힘 페이드 시간(ms) — role-card.module.css 의 fadeOut 과 같은 값이어야 한다 */
 const FADE_MS = 300;
 
-type MyRole = 'human' | 'designer';
+export type MyRole = 'human' | 'designer';
 
 /**
  * 역할별 화면 문구 — 원본 ROLE_CARD 와 같은 모양(name·tagline·lines·color·art·artAlt)이다.
@@ -57,23 +55,6 @@ const ROLE_CARD: Record<MyRole, { name: string; tagline: string; lines: string[]
   },
 };
 
-/** AI 설계자 상한 — PLANNING §1.1 표 그대로 (3명→0 · 4~5명→1 · 6~8명→2) */
-function designerCap(partySize: number): number {
-  if (partySize <= 3) return 0;
-  if (partySize <= 5) return 1;
-  return 2;
-}
-
-/**
- * 이 판의 내 배역을 굴린다 — §1.1: 상한 안에서 설계자 수를 0부터 균등 랜덤으로 뽑고,
- * 그 수만큼의 자리가 파티 인원 중 무작위로 설계자가 된다("인원을 알아도 실제 설계자 수는
- * 알 수 없다"). 내가 그 자리에 들 확률은 뽑힌 설계자 수를 파티 인원으로 나눈 값이다.
- */
-function rollMyRole(partySize: number): MyRole {
-  const cap = designerCap(partySize);
-  const designerCount = Math.floor(Math.random() * (cap + 1));
-  return Math.random() < designerCount / partySize ? 'designer' : 'human';
-}
 
 /** AI 설계자 — 가면. 카드 문장(정체를 숨기고 조력한다)의 그림 버전이다 (원본 MaskIcon 그대로) */
 function MaskIcon({ size = 32 }: { size?: number }) {
@@ -107,11 +88,11 @@ function EyeIcon({ size = 32 }: { size?: number }) {
   );
 }
 
-export function RoleBriefing({ onDone }: { onDone: () => void }) {
-  // 마운트 시 한 번만 굴린다 — 다시 렌더될 때마다 배역이 바뀌면 브리핑이 아니라 뽑기가 된다
-  const [myRole] = useState<MyRole>(() => rollMyRole(TRIAL_PARTY));
+export function RoleBriefing({ role, aiName, onDone }: { role: MyRole; /** 설계자에게만 — AI 의 좌석 이름 */ aiName?: string | null; onDone: () => void }) {
+  const myRole = role;
   const [closing, setClosing] = useState(false);
   const card = ROLE_CARD[myRole];
+  const lines = aiName ? [...card.lines, `표식 없는 AI 는 ${aiName} 이다.`] : card.lines;
 
   // 먼저 닫힘(closing)을 켜서 페이드가 보이게 하고, 그 페이드가 끝난 뒤에야 실제로 걷는다
   const dismiss = useCallback(() => {
@@ -151,7 +132,7 @@ export function RoleBriefing({ onDone }: { onDone: () => void }) {
             ◆
           </div>
           <div className={cardStyles.lines}>
-            {card.lines.map((line) => (
+            {lines.map((line) => (
               <p key={line}>{line}</p>
             ))}
           </div>

@@ -325,7 +325,8 @@ tools/            빌드·에셋·개발 서버 플러그인 (vite-lab.ts 가 �
 |---|---|
 | `intro` | 랜딩 「누가 인간인가?」 — 히어로 · 브리핑 · 배역 · 진행/규칙 · 입장 → 로비 |
 | `main` | 로비 · 방 코드 입장 · 준비 |
-| `arena` | **시행** — 리더가 지시하고 개체가 움직이고 리더가 판정한다 (`/arena`·`/interrogation`) |
+| `interrogation` | **본판 「인간인 척」** (`/interrogation`) — 방(RoomDO)에 붙어 도는 화면. 판의 진실(배역 · 의심도 · 테스트 · 관리 AI)은 전부 `worker/src/game` 에 있고 화면은 그리기와 입력뿐이다. 아래 「인간인 척」 절 |
+| `arena` | **옛 시행판** — 리더가 지시하고 개체가 움직이고 리더가 판정한다 (`/arena`). 2026-09-04 까지 `/interrogation` 도 이 컴포넌트였다 |
 | `world` | 3D 구역 · 노드 아바타 8 · 규정 HUD |
 | `central` | **중앙 시설** (`/central`) — 챕터 1 후반(AI 무리 · 락다운)과 챕터 2(검문 · 행동 분석 · 검증실 → `/interrogation?from=central`)의 무대. 화면·입력·네트워크는 `world` 가 쥐고 여기는 맵과 장면만 얹는다 |
 | `recheck` | 재검실 (`/recheck`) — 챕터 3, 검문에서 감독이 끌고 왔을 때만 열린다 |
@@ -356,9 +357,47 @@ tools/            빌드·에셋·개발 서버 플러그인 (vite-lab.ts 가 �
 
 ## 화면별 상세
 
-### 시행 (`/arena` · `/interrogation`)
+### 「인간인 척」 (`/interrogation`)
 
-두 경로가 **같은 컴포넌트**(`features/arena/ArenaFeature.tsx`)다. 게임을 고칠 일이 있으면 그쪽 하나다.
+PLANNING.md 의 게임 그대로다 (2026-09-04 사용자: "예전 게임 내용 다 버려도 되니까 내가 새로 짜놓은 게임으로 다 반영해줘").
+**방 하나 = 판 하나** — 방(`worker/src/room-do.ts`)이 `worker/src/game/runtime.ts` 의 `GameRuntime` 을 하나 쥐고, 판이 도는 동안은
+채팅 · 이동 · `trial_*` 를 전부 그쪽으로 넘긴다. 화면(`src/features/interrogation`)은 상태를 받아 그리고 입력을 보낼 뿐이다.
+
+```
+worker/src/game/
+  runtime.ts     판의 국면 · 좌석 · 배역 · 테스트 조립 · 격리 · 승패 · 봇 발화 · 설계자 조작 — 전부 여기
+  roles.ts       배역(§1.1) · 격리 목표(§1.3) · 승패 — 순수 함수
+  suspicion.ts   의심도 상태머신(§1.2) — 발언(지목 +8 · 동조 +5 · 되풀이 +3 · 몰이 +2, 상한 6) · 철회(건 만큼) · 판정 ±10
+  agents.ts      프롬프트 — AI 참가자 · 대역의 한 마디, AI 의 테스트 전략(P9), 관리 AI 의 설계 · 해설 · 주장 판정(P5)
+  brain.ts       DO 안의 LLM 호출 — 키 → Anthropic, 없으면 개발 서버의 /api/lab/complete(구독), 그것도 없으면 폴백
+  engines.ts     물리 테스트 = worker/src/trial 의 엔진(GameEngine 계약)을 그대로 조립한다 (정지선 · 낙하 생존, 색 사냥은 자리만)
+src/world/mp/game-protocol.ts   와이어 계약 (game_* 메시지 · 판의 상수)
+src/features/interrogation/     화면 — interrogationSlice(서버 상태) · net/GameConnection · scene/(홀 · 다리 · 트랙 · 낙하물) · hud/(판들)
+```
+
+**흐름**: lobby(방장 「시작」, `fillTo` 로 대역 수) → briefing(7초, 배역 카드) → discussion(첫 40초, 이후 60초) ⇄ test(엔진의
+`durationMs`, 지금은 60초) → result(7초 모달, 입력 잠금) → … 의심도 100 은 그 자리에서 격리 · 정체 공개. 격리가 총원 절반이면
+끝. 하드캡 10분.
+
+**와이어에 정체가 없다.** 좌석 목록(GameSeat)에는 사람 · 대역 · AI 의 구분이 없고, 판이 열리면 이름은 전부 `SUBJECT nn` 이다.
+판이 도는 동안 사람의 채팅 · 이동은 **좌석 id 로 바꿔** 나간다 — 플레이어 id 가 실리면 「어느 좌석 뒤에 실제 사람이 있나」가
+읽히고 남는 좌석이 곧 AI 다. 배역(`game_role`)은 그 소켓에만 가고, 설계자에게만 AI 의 좌석이 딸려 온다. 물리 조건값은 어디에도
+없다(P8) — 조작 전 원본과 조건값은 DO storage 에만 남는다(P7). `tests/worker/game-runtime.test.ts` 가 이 셋을 잠근다.
+
+**LLM 은 DO 안에서만 부른다** (§4.4). 로컬에서 키가 없으면 `worker/src/game/brain.ts` 가 개발 서버의 `/api/lab/complete`
+(tools/vite-lab.ts, 구독)를 두드린다 — vite 가 `::1` 에만 떠 있는 날이 있어 localhost → [::1] → 127.0.0.1 순으로 찾는다.
+한 줄에 3~55초 걸리므로 봇 대사가 늦게 붙는다. 못 받으면 폴백(관리 AI 는 표에서 가장 먼 사람을 규칙으로 짚고, 판정은
+unclear, 봇은 조용히 넘긴다). 워커 로그의 `[game/brain]` 줄이 어느 길인지 말한다.
+
+**혼자 시험하기**: 워커와 vite 를 띄우고 `/interrogation?code=1234` — 방장이 총 인원(3~8)을 고르면 모자란 만큼 대역이 앉는다.
+대역과 AI 는 같은 페르소나 풀(`src/lab/personas`)에서 성격을 받고, 물리는 엔진 프로파일이 대신 움직인다(P9 — AI 는 테스트마다
+`precision` 을 LLM 한 번으로 정한다). 토론 중엔 제 자리 근처를 배회한다(가만히 선 몸이 곧 표식이 되지 않게).
+
+### 옛 시행판 (`/arena`)
+
+`features/arena/ArenaFeature.tsx` — 리더가 지시문을 짜고 개체들이 읽고 움직이고 리더가 판정하던 판. 2026-09-04 까지
+`/interrogation` 도 이 컴포넌트였다. 이야기(`/central` → `/interrogation?from=central`)로 들어오던 인계 서류(HandoverCard)는
+이제 본판이 받지 않는다 — 그 길은 옛 판을 열려면 `/arena` 로 바꿔 잇는다.
 
 밸런스 수치는 전부 그 파일의 `BALANCE` 블록 하나에 모여 있다.
 

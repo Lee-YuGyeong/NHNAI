@@ -46,8 +46,11 @@ import {
 import type { RoomPhase } from '../../src/world/mp/lobby';
 import type { ErrorCode, PlayerSnapshot, S2CMessage } from '../../src/world/mp/protocol';
 import { spawnFor } from '../../src/world/mp/spawn';
+import { isGameMessage } from '../../src/world/mp/game-protocol';
 import { cleanNickname, isC2SMessage, isTrialMessage, parseBroadcast, parseMove } from '../../src/world/mp/validate';
 import { verifyTicket, type AuthEnv } from './auth';
+import { makeBrain, type BrainEnv } from './game/brain';
+import { GameRuntime } from './game/runtime';
 import { lobbyStub, type LobbyEnv } from './lobby-do';
 import { TrialRuntime } from './trial/runtime';
 
@@ -68,8 +71,8 @@ export function publicOf({ userId: _drop, ...snap }: Attached): PlayerSnapshot {
 /** 방 번호를 경로에서 다시 뽑는다. 입장권이 **그 방의 것인지** 보려면 필요하다 (auth.ts verifyTicket) */
 const ROOM_IN_PATH = /^(?:\/world-ws)?\/rooms\/([0-9]{1,6})\/ws$/;
 
-/** 이 방이 쥔 것 — 입장권 검증 비밀(auth)과 등록소 바인딩(lobby) */
-export type RoomEnv = AuthEnv & LobbyEnv;
+/** 이 방이 쥔 것 — 입장권 검증 비밀(auth) · 등록소 바인딩(lobby) · 판의 LLM 키(game/brain) */
+export type RoomEnv = AuthEnv & LobbyEnv & BrainEnv;
 
 /** 스토리지에 남기는 값들. DO 가 잠들었다 깨어나도 자기 번호와 상태를 안다 */
 const CODE_KEY = 'code';
@@ -94,6 +97,12 @@ export class RoomDO implements DurableObject {
    * 그대로 두고, 라운드에 필요한 것만 여기로 위임한다 (worker/src/trial/runtime.ts 머리말).
    */
   private readonly trial: TrialRuntime;
+  /**
+   * 「인간인 척」 한 판 (worker/src/game/runtime.ts) — /interrogation 이 여는 판. 판이 도는 동안은 trial_* 도
+   * 이쪽이 받고(엔진을 직접 조립한다), 채팅·이동의 id 는 좌석 id 로 바꿔 나간다 (game-protocol.ts 머리말).
+   * 판이 없을 때는 아무 일도 안 한다 — /world · /trial 은 예전 그대로다.
+   */
+  private readonly game: GameRuntime;
 
   /** env 는 두 번째 인자로 온다 (Cloudflare 규약). 입장권 검증 비밀이 여기 있다 */
   constructor(private readonly ctx: DurableObjectState, private readonly env: RoomEnv) {
@@ -105,6 +114,13 @@ export class RoomDO implements DurableObject {
       (msg) => this.broadcast(msg),
       (ws, msg) => this.send(ws, msg),
     );
+    this.game = new GameRuntime({
+      storage: this.ctx.storage,
+      roster: () => this.roster(),
+      broadcast: (msg) => this.broadcast(msg as S2CMessage),
+      sendTo: (id, msg) => this.sendTo(id, msg as S2CMessage),
+      brain: makeBrain(this.env ?? {}),
+    });
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -179,6 +195,8 @@ export class RoomDO implements DurableObject {
 
     this.send(server, { t: 'welcome', selfId: snapshot.id, players: [...others, snapshot] });
     this.broadcast({ t: 'player_joined', player: snapshot }, server);
+    // 판이 도는 중이면 지금 상태와(앉아 있던 자리가 있으면) 배역을 이 사람에게만 준다
+    void this.game.onJoin(snapshot.id);
 
     await this.ensureAlarm();
     // 자리가 하나 찼다 — 로비의 그 줄이 바로 따라 움직인다 (파일 머리말의 등록소)
@@ -203,9 +221,17 @@ export class RoomDO implements DurableObject {
     const snap = ws.deserializeAttachment() as Attached | null;
     if (!snap) return;
 
-    // 물리 미니게임 메시지는 여기서 전부 갈라진다 — 이 파일에는 라운드 로직을 안 둔다 (파일 머리말)
+    // 「인간인 척」 판의 메시지 — 전부 GameRuntime 이 받는다
+    if (isGameMessage(parsed)) {
+      await this.game.handle(snap.id, parsed);
+      return;
+    }
+
+    // 물리 미니게임 메시지는 여기서 전부 갈라진다 — 이 파일에는 라운드 로직을 안 둔다 (파일 머리말).
+    // 판이 도는 중이면 판이 엔진을 쥐고 있으므로 그쪽으로 간다
     if (isTrialMessage(parsed)) {
-      await this.trial.handle(ws, snap, parsed);
+      if (this.game.active()) await this.game.handleTrial(snap.id, parsed);
+      else await this.trial.handle(ws, snap, parsed);
       return;
     }
 
@@ -227,9 +253,12 @@ export class RoomDO implements DurableObject {
         // 새로 들어오는 사람의 welcome 에 반영되도록 attachment 를 갱신한다
         ws.serializeAttachment(snap);
 
-        this.broadcast({ t: 'player_moved', id: snap.id, x: snap.x, z: snap.z, y: snap.y, heading: snap.heading, anim: snap.anim }, ws);
+        // 판이 도는 동안은 좌석 id 로 나간다 — 플레이어 id 가 실리면 어느 좌석이 사람인지 읽힌다 (game/runtime.ts onChat)
+        const outId = this.game.active() ? (this.game.seatIdOf(snap.id) ?? snap.id) : snap.id;
+        this.broadcast({ t: 'player_moved', id: outId, x: snap.x, z: snap.z, y: snap.y, heading: snap.heading, anim: snap.anim }, ws);
         // 물리 미니게임(낙하 생존)이 사람의 자리를 아는 길 — 범위 검증을 통과한 좌표만 넘긴다
-        this.trial.onMove(snap.id, snap.x, snap.z, now);
+        if (this.game.active()) this.game.onMove(snap.id, snap.x, snap.z, now);
+        else this.trial.onMove(snap.id, snap.x, snap.z, now);
         return;
       }
 
@@ -243,6 +272,8 @@ export class RoomDO implements DurableObject {
         if (now - (this.lastChatAt.get(ws) ?? 0) < CHAT_MIN_INTERVAL_MS) return;
         this.lastChatAt.set(ws, now);
 
+        // 판이 도는 동안은 판이 좌석 이름으로 내보낸다 (위 move 와 같은 이유)
+        if (this.game.onChat(snap.id, text)) return;
         // 닉네임·시각은 서버 값만 쓴다. 본인도 포함해 보낸다 — 낙관적 로컬 에코를 하면 순서가 갈린다
         this.broadcast({ t: 'chat', id: snap.id, nickname: snap.nickname, text, ts: now });
         return;
@@ -342,6 +373,7 @@ export class RoomDO implements DurableObject {
     void this.report(remaining);
     // 물리 미니게임 — 나간 사람을 기다리느라 라운드가 안 닫히지 않게 (worker/src/trial/runtime.ts 머리말 ★)
     if (snap) void this.trial.onLeave(snap.id);
+    if (snap) this.game.onLeave(snap.id);
     /*
      * 마지막 사람이 나갔다 — 밴 명부를 태운다. 이 번호로 다음에 서는 방은 **다른 모임**이다:
      * 명부가 남으면 지난 판에 내보내진 사람이 남의 방 문 앞에서 영문도 모르고 돌아서게 된다.
@@ -378,6 +410,8 @@ export class RoomDO implements DurableObject {
      * (worker/src/trial/runtime.ts 머리말).
      */
     await this.trial.onSweep(now);
+    // 판의 안전망 — 잠들어 타이머를 잃었어도 마감이 지난 국면을 민다 (worker/src/game/runtime.ts 머리말)
+    await this.game.onSweep(now);
   }
 
   private async ensureAlarm(): Promise<void> {
@@ -459,6 +493,18 @@ export class RoomDO implements DurableObject {
     } catch {
       // 닫히는 중인 소켓. close 핸들러가 정리한다
     }
+  }
+
+  /** 플레이어 id 로 한 사람에게만 — 판이 배역처럼 그 소켓에만 가야 하는 것을 보낼 때 */
+  private sendTo(id: string, msg: S2CMessage): boolean {
+    for (const ws of this.ctx.getWebSockets()) {
+      if (ws.readyState !== WebSocket.OPEN) continue;
+      const s = ws.deserializeAttachment() as Attached | null;
+      if (s?.id !== id) continue;
+      this.send(ws, msg);
+      return true;
+    }
+    return false;
   }
 
   /**

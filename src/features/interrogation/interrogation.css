@@ -1,0 +1,610 @@
+/* 「인간인 척」 판 — 3D 홀 위에 얹히는 판들. 색·글꼴은 global.css 의 변수만 쓴다 */
+
+.ig-root {
+  position: fixed;
+  inset: 0;
+  background: #101d31;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--linen);
+}
+
+.ig-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ig-hud > * {
+  pointer-events: auto;
+}
+
+/* ── 상단 줄 ── */
+.ig-top {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 8px 16px;
+  border: 1px solid rgba(232, 221, 205, 0.22);
+  background: rgba(8, 6, 4, 0.72);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.ig-top b {
+  color: var(--amber);
+  font-weight: 700;
+}
+.ig-top .ig-timer {
+  min-width: 42px;
+  text-align: right;
+  color: var(--bone);
+}
+.ig-top .ig-phase-test {
+  color: var(--signal);
+}
+
+.ig-corner {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--dust);
+  letter-spacing: 0.1em;
+}
+
+/* ── 지시문 (테스트 중 화면 위) ── */
+.ig-order {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  background: rgba(255, 51, 32, 0.12);
+  border: 1px solid rgba(255, 51, 32, 0.5);
+  color: var(--flare);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* ── 좌석판 (왼쪽) ── */
+.ig-board {
+  position: absolute;
+  top: 48px;
+  left: 12px;
+  width: 268px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  background: rgba(8, 6, 4, 0.74);
+  border: 1px solid rgba(232, 221, 205, 0.18);
+  padding: 8px 10px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.ig-board h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--dust);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+}
+.ig-seat {
+  display: grid;
+  grid-template-columns: 1fr 44px auto;
+  gap: 6px;
+  align-items: center;
+  padding: 5px 0;
+  border-top: 1px solid rgba(232, 221, 205, 0.08);
+}
+.ig-seat.me .ig-seat-name {
+  color: var(--amber);
+}
+.ig-seat.isolated {
+  opacity: 0.45;
+}
+.ig-seat.accused .ig-seat-name::after {
+  content: ' ◂';
+  color: var(--signal);
+}
+.ig-seat-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.ig-seat-name small {
+  color: var(--dust);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.ig-seat-name .ig-tag {
+  color: var(--signal);
+}
+.ig-seat-name .ig-tag.ai {
+  color: var(--flare);
+}
+.ig-gauge {
+  height: 6px;
+  background: rgba(232, 221, 205, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+.ig-gauge i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--amber);
+  transition: width 0.4s ease;
+}
+.ig-gauge.hot i {
+  background: var(--signal);
+}
+.ig-seat-val {
+  text-align: right;
+  min-width: 30px;
+  color: var(--bone);
+}
+.ig-seat button {
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid rgba(232, 221, 205, 0.3);
+  background: transparent;
+  color: var(--linen);
+  cursor: pointer;
+  letter-spacing: 0.06em;
+}
+.ig-seat button.on {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+.ig-seat button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ig-board .ig-acc {
+  margin-top: 6px;
+  color: var(--dust);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* ── 채팅 (오른쪽 아래) ── */
+.ig-chat {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 360px;
+  max-height: 46vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 6, 4, 0.72);
+  border: 1px solid rgba(232, 221, 205, 0.18);
+}
+.ig-chat.hushed {
+  opacity: 0.35;
+}
+.ig-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.ig-line {
+  margin: 0 0 4px;
+  word-break: break-word;
+}
+.ig-line b {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  margin-right: 6px;
+  font-weight: 700;
+}
+.ig-line.me b {
+  color: var(--amber);
+}
+.ig-line.leader {
+  color: var(--flare);
+  border-left: 2px solid var(--amber);
+  padding-left: 8px;
+}
+.ig-line.system {
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.ig-line.delta {
+  color: var(--dust);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.ig-input {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid rgba(232, 221, 205, 0.12);
+}
+.ig-input input {
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  background: rgba(232, 221, 205, 0.06);
+  border: 1px solid rgba(232, 221, 205, 0.2);
+  color: var(--linen);
+}
+.ig-input input:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+.ig-input button {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid rgba(232, 221, 205, 0.3);
+  background: transparent;
+  color: var(--linen);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ig-input button.claim {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.ig-input button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ig-hint {
+  padding: 0 10px 8px;
+  font-size: 11px;
+  color: var(--dust);
+  font-family: var(--font-mono);
+}
+
+/* ── 기록 요약 (오른쪽 위) ── */
+.ig-record {
+  position: absolute;
+  right: 12px;
+  top: 48px;
+  width: 360px;
+  max-height: 44vh;
+  overflow-y: auto;
+  background: rgba(8, 6, 4, 0.74);
+  border: 1px solid rgba(232, 221, 205, 0.18);
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.ig-record h3,
+.ig-result h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--dust);
+  font-weight: 600;
+}
+.ig-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.ig-table th,
+.ig-table td {
+  padding: 3px 4px;
+  text-align: right;
+  border-top: 1px solid rgba(232, 221, 205, 0.08);
+  white-space: nowrap;
+}
+.ig-table th {
+  color: var(--dust);
+  font-weight: 500;
+  font-size: 10px;
+}
+.ig-table td:first-child,
+.ig-table th:first-child {
+  text-align: left;
+}
+.ig-table tr.mean td {
+  color: var(--amber);
+}
+.ig-table tr.me td:first-child {
+  color: var(--amber);
+}
+.ig-table td.hi {
+  color: var(--signal);
+}
+.ig-table td.dir {
+  letter-spacing: 0.12em;
+}
+
+/* ── 결과 모달 ── */
+.ig-result {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 3, 2, 0.86);
+  animation: ig-fade 0.35s ease;
+}
+.ig-result .ig-sheet {
+  width: min(780px, 94vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 22px 26px;
+  border: 1px solid rgba(255, 217, 172, 0.35);
+  background: rgba(8, 6, 4, 0.92);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+}
+.ig-result .ig-eyebrow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--dust);
+  margin: 0 0 8px;
+}
+.ig-result .ig-title {
+  font-size: 22px;
+  color: var(--flare);
+  margin: 0 0 14px;
+  letter-spacing: 0.06em;
+}
+.ig-result .ig-note {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: var(--dust);
+  line-height: 1.6;
+}
+.ig-result .ig-lock {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--signal);
+  letter-spacing: 0.1em;
+}
+@keyframes ig-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── 대기(로비) 판 ── */
+.ig-lobby {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, 92vw);
+  padding: 22px 26px;
+  border: 1px solid rgba(232, 221, 205, 0.25);
+  background: rgba(8, 6, 4, 0.86);
+  font-family: var(--font-mono);
+}
+.ig-lobby h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  color: var(--flare);
+  letter-spacing: 0.06em;
+}
+.ig-lobby p {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--dust);
+  line-height: 1.6;
+}
+.ig-lobby ul {
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ig-lobby li {
+  padding: 3px 10px;
+  border: 1px solid rgba(232, 221, 205, 0.25);
+  font-size: 12px;
+}
+.ig-lobby li.host {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.ig-lobby .ig-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+}
+.ig-lobby button,
+.ig-lobby select {
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 16px;
+  border: 1px solid var(--amber);
+  background: rgba(255, 202, 142, 0.1);
+  color: var(--flare);
+  cursor: pointer;
+  letter-spacing: 0.08em;
+}
+.ig-lobby select {
+  padding: 6px 8px;
+}
+.ig-lobby button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ig-lobby .ig-err {
+  color: var(--signal);
+}
+
+/* ── 설계자 조작판 ── */
+.ig-designer {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  width: 268px;
+  padding: 8px 10px;
+  background: rgba(8, 6, 4, 0.78);
+  border: 1px solid rgba(255, 202, 142, 0.45);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.ig-designer h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--amber);
+}
+.ig-designer p {
+  margin: 0 0 6px;
+  color: var(--dust);
+  line-height: 1.5;
+}
+.ig-designer select,
+.ig-designer button {
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid rgba(232, 221, 205, 0.3);
+  background: transparent;
+  color: var(--linen);
+  cursor: pointer;
+  margin-right: 6px;
+}
+.ig-designer button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── 끝 화면 ── */
+.ig-end {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 3, 2, 0.88);
+  animation: ig-fade 0.5s ease;
+}
+.ig-end .ig-sheet {
+  width: min(640px, 92vw);
+  padding: 26px 30px;
+  border: 1px solid var(--tone, var(--amber));
+  background: rgba(8, 6, 4, 0.94);
+  font-family: var(--font-mono);
+}
+.ig-end .ig-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--dust);
+  margin: 0 0 8px;
+}
+.ig-end .ig-title {
+  font-size: 30px;
+  color: var(--tone, var(--amber));
+  margin: 0 0 10px;
+  letter-spacing: 0.06em;
+}
+.ig-end p {
+  margin: 6px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--bone);
+}
+.ig-end ul {
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 14px;
+  font-size: 12px;
+}
+.ig-end li b {
+  color: var(--dust);
+  font-weight: 500;
+  margin-right: 8px;
+}
+.ig-end .ig-role-ai {
+  color: var(--signal);
+}
+.ig-end .ig-role-designer {
+  color: var(--amber);
+}
+.ig-end button {
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 18px;
+  border: 1px solid var(--tone, var(--amber));
+  background: transparent;
+  color: var(--flare);
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+/* ── 배너(관리 AI) ── */
+.ig-banner {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(760px, 90vw);
+  padding: 8px 16px;
+  background: rgba(8, 6, 4, 0.8);
+  border-left: 3px solid var(--amber);
+  font-size: 14px;
+  color: var(--flare);
+  text-align: center;
+  pointer-events: none;
+}
+.ig-banner.alarm {
+  border-left-color: var(--signal);
+  color: #ffd2cb;
+}
+
+/* ── 낙하 피격 번쩍임 ── */
+.ig-hitflash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255, 51, 32, 0) 30%, rgba(255, 51, 32, 0.55) 100%);
+  animation: ig-hit 0.35s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes ig-hit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.ig-foot {
+  position: absolute;
+  left: 50%;
+  bottom: 60px;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--dust);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  white-space: nowrap;
+}

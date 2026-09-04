@@ -95,8 +95,16 @@ export const FEATURES: FeatureDef[] = [
    * 싸움이 없고, 계량기가 둘(의심도 · 경보도)이고, 먼저 말을 걸 수 있다. 위의 「게임 시작 테스트」와는 길이 아예 다르다.
    */
   { id: 'scenario2', title: '시나리오 2 (짓지 않은 방들)', path: '/scenario2', owner: 'TBD', Component: Scenario2Feature },
-  // 검문소만 따로 — 이야기를 안 거치고 시행 판만 연다 (이야기로 오면 /interrogation?from=central)
-  { id: 'interrogation', title: '검문소 (판만)', path: '/interrogation', owner: 'TBD', Component: InterrogationFeature },
+  // 본판 「인간인 척」 (PLANNING.md) — 방에 붙어 도는 판. ?code= 가 방 번호, 방장이 시작한다 (features/interrogation)
+  {
+    id: 'interrogation',
+    title: '인간인 척 (본판)',
+    path: '/interrogation',
+    owner: 'TBD',
+    Component: InterrogationFeature,
+    // 방 번호 1234 고정 — 같은 번호로 탭을 더 열면 같은 판에 들어온다 (물리 미니게임의 문과 같은 규칙)
+    doors: [{ title: '인간인 척 (본판 · 방 1234)', to: '/interrogation?code=1234' }],
+  },
   { id: 'game',    title: '라운드 진행',    path: '/game',    owner: 'TBD', Component: GameFeature },
   { id: 'profile', title: '프로필',        path: '/profile', owner: 'TBD', Component: ProfileFeature },
   { id: 'llm',     title: 'LLM 테스트',    path: '/llm',     owner: 'TBD', Component: LlmFeature },
