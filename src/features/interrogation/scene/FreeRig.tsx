@@ -14,7 +14,8 @@ import { EYE_HEIGHT, GRAVITY, JUMP_SPEED, MOVE_THROTTLE_MS, WALK_SPEED, WORLD } 
 import type { AnimState } from '@/world/mp/protocol';
 
 const UP = new THREE.Vector3(0, 1, 0);
-const map: MapDef = MAPS.interrogation;
+/** 막는 벽은 **보이는 벽과 같은 맵**의 것이어야 한다 — 배경을 갈아끼운 자리는 HallScene 의 def (머리말) */
+const map: MapDef = MAPS.govcenter;
 
 export interface Teleport {
   x: number;

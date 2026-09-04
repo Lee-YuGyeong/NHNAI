@@ -13,7 +13,7 @@ import { Suspense, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
-import { MAPS } from '@/world/map';
+import { MAPS, type MapDef } from '@/world/map';
 import { EYE_HEIGHT, FALL_ARENA } from '@/world/mp/constants';
 import type { AnimState, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
@@ -27,7 +27,19 @@ import { TrackDressing } from './stopline/TrackDressing';
 import { runnerState } from './stopline/runnerState';
 import { laneX, zAt } from './stopline/track';
 
-const def = MAPS.interrogation;
+/**
+ * 배경은 **특수인공지능대응센터 홀**(map/govcenter) — 노원상이 올린 참고 이미지대로 지은 방이다
+ * (2026-09-04 사용자: "노원상이 올린 배경에 내가 만든거 해야하는데"). 옛 심문소 맵(MAPS.interrogation,
+ * 검정 철골 천장 + 링 조명)에서 갈아끼웠다 — **게임은 그대로, 맵만.**
+ *
+ * ★ 갈아끼워도 판이 안 흔들리는 이유: govcenter 의 발자국·충돌 목록이 격납고 홀(warehouse/layout.ts)을
+ *   그대로 재수출하고, 그 치수가 옛 심문소 홀과 앞뒤로 같다 — z 12 → −20, 무대 앞면 −14.
+ *   그래서 좌석 원(spawn.ts, (0,−2.5) 반지름 3.4) · 정지선 트랙(track.ts, 출발 z 10 → 끝 −14) ·
+ *   낙하 마당(FALL_ARENA ±6)이 한 줄도 안 바뀐다. 좌우만 좁다 (±15 → ±12) — 레인 아홉이 ±8.8 이라 안에 든다.
+ * ★ FreeRig 도 **같은 맵**을 봐야 한다 (FreeRig.tsx 의 map). 한쪽만 바꾸면 보이는 벽과 막는 벽이 3m 어긋난다.
+ */
+/** MapDef 로 받는다 — 맵마다 있는 칸(Effects · Furniture)이 달라서, 리터럴로 받으면 없는 맵에서 컴파일이 막힌다 */
+const def: MapDef = MAPS.govcenter;
 
 export interface HallSceneProps {
   mySeatId: string | null;
