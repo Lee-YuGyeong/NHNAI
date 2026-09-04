@@ -13,6 +13,7 @@ import { Suspense } from 'react';
 import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
 import { MAPS } from '@/world/map';
+import type { BodyId } from '@/world/mp/bodies';
 import { EYE_HEIGHT, HUNT_ARENA } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { AdaptiveFov, Exposure, MouseLook, Remotes } from '@/world/scene/WorldScene';
@@ -28,13 +29,15 @@ const CX = (HUNT_ARENA.minX + HUNT_ARENA.maxX) / 2;
 const CZ = (HUNT_ARENA.minZ + HUNT_ARENA.maxZ) / 2;
 
 export interface ColorHuntSceneProps {
+  /** 내 몸 — 밀치기의 몸무게(remotePlayers.pushOut)만 쓴다. 1인칭이라 화면에는 안 보인다 */
+  myBody?: BodyId | null;
   roster: readonly { id: string }[];
   aiIds: readonly string[];
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
   onPick: (objectId: number) => void;
 }
 
-export function ColorHuntScene({ roster, aiIds, sendMove, onPick }: ColorHuntSceneProps) {
+export function ColorHuntScene({ myBody = null, roster, aiIds, sendMove, onPick }: ColorHuntSceneProps) {
   return (
     <WorldCanvas
       quality="high"
@@ -67,7 +70,7 @@ export function ColorHuntScene({ roster, aiIds, sendMove, onPick }: ColorHuntSce
         <DodgerAvatar key={id} id={id} />
       ))}
 
-      <HuntRig sendMove={sendMove} />
+      <HuntRig body={myBody} sendMove={sendMove} />
       <PickKey getPos={() => ({ x: selfPose.x, z: selfPose.z })} onPick={onPick} />
       <MouseLook />
     </WorldCanvas>

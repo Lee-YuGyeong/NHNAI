@@ -89,7 +89,7 @@ export function FallScene({ myBody, roster, aiIds, sendMove }: FallSceneProps) {
         <DodgerAvatar key={id} id={id} />
       ))}
 
-      <DodgeRig sendMove={sendMove} />
+      <DodgeRig body={myBody} sendMove={sendMove} />
       <SelfAvatar body={myBody} />
       <MouseLook />
     </WorldCanvas>

@@ -11,6 +11,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { LOOK_SENSITIVITY, attachKeyboard, input, resetInput } from '@/world/input/input';
+import type { BodyId } from '@/world/mp/bodies';
 import { FALL_ARENA, FALL_BODY_R, GRAVITY, JUMP_SPEED, MOVE_THROTTLE_MS, WALK_SPEED } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
@@ -20,7 +21,7 @@ import { selfPose } from '../common/selfPose';
 /** 마당 가운데 조금 뒤 — 무대(-z)를 보고 선다 */
 export const DODGE_SPAWN = { x: 0, z: 2 } as const;
 
-export function DodgeRig({ sendMove }: { sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void }) {
+export function DodgeRig({ body = null, sendMove }: { body?: BodyId | null; sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void }) {
   const { camera } = useThree();
   const pos = useRef<{ x: number; y: number; z: number }>({ x: DODGE_SPAWN.x, y: 0, z: DODGE_SPAWN.z });
   const vy = useRef(0);
@@ -89,7 +90,7 @@ export function DodgeRig({ sendMove }: { sendMove: (x: number, z: number, y: num
     }
 
     // 캐릭터끼리는 통과 못 한다 — 겹친 만큼 밀려난다. 마당 클램프가 뒤라 밖으로 밀려 나가진 않는다
-    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, FALL_BODY_R, performance.now());
+    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, FALL_BODY_R, performance.now(), body);
     pos.current.x = among.x;
     pos.current.z = among.z;
 

@@ -166,7 +166,7 @@ export function FreeRig({
 
     map.resolveColliders(pos.current, pos.current.y);
     // 캐릭터끼리는 통과 못 한다 — 겹친 만큼 밀려난다. 밀린 자리가 벽 안이면 벽이 다시 민다 (환경이 이긴다)
-    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, CHAR_BODY_R, performance.now());
+    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, CHAR_BODY_R, performance.now(), body);
     pos.current.x = among.x;
     pos.current.z = among.z;
     map.resolveColliders(pos.current, pos.current.y);

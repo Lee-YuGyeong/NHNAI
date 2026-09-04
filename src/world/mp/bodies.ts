@@ -30,13 +30,18 @@ export interface BodySpec {
    * (worker/src/trial/disc/engine.ts). 1 이 기준.
    */
   grip: number;
+  /**
+   * 몸무게 배율 — 캐릭터끼리 부딪힐 때 밀리는 몫을 가른다 (net/remote-players.pushOut): 겹침은 질량
+   * 반비례로 나눠 무거운 쪽이 덜 밀리고 가벼운 쪽이 많이 밀린다. 1 이 기준.
+   */
+  mass: number;
 }
 
 export const BODIES: Record<BodyId, BodySpec> = {
-  sol_fit_m: { name: '남군', run: 5.2, jump: 5.6, heavy: false, grip: 1 },
-  sol_fit_f: { name: '여군', run: 5.2, jump: 5.6, heavy: false, grip: 1 },
-  sol_heavy_m: { name: '비만 남군', run: 3.9, jump: 4.4, heavy: true, grip: 0.7 },
-  sol_heavy_f: { name: '비만 여군', run: 3.9, jump: 4.4, heavy: true, grip: 0.7 },
+  sol_fit_m: { name: '남군', run: 5.2, jump: 5.6, heavy: false, grip: 1, mass: 1 },
+  sol_fit_f: { name: '여군', run: 5.2, jump: 5.6, heavy: false, grip: 1, mass: 1 },
+  sol_heavy_m: { name: '비만 남군', run: 3.9, jump: 4.4, heavy: true, grip: 0.7, mass: 1.8 },
+  sol_heavy_f: { name: '비만 여군', run: 3.9, jump: 4.4, heavy: true, grip: 0.7, mass: 1.8 },
 };
 
 export const isBodyId = (v: unknown): v is BodyId => typeof v === 'string' && (BODY_IDS as readonly string[]).includes(v);
@@ -56,6 +61,11 @@ export function pickBody(taken: Iterable<BodyId | undefined>, rand: () => number
 /** 몸의 원판 마찰 배율 — 몸을 모르면(옛 워커 · AI 좌석에 몸이 없을 때) 기준 1 */
 export function gripOf(body: BodyId | undefined | null): number {
   return body ? BODIES[body].grip : 1;
+}
+
+/** 몸무게 배율 — 몸을 모르면(로봇 · 옛 워커) 기준 1 */
+export function massOf(body: BodyId | undefined | null): number {
+  return body ? BODIES[body].mass : 1;
 }
 
 /** 몸의 달리기 상한(m/s) — cap 보다 빠른 몸은 cap. 회전 원판이 걷기 명령을 자르는 데 쓴다 */

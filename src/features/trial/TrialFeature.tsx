@@ -261,7 +261,7 @@ export function TrialFeature() {
       {shownGame === 'fall' ? (
         <FallScene myBody={myBody} roster={others} aiIds={aiIds} sendMove={sendMove} />
       ) : shownGame === 'colorhunt' ? (
-        <ColorHuntScene roster={others} aiIds={aiIds} sendMove={sendMove} onPick={onPick} />
+        <ColorHuntScene myBody={myBody} roster={others} aiIds={aiIds} sendMove={sendMove} onPick={onPick} />
       ) : shownGame === 'platform' ? (
         <PlatformScene myBody={myBody} roster={others} aiIds={aiIds} teleport={{ x: 0, z: PAD_START_Z, key: `platform-${roundStartAt}` }} sendMove={sendMove} />
       ) : shownGame === 'disc' ? (

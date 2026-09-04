@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { LOOK_SENSITIVITY, MAX_PITCH, attachKeyboard, input, resetInput } from '@/world/input/input';
+import type { BodyId } from '@/world/mp/bodies';
 import { EYE_HEIGHT, FALL_BODY_R, GRAVITY, HUNT_ARENA, JUMP_SPEED, MOVE_THROTTLE_MS, WALK_SPEED } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
@@ -20,7 +21,7 @@ export const HUNT_SPAWN = { x: 0, z: 5.5 } as const;
 
 const UP = new THREE.Vector3(0, 1, 0);
 
-export function HuntRig({ sendMove }: { sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void }) {
+export function HuntRig({ body = null, sendMove }: { body?: BodyId | null; sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void }) {
   const { camera } = useThree();
   const pos = useRef<{ x: number; y: number; z: number }>({ x: HUNT_SPAWN.x, y: 0, z: HUNT_SPAWN.z });
   const vy = useRef(0);
@@ -80,7 +81,7 @@ export function HuntRig({ sendMove }: { sendMove: (x: number, z: number, y: numb
     }
 
     // 캐릭터끼리는 통과 못 한다 — 겹친 만큼 밀려난다. 마당 클램프가 뒤라 밖으로 밀려 나가진 않는다
-    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, FALL_BODY_R, performance.now());
+    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, FALL_BODY_R, performance.now(), body);
     pos.current.x = among.x;
     pos.current.z = among.z;
 

@@ -8,6 +8,7 @@
  * (core/WorldState 와 같은 원칙이다 — 다만 여기는 보간 링버퍼가 필요해 따로 둔다.)
  */
 
+import { massOf } from '../mp/bodies';
 import { INTERP_DELAY_MS } from '../mp/constants';
 import { pushSample, sampleAt, type MoveSample, type Pose } from '../mp/interp';
 import type { AnimState, BodyId, PlayerSnapshot } from '../mp/protocol';
@@ -82,11 +83,17 @@ export const remotePlayers = {
   /**
    * (x, z, 발 높이 y) 에 선 반지름 r 의 몸을 원격 캐릭터들 밖으로 민다 — 캐릭터끼리 뚫고 지나가지 않게
    * (각 리그의 useFrame — 미는 건 언제나 내 몸이다. 상대 화면에선 상대 리그가 상대 몸을 민다).
-   * 기준 자세는 화면에 보이는 것과 같은 150ms 과거(sampleAt)다. 겹친 만큼 밀린 좌표를 돌려준다
+   * 기준 자세는 화면에 보이는 것과 같은 150ms 과거(sampleAt)다. 겹친 만큼 밀린 좌표를 돌려준다.
+   *
+   * 겹침은 질량 반비례로 나눈다(mp/bodies.mass) — 내 몫 = 상대 질량 / (내 질량 + 상대 질량). 무거운 몸이
+   * 가벼운 몸을 밀면 가벼운 쪽 화면에서 큰 몫이 밀려나 무거운 쪽이 뚫고 나아간다. 양쪽 몫의 합이 1이라
+   * 겹침은 두 화면에 걸쳐 전부 풀리고, 상대가 리그 없이 서버로만 움직여도(AI 좌석) 프레임마다 남은
+   * 겹침에 다시 적용돼 몇 프레임 안에 다 풀린다
    */
-  pushOut(x: number, z: number, y: number, r: number, now: number): { x: number; z: number } {
+  pushOut(x: number, z: number, y: number, r: number, now: number, body?: BodyId | null): { x: number; z: number } {
     let ox = x;
     let oz = z;
+    const myMass = massOf(body);
     for (const p of players.values()) {
       const at = sampleAt(p.buffer, now - INTERP_DELAY_MS, probe) ? probe : p.pose;
       if (Math.abs(at.y - y) >= PUSH_Y_GAP) continue;
@@ -95,11 +102,13 @@ export const remotePlayers = {
       const d = Math.hypot(dx, dz);
       const min = r + CHAR_BODY_R;
       if (d >= min) continue;
+      const theirMass = massOf(p.body);
+      const share = theirMass / (myMass + theirMass);
       if (d < 1e-4) {
-        ox += min; // 정확히 겹쳐 있다(같은 자리 스폰) — 방향이 없으니 +x 로 벌린다
+        ox += min * share; // 정확히 겹쳐 있다(같은 자리 스폰) — 방향이 없으니 +x 로 벌린다
         continue;
       }
-      const k = (min - d) / d;
+      const k = ((min - d) / d) * share;
       ox += dx * k;
       oz += dz * k;
     }
