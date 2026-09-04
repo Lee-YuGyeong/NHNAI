@@ -47,10 +47,14 @@
  * │                                                                          │
  * │ **그 전제가 2026-09-04 사용자 지시로 뒤집혔다** — "기획서에 맞게 intro    │
  * │ 부분 꾸며줘". PLANNING.md 가 그새 개정되어 진영·인원·판정 방식이 전부     │
- * │ 바뀌었다(가변 인원 3~8 · AI 1 고정 · AI 설계자 0~2 · 라운드 없이 연속     │
- * │ 진행 · 시스템은 판정하지 않고 기록만 공개). 이 화면은 이제 **그 개정판**  │
- * │ 을 따른다 — 물리 시행(worker/src/trial/)이 실제로 그 방향으로 지어지고   │
- * │ 있는 것도 확인했다(정지선 상수가 이미 들어와 있다, world/mp/constants).   │
+ * │ 바뀌었다(라운드 없이 연속 진행 · 시스템은 판정하지 않고 기록만 공개).     │
+ * │ 이 화면은 이제 **그 개정판**을 따른다 — 물리 시행(worker/src/trial/)이   │
+ * │ 실제로 그 방향으로 지어지고 있는 것도 확인했다.                           │
+ * │                                                                          │
+ * │ ★ 인원은 그 뒤 **구현값으로 확정**됐다 (PLANNING §0·§1.1, 2026-09-04):    │
+ * │   시행 총원 4 고정 · 사람 2~3명(ROOM_MAX_PLAYERS=3) · AI 좌석 = 4−사람.   │
+ * │   한때 적혀 있던 「3~8명 · AI 1 고정 · 설계자 0~2」는 옛 값이다 — 설계자   │
+ * │   는 사람 정원 3에서 상한이 0이라 아직 배정되지 않는다.                    │
  * │                                                                          │
  * │ ArenaFeature · lab/personas(고정 리더 + AI5 + 사람1)는 아직 옛 구성       │
  * │ 그대로다 — 그 쪽이 따라붙기 전까지는 첫 화면과 실제 입장 사이에 틈이      │
@@ -65,7 +69,7 @@ import { AccountButton } from '@/shared/AccountButton';
 import { signInWithGoogle, useAccount, useAccountSync } from '@/shared/useAccount';
 import { SfxToggle } from '@/shared/SfxToggle';
 import { LEADER_NAME, NAMES } from '@/lab/personas';
-import { ROOM_MAX_PLAYERS } from '@/world/mp/constants';
+import { ROOM_MAX_PLAYERS, TRIAL_GAME_MS, TRIAL_PHASE_MS } from '@/world/mp/constants';
 import { ArrowIcon, Backdrop } from './console';
 import { Typed } from './live';
 import './lobby.css';
@@ -345,14 +349,18 @@ export function LobbyIntro() {
               옛 줄은 연표였다(2026 첫 규칙 —— 2098 구역 폐쇄 · 72년째 누적) — "규정은 늘기만
               하고 줄지 않는다"는 옛 기획의 규칙 그 자체였다(lab/agent 의 누적 규정).
 
-              새 기획엔 그 72년짜리 신화가 없다 — 사건은 2026년 하루다. 대신 같은 자리에
-              들어갈 만한, **같은 모양의 규칙**이 하나 있다: 의심도도 시간이 지난다고 저절로
-              안 내려간다, 오직 대화로만 풀린다(PLANNING §1.2) — "저절로 줄지 않는다"는 뼈대가
-              그대로 옮겨진 것이다. 그래서 연표 대신 이 판을 실제로 움직이는 두 수치를 적는다.
+              새 기획엔 그 72년짜리 신화가 없다 — 사건은 2026년 하루다. 그래서 연표 대신 이
+              판을 실제로 움직이는 두 수치를 적는다.
+
+              ★ 2026-09-04 개정: 한때 여기에 「60–90초 마다 시행 —— 100% 닿으면 즉시 격리」가
+              적혀 있었는데, 둘 다 **아직 안 만든 것**이었다 (의심도·격리는 PLANNING §0 에서
+              미구현). 이 파일 머리말의 규칙이 정확히 그것을 금한다 — 첫 화면이 아직 오지 않은
+              설계를 약속하면, 방에 들어간 사람이 그 뒤 화면을 전부 의심한다. 그래서 실제로
+              도는 두 수치로 바꿨다 (PLANNING §1.2 의 표: TRIAL_GAME_MS · TRIAL_PHASE_MS).
             */}
             <p className="bl-brief-foot__era bl-mono">
-              <b>60–90초</b> 마다 시행<i aria-hidden>——</i>
-              <b>100%</b> 닿으면 즉시 격리
+              <b>{TRIAL_GAME_MS / 60_000}분</b> 한 판<i aria-hidden>——</i>
+              <b>{TRIAL_PHASE_MS / 1000}초</b> 마다 조건이 바뀐다
             </p>
             <p className="bl-brief-foot__facts bl-mono">
               {/* 「정원 3」 만 적으면 대기방의 「두 명부터 시작」과 부딪친다 — 범위로 적는다 (2026-08-30 검토) */}
