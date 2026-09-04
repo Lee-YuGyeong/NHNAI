@@ -136,6 +136,8 @@ interface Line {
   text: string;
   isSelf: boolean;
   portrait?: PortraitKind;
+  /** 초상 경로 — 있으면 portrait 종류표보다 먼저 (worldSlice.ChatLine.portraitSrc) */
+  portraitSrc?: string;
   /** 소리 내지 않은 속마음 — 글자 색만 물러난 회색으로 그린다 (dialogue.css 의 dlg--thought) */
   thought?: boolean;
 }
@@ -171,9 +173,20 @@ export interface DialogueBoxProps {
    * 안 주면 아무 일도 안 한다 — /world · /world2 · /lab 의 호출부는 그대로다.
    */
   onShowing?: (showing: boolean) => void;
+  /**
+   * **한 줄이 화면에 떴다** — 그 줄의 열쇠(key)를 준다. 뜨는 순간 한 번만.
+   *
+   * `onShowing` 은 「상자가 서 있는가」라 어느 줄인지는 모른다. 소리를 바깥에서 내는 화면은
+   * 그것으로 부족하다 — 줄마다 다른 목소리로 읽어야 하기 때문이다 (검문소 프롤로그는 피실험자
+   * 셋과 통제실이 번갈아 말한다, features/interrogation/prologueVoice.ts).
+   *
+   * `speaking` 과 짝이다: 이걸로 **어느 줄을 읽을지** 알고, 그걸로 **다 읽었는지** 알린다.
+   * 안 주면 아무 일도 안 한다 — /world · /world2 · /lab 의 호출부는 그대로다.
+   */
+  onLine?: (key: string) => void;
 }
 
-export function DialogueBox({ messages, selfId, touch, speaking, lifted = false, onShowing }: DialogueBoxProps) {
+export function DialogueBox({ messages, selfId, touch, speaking, lifted = false, onShowing, onLine }: DialogueBoxProps) {
   const queue = useRef<Line[]>([]);
   /** 마지막으로 줄 세운 메시지의 열쇠. undefined = 아직 기준선을 안 잡았다, '' = 마운트 때 기록이 비어 있었다 */
   const seen = useRef<string | undefined>(undefined);
@@ -209,6 +222,9 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
    */
   const ownVoice = useRef(false);
   ownVoice.current = speaking !== undefined;
+  /** onLine 을 ref 로 — advance 의 의존성을 늘리지 않으려고 (바로 위 ownVoice 와 같은 이유) */
+  const onLineRef = useRef(onLine);
+  onLineRef.current = onLine;
 
   const clearTimer = () => {
     if (timer.current !== null) {
@@ -243,6 +259,8 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
       const silent = ownVoice.current || next.thought === true;
       pace.current = silent ? { scale: 1, hold: charHold(next.text) } : paceFor(next.nickname, next.text, next.isSelf);
       voice.current = silent ? Promise.resolve(null) : voiceLines.play(next.nickname, next.text, next.isSelf);
+      // 바깥이 이 줄을 읽을 수 있게 알린다 (onLine 머리말). 클립을 트는 화면에서는 대개 안 준다
+      onLineRef.current?.(next.key);
       return;
     }
     if (now) {
@@ -278,7 +296,7 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
     for (const m of fresh) {
       const isSelf = m.id === selfId;
       if (isSelf && !m.portrait) continue;
-      queue.current.push({ key: m.key, nickname: m.nickname, text: m.text, isSelf, portrait: m.portrait, thought: m.thought });
+      queue.current.push({ key: m.key, nickname: m.nickname, text: m.text, isSelf, portrait: m.portrait, portraitSrc: m.portraitSrc, thought: m.thought });
     }
     /*
      * 붙잡혀 있는데(wasHeld) 다음 줄이 왔다 = 소리도 그리로 넘어갔다는 뜻이니 곧장 넘어간다.
@@ -366,7 +384,7 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
     showingCb.current?.(visible);
   }, [visible]);
 
-  const portrait = useMemo(() => (current ? portraitFor(current.portrait, current.isSelf) : ''), [current]);
+  const portrait = useMemo(() => (current ? (current.portraitSrc ?? portraitFor(current.portrait, current.isSelf)) : ''), [current]);
   if (!current && !visible) return null;
 
   const done = current ? shown >= current.text.length : true;

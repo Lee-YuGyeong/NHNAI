@@ -128,6 +128,22 @@ describe('의심도 — §1.2', () => {
     expect(book.get('a')).toBe(10);
   });
 
+  it('관리 AI 의 말 읽기: 상한 안으로 눌리고, 겨눔도 되돌림도 안 남긴다', () => {
+    const book = new SuspicionBook(ids);
+    // 판정기가 무슨 숫자를 불러도 한 걸음은 readMin~readMax 안이다
+    expect(book.read('a', 99, '기계적 정밀함')?.amount).toBe(SUSPICION.readMax);
+    expect(book.read('a', -99, '욕설과 오타')?.amount).toBe(SUSPICION.readMin);
+    expect(book.read('a', 0, '')).toBeNull();
+    expect(book.get('a')).toBe(SUSPICION.readMax + SUSPICION.readMin);
+    // 지목이 아니라 그 사람의 말에 붙은 값이라 철회로 안 걷힌다
+    expect(book.accusationsSnapshot()).toEqual({});
+    expect(book.withdraw('LEADER')).toEqual([]);
+    expect(book.get('a')).toBe(SUSPICION.readMax + SUSPICION.readMin);
+    // 얼어붙은 좌석은 안 움직인다
+    book.freeze('b');
+    expect(book.read('b', 10, '')).toBeNull();
+  });
+
   it('발언을 거듭하면 100 에 닿고, 얼리면 그 사람의 지목이 거둬진다', () => {
     const book = new SuspicionBook(ids);
     book.accuse('a', 'd');

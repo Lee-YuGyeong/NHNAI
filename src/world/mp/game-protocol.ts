@@ -197,8 +197,19 @@ export const SUSPICION = {
   mobCap: 6,
   claimMatch: -10,
   claimMismatch: 10,
+  /** 관리 AI 가 말을 읽고 한 번에 올릴 수 있는 최대 · 내릴 수 있는 최대 (readMin 은 음수) */
+  readMax: 12,
+  readMin: -8,
   cut: 100,
 } as const;
+
+/**
+ * 관리 AI 가 방의 말을 읽는 간격(ms)과, 한 번에 읽는 새 발언의 수.
+ * 한 마디마다 부르면 값이 튀고 LLM 을 너무 자주 부른다 — 몇 마디 쌓아 **한 장면**으로 읽는다.
+ */
+export const READ_EVERY_MS = 14_000;
+export const READ_MIN_LINES = 2;
+export const READ_MAX_LINES = 12;
 
 /** 주장 한 줄의 길이 상한 — 서버가 자른다 */
 export const CLAIM_MAX_LEN = 140;

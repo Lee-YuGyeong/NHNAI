@@ -24,9 +24,11 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { PROLOGUE, PROLOGUE_BEAT_MS, prologueEntries } from './prologue';
+import { PROLOGUE, prologueLines } from './prologue';
 import { prefetchPrologue, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
-import { BigClock, Board, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TopBar } from './hud/Panels';
+import { DialogueBox } from '@/features/world/DialogueBox';
+import type { ChatLine } from '@/features/world/worldSlice';
+import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal } from './hud/Panels';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
@@ -357,67 +359,53 @@ export function InterrogationFeature() {
   /* ─────────────────────────────── 프롤로그 ─────────────────────────────── */
 
   /*
-   * 판이 열리고 첫 토론이 시작되면 대본(prologue.ts)이 구역 통신에 한 줄씩 흐른다 — 피실험자 셋의 웅성거림과
-   * 정부 통제실의 방송. **화면에서만** 난다: 서버 · 관리 AI · 의심도 어느 것도 이 줄을 모른다.
-   * 같은 판(startedAt)에서는 한 번만. 국면이 먼저 넘어가도 남은 줄은 그대로 흘러 로그에 남고, 화면을 떠날 때만 걷는다.
+   * 판이 열리고 첫 토론이 시작되면 대본(prologue.ts)이 화면 아래 비주얼 노벨식 대화창(DialogueBox)으로 한 줄씩 흐른다 —
+   * 피실험자 셋의 웅성거림과 정부 통제실의 방송, 얼굴은 그 좌석의 군인 클로즈업. 구역 통신(채팅)은 따로 그대로다.
+   * **화면에서만** 난다: 서버 · 관리 AI · 의심도 어느 것도 이 줄을 모른다. 같은 판(startedAt)에서는 한 번만.
+   * 줄을 한꺼번에 건네면 상자가 제 박자(타자 · 머무름)로 차례로 찍는다 — 클릭하면 넘어간다. 로비로 돌아오면 비운다.
    */
+  const [prologue, setPrologue] = useState<ChatLine[]>([]);
   const prologuePlayed = useRef<number | null>(null);
-  /** 이 판의 대본 진행 — 올리면 돌던 것이 스스로 멎는다 (타이머가 아니라 순차 루프라 이렇게 끊는다) */
-  const prologueRun = useRef(0);
-  /** 아직 대본을 흘려도 되는 국면인가 — 루프가 매 줄 확인한다 */
-  const prologueLive = useRef(false);
+  /**
+   * 지금 그 줄을 읽고 있나 — 상자에 건네면 **다 읽을 때까지 상자가 붙잡는다** (DialogueBox 의 speaking).
+   * 박자를 여기서 세지 않는 이유가 이것이다: 상자가 이미 줄을 넘기는 주인이라, 두 곳에서 세면 어긋난다.
+   */
+  const [prologueSpeaking, setPrologueSpeaking] = useState(false);
   const startedAt = wire?.startedAt ?? null;
   const testsDone = wire?.testsDone ?? 0;
-  // 첫 토론이 끝나거나 시행이 시작되면 대본은 그 자리에서 멎는다 (아래 루프가 이 값을 본다)
-  prologueLive.current = phase === 'discussion' && testsDone === 0;
   useEffect(() => {
-    if (!prologueLive.current || startedAt === null) return;
+    if (phase === 'lobby') {
+      setPrologue([]);
+      return;
+    }
+    if (phase !== 'discussion' || testsDone !== 0 || startedAt === null) return;
     if (prologuePlayed.current === startedAt) return;
     prologuePlayed.current = startedAt;
-
     /*
-     * ★ **한 줄이 끝나야 다음 줄이다** (2026-09-05 사용자: 「한 대사 끝나면 그 다음 대사」).
-     *
-     * 처음에는 대본의 gap 으로 타이머를 한꺼번에 걸었는데, 그 값은 **글자용**이라 소리가 그보다
-     * 길어서 대사가 겹쳤다. 이제 앞 줄을 await 하고 다음 줄을 낸다 — 자막과 소리가 같은 줄에서
-     * 같이 시작해 같이 끝난다. 소리가 없는 줄(지문 · 키 없음)도 글자 수만큼 머무르므로
-     * 소리가 안 나오는 판에서도 박자가 같다 (prologueVoice 의 hold).
-     *
-     * 소리는 미리 받아 둔다 — 차례에 받기 시작하면 첫 줄만 자막이 먼저 뜨고 소리가 뒤늦게 붙는다.
+     * 소리는 미리 받아 둔다 — 합성 왕복이 300~800ms 라, 줄이 뜬 뒤에 받기 시작하면 첫 줄만
+     * 자막이 먼저 뜨고 소리가 뒤늦게 붙는다 (prologueVoice 머리말).
      */
     resetPrologueVoice();
     prefetchPrologue(PROLOGUE);
-    const run = ++prologueRun.current;
-    const entries = prologueEntries(seatsRef.current, startedAt);
-    void (async () => {
-      for (let i = 0; i < entries.length; i += 1) {
-        /*
-         * 국면이 넘어갔으면 **거기서 멎는다.** 예산(첫 토론 40초)에 2초쯤밖에 안 남아서,
-         * 합성이 하루 느리거나 대본이 한 줄 길어지면 시행이 시작된 뒤에도 대사가 이어진다 —
-         * 글자만 흐를 때는 로그에 남는 정도였지만, 소리가 붙은 지금은 **시행 중에 통제실이
-         * 계속 말하는** 일이 된다. 예산으로 막지 않고 여기서 막는다.
-         */
-        if (prologueRun.current !== run || !prologueLive.current) {
-          stopPrologue();
-          return;
-        }
-        dispatch(gameActions.chatReceived(entries[i].entry));
-        await speakPrologueLine(PROLOGUE[i]);
-        if (prologueRun.current !== run || !prologueLive.current) {
-          stopPrologue();
-          return;
-        }
-        await new Promise((r) => setTimeout(r, PROLOGUE_BEAT_MS));
-      }
-    })();
-  }, [phase, testsDone, startedAt, dispatch]);
-  useEffect(
-    () => () => {
-      prologueRun.current += 1; // 돌던 대본을 멎게 한다
-      stopPrologue(); // 화면을 떠나는데 통제실이 계속 말하고 있으면 안 된다
-    },
-    [],
-  );
+    setPrologue(prologueLines(seatsRef.current, startedAt));
+  }, [phase, testsDone, startedAt]);
+
+  /**
+   * 상자가 한 줄을 띄웠다 — 그 줄을 읽는다.
+   *
+   * 줄의 key 가 `prologue-<씨앗>-<번호>` 라(prologue.ts 의 prologueLines) 번호로 대본을 되찾는다.
+   * 상자가 넘기는 주인이고 여기는 소리만 얹는다 — 읽는 동안 speaking 을 세워 두면 상자가 기다린다.
+   */
+  const onPrologueLine = useCallback((key: string) => {
+    const i = Number(key.slice(key.lastIndexOf('-') + 1));
+    const line = Number.isInteger(i) ? PROLOGUE[i] : undefined;
+    if (!line) return;
+    setPrologueSpeaking(true);
+    void speakPrologueLine(line).finally(() => setPrologueSpeaking(false));
+  }, []);
+
+  // 화면을 떠나는데 통제실이 계속 말하고 있으면 안 된다
+  useEffect(() => () => stopPrologue(), []);
 
   // 판이 떠 있는 동안은 잠금을 푼다 — 결과 모달 · 끝 화면 · 역할 카드 · 대기
   const modalUp = phase === 'result' || phase === 'ended' || phase === 'lobby' || showRole;
@@ -443,8 +431,6 @@ export function InterrogationFeature() {
   const onPick = useCallback((objectId: number) => conn.sendPick(objectId), [conn]);
   const onWalk = useCallback((x: number, z: number) => conn.sendWalk(x, z), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
-  const onAccuse = useCallback((target: string) => conn.game({ t: 'game_accuse', target }), [conn]);
-  const onWithdraw = useCallback(() => conn.game({ t: 'game_withdraw' }), [conn]);
   const onStart = useCallback(
     (fillTo: number) => {
       dispatch(gameActions.clearReject());
@@ -474,7 +460,7 @@ export function InterrogationFeature() {
             .map((id) => ({ id })),
     [inGame, seats, mySeatId, players, selfId, dying],
   );
-  /** 내가 지금 겨누고 있는 좌석 — 그 몸의 이름표에 👉 가 붙는다 (좌석판의 「철회」와 같은 값) */
+  /** 내가 지금 겨누고 있는 좌석 — 그 몸의 이름표에 👉 가 붙는다. 단추는 없다: 말에서 읽어 낸 지목이다 (runtime 의 accusationIn) */
   const markId = mySeatId ? (wire?.accusations[mySeatId] ?? null) : null;
   const spawn = useMemo(() => (mySeat ? seatSpot(mySeat, seats.length) : { x: 0, z: 4 }), [mySeat, seats.length]);
   const hud =
@@ -497,11 +483,21 @@ export function InterrogationFeature() {
                     ? `「${hunt.target}」 구슬만 E 로 주워라 (주움 ${myPicks}) — 헷갈리면 견본판과 대조하라`
                     : '지시된 색의 구슬을 E 로 주워라'
           : phase === 'discussion'
-            ? 'WASD 이동 · Enter 채팅 · 왼쪽 판에서 지목'
+            ? 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
             : '';
 
   return (
     <div ref={rootRef} className="ig-root" onClick={lock}>
+      {/* 프롤로그 대화창 — 화면 아래 가운데, 채팅 판과 별개 (prologue.ts). 줄이 다 지나면 상자가 스스로 사라진다.
+          speaking · onLine 을 준다 = **소리는 이쪽이 낸다** (DialogueBox 의 speaking 머리말). 상자는 줄을
+          넘기는 주인이고 여기는 그 줄을 읽고 「아직 읽는 중」이라고만 알린다 — 그래야 한 줄이 끝나야 다음 줄이 뜬다 */}
+      <DialogueBox
+        messages={prologue}
+        selfId={null}
+        touch={false}
+        speaking={prologueSpeaking}
+        onLine={onPrologueLine}
+      />
       <HallScene
         mySeatId={mySeatId}
         myBody={myBody}
@@ -532,8 +528,7 @@ export function InterrogationFeature() {
         <div className="ig-corner">
           <BackToRoot />
         </div>
-        {wire ? <TopBar wire={wire} roomCode={roomCode} /> : null}
-        {/* 미니 게임 30초만 큰 숫자로 — 토론 40초는 상단줄의 작은 초로 족하다 (사용자, BigClock 머리말) */}
+        {/* 미니 게임 30초만 큰 숫자로 — 토론은 시계 없이 간다 (사용자, BigClock 머리말) */}
         {wire && phase === 'test' ? <BigClock endsAt={wire.phaseEndsAt} maxSeconds={(test?.durationMs ?? GAME_TEST_MS) / 1000} /> : null}
         {phase === 'test' && wire?.currentTest ? <div className="ig-order">{wire.currentTest.instruction}</div> : null}
         {/* 색 사냥 — 목표색. 스와치는 **기준광 원색**(조명 밖 UI): 맵 안 견본판(조명색)과의 대비가 「조명이 색을 바꿨다」를 가르친다 */}
@@ -544,7 +539,11 @@ export function InterrogationFeature() {
           </div>
         ) : null}
 
-        {wire && inGame ? <Board wire={wire} mySeatId={mySeatId} aiId={me?.aiId ?? null} onAccuse={onAccuse} onWithdraw={onWithdraw} /> : null}
+        {/*
+          * 좌석 카드(SUBJECTS)는 없다 — 눈금은 **머리 위 막대**가 말한다 (scene/SuspicionBar, 2026-09-05 사용자:
+          * "카드는 안보여도돼. 머리위에 의심도만 보이면 돼"). 단추로 지목하는 짓도 같이 사라졌다:
+          * 눈금을 움직이는 것은 **관리 AI 가 사람들의 말을 읽는 것**이다 (worker/src/game/agents.ts 의 readTalk).
+          */}
         {inGame && latestResult && phase !== 'result' ? <RecordPanel result={latestResult} nameOf={nameOf} mySeatId={mySeatId} /> : null}
         {me?.role === 'designer' && wire && inGame && phase !== 'ended' ? (
           <DesignerPanel seats={seats} mySeatId={mySeatId} tamperLeft={me.tamperLeft} phase={phase} onTamper={onTamper} />

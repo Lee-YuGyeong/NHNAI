@@ -11,9 +11,10 @@
  *   · 좌석: 실제 사람 + 대역(모자란 만큼, §9 폴백) + AI 1 — 판이 열릴 때 섞여 SUBJECT nn 이 된다 (§1.1)
  *   · 배역: roles.ts. 설계자에게만 AI 의 좌석이 통보된다
  *   · 테스트: 차례표가 종류를 정하고 worker/src/trial 의 엔진이 돈다 (engines.ts). 강도는 몇 번째 시험인가로 오른다
- *   · 의심도: suspicion.ts — 지목 · 동조 · 몰이 · 철회 · 주장 판정. 테스트 수치는 절대 자동 반영되지 않는다 (P1)
+ *   · 의심도: suspicion.ts — **관리 AI 의 말 읽기**(readRoom) · 말 속의 지목 · 동조 · 몰이 · 철회 · 주장 판정.
+ *     테스트 수치는 절대 자동 반영되지 않는다 (P1)
  *   · 격리: 100 에 닿는 순간, 정체 공개. 격리 수가 총원 절반이면 끝 (§1.3)
- *   · 관리 AI: 소집 · 테스트 개시 · 결과 해설 · 주장 판정 방송 (§4)
+ *   · 관리 AI: 소집 · 테스트 개시 · 결과 해설 · 주장 판정 방송 · **오간 말 읽기** (§4)
  *   · AI 참가자 · 대역: 토론 단계에만 LLM 으로 말한다 (P6 · P10) — 물리는 엔진 프로파일이 대신 움직인다 (P9)
  *   · 설계자 조작: 판당 1회, 다음 결과의 공개본을 바꾼다 (P7). 원본은 storage 에만 남는다
  *
@@ -36,6 +37,9 @@ import {
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
   GAME_TEST_ORDER,
+  READ_EVERY_MS,
+  READ_MAX_LINES,
+  READ_MIN_LINES,
   type GameC2SMessage,
   type GameOutcome,
   type GamePhase,
@@ -55,7 +59,7 @@ import type { GameEngine, SeatTuning } from '../trial/engine';
 import { appendHistory, readHistory } from '../trial/history';
 import { groupStats } from '../trial/scoring';
 import type { TrialResult } from '../trial/types';
-import { LINES, aiStrategy, judgeClaim, leaderComment, personaPool, sayAs, type RoomFacts } from './agents';
+import { LINES, aiStrategy, judgeClaim, leaderComment, personaPool, readTalk, sayAs, type RoomFacts } from './agents';
 import type { Brain } from './brain';
 import { ENGINES, INSTRUCTION, availableGames } from './engines';
 import { assignRoles, outcomeFor, quotaFor, shuffled } from './roles';
@@ -149,6 +153,10 @@ export class GameRuntime {
   private lastClaimAt = new Map<string, number>();
   private claimInFlight = new Set<string>();
   private lastAccuseAt = new Map<string, number>();
+  /** 관리 AI 가 아직 안 읽은 발언들 — 몇 마디 쌓이면 한 장면으로 읽는다 (readRoom) */
+  private unread: { name: string; text: string }[] = [];
+  private lastReadAt = 0;
+  private readBusy = false;
   private phaseTimer: ReturnType<typeof setTimeout> | null = null;
   private capTimer: ReturnType<typeof setTimeout> | null = null;
   private talkTimer: ReturnType<typeof setTimeout> | null = null;
@@ -469,6 +477,8 @@ export class GameRuntime {
   private openDiscussion(ms: number, opening: boolean): void {
     this.setPhase('discussion', this.now() + ms);
     this.startIdle();
+    // 지난 토론에서 남은 말은 안 읽는다 — 시험을 사이에 두고 온 말은 이미 지난 장면이다 (readRoom)
+    this.unread = [];
     // 다른 국면에 도착해 있던 봇의 말을 먼저 내보낸다 — 사람과 같은 스트림으로 (P10)
     for (const line of this.heldLines) this.say(line.id, line.text);
     this.heldLines = [];
@@ -914,6 +924,53 @@ export class GameRuntime {
     seat.lastSpokeAt = this.now();
     this.deps.broadcast({ t: 'chat', id: seat.id, nickname: seat.name, text, ts: this.now() });
     this.pushLog(seat.id, text);
+    // 사람의 말이든 봇의 말이든 같은 문으로 들어간다 — 관리 AI 는 누가 사람인지 모른다 (P5)
+    this.unread.push({ name: seat.name, text });
+    if (this.unread.length > READ_MAX_LINES) this.unread = this.unread.slice(-READ_MAX_LINES);
+    void this.readRoom();
+  }
+
+  /* ─────────────────────────────── 관리 AI 의 말 읽기 ─────────────────────────────── */
+
+  /**
+   * 관리 AI 가 방의 말을 읽고 눈금을 움직인다 (2026-09-05 사용자: "AI 가 사람들이 하는 말을 보고 의심도를 올려").
+   * 좌석판의 지목 단추가 사라진 뒤로 **이것이 눈금의 주된 문**이다 — 말 속의 지목(accusationIn)은 그대로 남아 있다.
+   *
+   * 타이머를 따로 두지 않는다 — 말이 오갈 때만 도는 판이라 **말이 이 판을 민다**(say 가 부른다). 그래서
+   * 토론이 조용하면 관리 AI 도 조용하고, 국면이 바뀌면 저절로 멎는다(살아 있는 타이머가 없다).
+   * 문턱 셋: 토론 중일 것 · 새 발언이 READ_MIN_LINES 이상 · 앞의 읽기에서 READ_EVERY_MS 지났을 것.
+   * 값의 상한은 SuspicionBook.read 가 지키고, LLM 이 없으면 아무 일도 안 일어난다 (§9 폴백).
+   */
+  private async readRoom(): Promise<void> {
+    if (this.phase !== 'discussion' || this.readBusy || this.unread.length < READ_MIN_LINES) return;
+    const now = this.now();
+    if (now - this.lastReadAt < READ_EVERY_MS) return;
+    this.lastReadAt = now;
+    this.readBusy = true;
+    // 넘긴 장면은 비운다 — 답을 기다리는 동안 온 말은 다음 장면이다
+    const lines = this.unread;
+    this.unread = [];
+    try {
+      const out = await readTalk(this.deps.brain, { facts: this.facts(), results: this.history, lines });
+      if (!this.active()) return;
+      const deltas: SuspicionDelta[] = [];
+      const said: string[] = [];
+      for (const m of out.marks) {
+        const seat = this.seatByName(m.name);
+        if (!seat || seat.isolated) continue;
+        const d = this.book.read(seat.id, m.amount, m.reason || '발화 분석');
+        if (!d) continue;
+        deltas.push(d);
+        said.push(LINES.read(seat.name, d.amount, m.reason));
+      }
+      if (!deltas.length) return;
+      // 판정기가 제 문장을 줬고 그 문장이 가리킨 사람이 전부 적용됐을 때만 그 문장을 쓴다 — 아니면 정해진 문장으로
+      const line = out.broadcast && deltas.length === out.marks.length ? out.broadcast : said.join(' ');
+      this.leader(line, deltas.some((d) => d.amount > 0) ? 'alarm' : 'readout');
+      this.applyDeltas(deltas);
+    } finally {
+      this.readBusy = false;
+    }
   }
 
   /* ─────────────────────────────── 봇 배회 (토론 중) ─────────────────────────────── */

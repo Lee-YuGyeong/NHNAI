@@ -15,8 +15,8 @@ export interface ChatEntry {
   name: string;
   text: string;
   ts: number;
-  /** 관리 AI 의 말 · 의심도 걸음 · 격리 같은 시스템 줄. control 은 프롤로그의 정부 통제실 (prologue.ts, 화면에서만 난다) */
-  kind?: 'chat' | 'leader' | 'system' | 'delta' | 'control';
+  /** 관리 AI 의 말 · 의심도 걸음 · 격리 같은 시스템 줄 */
+  kind?: 'chat' | 'leader' | 'system' | 'delta';
 }
 
 export interface GameState {

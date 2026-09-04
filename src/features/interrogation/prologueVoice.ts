@@ -17,15 +17,14 @@
  *   대본이 고정 문장이라 판이 열릴 때 한꺼번에 받아 두면 되고, 워커가 같은 문장을 캐시하므로
  *   두 번째 판부터는 크레딧도 안 나간다.
  *
- * ★ **한 줄이 끝나야 다음 줄이다** (2026-09-05 사용자). 부르는 쪽이 이 함수를 await 해서
- *   순서를 만든다 — 대본의 gap 은 **글자용**으로 잡힌 값이라 소리가 그보다 길고, 그 값으로
- *   예약을 걸면 대사가 겹친다. 처음에 그렇게 짰고 그게 「왜 동시에 나와?」였다.
- *   그래서 이 함수는 **다 읽은 뒤에** resolve 한다.
+ * ★ **한 줄이 끝나야 다음 줄이다** (2026-09-05 사용자). 줄을 넘기는 주인은 대화창
+ *   (features/world/DialogueBox)이다 — 상자가 줄을 띄우며 onLine 으로 알리고, 이 함수가
+ *   다 읽은 뒤 resolve 하면 그 사이 speaking 이 서 있어서 상자가 기다린다.
+ *   박자를 여기서 따로 세지 않는 이유가 그것이다: 두 곳에서 세면 어긋난다.
  *
  * 소리가 안 나와도 대본은 그대로 흐른다 — 자막이 본체고 소리는 얹는 것이다.
  */
 
-import { speechMs } from '@/features/tts/cap';
 import { audioContext, masterOut, paOut } from '@/features/tts/engine';
 import { OPENING_CAST, OPENING_SETTINGS } from '@/features/tts/openingSpeakers';
 import type { PrologueLine } from './prologue';
@@ -113,22 +112,21 @@ export function resetPrologueVoice(): void {
 /**
  * 그 줄을 읽고, **다 읽을 때까지 기다린다** (2026-09-05 사용자: 「한 대사 끝나면 그 다음 대사」).
  *
- * ★ resolve 시점이 이 함수의 전부다. 시작할 때 끝내면 부르는 쪽이 다음 줄로 넘어가 버려서
- *   대사가 겹친다 — 처음에 그렇게 짰고, 그게 「왜 동시에 나와?」였다.
+ * ★ resolve 시점이 이 함수의 전부다. 시작할 때 끝내면 상자가 다음 줄로 넘어가 버려서 대사가
+ *   겹친다 — 처음에 그렇게 짰고, 그게 「왜 동시에 나와?」였다.
  *
- * 소리가 없는 줄(지문 · 합성 실패 · 키 없음)은 **글자 수로 어림한 시간만큼** 기다린다.
- * 그래야 소리가 안 나오는 판에서도 대본이 같은 박자로 흐른다 — 자막만 순식간에 지나가면
- * 읽을 새가 없다. features/tts/cap.ts 의 speechMs 를 쓰는 이유가 그것이다
- * (「소리를 껐다고 자막이 빨리 지나가면 같은 판을 보는 두 사람이 다른 속도로 게임을 한다」).
+ * 소리가 없는 줄(지문 · 합성 실패 · 키 없음)은 **곧바로** resolve 한다. 그 줄이 화면에 머무는
+ * 시간은 상자가 글자로 잰다(DialogueBox 의 charHold) — 여기서 또 세면 두 번 기다리게 된다.
+ * 소리가 아예 안 나오는 판에서 대본이 제 박자로 흐르는 것도 그래서 그대로다.
  */
 export async function speakPrologueLine(line: PrologueLine): Promise<void> {
   const v = voiceOf(line);
-  if (!v || fails >= GIVE_UP) return hold(line.text);
+  if (!v || fails >= GIVE_UP) return;
 
   const buf = await fetchClip(line, v.voiceId);
   if (!buf) {
     fails += 1;
-    return hold(line.text);
+    return;
   }
   fails = 0;
 
@@ -148,9 +146,4 @@ export async function speakPrologueLine(line: PrologueLine): Promise<void> {
     playing = src;
     src.start();
   });
-}
-
-/** 소리 없이 그 줄이 화면에 머무는 시간 */
-function hold(text: string): Promise<void> {
-  return new Promise((r) => setTimeout(r, speechMs(text)));
 }
