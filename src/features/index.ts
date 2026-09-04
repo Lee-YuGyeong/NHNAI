@@ -56,6 +56,11 @@ export interface FeatureDef {
    * 눌러 봐야 조건이 안 맞으면 곧바로 되돌아 나온다.
    */
   hidden?: boolean;
+  /**
+   * 루트 목록에 이 화면의 문을 **여러 개** 세운다 — 라우트는 하나인데 들어가는 방식이 여럿일 때
+   * (물리 미니게임: 같은 /trial 을 ?game= 으로 갈라 연다). 있으면 title 대신 이것들이 선다.
+   */
+  doors?: { title: string; to: string }[];
 }
 
 /** 서비스 등록부 — 폴더 만들고 여기 한 줄 추가하면 인트로 버튼 + 라우트가 생긴다 */
@@ -100,5 +105,16 @@ export const FEATURES: FeatureDef[] = [
   { id: 'lab',     title: '구역 (AI 5 + 나)',      path: '/lab',   owner: 'TBD', Component: TalkFeature },
   { id: 'rules',   title: '규정·검사판',            path: '/rules', owner: 'TBD', Component: LabFeature },
   { id: 'arena',   title: '검사 (리더가 좌표를 짠다)', path: '/arena', owner: 'TBD', Component: ArenaFeature },
-  { id: 'trial',   title: '물리 미니게임 (정지선)', path: '/trial', owner: 'TBD', Component: TrialFeature },
+  {
+    id: 'trial',
+    title: '물리 미니게임',
+    path: '/trial',
+    owner: 'TBD',
+    Component: TrialFeature,
+    // 방 코드는 1234 고정 — 루트에서 누르는 건 시험용이고, 같은 코드로 탭을 하나 더 열면 같은 홀에서 만난다
+    doors: [
+      { title: '물리 미니게임 · 정지선 (마찰 · 관성)', to: '/trial?code=1234&game=stopline' },
+      { title: '물리 미니게임 · 낙하 생존 (중력 · 공기저항)', to: '/trial?code=1234&game=fall' },
+    ],
+  },
 ];

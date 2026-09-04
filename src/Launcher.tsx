@@ -87,28 +87,30 @@ export function Launcher() {
         </button>
       </Link>
 
-      {/* hidden 은 흐름 중간에만 들르는 화면이라 목록에 안 세운다 (features/index.ts) */}
-      {FEATURES.filter((f) => f.id !== INTRO_ID && !f.hidden).map((f) => (
-        <Link
-          key={f.id}
-          to={f.id === PLAY_ID ? startHref : f.path}
-          // 붉은 케이스는 이야기의 첫 문이다 — 누르는 순간 배역을 짓기 시작한다 (src/lab/cast-warm.ts)
-          onClick={f.id === PLAY_ID ? warmCast : undefined}
-        >
-          <button
-            className="stencil"
-            style={{
-              width: '100%',
-              padding: '14px 12px',
-              fontSize: 13,
-              textAlign: 'center',
-              ...(f.id === PLAY_ID ? LIT_CASE : undefined),
-            }}
+      {/* hidden 은 흐름 중간에만 들르는 화면이라 목록에 안 세운다. doors 가 있으면 문을 여럿 세운다 (features/index.ts) */}
+      {FEATURES.filter((f) => f.id !== INTRO_ID && !f.hidden)
+        .flatMap((f) => (f.doors ? f.doors.map((d) => ({ key: `${f.id}:${d.to}`, id: f.id, title: d.title, to: d.to })) : [{ key: f.id, id: f.id, title: f.title, to: f.id === PLAY_ID ? startHref : f.path }]))
+        .map((d) => (
+          <Link
+            key={d.key}
+            to={d.to}
+            // 붉은 케이스는 이야기의 첫 문이다 — 누르는 순간 배역을 짓기 시작한다 (src/lab/cast-warm.ts)
+            onClick={d.id === PLAY_ID ? warmCast : undefined}
           >
-            {f.title}
-          </button>
-        </Link>
-      ))}
+            <button
+              className="stencil"
+              style={{
+                width: '100%',
+                padding: '14px 12px',
+                fontSize: 13,
+                textAlign: 'center',
+                ...(d.id === PLAY_ID ? LIT_CASE : undefined),
+              }}
+            >
+              {d.title}
+            </button>
+          </Link>
+        ))}
       {/*
         영상 테스트 — 케이스 목록 **아래**다. 위의 문들은 게임의 화면이고 이건 도구다.
         누르면 로비 앞에서 뜨는 것과 똑같은 화면이 뜬다: 전체화면 · 건너뛰기까지 그대로.
