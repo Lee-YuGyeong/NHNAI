@@ -326,13 +326,6 @@ export function InterrogationFeature() {
   const onBrake = useCallback(() => conn.sendBrake(), [conn]);
   const onPick = useCallback((objectId: number) => conn.sendPick(objectId), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
-  const onClaim = useCallback(
-    (text: string) => {
-      dispatch(gameActions.clearReject());
-      conn.game({ t: 'game_claim', text });
-    },
-    [conn, dispatch],
-  );
   const onAccuse = useCallback((target: string) => conn.game({ t: 'game_accuse', target }), [conn]);
   const onWithdraw = useCallback(() => conn.game({ t: 'game_withdraw' }), [conn]);
   const onStart = useCallback(
@@ -431,15 +424,23 @@ export function InterrogationFeature() {
           <DesignerPanel seats={seats} mySeatId={mySeatId} tamperLeft={me.tamperLeft} phase={phase} onTamper={onTamper} />
         ) : null}
 
-        <Chat
-          feed={feed}
-          mySeatId={mySeatId}
-          disabled={status !== 'connected' || phase === 'result' || phase === 'ended' || (inGame && !mySeatId)}
-          hushed={phase === 'test' && test?.game === 'stopline'}
-          onSend={onSend}
-          onClaim={onClaim}
-          onComposing={setComposing}
-        />
+        {/*
+         * 미니 게임이 도는 동안은 판이 **통째로 내려간다** (2026-09-04 사용자: "미니 게임할때는
+         * 채팅창 안보이게 · 끝나면 다시 채팅할수있게"). 흐리게만 두던 것으로는 모자랐다 —
+         * 시행은 몸으로 하는 판이라 손이 WASD·E 위에 있는데, 판이 서 있으면 Enter 한 번에 그 손이
+         * 입력창으로 끌려간다. 쌓인 말은 안 잃는다: 로그는 gameSlice 에 그대로 남아 있어서
+         * 시행이 끝나면 하던 대화가 그 자리에서 다시 뜬다.
+         */}
+        {phase !== 'test' ? (
+          <Chat
+            feed={feed}
+            mySeatId={mySeatId}
+            markId={markId}
+            disabled={status !== 'connected' || phase === 'result' || phase === 'ended' || (inGame && !mySeatId)}
+            onSend={onSend}
+            onComposing={setComposing}
+          />
+        ) : null}
 
         {hud ? (
           <p className="ig-foot">

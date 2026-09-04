@@ -3,6 +3,8 @@
  * 전부 서버가 준 상태(gameSlice)를 그리기만 한다. 값을 만들지 않는다.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+/* 대화창이 새 말을 따라갈지 — 규칙은 /arena 와 한 곳을 본다. 두 벌로 두면 반드시 어긋난다 */
+import { followsBottom } from '@/features/arena/feedscroll';
 import {
   GAME_MAX_HUMANS,
   GAME_MIN_HUMANS,
@@ -129,31 +131,48 @@ export function Board({
 
 /* ─────────────────────────────── 채팅 ─────────────────────────────── */
 
+/**
+ * 방의 대화 「구역 통신」 — 판 하나에 머리띠 · 로그 · 입력줄.
+ *
+ * 생김새는 /arena 의 통신판(ArenaFeature 의 .comms)을 그대로 옮긴 것이다
+ * (2026-09-04 사용자: "채팅 디자인 who is human 에서" · **디자인만**).
+ * 옮겨 온 것은 넷이다 — 살아 있다는 표시가 붙은 머리띠 · 말한 이를 가리키는 색점 ·
+ * 판을 뒤집는 말(관리 AI · 판의 소식 · 의심도)을 줄 전체로 물들이는 결 ·
+ * 지난 말을 읽으려 올려 두면 안 끌어내리는 규칙. 색만 이 화면의 것이다 (interrogation.css).
+ */
 export function Chat({
   feed,
   mySeatId,
+  markId,
   disabled,
-  hushed,
   onSend,
-  onClaim,
   onComposing,
 }: {
   feed: ChatEntry[];
   mySeatId: string | null;
+  /** 내가 겨누고 있는 좌석 — 그 좌석의 말에는 색점이 호박으로 켜진다 (몸 위 이름표와 같은 규칙) */
+  markId: string | null;
   disabled: boolean;
-  hushed: boolean;
   onSend: (text: string) => void;
-  onClaim: (text: string) => void;
   onComposing: (v: boolean) => void;
 }) {
   const [text, setText] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  /** 새 말을 따라 내려갈지 — 지난 말을 보려고 올려 둔 사람은 안 끌어내린다 (feedscroll.ts) */
+  const [stick, setStick] = useState(true);
 
   useEffect(() => {
     const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [feed.length]);
+    if (el && stick) el.scrollTop = el.scrollHeight;
+  }, [feed.length, stick]);
+
+  /*
+   * 판이 사라질 때는 **치던 중이 아니라고 알린다** — 미니 게임이 시작되면 이 판이 통째로 내려가는데
+   * (InterrogationFeature 의 렌더), 초점을 쥔 입력창이 DOM 에서 빠질 때 브라우저는 blur 를 안 쏜다.
+   * 그러면 composing 이 참인 채로 남아 시행 내내 몸이 안 움직인다 — 여기가 갇히던 자리다.
+   */
+  useEffect(() => () => onComposing(false), [onComposing]);
 
   // Enter 로 입력창을 잡는다 — 3D 에 포인터가 잠겨 있으면 먼저 푼다 (WorldFeature 와 같은 버릇)
   useEffect(() => {
@@ -176,22 +195,61 @@ export function Chat({
     onSend(t);
     setText('');
   };
-  const claim = () => {
-    const t = text.trim();
-    if (!t || disabled) return;
-    onClaim(t);
-    setText('');
-  };
 
   return (
-    <div className={`ig-chat${hushed ? ' hushed' : ''}`}>
-      <div className="ig-feed" ref={listRef}>
-        {feed.map((l, i) => (
-          <p key={`${l.ts}-${i}`} className={`ig-line ${l.kind ?? 'chat'}${l.id === mySeatId ? ' me' : ''}`}>
-            {l.kind === 'chat' || l.kind === 'leader' ? <b>{l.name}</b> : null}
-            {l.text}
-          </p>
-        ))}
+    <div className="ig-chat">
+      <div className="ig-commhd">
+        {/* 켜져 있다는 표시 하나 — 이 방이 살아서 떠들고 있다 */}
+        <i aria-hidden className="live" />
+        <span className="ttl">구역 통신</span>
+        {/* 올려 둔 것을 잊으면 **대화가 멎은 것처럼 보인다** — 새 말은 오는데 화면이 안 움직이니까 */}
+        {stick ? null : (
+          <button
+            type="button"
+            className="tolatest"
+            onClick={() => {
+              const el = listRef.current;
+              if (el) el.scrollTop = el.scrollHeight;
+              setStick(true);
+            }}
+          >
+            지난 대화 · 최신 ↓
+          </button>
+        )}
+      </div>
+      <div
+        className="ig-feed"
+        ref={listRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          setStick(followsBottom(el.scrollHeight, el.scrollTop, el.clientHeight));
+        }}
+      >
+        {feed.map((l, i) => {
+          const kind = l.kind ?? 'chat';
+          /*
+           * 결이 붙은 줄(관리 AI · 판의 소식 · 의심도)에는 **이름을 안 붙인다** — 본문이 대개
+           * 좌석 번호로 시작해서, 이름까지 붙으면 누가 말하고 누가 걸렸는지가 안 갈린다.
+           * 말하는 쪽은 색이 가른다 (/arena 통신판과 같은 규칙).
+           */
+          const toned = kind !== 'chat';
+          const mine = l.id === mySeatId;
+          return (
+            <p key={`${l.ts}-${i}`} className={`ig-line ${kind}${mine ? ' me' : ''}${l.id === markId ? ' marked' : ''}`}>
+              <i aria-hidden className="pip" />
+              <span>
+                {toned ? (
+                  l.text
+                ) : (
+                  <>
+                    <b>{l.name}</b>
+                    {l.text}
+                  </>
+                )}
+              </span>
+            </p>
+          );
+        })}
       </div>
       <form className="ig-input" onSubmit={submit}>
         <input
@@ -210,11 +268,7 @@ export function Chat({
         <button type="submit" disabled={disabled || !text.trim()}>
           말하기
         </button>
-        <button type="button" className="claim" disabled={disabled || !text.trim()} onClick={claim} title="이 문장을 관리 AI 가 기록과 대조해 판정한다 (일치 −10 · 불일치 +10)">
-          주장
-        </button>
       </form>
-      <div className="ig-hint">「주장」은 관리 AI 가 공개 기록과 대조한다 — 일치 −10, 거짓 해명 +10.</div>
     </div>
   );
 }
