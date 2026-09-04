@@ -95,6 +95,16 @@ export const ASSETS = {
   metal_case: { url: '/world/interrogation/metal_case.glb' },
 
   /**
+   * 특수인공지능대응센터 홀(map/govcenter.tsx, 검문소 /interrogation 의 배경) — 유리 방 안의 서버 랙 · 워크스테이션,
+   * 끝벽·옆벽의 철문, 문 옆 벽등. Tripo Studio text-to-model(tools/govcenter-parts.json → tripo-studio-parts.sh)
+   * → tools/govcenter-glb.sh. 리깅도 클립도 없다. 알베도는 버리고 노멀맵만 쓴다.
+   */
+  gov_server_rack: { url: '/world/govcenter/gov_server_rack.glb' },
+  gov_workstation: { url: '/world/govcenter/gov_workstation.glb' },
+  gov_steel_door: { url: '/world/govcenter/gov_steel_door.glb' },
+  gov_wall_lamp: { url: '/world/govcenter/gov_wall_lamp.glb' },
+
+  /**
    * 물리 미니게임 — 정지선(features/trial). 심문소 홀 안에 레인을 깔고 그 위에 세우는 소품 둘:
    * 목표 정지선의 게이트(레인마다 하나)와 출발선의 비콘. Tripo text-to-model(힉스필드 MCP tripo_3d, 2026-09-04)
    * → tools/trial-glb.sh. 프롬프트는 tools/trial-parts.json. 리깅도 클립도 없다.

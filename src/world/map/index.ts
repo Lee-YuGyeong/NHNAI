@@ -13,6 +13,7 @@ import type * as THREE from 'three';
 import type { QualityTier } from '../perf/quality';
 import { Corridor, FOCUS as CORRIDOR_FOCUS, Lights as CorridorLights, groundHeightAt as corridorGroundHeightAt, resolveColliders as resolveCorridorColliders } from './corridor';
 import { CENTRAL_FOCUS, Central, CentralLights, centralGroundHeightAt, resolveCentralColliders } from './central';
+import { GOVCENTER_FOCUS, Govcenter, GovcenterLights, govcenterGroundHeightAt, resolveGovcenterColliders } from './govcenter';
 import { INTERROGATION_FOCUS, Interrogation, InterrogationEffects, InterrogationLights, interrogationGroundHeightAt, resolveInterrogationColliders } from './interrogation';
 import { RECHECK_FOCUS, Recheck, RecheckLights, recheckGroundHeightAt, resolveRecheckColliders } from './recheck';
 import { NEAR_Z as RECHECK_NEAR_Z } from './recheck/layout';
@@ -104,6 +105,24 @@ export const MAPS = {
      * 네 장을 지나오는 동안 소리가 끊기는 자리가 **여기 하나**였다. 원본 파일 이름도 그 방의 것이다
      * ("Interrogation Door.wav"). 판을 도는 동안 이 곡 위에 리더의 방송이 얹힌다.
      */
+    bgm: '/audio/corridor-bgm.m4a',
+  },
+  govcenter: {
+    title: '특수인공지능대응센터',
+    blurb: '콘크리트 대형 홀 — 끝벽의 3면 상황판, 양옆 유리 관제실. 검문소(/interrogation)의 배경.',
+    /** 참고 이미지(2026-09-04)는 콘크리트의 차가운 회색 — 안개도 회색, 홀이 넓어 옅게 */
+    background: '#0b0e13',
+    fog: ['#0f1218', 0.01],
+    /** 첫 렌더(1.5 · 앰비언트 0.9)는 콘크리트가 하얗게 떴다 — 참고 이미지는 어둡고 형광등·상황판만 밝다 */
+    exposure: 1.05,
+    ambient: { color: '#aeb9c9', intensity: 0.55 },
+    Scene: Govcenter,
+    Lights: GovcenterLights,
+    focus: GOVCENTER_FOCUS,
+    /** ★ 격납고 홀과 같은 충돌 목록 — 게임(features/arena)의 카탈로그·판정이 그 목록을 읽는다 (govcenter/layout.ts) */
+    resolveColliders: resolveGovcenterColliders,
+    groundHeightAt: govcenterGroundHeightAt,
+    /** 검문소는 인지 검증실이다 — 격납고 홀과 같은 곡 (features/arena 는 MAPS.warehouse.bgm 을 문다) */
     bgm: '/audio/corridor-bgm.m4a',
   },
   central: {

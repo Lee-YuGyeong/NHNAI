@@ -165,6 +165,7 @@ function requestLock(el: Element, tries = 3, delayMs = 1400): void {
 const NOTE_ROOM: Record<MapId, string> = {
   corridor: '복도',
   warehouse: '격납고',
+  govcenter: '대응센터 홀',
   central: '중앙 시설',
   interrogation: '심문소',
   recheck: '재검실',
