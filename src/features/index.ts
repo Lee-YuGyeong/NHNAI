@@ -100,15 +100,23 @@ export const FEATURES: FeatureDef[] = [
    * 싸움이 없고, 계량기가 둘(의심도 · 경보도)이고, 먼저 말을 걸 수 있다. 위의 「게임 시작 테스트」와는 길이 아예 다르다.
    */
   { id: 'scenario2', title: '시나리오 2 (짓지 않은 방들)', path: '/scenario2', owner: 'TBD', Component: Scenario2Feature },
-  // 본판 「인간인 척」 (PLANNING.md) — 방에 붙어 도는 판. ?code= 가 방 번호, 방장이 시작한다 (features/interrogation)
+  /*
+   * 본판 「인간인 척」 (PLANNING.md) — 방에 붙어 도는 판. ?code= 가 방 번호, 방장이 시작한다 (features/interrogation).
+   *
+   * ★ 문패에 **「검문소」를 도로 넣는다** (2026-09-04 사용자: "검문소 버튼 어디갔지?").
+   *   이 문은 리빌드(808662d) 전까지 「검문소 (판만)」이었다. 판을 갈아끼우면서 이름을 「인간인 척 (본판)」으로
+   *   바꿨더니, 이 방을 여태 **검문소**라 불러 온 사람에게는 목록에서 문이 통째로 사라진 것으로 보였다
+   *   — 목록의 다른 줄들도(재검실 · 시나리오 2 · 중앙 시설) 전부 방 이름으로 서 있어서다.
+   *   방 이름(검문소)이 앞, 판 이름(인간인 척)이 뒤다. 주소도 라우트도 그대로다.
+   */
   {
     id: 'interrogation',
-    title: '인간인 척 (본판)',
+    title: '검문소 (인간인 척 본판)',
     path: '/interrogation',
     owner: 'TBD',
     Component: InterrogationFeature,
     // 방 번호 1234 고정 — 같은 번호로 탭을 더 열면 같은 판에 들어온다 (물리 미니게임의 문과 같은 규칙)
-    doors: [{ title: '인간인 척 (본판 · 방 1234)', to: '/interrogation?code=1234' }],
+    doors: [{ title: '검문소 (인간인 척 본판 · 방 1234)', to: '/interrogation?code=1234' }],
   },
   { id: 'game',    title: '라운드 진행',    path: '/game',    owner: 'TBD', Component: GameFeature },
   { id: 'profile', title: '프로필',        path: '/profile', owner: 'TBD', Component: ProfileFeature },
