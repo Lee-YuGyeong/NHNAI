@@ -12,6 +12,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { LOOK_SENSITIVITY, attachKeyboard, input, resetInput } from '@/world/input/input';
+import { runCapOf, type BodyId } from '@/world/mp/bodies';
 import { DISC_CENTER, DISC_RESPAWN_R, DISC_RUN_SPEED, DISC_TOP, DISC_WALK_SPEED, MOVE_THROTTLE_MS } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { CHASE_DIST, CHASE_LOOK_Y, PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, forwardOf } from '../common/chase';
@@ -27,8 +28,10 @@ function rot(theta: number, x: number, z: number): { x: number; z: number } {
   return { x: x * c + z * s, z: -x * s + z * c };
 }
 
-export function DiscRig({ selfId, sendWalk }: { selfId: string | null; sendWalk: (x: number, z: number) => void }) {
+export function DiscRig({ selfId, body = null, sendWalk }: { selfId: string | null; body?: BodyId | null; sendWalk: (x: number, z: number) => void }) {
   const { camera } = useThree();
+  /** 달리기 상한 — 무거운 몸은 느리다 (mp/bodies.ts). 서버도 같은 상한으로 자른다 */
+  const runSpeed = runCapOf(body, DISC_RUN_SPEED);
   /** 원판 좌표의 예측 자리 */
   const p = useRef({ x: DISC_RESPAWN_R, z: 0 });
   /** 원판 좌표의 미끄러짐(서버가 준 것) */
@@ -110,7 +113,7 @@ export function DiscRig({ selfId, sendWalk }: { selfId: string | null; sendWalk:
     if (!fallen.current && (ax !== 0 || az !== 0)) {
       const len = Math.hypot(ax, az);
       const fit = len > 1 ? 1 / len : 1;
-      const speed = input.run ? DISC_RUN_SPEED : DISC_WALK_SPEED;
+      const speed = input.run ? runSpeed : DISC_WALK_SPEED;
       wx = (f.x * az + rx * ax) * fit * speed;
       wz = (f.z * az + rz * ax) * fit * speed;
       const want = Math.atan2(wx, wz);

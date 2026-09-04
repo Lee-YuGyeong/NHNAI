@@ -25,6 +25,7 @@ const LABEL: Record<string, string> = {
   misses: '실패',
   meanOffset: '중심 오차(m)',
   recoveryMs: '균형 회복(ms)',
+  finishMs: '완주(ms)',
 };
 
 export const TEST_TITLE: Record<string, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판' };

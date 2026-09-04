@@ -6,13 +6,17 @@
  *   misses       점프 실패 횟수 — 발판을 놓쳐 바닥에 떨어진 것 + 서 있다가 발판에서 떨어진 것
  *   meanOffset   착지점이 발판 중심에서 벗어난 거리 평균(m) — 「거의 중앙」이 여기 보인다
  *   recoveryMs   착지 후 균형 회복 — 내린 뒤 발판에 대해 멈추기까지(ms). 휘청거리면 길다
+ *   finishMs     도착 발판에 처음 내리기까지(ms). 완주 못 했으면 NaN
+ *
+ * 바닥에 떨어진 사람은 출발 발판으로 **돌아간다**(클라 FreeRig · 봇 npc.ts, 2026-09-05 사용자). 한 샘플 사이에 PLATFORM_TELEPORT_M 넘게
+ * 옮겨진 것이 그것이다 — 뛴 것도 걸은 것도 아니므로 점프로 세지 않고 바닥 높이만 새로 잡는다.
  *
  * 자리는 move(10Hz, x·z·y)로 온다 — 점프는 y 가 서 있던 바닥보다 뜨는 것, 착지는 다시 내려앉는 것으로 읽는다.
  * 발판 자리는 mp/platform.ts 의 같은 함수로 그 시각에 계산한다 (클라와 같은 식). 봇도 같은 sample() 로 센다.
  */
 import { mean } from '../scoring';
 import type { TrialPlayerResult } from '../../../../src/world/mp/protocol';
-import { PAD_CENTER_R, PAD_TOP, landingSign, padAt, padUnder } from '../../../../src/world/mp/platform';
+import { PAD_CENTER_R, PAD_FINISH, PAD_TOP, PLATFORM_TELEPORT_M, landingSign, padAt, padUnder } from '../../../../src/world/mp/platform';
 
 /** 바닥에서 이만큼 뜨면 점프다 */
 const LIFT = 0.12;
@@ -59,6 +63,8 @@ export class JumpStats {
   /** 착지 뒤 균형 회복 중 — 발판 번호와 내린 시각, 멈춘 샘플 수 */
   private recovering: { pad: number; at: number; still: number } | null = null;
   private recoveries: number[] = [];
+  /** 도착 발판에 처음 내린 시각 */
+  private finishedAt = 0;
 
   constructor(
     private readonly startedAt: number,
@@ -80,6 +86,20 @@ export class JumpStats {
       return;
     }
     const dt = Math.max(1, now - this.t) / 1000;
+
+    // 돌아갔다 — 출발 발판으로 옮겨진 것. 공중이었어도 떨어진 뒤의 일이라 그 점프는 이미 닫혔거나(바닥 착지) 닫을 수 없다
+    if (Math.hypot(x - this.x, z - this.z) > PLATFORM_TELEPORT_M) {
+      if (this.air) {
+        // 바닥 샘플 없이 바로 옮겨졌다(빠른 클라) — 놓친 점프로 닫는다
+        this.jumps.push({ at: now, landed: false, offset: Number.NaN, sign: 0, center: false, pad: -1 });
+        this.air = false;
+        onLand?.({ pad: -1, center: false, missed: true });
+      }
+      this.closeRecovery(now);
+      this.level = hit && y >= PAD_TOP - LAND_EPS ? PAD_TOP : 0;
+      this.set(x, z, y, now);
+      return;
+    }
 
     if (!this.air) {
       if (y > this.level + LIFT) {
@@ -105,6 +125,7 @@ export class JumpStats {
         this.air = false;
         this.level = PAD_TOP;
         this.recovering = { pad: hit.k, at: now, still: 0 };
+        if (hit.k === PAD_FINISH && this.finishedAt === 0) this.finishedAt = now;
         onLand?.({ pad: hit.k, center, missed: false });
       } else if (!hit && descending && y <= LAND_EPS) {
         this.jumps.push({ at: now, landed: false, offset: Number.NaN, sign: 0, center: false, pad: -1 });
@@ -171,6 +192,7 @@ export class JumpStats {
         misses,
         meanOffset: offsets.length ? mean(offsets) : Number.NaN,
         recoveryMs: this.recoveries.length ? mean(this.recoveries) : Number.NaN,
+        finishMs: this.finishedAt ? this.finishedAt - this.startedAt : Number.NaN,
         transitionError,
       },
       transitionError,

@@ -5,8 +5,12 @@
  * 낙하 생존과 다른 점 하나: **사람의 자리도 서버가 적분한다.** 원판이 사람을 실어 나르고 미끄러뜨리는데 그 미끄러짐이 숨은 μ 에서
  * 나오므로, 클라가 자리를 신고하게 두면 μ 를 모르는 클라가 지어내거나(틀리거나) 아는 클라가 속이거나 둘 중 하나다. 그래서 클라는
  * 걷기 명령(trial_walk, 월드 기준 속도)만 올리고, 자리는 스냅샷(trial_disc)으로 돌려받는다. move 메시지는 이 게임에서 무시한다.
+ *
+ * 몸 (2026-09-05 사용자: "비만군인은 물리법칙에 의해 더 많이 벗어나게"): 무거운 몸은 같은 바닥에서 마찰 배율(mp/bodies.ts grip)만큼
+ * 덜 잡아 먼저 · 더 멀리 미끄러지고, 달리기 상한도 그 몸의 것이다. 몸은 ctx.bodyOf 로 묻는다 — 모르면 기준.
  */
-import { DISC_CENTER, DISC_SNAPSHOT_MS, DISC_TICK_MS, DISC_WALK_SPEED, DISC_WALK_STALE_MS, TRIAL_GAME_MS } from '../../../../src/world/mp/constants';
+import { gripOf, runCapOf } from '../../../../src/world/mp/bodies';
+import { DISC_CENTER, DISC_RUN_SPEED, DISC_SNAPSHOT_MS, DISC_TICK_MS, DISC_WALK_SPEED, DISC_WALK_STALE_MS, TRIAL_GAME_MS } from '../../../../src/world/mp/constants';
 import type { TrialPlayerResult } from '../../../../src/world/mp/protocol';
 import { DISC_GRIP } from '../condition';
 import type { EngineContext, GameEngine, SeatTuning } from '../engine';
@@ -109,7 +113,7 @@ export class DiscEngine implements GameEngine {
   onWalk(id: string, x: number, z: number, now: number): void {
     this.join(id);
     const b = this.bodies.get(id)!;
-    const w = clampWalk(x, z);
+    const w = clampWalk(x, z, runCapOf(this.ctx?.bodyOf?.(id), DISC_RUN_SPEED));
     b.wx = w.x;
     b.wz = w.z;
     b.running = Math.hypot(w.x, w.z) > DISC_WALK_SPEED + 0.1;
@@ -193,7 +197,7 @@ export class DiscEngine implements GameEngine {
         const stale = now - b.wAt > DISC_WALK_STALE_MS;
         wDisc = stale ? { x: 0, z: 0 } : rot(-theta, { x: b.wx, z: b.wz });
       }
-      const out = stepBody(b, wDisc, omega, alpha, mu, dt, now);
+      const out = stepBody(b, wDisc, omega, alpha, mu * gripOf(ctx.bodyOf?.(b.id)), dt, now);
       this.need.set(b.id, out.need);
       if (out.fell) {
         // 떨어진 자리 = 원판 가장자리 바로 바깥의 월드 자리

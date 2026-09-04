@@ -8,10 +8,11 @@
  *
  * 뛰는 순간은 「다음 발판이 내 x 에 오는 순간」을 예측해 잡는다 — 이상적인 시각 t* 에 체공을 더한 자리가 발판 중심이다.
  * 사람은 t* 보다 earlyBias 만큼 먼저 뛰고 timingSigma 만큼 흔들린다: 그만큼 발판이 덜 와 있어 진행 방향 **앞**에 내린다(+).
- * 놓치면 바닥에 떨어져 잠깐 서 있다가 목표 발판 밑으로 걸어가 올라선다 (발판 높이 0.5 < STEP_UP 이라 걸어 오른다).
+ * 놓치면 바닥에 떨어져 잠깐 넘어져 있다가 **출발 발판의 제자리로 돌아간다** — 사람과 같은 규칙(FreeRig). 도착 발판에 내리면
+ * 완주: 남은 시간은 거기 서서 기다린다 (2026-09-05 사용자).
  */
-import { JUMP_SPEED, GRAVITY, WALK_SPEED } from '../../../../src/world/mp/constants';
-import { JUMP_AIR_S, PAD_COUNT, PAD_R, PAD_TOP, padAt, padUnder } from '../../../../src/world/mp/platform';
+import { JUMP_SPEED, GRAVITY } from '../../../../src/world/mp/constants';
+import { JUMP_AIR_S, PAD_FINISH, PAD_TOP, PLATFORM_RESPAWN_MS, padAt, padUnder } from '../../../../src/world/mp/platform';
 
 export interface JumpProfile {
   /** 뛰는 시각의 흔들림(초, 표준편차) */
@@ -44,7 +45,7 @@ export function makeJumpProfile(index: number, precision?: number): JumpProfile 
   };
 }
 
-type Mode = 'stand' | 'air' | 'wobble' | 'floor' | 'climb';
+type Mode = 'stand' | 'air' | 'wobble' | 'floor' | 'done';
 
 export interface Jumper {
   id: string;
@@ -57,8 +58,8 @@ export interface Jumper {
   pad: number;
   relX: number;
   relZ: number;
-  /** 진행 방향 — 도착 쪽 +1, 되돌아올 때 −1 */
-  dir: 1 | -1;
+  /** 출발 발판 위 제자리 — 떨어지면 여기로 돌아간다 */
+  homeX: number;
   /** 이번 점프 — 뛰기로 한 시각(ms epoch), 목표 발판, 착지점 오차 */
   jumpAt: number;
   target: number;
@@ -82,7 +83,7 @@ export function makeJumper(id: string, x: number, z: number, profile: JumpProfil
     pad: 0,
     relX: x,
     relZ: z - padAt(0, 0, 1).z,
-    dir: 1,
+    homeX: x,
     jumpAt: now + 800 + Math.random() * 1200,
     target: 1,
     errX: 0,
@@ -101,12 +102,15 @@ function gauss(): number {
 }
 
 /**
- * 다음 점프의 시각을 정한다 — 앞으로 4초 안에서 「체공 뒤 목표 발판 중심이 내 x 에 가장 가까워지는 순간」(t*).
+ * 다음 점프의 시각을 정한다 — 앞으로 4초 안에서 「체공 뒤 목표 발판 중심이 내 x 에 충분히 가까워지는 **첫** 순간」(t*).
+ * 기계는 중심 반경 안(0.06m)이면 바로 뛰고, 사람은 「대충 맞아 보이면」(더 너그러운 문턱) 뛴다 — 둘 다 발판이 지나가길
+ * 한 주기씩 기다리지 않는다 (30초 안에 완주해야 한다). 4초 안에 그런 순간이 없으면 가장 가까운 순간.
  * 사람은 t* 에서 earlyBias 만큼 앞당기고 timingSigma 만큼 흔든다. 착지 오차는 그 시간 차 × 발판 속도로 생긴다.
  */
 function planJump(j: Jumper, now: number, startedAt: number, pace: number): void {
   const p = j.profile;
   const target = j.target;
+  const tol = 0.06 + p.lateralSigma * 1.5;
   let best = now;
   let bestGap = Infinity;
   for (let t = now + 150; t <= now + 4000; t += 20) {
@@ -117,6 +121,7 @@ function planJump(j: Jumper, now: number, startedAt: number, pace: number): void
       bestGap = gap;
       best = t;
     }
+    if (gap <= tol) break;
   }
   const dt = -p.earlyBias + gauss() * p.timingSigma;
   j.jumpAt = Math.max(now + 50, best + dt * 1000);
@@ -133,20 +138,21 @@ function planJump(j: Jumper, now: number, startedAt: number, pace: number): void
   }
 }
 
-function nextTarget(j: Jumper): number {
-  let t = j.pad + j.dir;
-  if (t >= PAD_COUNT) {
-    j.dir = -1;
-    t = j.pad - 1;
-  } else if (t < 0) {
-    j.dir = 1;
-    t = j.pad + 1;
-  }
-  return t;
+/** 출발 발판의 제자리로 돌아간다 — 다음 목표는 첫 움직이는 발판 */
+function respawn(j: Jumper, now: number): void {
+  j.pad = 0;
+  j.relX = j.homeX;
+  j.relZ = 0;
+  j.x = j.homeX;
+  j.z = padAt(0, 0, 1).z;
+  j.y = PAD_TOP;
+  j.target = 1;
+  j.mode = 'stand';
+  j.jumpAt = now + j.profile.thinkMs;
 }
 
 /** 한 틱. elapsed 는 라운드 시작 뒤 흐른 ms */
-export function stepJumper(j: Jumper, now: number, dt: number, startedAt: number, pace: number): void {
+export function stepJumper(j: Jumper, now: number, _dt: number, startedAt: number, pace: number): void {
   const elapsed = now - startedAt;
   const p = j.profile;
   switch (j.mode) {
@@ -188,7 +194,7 @@ export function stepJumper(j: Jumper, now: number, dt: number, startedAt: number
           j.y = 0;
           j.pad = -1;
           j.mode = 'floor';
-          j.until = now + 900 + p.wobbleMs * 0.5;
+          j.until = now + PLATFORM_RESPAWN_MS + p.wobbleMs * 0.5;
         }
       }
       return;
@@ -202,39 +208,30 @@ export function stepJumper(j: Jumper, now: number, dt: number, startedAt: number
       j.z = pad.z + j.relZ + Math.cos(w * 1.3) * a * 0.6;
       j.y = PAD_TOP;
       if (now >= j.until) {
+        if (j.pad >= PAD_FINISH) {
+          // 완주 — 도착 발판(정지) 위에서 기다린다
+          j.mode = 'done';
+          j.x = pad.x + j.relX;
+          j.z = pad.z + j.relZ;
+          return;
+        }
         j.mode = 'stand';
-        j.target = nextTarget(j);
+        j.target = j.pad + 1;
         // 균형을 잡은 뒤 생각하고 다음 점프를 정한다
         planJump(j, now + p.thinkMs, startedAt, pace);
       }
       return;
     }
     case 'floor': {
-      if (now >= j.until) j.mode = 'climb';
-      return;
-    }
-    case 'climb': {
-      const pad = padAt(j.target, elapsed, pace);
-      const dx = pad.x - j.x;
-      const dz = pad.z - j.z;
-      const d = Math.hypot(dx, dz);
-      const step = WALK_SPEED * dt;
-      if (d <= Math.max(step, PAD_R * 0.4)) {
-        j.x = pad.x;
-        j.z = pad.z;
-        j.y = PAD_TOP;
-        j.pad = j.target;
-        j.relX = 0;
-        j.relZ = 0;
-        j.mode = 'wobble';
-        j.until = now + p.wobbleMs * 0.5;
-      } else {
-        j.x += (dx / d) * step;
-        j.z += (dz / d) * step;
-        j.y = 0;
+      // 넘어져 있다가 출발 발판으로 돌아간다 — 사람과 같은 규칙
+      if (now >= j.until) {
+        respawn(j, now);
+        planJump(j, now + p.thinkMs, startedAt, pace);
       }
       return;
     }
+    case 'done':
+      return;
     default:
       return;
   }

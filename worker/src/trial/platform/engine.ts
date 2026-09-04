@@ -1,11 +1,11 @@
 /**
- * 움직이는 플랫폼 엔진 — 1분 시간제 (낙하 생존과 같은 틀). 발판의 자리는 mp/platform.ts 의 함수로 시각마다 계산하고,
+ * 움직이는 플랫폼 엔진 — 30초 시간제 (PLATFORM_GAME_MS, 틀은 낙하 생존과 같다). 발판의 자리는 mp/platform.ts 의 함수로 시각마다 계산하고,
  * 사람의 점프·착지는 그 사람이 보내는 move(10Hz, x·z·y)에서 읽는다 — 발판이 그 시각에 어디 있었는지는 서버가 안다.
  * 봇은 npc.ts 가 틱마다 움직이고 같은 JumpStats 로 센다. 스냅샷(100ms)은 봇의 자리(y 포함)만 실린다 — 발판은 안 보낸다.
  *
  * 숨기는 값은 없다 — 발판 배속(pace)은 라운드 시작에 공개로 나간다(눈에 보이는 것). 기록의 condition 에는 배속표를 적는다.
  */
-import { FALL_SNAPSHOT_MS, FALL_TICK_MS, TRIAL_GAME_MS } from '../../../../src/world/mp/constants';
+import { FALL_SNAPSHOT_MS, FALL_TICK_MS, PLATFORM_GAME_MS } from '../../../../src/world/mp/constants';
 import type { TrialPlayerResult } from '../../../../src/world/mp/protocol';
 import { PAD_START_Z, PLATFORM_ARENA, PLATFORM_PACE, PLATFORM_PHASE_SPEED, padAt } from '../../../../src/world/mp/platform';
 import type { EngineContext, GameEngine, SeatTuning } from '../engine';
@@ -21,7 +21,7 @@ export function paceForIntensity(intensity: number): number {
 
 export class PlatformEngine implements GameEngine {
   readonly game = 'platform' as const;
-  readonly durationMs = TRIAL_GAME_MS;
+  readonly durationMs = PLATFORM_GAME_MS;
 
   private ctx: EngineContext | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -123,7 +123,7 @@ export class PlatformEngine implements GameEngine {
     const dt = Math.min(0.1, (now - this.lastTick) / 1000);
     this.lastTick = now;
 
-    if (now - this.startedAt >= TRIAL_GAME_MS) {
+    if (now - this.startedAt >= PLATFORM_GAME_MS) {
       this.endedAt = now;
       this.stop();
       ctx.finish();

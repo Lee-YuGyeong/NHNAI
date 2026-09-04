@@ -7,7 +7,7 @@ import { Suspense, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { FreeRig } from '@/features/interrogation/scene/FreeRig';
+import { FreeRig, type Teleport } from '@/features/interrogation/scene/FreeRig';
 import { PlatformCourse } from '@/features/interrogation/scene/PlatformCourse';
 import { SelfAvatar } from '@/features/interrogation/scene/SelfAvatar';
 import { platformState } from '@/features/interrogation/scene/platformState';
@@ -61,10 +61,12 @@ export interface PlatformSceneProps {
   roster: readonly { id: string }[];
   /** AI 좌석 — 스냅샷으로 움직인다 */
   aiIds?: readonly string[];
+  /** 라운드가 열릴 때 출발 발판 위로 — 키가 바뀔 때만 옮긴다 (FreeRig) */
+  teleport?: Teleport | null;
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
 }
 
-export function PlatformScene({ myBody = null, roster, aiIds = [], sendMove }: PlatformSceneProps) {
+export function PlatformScene({ myBody = null, roster, aiIds = [], teleport = null, sendMove }: PlatformSceneProps) {
   return (
     <WorldCanvas
       quality="high"
@@ -91,7 +93,7 @@ export function PlatformScene({ myBody = null, roster, aiIds = [], sendMove }: P
       {aiIds.map((id) => (
         <PlatformBot key={id} id={id} />
       ))}
-      <FreeRig spawn={SPAWN} body={myBody} teleport={null} bounds={PLATFORM_ARENA} composing={false} paused={false} sendMove={sendMove} />
+      <FreeRig spawn={SPAWN} body={myBody} teleport={teleport} bounds={PLATFORM_ARENA} composing={false} paused={false} sendMove={sendMove} />
       <SelfAvatar body={myBody} />
       <MouseLook />
     </WorldCanvas>

@@ -5,7 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { JUMP_SPEED, GRAVITY, TRIAL_GAME_MS, TRIAL_PHASE_MS } from '../../src/world/mp/constants';
+import { JUMP_SPEED, GRAVITY, PLATFORM_GAME_MS, TRIAL_PHASE_MS } from '../../src/world/mp/constants';
 import { PADS, PAD_CENTER_R, PAD_R, PAD_TOP, padAt, padUnder, platformGroundAt, scaledTime } from '../../src/world/mp/platform';
 import type { S2CMessage } from '../../src/world/mp/protocol';
 import { PlatformEngine } from '../../worker/src/trial/platform/engine';
@@ -62,8 +62,8 @@ describe('JumpStats — 착지·중앙·실패·균형 회복을 샘플에서 �
     const s = new JumpStats(start, 1);
     let t = start + 500;
     const seen: { center: boolean; missed: boolean }[] = [];
-    for (let k = 1; k <= 8; k++) t = jumpInto(s, k, 0, t + 600, start, 1, (e) => seen.push(e));
-    for (let k = 7; k >= 6; k--) t = jumpInto(s, k, 0, t + 600, start, 1, (e) => seen.push(e));
+    for (let k = 1; k <= 6; k++) t = jumpInto(s, k, 0, t + 600, start, 1, (e) => seen.push(e));
+    for (let k = 5; k >= 2; k--) t = jumpInto(s, k, 0, t + 600, start, 1, (e) => seen.push(e));
     const r = s.result('ai', [start, start + TRIAL_PHASE_MS, start + TRIAL_PHASE_MS * 2]);
     expect(r.metrics.jumps).toBe(10);
     expect(r.metrics.landingRate).toBe(1);
@@ -123,7 +123,7 @@ describe('PlatformEngine — 한 판', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('1분 뒤 finish 를 부르고, 봇 스냅샷에는 y 가 실리며, 결과에 조건값이 없다', () => {
+  it('30초 뒤 finish 를 부르고, 봇 스냅샷에는 y 가 실리며, 결과에 조건값이 없다', () => {
     const sent: S2CMessage[] = [];
     let finished = 0;
     const engine = new PlatformEngine();
@@ -132,19 +132,94 @@ describe('PlatformEngine — 한 판', () => {
       SUBJECT_02: { precision: 0.1 },
     });
     expect(engine.paceFor(2)).toBeCloseTo(1.35, 5);
-    vi.advanceTimersByTime(TRIAL_GAME_MS + 200);
+    vi.advanceTimersByTime(PLATFORM_GAME_MS + 200);
     expect(finished).toBe(1);
     const snaps = sent.filter((m): m is Extract<S2CMessage, { t: 'trial_snapshot' }> => m.t === 'trial_snapshot');
-    expect(snaps.length).toBeGreaterThan(100);
+    expect(snaps.length).toBeGreaterThan(50);
     expect(snaps.some((s) => s.ai.some((a) => typeof a.y === 'number'))).toBe(true);
-    // 봇은 1분 동안 뛴다 — 기계 쪽은 중앙 착지가 사람 쪽보다 고르다
+    // 봇은 30초 동안 뛴다 — 기계 쪽은 중앙 착지가 사람 쪽보다 고르고 완주한다
     const results = engine.results();
     const ai = results.find((r) => r.id === 'SUBJECT_01')!;
     const human = results.find((r) => r.id === 'SUBJECT_02')!;
     expect(ai.metrics.jumps).toBeGreaterThan(3);
     expect(human.metrics.jumps).toBeGreaterThan(1);
     expect(ai.metrics.centerRate).toBeGreaterThanOrEqual(human.metrics.centerRate - 0.2);
+    expect(ai.metrics.finishMs).toBeGreaterThan(0);
+    expect(ai.metrics.finishMs).toBeLessThan(PLATFORM_GAME_MS);
     for (const r of results) expect('condition' in r).toBe(false);
     expect(JSON.stringify(sent)).not.toMatch(/platformPace/);
+  });
+});
+
+describe('돌아가기 · 완주 (2026-09-05 사용자: 떨어지면 출발로, 끝까지 가면 거기서 대기)', () => {
+  it('바닥에 떨어진 뒤 출발 발판으로 옮겨진 것은 점프로 안 센다 — 실패 1, 그 뒤 착지는 정상으로 이어진다', () => {
+    const start = 5_000_000;
+    const s = new JumpStats(start, 1);
+    const air = (2 * JUMP_SPEED) / GRAVITY;
+    const from = padAt(0, 0, 1);
+    s.sample(from.x, from.z, PAD_TOP, start + 500);
+    s.sample(from.x, from.z, PAD_TOP, start + 600);
+    let t = start + 700;
+    for (let f = 0.1; f <= 1.3; f += 0.1) {
+      const tt = f * air;
+      const y = Math.max(0, PAD_TOP + JUMP_SPEED * tt - 0.5 * GRAVITY * tt * tt);
+      s.sample(from.x + 3 * f, from.z - 2 * f, y, t);
+      t += 100;
+    }
+    // 넘어져 있다가(600ms) 출발 발판으로 — 한 샘플에 3m 넘게 옮겨진다
+    t += 600;
+    s.sample(from.x, from.z, PAD_TOP, t);
+    s.sample(from.x, from.z, PAD_TOP, t + 100);
+    const mid = s.result('h', [start]);
+    expect(mid.metrics.jumps).toBe(1);
+    expect(mid.metrics.misses).toBe(1);
+    // 그 뒤 제대로 뛰면 착지로 센다
+    t = jumpInto(s, 1, 0, t + 400, start, 1);
+    const r = s.result('h', [start]);
+    expect(r.metrics.jumps).toBe(2);
+    expect(r.metrics.landingRate).toBe(0.5);
+    expect(r.metrics.misses).toBe(1);
+  });
+
+  it('도착 발판에 내리면 finishMs 가 적히고, 못 갔으면 NaN', () => {
+    const start = 6_000_000;
+    const s = new JumpStats(start, 1);
+    let t = start + 500;
+    for (let k = 1; k < PADS.length; k++) t = jumpInto(s, k, 0, t + 600, start, 1);
+    const r = s.result('ai', [start]);
+    expect(r.metrics.finishMs).toBeGreaterThan(0);
+    expect(r.metrics.finishMs).toBeLessThan(t - start);
+    const none = new JumpStats(start, 1);
+    none.sample(0, padAt(0, 0, 1).z, PAD_TOP, start + 100);
+    expect(Number.isNaN(none.result('h', [start]).metrics.finishMs)).toBe(true);
+  });
+
+  it('기계 봇은 30초 안에 완주해 도착 발판 위에 서 있고, 떨어진 봇은 바닥에 머물지 않는다', () => {
+    vi.useFakeTimers();
+    try {
+      const sent: S2CMessage[] = [];
+      const engine = new PlatformEngine();
+      engine.start(1, [], ['SUBJECT_01', 'SUBJECT_02'], { broadcast: (m) => sent.push(m), finish: () => undefined }, {
+        SUBJECT_01: { precision: 1 },
+        SUBJECT_02: { precision: 0 },
+      });
+      vi.advanceTimersByTime(PLATFORM_GAME_MS - 500);
+      const snaps = sent.filter((m): m is Extract<S2CMessage, { t: 'trial_snapshot' }> => m.t === 'trial_snapshot');
+      const last = snaps[snaps.length - 1];
+      const ai = last.ai.find((a) => a.id === 'SUBJECT_01')!;
+      expect(ai.z).toBeCloseTo(PADS[PADS.length - 1].z, 1);
+      expect(ai.y).toBeCloseTo(PAD_TOP, 1);
+      // 바닥(y 0)에 연속으로 오래 있는 봇은 없다 — 넘어진 뒤 곧 출발 발판(0.5)으로 돌아간다
+      let floorRun = 0;
+      let worst = 0;
+      for (const s of snaps) {
+        const h = s.ai.find((a) => a.id === 'SUBJECT_02')!;
+        floorRun = (h.y ?? 0) < 0.05 ? floorRun + 1 : 0;
+        worst = Math.max(worst, floorRun);
+      }
+      expect(worst).toBeLessThan(25); // 스냅샷 100ms — 2.5초 넘게 바닥에 있지 않는다
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

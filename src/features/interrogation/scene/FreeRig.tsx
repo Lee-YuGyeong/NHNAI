@@ -11,6 +11,10 @@
  * 달리기와 점프는 **몸(body)에 따라 다르다** (mp/bodies.ts, 2026-09-04 사용자): 비만인 둘은 달리기가 느리고 점프가 낮다.
  * 걷기는 넷이 같다. 달리기는 앞(W)으로 갈 때만 — 옆·뒤로는 Shift 를 눌러도 걷는다.
  *
+ * 움직이는 플랫폼(platformState.active)에서는 셋이 더 있다 (2026-09-05 사용자): 발판은 **통과 못 하는** 기둥이라 옆에서 부딪히면
+ * 테두리 밖으로 밀리고, 바닥에 떨어지면 잠깐 뒤 출발 발판의 내 자리로 돌아가며, 도착 발판에 내리면 완주 — 남은 시간은 거기서
+ * 입력 없이 기다린다.
+ *
  * 토론과 낙하 생존 · 색 사냥에서 쓴다. 낙하 생존 동안은 마당(bounds)이 좁아진다 — 서버가 그 범위 안에서만
  * 떨어뜨리고 판정하므로 밖으로 나가면 기록이 안 남는다.
  */
@@ -21,6 +25,7 @@ import { LOOK_SENSITIVITY, attachKeyboard, input, resetInput } from '@/world/inp
 import { MAPS, type MapDef } from '@/world/map';
 import { BODIES, type BodyId } from '@/world/mp/bodies';
 import { GRAVITY, JUMP_SPEED, MOVE_THROTTLE_MS, WALK_SPEED, WORLD } from '@/world/mp/constants';
+import { PAD_R, PAD_TOP, PLATFORM_RESPAWN_MS } from '@/world/mp/platform';
 import type { AnimState } from '@/world/mp/protocol';
 import { PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, forwardOf, placeChaseCamera } from './chase';
 import { platformState } from './platformState';
@@ -88,7 +93,8 @@ export function FreeRig({
   useEffect(() => {
     if (!teleport || teleport.key === lastTeleport.current) return;
     lastTeleport.current = teleport.key;
-    pos.current.set(teleport.x, 0, teleport.z);
+    // 발판 위로 옮겨졌으면 윗면에 선다 (플랫폼 라운드의 출발 발판) — 바닥 높이로 두면 발판 안에 갇혀 밀려난다
+    pos.current.set(teleport.x, platformState.groundAt(teleport.x, teleport.z, PAD_TOP), teleport.z);
     vy.current = 0;
     grounded.current = true;
     yaw.current = yawToFocus(teleport.x, teleport.z);
@@ -118,8 +124,10 @@ export function FreeRig({
     const f = forwardOf(yaw.current);
     const rx = -f.z; // 오른쪽 = 앞을 y 축으로 -90° 돌린 것
     const rz = f.x;
-    const ax = active ? input.moveX : 0;
-    const az = active ? input.moveZ : 0;
+    // 플랫폼에서 완주했거나 넘어져 돌아가는 중이면 입력을 안 받는다 — 서서 기다린다
+    const held = platformState.active && (platformState.finished || platformState.fellAt !== null);
+    const ax = active && !held ? input.moveX : 0;
+    const az = active && !held ? input.moveZ : 0;
 
     const spec = body ? BODIES[body] : null;
     let anim: AnimState = 'idle';
@@ -140,7 +148,7 @@ export function FreeRig({
       heading.current += d * Math.min(1, delta / 0.15);
       anim = running ? 'run' : 'walk';
     }
-    if (active && input.jump && grounded.current) {
+    if (active && !held && input.jump && grounded.current) {
       vy.current = spec?.jump ?? JUMP_SPEED;
       grounded.current = false;
     }
@@ -156,6 +164,16 @@ export function FreeRig({
     }
 
     map.resolveColliders(pos.current, pos.current.y);
+    // 발판은 통과 못 한다 — 윗면보다 낮은 높이로 발판 안에 들어왔으면(옆에서 부딪힘 · 밑으로 지나감) 테두리 밖으로 민다
+    if (platformState.active && pos.current.y < PAD_TOP - 0.02) {
+      const pad = platformState.padUnder(pos.current.x, pos.current.z, nowMs);
+      if (pad) {
+        const d = pad.dist > 1e-4 ? pad.dist : 1e-4;
+        const push = PAD_R + 0.05;
+        pos.current.x = pad.x + (pad.dist > 1e-4 ? pad.dx / d : 0) * push;
+        pos.current.z = pad.z + (pad.dist > 1e-4 ? pad.dz / d : 1) * push;
+      }
+    }
     const b = bounds ?? map.bounds ?? WORLD;
     pos.current.x = Math.min(Math.max(pos.current.x, b.minX + 0.4), b.maxX - 0.4);
     pos.current.z = Math.min(Math.max(pos.current.z, b.minZ + 0.4), b.maxZ - 0.4);
@@ -170,6 +188,23 @@ export function FreeRig({
         pos.current.y = ground;
         vy.current = 0;
         grounded.current = true;
+      }
+    }
+
+    // 플랫폼 — 바닥에 닿았으면 넘어진 것: 잠깐 뒤 출발 발판의 내 자리로. 도착 발판에 섰으면 완주
+    if (platformState.active && grounded.current) {
+      if (pos.current.y < 0.02) {
+        platformState.fell(nowMs);
+        if (nowMs - (platformState.fellAt ?? nowMs) >= PLATFORM_RESPAWN_MS) {
+          const home = platformState.home;
+          pos.current.set(home.x, PAD_TOP, home.z);
+          vy.current = 0;
+          platformState.respawned();
+          lastSent.current.x = NaN;
+        }
+      } else if (!platformState.finished) {
+        const pad = platformState.padUnder(pos.current.x, pos.current.z, nowMs);
+        if (pad && platformState.isFinish(pad.k)) platformState.finish();
       }
     }
 

@@ -24,7 +24,7 @@ export const INSTRUCTION: Record<TrialGame, string> = {
   stopline: 'W 로 달리고 S 로 멈춘다. 붉은 정지선에 정확히 서라. 3회.',
   fall: '머리 위에서 떨어지는 것을 피하라. WASD 로 움직인다. 중력은 매번 다르다.',
   colorhunt: '지시된 색의 구슬만 주워라. E 로 줍는다. 빛은 도중에 바뀐다.',
-  platform: '움직이는 발판을 점프로 건너라. W 로 나아가고 Space 로 뛴다. 발판 한가운데에 내려라.',
+  platform: '움직이는 발판을 점프로 건너라. W 로 나아가고 Space 로 뛴다. 발판 한가운데에 내려라. 떨어지면 출발로 돌아간다. 30초.',
   disc: '도는 원판 위에서 버텨라. WASD 로 걷고 Shift 로 달린다. 밖으로 밀려나면 떨어진다.',
 };
 

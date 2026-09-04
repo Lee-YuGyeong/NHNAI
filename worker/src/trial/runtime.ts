@@ -136,6 +136,7 @@ export class TrialRuntime {
     engine.start(this.round, realIds, this.aiIds, {
       broadcast: this.broadcastFn,
       finish: () => void this.finalizeRound(),
+      bodyOf: (id) => this.rosterFn().find((p) => p.id === id)?.body,
     });
   }
 

@@ -528,7 +528,13 @@ export class GameRuntime {
     this.deps.broadcast({ t: 'trial_round_start', game: design.game, round: run, startAt, durationMs: engine.durationMs, ...(pace === undefined ? {} : { pace }) });
     // 마감: 시간제는 엔진이 스스로 finish 를 부르고, 이벤트제는 상한에서 강제로 닫는다
     this.setPhase('test', startAt + (engine.durationMs ?? GAME_TEST_MAX_MS) + 1_500);
-    engine.start(design.intensity, realIds, botIds, { broadcast: (m) => this.deps.broadcast(m), finish: () => void this.finishTest() }, tuning);
+    engine.start(
+      design.intensity,
+      realIds,
+      botIds,
+      { broadcast: (m) => this.deps.broadcast(m), finish: () => void this.finishTest(), bodyOf: (id) => this.seats.find((s) => s.id === id)?.body },
+      tuning,
+    );
     void this.persist();
   }
 

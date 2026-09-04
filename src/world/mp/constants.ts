@@ -142,6 +142,11 @@ export const STOPLINE_ACCEL = 4;
  */
 export const TRIAL_GAME_MS = 60_000;
 export const TRIAL_PHASE_MS = 20_000;
+/**
+ * 움직이는 플랫폼만 30초 (2026-09-05 사용자: "제한시간은 30초로"). 발판 여덟 칸을 기계는 10초쯤에, 사람은 20초쯤에 건넌다 —
+ * 1분이면 완주한 사람이 반을 서서 기다린다. 20초에 배속 구간이 한 번 바뀐다(mp/platform.ts PLATFORM_PHASE_SPEED).
+ */
+export const PLATFORM_GAME_MS = 30_000;
 /** 끝난 뒤 요약을 보여 주는 시간(ms) */
 export const TRIAL_SUMMARY_MS = 10_000;
 

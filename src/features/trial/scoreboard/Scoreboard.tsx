@@ -65,6 +65,7 @@ const SPEC: Record<TrialGame, Spec> = {
       { key: 'recoveryMs', label: '착지 후 균형 회복', unit: 'ms', digits: 0 },
       { key: 'misses', label: '점프 실패', unit: '회', digits: 0 },
       { key: 'jumps', label: '점프', unit: '회', digits: 0 },
+      { key: 'finishMs', label: '완주까지', unit: 'ms', digits: 0 },
     ],
     curveLabel: '착지 오차 추이 (점프 1 → 2 → 3 …, m)',
     dirLabel: '오차 방향 (일찍 + / 늦게 −)',

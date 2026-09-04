@@ -5,6 +5,7 @@
  * 프레임마다 바뀌는 좌표는 여기 없다 — scene/seatState.ts (가변 Map) 가 든다 (world/core/WorldState 와 같은 규칙).
  */
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { PAD_FINISH } from '@/world/mp/platform';
 import type { ClaimVerdict, GameOutcome, GameRole, GameStateWire, LeaderKind } from '@/world/mp/game-protocol';
 import type { TrialGame, TrialResultWire } from '@/world/mp/protocol';
 
@@ -41,6 +42,8 @@ export interface GameState {
   myLandings: number;
   myCenters: number;
   myMisses: number;
+  /** 도착 발판에 내렸다 — 남은 시간은 거기서 기다린다 */
+  myFinished: boolean;
   /** 색 사냥 — 지금 조명과 목표색 (trial_colorhunt). HUD 스와치(원색)와 조명 오버레이가 그린다 */
   hunt: { light: string; target: string; targetHex: string } | null;
   /** 결과 모달이 그릴 것 — 서버 trial_result. 모달이 닫힌 뒤에도 HUD 요약으로 남는다 */
@@ -72,6 +75,7 @@ const initialState: GameState = {
   myLandings: 0,
   myCenters: 0,
   myMisses: 0,
+  myFinished: false,
   hunt: null,
   latestResult: null,
   history: [],
@@ -193,6 +197,7 @@ export const interrogationSlice = createSlice({
       s.myLandings = 0;
       s.myCenters = 0;
       s.myMisses = 0;
+      s.myFinished = false;
       s.hunt = null;
     },
     /** 색 사냥 — 테스트가 열렸거나 조명이 바뀌었다(trial_colorhunt). 구슬은 huntState(가변)가 든다 */
@@ -207,12 +212,13 @@ export const interrogationSlice = createSlice({
       if (s.me && a.payload === s.me.seatId) s.myAttempts += 1;
     },
     /** 움직이는 플랫폼 — 누가 착지했다(trial_landed). 내 좌석이면 센다: 착지 · 정중앙 · 실패 */
-    landingRecorded(s, a: PayloadAction<{ id: string; center: boolean; missed: boolean }>) {
+    landingRecorded(s, a: PayloadAction<{ id: string; pad?: number; center: boolean; missed: boolean }>) {
       if (!s.me || a.payload.id !== s.me.seatId) return;
       if (a.payload.missed) s.myMisses += 1;
       else {
         s.myLandings += 1;
         if (a.payload.center) s.myCenters += 1;
+        if (a.payload.pad === PAD_FINISH) s.myFinished = true;
       }
     },
     hitRecorded(s, a: PayloadAction<string>) {
@@ -249,7 +255,7 @@ export const gameSelectors = {
   selectMyAttempts: (r: Root) => r.interrogation.myAttempts,
   selectMyHits: (r: Root) => r.interrogation.myHits,
   selectMyPicks: (r: Root) => r.interrogation.myPicks,
-  selectMyLandings: (r: Root) => ({ landings: r.interrogation.myLandings, centers: r.interrogation.myCenters, misses: r.interrogation.myMisses }),
+  selectMyLandings: (r: Root) => ({ landings: r.interrogation.myLandings, centers: r.interrogation.myCenters, misses: r.interrogation.myMisses, finished: r.interrogation.myFinished }),
   selectHunt: (r: Root) => r.interrogation.hunt,
   selectLatestResult: (r: Root) => r.interrogation.latestResult,
   selectHistory: (r: Root) => r.interrogation.history,

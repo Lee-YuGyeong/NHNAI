@@ -12,7 +12,8 @@
  * 숨기는 값이 없다 — 발판 속도는 눈에 보이는 것이라 P8 의 비밀이 아니다. 라운드 배속(pace)은 trial_round_start 에 공개로 실리고,
  * 20초 구간마다 배속이 바뀌는 표(PLATFORM_PHASE_SPEED)도 공개다. 기록(condition)에는 그 둘을 그대로 적는다.
  *
- * 좌표: 발판 열은 홀 가운데를 z 로 지른다 — 출발 발판(정지) z 7, 움직이는 발판 일곱이 2m 간격, 도착 발판(정지) z −9.
+ * 좌표: 발판 열은 홀 가운데를 z 로 지른다 — 출발 발판(정지) z 7, 움직이는 발판 다섯이 2m 간격, 도착 발판(정지) z −5.
+ * 여섯 번 뛰면 완주다 — 제한이 30초(PLATFORM_GAME_MS)라 사람이 한 번 떨어져 출발로 돌아가도 다시 건널 시간이 있게.
  * 걷기 점프가 딱 2m 다 (WALK_SPEED 2.6 × 체공 0.75s ≈ 1.95m) — 달리기(5.2)로 뛰면 두 칸을 건넌다.
  */
 
@@ -20,8 +21,12 @@ import { GRAVITY, JUMP_SPEED, TRIAL_PHASE_MS, WALK_SPEED } from './constants';
 
 /** 마당 — 발판 열 둘레. FreeRig 가 발을 여기 안에 가둔다 */
 export const PLATFORM_ARENA = { minX: -6, maxX: 6, minZ: -11, maxZ: 9 } as const;
-/** 발판 윗면 높이(m). STEP_UP(0.55) 아래라 바닥에서 걸어 올라설 수 있다 — 떨어져도 다시 오른다 */
+/** 발판 윗면 높이(m). 바닥에 떨어지면 걸어 오르는 게 아니라 출발 발판으로 돌아간다 (2026-09-05 사용자) — FreeRig · npc.ts */
 export const PAD_TOP = 0.5;
+/** 바닥에 떨어진 뒤 출발 발판으로 돌아가기까지(ms) — 넘어진 것이 잠깐 보인다 */
+export const PLATFORM_RESPAWN_MS = 600;
+/** 한 샘플(10Hz) 사이에 이만큼(m) 넘게 옮겨졌으면 걷거나 뛴 게 아니라 **돌아간 것**이다 — 달리기 5.2m/s 로도 0.52m */
+export const PLATFORM_TELEPORT_M = 2.5;
 /** 발판 반지름(m) — 착지 판정 반경. 모델(hover_pad)의 지름을 이만큼으로 세운다 */
 export const PAD_R = 0.8;
 /** 「정중앙」 — 발판 중심에서 이 거리(m) 안이면 중앙 착지 */
@@ -30,7 +35,9 @@ export const PAD_CENTER_R = 0.25;
 export const PAD_GAP = 2;
 /** 출발 발판 z · 발판 수(출발·도착 포함) */
 export const PAD_START_Z = 7;
-export const PAD_COUNT = 9;
+export const PAD_COUNT = 7;
+/** 도착 발판 번호 — 여기 내리면 완주. 남은 시간은 그 위에서 기다린다 */
+export const PAD_FINISH = PAD_COUNT - 1;
 /** 점프 체공(초)과 걷기 점프 거리(m) — 봇이 쓰는 값. 사람은 FreeRig 의 물리 그대로 */
 export const JUMP_AIR_S = (2 * JUMP_SPEED) / GRAVITY;
 export const WALK_JUMP_M = WALK_SPEED * JUMP_AIR_S;
@@ -53,11 +60,11 @@ export interface PadSpec {
 
 /**
  * 발판 열 — 서로 다른 속도·진폭·위상. 옆의 발판과 같은 박자가 되지 않게 주기를 서로 어긋난 값으로 잡았다
- * (주기 초: 5.2 · 3.6 · 6.4 · 2.9 · 4.4 · 3.2 · 5.6). 출발·도착은 정지.
+ * (주기 초: 5.2 · 3.6 · 6.4 · 2.9 · 4.4). 출발·도착은 정지.
  */
-const PERIODS = [0, 5.2, 3.6, 6.4, 2.9, 4.4, 3.2, 5.6, 0];
-const AMPS = [0, 1.6, 2.0, 1.3, 2.2, 1.5, 1.9, 1.4, 0];
-const PHIS = [0, 0.3, 2.1, 4.0, 1.2, 5.3, 3.3, 0.8, 0];
+const PERIODS = [0, 5.2, 3.6, 6.4, 2.9, 4.4, 0];
+const AMPS = [0, 1.6, 2.0, 1.3, 2.2, 1.5, 0];
+const PHIS = [0, 0.3, 2.1, 4.0, 1.2, 5.3, 0];
 export const PADS: readonly PadSpec[] = Array.from({ length: PAD_COUNT }, (_, k) => ({
   k,
   z: PAD_START_Z - k * PAD_GAP,

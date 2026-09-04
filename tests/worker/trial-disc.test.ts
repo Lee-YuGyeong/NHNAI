@@ -244,3 +244,37 @@ describe('DiscEngine', () => {
     void G;
   });
 });
+
+describe('몸 — 무거운 군인은 같은 바닥에서 더 미끄러진다 (2026-09-05 사용자)', () => {
+  it('마찰 배율 0.7 이면 같은 반지름·각속도에서 먼저, 더 멀리 바깥으로 밀린다', () => {
+    const omega = 1.25; // ω² = 1.5625 → 기준 몸의 한계 반지름 5.88/1.5625 = 3.76m, 무거운 몸은 4.116/1.5625 = 2.63m
+    const fit = makeBody('fit', 0, 3.2);
+    const heavy = makeBody('heavy', 0, 3.2);
+    for (let t = 0; t < 2; t += DT) {
+      stepBody(fit, { x: 0, z: 0 }, omega, 0, MU, DT, t * 1000);
+      stepBody(heavy, { x: 0, z: 0 }, omega, 0, MU * 0.7, DT, t * 1000);
+    }
+    expect(Math.hypot(fit.px, fit.pz)).toBeCloseTo(3.2, 3);
+    expect(Math.hypot(heavy.px, heavy.pz)).toBeGreaterThan(3.5);
+  });
+
+  it('엔진은 ctx.bodyOf 로 몸을 물어 무거운 몸의 μ 를 깎는다 — 같은 자리에서 무거운 쪽이 먼저 떨어진다', () => {
+    const sent: S2CMessage[] = [];
+    const bodies: Record<string, 'sol_fit_m' | 'sol_heavy_m'> = { fit: 'sol_fit_m', heavy: 'sol_heavy_m' };
+    const engine = new DiscEngine(seeded(3));
+    engine.start(1, ['fit', 'heavy'], [], { broadcast: (m) => sent.push(m), finish: () => undefined, bodyOf: (id) => bodies[id] });
+    engine.stop();
+    // 둘을 같은 반지름에 세운다 — 출발 각도만 다르다
+    for (const id of ['fit', 'heavy']) {
+      const b = engine.bodyOf(id)!;
+      const a = Math.atan2(b.pz, b.px);
+      b.px = Math.cos(a) * 4.6;
+      b.pz = Math.sin(a) * 4.6;
+    }
+    const t0 = Date.now();
+    for (let i = 1; i <= 400; i++) engine.tickAt(t0 + i * 50);
+    const fell = sent.filter((m): m is Extract<S2CMessage, { t: 'trial_fell' }> => m.t === 'trial_fell').map((m) => m.id);
+    expect(fell.length).toBeGreaterThan(0);
+    expect(fell[0]).toBe('heavy');
+  });
+});

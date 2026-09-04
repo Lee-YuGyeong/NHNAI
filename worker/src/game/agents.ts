@@ -11,6 +11,7 @@
  */
 
 import type { Effort, ToolSpec } from '../../../src/lab/agent';
+import { PAD_FINISH } from '../../../src/world/mp/platform';
 import { EXTRA_PERSONAS, PERSONAS, type Persona } from '../../../src/lab/personas';
 import type { ClaimVerdict, GameSeat } from '../../../src/world/mp/game-protocol';
 import type { TrialGame, TrialResultWire } from '../../../src/world/mp/protocol';
@@ -45,6 +46,7 @@ export const METRIC_LABEL: Record<string, string> = {
   misses: '점프 실패 수',
   meanOffset: '중심에서 벗어난 거리(m)',
   recoveryMs: '착지 후 균형 회복(ms)',
+  finishMs: '완주까지(ms)',
 };
 
 /* ───────────────────────────── 공개 사실을 글로 ───────────────────────────── */
@@ -352,7 +354,8 @@ export async function leaderComment(brain: Brain, r: TrialResultWire, nameOf: (i
      * 눈금은 여전히 사람들의 지목으로만 움직인다 (P1). 여기서는 그 기록을 방송으로 짚어 토론에 올릴 뿐이다.
      */
     if (r.game === 'platform') {
-      const perfect = r.players.filter((p) => (p.metrics.jumps ?? 0) >= 8 && p.metrics.centerRate >= 0.999);
+      // 완주가 여섯 번 뛰기(PAD_FINISH)다 — 다섯 번 넘게 뛰어 전부 정중앙이면 짚는다
+      const perfect = r.players.filter((p) => (p.metrics.jumps ?? 0) >= PAD_FINISH - 1 && p.metrics.centerRate >= 0.999);
       if (perfect.length) {
         const p = perfect[0];
         return `움직이는 플랫폼 ${r.round}회차. ${nameOf(p.id)} — ${p.metrics.jumps}번 뛰어 ${p.metrics.jumps}번 모두 발판 정중앙. 사람의 발은 그렇게 안 내린다. 해석은 너희 몫이다.`;

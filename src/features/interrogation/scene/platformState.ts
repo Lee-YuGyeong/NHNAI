@@ -7,11 +7,17 @@
  * 다리(FreeRig)는 여기서 바닥 높이와 발판이 나를 실어 나르는 이동분을 묻고, 아바타는 「공중인가」를 여기서 묻는다.
  * world/core/WorldState 와 같은 가변 싱글턴 규칙.
  */
-import { PAD_TOP, padAt, padUnder, platformGroundAt, type PadPose } from '@/world/mp/platform';
+import { PAD_FINISH, PAD_START_Z, PAD_TOP, padAt, padUnder, platformGroundAt, type PadPose } from '@/world/mp/platform';
 
 interface PlatformRound {
   startAt: number;
   pace: number;
+  /** 출발 발판 위 내 자리 — 떨어지면 여기로 돌아간다 (2026-09-05 사용자) */
+  home: { x: number; z: number };
+  /** 도착 발판에 내렸다 — 남은 시간은 거기서 기다린다 (다리가 입력을 안 받는다) */
+  finished: boolean;
+  /** 바닥에 떨어진 시각 — PLATFORM_RESPAWN_MS 뒤 home 으로 */
+  fellAt: number | null;
 }
 
 let round: PlatformRound | null = null;
@@ -67,8 +73,31 @@ export const platformState = {
   get pace(): number {
     return round?.pace ?? 1;
   },
-  start(startAt: number, pace: number | undefined): void {
-    round = { startAt, pace: pace ?? 1 };
+  start(startAt: number, pace: number | undefined, home: { x: number; z: number } = { x: 0, z: PAD_START_Z }): void {
+    round = { startAt, pace: pace ?? 1, home, finished: false, fellAt: null };
+  },
+  get home(): { x: number; z: number } {
+    return round?.home ?? { x: 0, z: PAD_START_Z };
+  },
+  get finished(): boolean {
+    return round?.finished ?? false;
+  },
+  /** 도착 발판 번호인가 */
+  isFinish(k: number): boolean {
+    return k === PAD_FINISH;
+  },
+  finish(): void {
+    if (round) round.finished = true;
+  },
+  get fellAt(): number | null {
+    return round?.fellAt ?? null;
+  },
+  fell(now: number): void {
+    if (round && round.fellAt === null) round.fellAt = now;
+  },
+  /** 돌아갔다 — 넘어짐 시각을 지운다 */
+  respawned(): void {
+    if (round) round.fellAt = null;
   },
   clear(): void {
     round = null;

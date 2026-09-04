@@ -23,6 +23,7 @@ import { discState } from './games/disc/discState';
 import { FallScene } from './games/fall/FallScene';
 import { PlatformScene } from './games/platform/PlatformScene';
 import { platformState } from '@/features/interrogation/scene/platformState';
+import { PAD_START_Z } from '@/world/mp/platform';
 import { fallState } from './games/fall/fallState';
 import { StopLineScene } from './games/stop-line/StopLineScene';
 import { runnerState } from './games/stop-line/runnerState';
@@ -241,7 +242,7 @@ export function TrialFeature() {
             : game === 'fall'
               ? `맞음 ${myHits} — WASD 로 피해라. 바닥 그림자가 진해지면 온다`
               : game === 'platform'
-                ? '움직이는 발판을 건너라 — W 앞으로 · Space 점프 · 발판 한가운데에 내려라'
+                ? '움직이는 발판을 건너라 — W 앞으로 · Space 점프 · 발판 한가운데에 내려라. 떨어지면 출발로 돌아간다'
               : game === 'disc'
                 ? `낙하 ${myFalls}회 · 회전 ${Math.abs(discOmega).toFixed(1)} rad/s ${discOmega > 0 ? '↻' : discOmega < 0 ? '↺' : ''} — 원판 위에서 버텨라. WASD 걷기 · Shift 달리기`
               : game === 'colorhunt'
@@ -262,7 +263,7 @@ export function TrialFeature() {
       ) : shownGame === 'colorhunt' ? (
         <ColorHuntScene roster={others} aiIds={aiIds} sendMove={sendMove} onPick={onPick} />
       ) : shownGame === 'platform' ? (
-        <PlatformScene myBody={myBody} roster={others} aiIds={aiIds} sendMove={sendMove} />
+        <PlatformScene myBody={myBody} roster={others} aiIds={aiIds} teleport={{ x: 0, z: PAD_START_Z, key: `platform-${roundStartAt}` }} sendMove={sendMove} />
       ) : shownGame === 'disc' ? (
         <DiscScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} />
       ) : (

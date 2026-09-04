@@ -5,6 +5,7 @@
  * 엔진이 안다. 정지선은 이벤트제(전원이 3회를 마치면 끝), 낙하 생존은 시간제(틱을 돌리다 시간이 되면
  * 스스로 finish 를 부른다) — 둘 다 이 계약 하나로 runtime 에 꽂힌다.
  */
+import type { BodyId } from '../../../src/world/mp/bodies';
 import type { S2CMessage, TrialGame, TrialPlayerResult } from '../../../src/world/mp/protocol';
 import type { TrialCondition } from './types';
 
@@ -12,6 +13,8 @@ export interface EngineContext {
   broadcast: (msg: S2CMessage) => void;
   /** 시간제 게임이 라운드를 끝낼 때 부른다 — runtime 이 결과를 거둬 닫는다 */
   finish: () => void;
+  /** 참가자의 몸 (mp/bodies.ts) — 무거운 몸은 회전 원판에서 먼저 미끄러진다. 모르면 undefined (기준 물리) */
+  bodyOf?: (id: string) => BodyId | undefined;
 }
 
 /**

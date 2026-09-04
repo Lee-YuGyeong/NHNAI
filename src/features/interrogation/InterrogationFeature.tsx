@@ -60,7 +60,7 @@ export function InterrogationFeature() {
   const myAttempts = useAppSelector(gameSelectors.selectMyAttempts);
   const myHits = useAppSelector(gameSelectors.selectMyHits);
   const myPicks = useAppSelector(gameSelectors.selectMyPicks);
-  const myLand = useAppSelector(gameSelectors.selectMyLandings, (a, b) => a.landings === b.landings && a.centers === b.centers && a.misses === b.misses);
+  const myLand = useAppSelector(gameSelectors.selectMyLandings, (a, b) => a.landings === b.landings && a.centers === b.centers && a.misses === b.misses && a.finished === b.finished);
   const hunt = useAppSelector(gameSelectors.selectHunt);
   const latestResult = useAppSelector(gameSelectors.selectLatestResult);
   const roles = useAppSelector(gameSelectors.selectRoles);
@@ -209,15 +209,15 @@ export function InterrogationFeature() {
           huntState.clear();
           // 움직이는 플랫폼 — 발판 열이 서고(platformState), 전원이 출발 발판 위에서 시작한다 (좌석 번호로 나란히)
           if (msg.game === 'platform') {
-            platformState.start(msg.startAt, msg.pace);
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
             const x = seat ? -0.6 + ((seat.seat - 1) % 4) * 0.4 : 0;
+            platformState.start(msg.startAt, msg.pace, { x, z: PAD_START_Z });
             setTeleport({ x, z: PAD_START_Z, key: `platform-${msg.startAt}` });
           } else platformState.clear();
           return;
         }
         case 'trial_landed':
-          dispatch(gameActions.landingRecorded({ id: msg.id, center: msg.center, missed: msg.missed }));
+          dispatch(gameActions.landingRecorded({ id: msg.id, pad: msg.pad, center: msg.center, missed: msg.missed }));
           return;
         case 'trial_running':
           // 내 것은 W 를 누른 순간 이미 로컬로 달리기 시작했다 (StopRig)
@@ -387,7 +387,9 @@ export function InterrogationFeature() {
             : test.game === 'fall'
               ? `떨어지는 것을 피하라 — WASD (피격 ${myHits})`
               : test.game === 'platform'
-                ? `움직이는 발판을 건너라 — W 앞으로 · Space 점프 (착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses})`
+                ? myLand.finished
+                  ? `완주 — 도착 발판에서 기다려라 (착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses})`
+                  : `움직이는 발판을 건너라 — W 앞으로 · Space 점프 · 떨어지면 출발로 (착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses})`
               : hunt
                 ? `「${hunt.target}」 구슬만 E 로 주워라 (주움 ${myPicks}) — 헷갈리면 견본판과 대조하라`
                 : '지시된 색의 구슬을 E 로 주워라'

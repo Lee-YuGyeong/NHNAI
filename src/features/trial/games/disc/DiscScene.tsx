@@ -63,7 +63,7 @@ export function DiscScene({ selfId, myBody, roster, aiIds, sendWalk }: DiscScene
         <DiscAvatar key={id} id={id} label={id} />
       ))}
 
-      <DiscRig selfId={selfId} sendWalk={sendWalk} />
+      <DiscRig selfId={selfId} body={myBody} sendWalk={sendWalk} />
       <SelfAvatar body={myBody} groundY={DISC_TOP} />
       <MouseLook />
     </WorldCanvas>

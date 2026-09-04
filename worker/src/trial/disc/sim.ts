@@ -91,10 +91,10 @@ export function makeBody(id: string, angle: number, r = DISC_RESPAWN_R): DiscBod
 }
 
 /** 걷기 명령을 상한으로 자른다 — 위조돼도 「빨리 걷기」 이상이 안 된다 (protocol.ts trial_walk) */
-export function clampWalk(x: number, z: number): Vec2 {
+export function clampWalk(x: number, z: number, cap = DISC_RUN_SPEED): Vec2 {
   const len = Math.hypot(x, z);
   if (!Number.isFinite(len) || len < 1e-6) return { x: 0, z: 0 };
-  const k = len > DISC_RUN_SPEED ? DISC_RUN_SPEED / len : 1;
+  const k = len > cap ? cap / len : 1;
   return { x: x * k, z: z * k };
 }
 

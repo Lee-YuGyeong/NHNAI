@@ -24,13 +24,19 @@ export interface BodySpec {
   jump: number;
   /** 비만 — 느리고 낮게 뛴다 */
   heavy: boolean;
+  /**
+   * 회전 원판에서 발이 잡는 마찰 배율 (2026-09-05 사용자: "비만군인은 물리법칙에 의해 더 많이 벗어나게").
+   * 무거운 몸은 무게중심이 높고 발놀림이 느려 같은 바닥(μ)에서도 먼저 미끄러지고 더 멀리 밀린다 — 서버가 μ 에 곱한다
+   * (worker/src/trial/disc/engine.ts). 1 이 기준.
+   */
+  grip: number;
 }
 
 export const BODIES: Record<BodyId, BodySpec> = {
-  sol_fit_m: { name: '남군', run: 5.2, jump: 5.6, heavy: false },
-  sol_fit_f: { name: '여군', run: 5.2, jump: 5.6, heavy: false },
-  sol_heavy_m: { name: '비만 남군', run: 3.9, jump: 4.4, heavy: true },
-  sol_heavy_f: { name: '비만 여군', run: 3.9, jump: 4.4, heavy: true },
+  sol_fit_m: { name: '남군', run: 5.2, jump: 5.6, heavy: false, grip: 1 },
+  sol_fit_f: { name: '여군', run: 5.2, jump: 5.6, heavy: false, grip: 1 },
+  sol_heavy_m: { name: '비만 남군', run: 3.9, jump: 4.4, heavy: true, grip: 0.7 },
+  sol_heavy_f: { name: '비만 여군', run: 3.9, jump: 4.4, heavy: true, grip: 0.7 },
 };
 
 export const isBodyId = (v: unknown): v is BodyId => typeof v === 'string' && (BODY_IDS as readonly string[]).includes(v);
@@ -45,4 +51,14 @@ export function pickBody(taken: Iterable<BodyId | undefined>, rand: () => number
   const free = BODY_IDS.filter((b) => !used.has(b));
   const pool = free.length > 0 ? free : BODY_IDS;
   return pool[Math.min(pool.length - 1, Math.floor(rand() * pool.length))];
+}
+
+/** 몸의 원판 마찰 배율 — 몸을 모르면(옛 워커 · AI 좌석에 몸이 없을 때) 기준 1 */
+export function gripOf(body: BodyId | undefined | null): number {
+  return body ? BODIES[body].grip : 1;
+}
+
+/** 몸의 달리기 상한(m/s) — cap 보다 빠른 몸은 cap. 회전 원판이 걷기 명령을 자르는 데 쓴다 */
+export function runCapOf(body: BodyId | undefined | null, cap: number): number {
+  return body ? Math.min(cap, BODIES[body].run) : cap;
 }
