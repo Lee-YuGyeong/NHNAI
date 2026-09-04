@@ -50,6 +50,14 @@ function seatSpot(seat: GameSeat, total: number): { x: number; z: number } {
   return spawnFor(seat.seat, Math.max(total, 1));
 }
 
+/**
+ * 들어오면 바로 판이 열린다 — 홀에 서는 몸은 넷: 나 + 대역 둘 + AI 한 좌석 (2026-09-05 사용자: "들어가면 4인으로
+ * 바로 플레이되게"). 몸이 넷(mp/bodies.ts 의 BODY_IDS)이라 넷이면 전원이 서로 다른 몸을 입는다.
+ * 서버의 fillTo 는 **사람 쪽 좌석 수**다(runtime.start — AI 는 그 위에 얹힌다). 그래서 보낼 때 하나를 뺀다.
+ * 둘이 같이 들어오면 사람이 대역 자리를 차지한다 — 넷은 그대로다. 예전처럼 소집 대기를 보려면 ?lobby.
+ */
+const AUTO_SEATS = 4;
+
 export function InterrogationFeature() {
   const dispatch = useAppDispatch();
   const [params] = useSearchParams();
@@ -448,6 +456,25 @@ export function InterrogationFeature() {
     },
     [conn, dispatch],
   );
+
+  /*
+   * 소집 대기 없이 바로 연다 (AUTO_SEATS 머리말). 서버가 방장이라 한 사람(wire.hostId)만 보낸다 — 둘이 같이
+   * 들어와도 판은 하나만 열리고, 그때 방에 있는 사람은 전원 좌석을 받는다 (runtime.start 의 roster).
+   * 로비에 들어설 때마다 **한 번**이다: 거절되면(reject) 소집 대기 판이 그대로 서고, 판이 끝나 로비로
+   * 돌아오면(GAME_ENDED_MS 뒤) 다시 한 번 연다 — 끝 화면의 「다시 — 새 판」도 결국 여기로 온다.
+   */
+  const keepLobby = params.get('lobby') !== null;
+  const hostId = wire?.hostId ?? null;
+  const autoSent = useRef(false);
+  useEffect(() => {
+    if (phase !== 'lobby') {
+      autoSent.current = false;
+      return;
+    }
+    if (keepLobby || status !== 'connected' || !selfId || hostId !== selfId || autoSent.current) return;
+    autoSent.current = true;
+    onStart(AUTO_SEATS - 1);
+  }, [phase, status, selfId, hostId, keepLobby, onStart]);
   const onTamper = useCallback((target: string, direction: 'suspicious' | 'normal') => conn.game({ t: 'game_tamper', target, direction }), [conn]);
 
   /* ─────────────────────────────── 낙하 피격 번쩍임 ─────────────────────────────── */
@@ -494,7 +521,9 @@ export function InterrogationFeature() {
                     : '지시된 색의 구슬을 E 로 주워라'
           : phase === 'discussion'
             ? 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
-            : '';
+            : phase === 'lobby' && !keepLobby && !reject
+              ? '판을 여는 중 — 좌석을 섞고 대역이 앉는다…'
+              : '';
 
   return (
     <div ref={rootRef} className="ig-root" onClick={lock}>
@@ -585,7 +614,8 @@ export function InterrogationFeature() {
           </p>
         ) : null}
 
-        {wire && phase === 'lobby' ? <LobbyPanel wire={wire} players={players} selfId={selfId} myBody={myBody} reject={reject} onStart={onStart} /> : null}
+        {/* 소집 대기 판은 ?lobby 로 들어왔거나 자동 시작이 거절됐을 때만 선다 — 나머지는 판이 열리는 한순간뿐이다 */}
+        {wire && phase === 'lobby' && (keepLobby || reject) ? <LobbyPanel wire={wire} players={players} selfId={selfId} myBody={myBody} reject={reject} onStart={onStart} /> : null}
         {reject && phase !== 'lobby' ? <p className="ig-banner alarm">{reject}</p> : null}
         {phase === 'result' && latestResult ? <ResultModal result={latestResult} nameOf={nameOf} mySeatId={mySeatId} endsAt={wire?.phaseEndsAt ?? null} /> : null}
         {phase === 'ended' && outcome ? (
