@@ -138,6 +138,7 @@ export const FEATURES: FeatureDef[] = [
     doors: [
       { title: '물리 미니게임 · 정지선 (마찰 · 관성)', to: '/trial?code=1234&game=stopline' },
       { title: '물리 미니게임 · 낙하 생존 (중력 · 공기저항)', to: '/trial?code=1234&game=fall' },
+      { title: '물리 미니게임 · 색 사냥 (빛과 색)', to: '/trial?code=1234&game=colorhunt' },
     ],
   },
 ];

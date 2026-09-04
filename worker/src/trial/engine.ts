@@ -36,6 +36,8 @@ export interface GameEngine {
   onAccel(id: string): void;
   onBrake(id: string): void;
   onMove(id: string, x: number, z: number, now: number): void;
+  /** 색 사냥: 구슬을 줍는다(E). 다른 게임은 무시한다 */
+  onPick(id: string, objectId: number): void;
   /** 이 라운드를 닫아도 되나. waiting(id) 는 "그 사람을 아직 기다려야 하는가"(AI 이거나 방에 붙어 있다) */
   done(waiting: (id: string) => boolean): boolean;
   results(): TrialPlayerResult[];

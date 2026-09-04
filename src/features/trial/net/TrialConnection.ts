@@ -11,7 +11,7 @@
 
 import { requestWorldTicket } from '@/shared/supabase';
 import { PING_INTERVAL_MS, PROTOCOL_VERSION } from '@/world/mp/constants';
-import type { AnimState, ErrorCode, PlayerSnapshot, S2CMessage, TrialGame, TrialResultWire } from '@/world/mp/protocol';
+import type { AnimState, ColorOrb, ErrorCode, PlayerSnapshot, S2CMessage, TrialGame, TrialResultWire } from '@/world/mp/protocol';
 
 export interface TrialEvents {
   onWelcome(selfId: string, players: PlayerSnapshot[]): void;
@@ -26,6 +26,12 @@ export interface TrialEvents {
   /** 낙하 생존 — 서버 물리 스냅샷(~10Hz). 클라는 보간해 그릴 뿐이다 */
   onSnapshot(msg: Extract<S2CMessage, { t: 'trial_snapshot' }>): void;
   onHit(id: string, objectId: number): void;
+  /** 색 사냥 — 전체 동기화(시작 · 조명 전환 · 늦은 입장). 구슬 · 견본판 · 목표색 전부 표시색이다 */
+  onColorhunt(msg: Extract<S2CMessage, { t: 'trial_colorhunt' }>): void;
+  /** 색 사냥 — 누가 주웠다. 그 구슬은 사라진다. 맞았는지는 안 온다 */
+  onPicked(id: string, objectId: number): void;
+  /** 색 사냥 — 같은 색이 근처에 다시 돋았다 */
+  onOrb(orb: ColorOrb): void;
   onResult(result: TrialResultWire): void;
   onError(code: ErrorCode | 'connection_failed'): void;
   onClose(): void;
@@ -125,6 +131,15 @@ export class TrialConnection {
         case 'trial_hit':
           events.onHit(msg.id, msg.objectId);
           break;
+        case 'trial_colorhunt':
+          events.onColorhunt(msg);
+          break;
+        case 'trial_picked':
+          events.onPicked(msg.id, msg.objectId);
+          break;
+        case 'trial_orb':
+          events.onOrb(msg.orb);
+          break;
         case 'trial_result':
           events.onResult(msg.result);
           break;
@@ -154,6 +169,11 @@ export class TrialConnection {
 
   sendBrake(): boolean {
     return this.send({ t: 'trial_brake' });
+  }
+
+  /** 색 사냥 — E. 어느 구슬인지만 보낸다. 판정은 전부 서버다 (PickKey 머리말) */
+  sendPick(objectId: number): boolean {
+    return this.send({ t: 'trial_pick', objectId });
   }
 
   private send(msg: { t: string } & Record<string, unknown>): boolean {

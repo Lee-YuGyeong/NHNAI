@@ -7,6 +7,7 @@ import { Suspense } from 'react';
 import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
 import { MAPS } from '@/world/map';
+import type { BodyId } from '@/world/mp/bodies';
 import { EYE_HEIGHT, FALL_ARENA } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { AdaptiveFov, Exposure, MouseLook, Remotes } from '@/world/scene/WorldScene';
@@ -44,12 +45,14 @@ function ArenaEdge() {
 }
 
 export interface FallSceneProps {
+  /** 내 몸 — 3인칭이라 보인다. 있으면 군인(mp/bodies.ts), 없으면 로봇 폴백 */
+  myBody?: BodyId | null;
   roster: readonly { id: string }[];
   aiIds: readonly string[];
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
 }
 
-export function FallScene({ roster, aiIds, sendMove }: FallSceneProps) {
+export function FallScene({ myBody, roster, aiIds, sendMove }: FallSceneProps) {
   return (
     <WorldCanvas
       quality="high"
@@ -87,7 +90,7 @@ export function FallScene({ roster, aiIds, sendMove }: FallSceneProps) {
       ))}
 
       <DodgeRig sendMove={sendMove} />
-      <SelfAvatar />
+      <SelfAvatar body={myBody} />
       <MouseLook />
     </WorldCanvas>
   );

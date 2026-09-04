@@ -108,6 +108,10 @@ export class StoplineEngine implements GameEngine {
     /* 정지선은 위치를 안 본다 — 시각 둘로 판정한다 (stopline.ts 머리말) */
   }
 
+  onPick(): void {
+    /* 정지선은 줍기가 없다 — 색 사냥의 키다 */
+  }
+
   done(): boolean {
     return this.ended;
   }

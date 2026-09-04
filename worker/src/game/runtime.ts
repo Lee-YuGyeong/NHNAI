@@ -250,9 +250,6 @@ export class GameRuntime {
       case 'game_tamper':
         this.tamper(playerId, msg.target, msg.direction);
         return;
-      case 'game_pick':
-        /* 색 사냥 — 엔진이 붙으면 여기서 넘긴다 (worker/src/trial/colorhunt). 지금은 흘린다 */
-        return;
       default:
         return;
     }
@@ -273,6 +270,10 @@ export class GameRuntime {
         return;
       case 'trial_join':
         this.engine.join(seat.id);
+        return;
+      case 'trial_pick':
+        // 색 사냥 — 줍기. 거리·쿨다운·정오는 엔진이 본다 (worker/src/trial/colorhunt/engine.ts)
+        this.engine.onPick(seat.id, msg.objectId);
         return;
       default:
         return;

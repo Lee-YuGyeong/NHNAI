@@ -1,14 +1,20 @@
 /**
- * 내 로봇 — 3인칭이라 보인다. 자세는 selfPose(가변)에서 매 프레임 읽는다. WorldScene 의 RemoteAvatar 와 같은 짜임
- * (RobotAvatar + 바닥 그림자, 한 Suspense 안). 이름표는 없다 — 내 머리 위에 내 이름을 띄울 이유가 없다.
+ * 내 몸 — 3인칭 게임(낙하 생존 · 정지선)에서만 보인다. 자세는 selfPose(가변)에서 매 프레임 읽는다.
+ * WorldScene 의 RemoteAvatar 와 같은 짜임(아바타 + 바닥 그림자, 한 Suspense 안). 이름표는 없다 —
+ * 내 머리 위에 내 이름을 띄울 이유가 없다.
+ *
+ * 몸(body)이 오면 **군인**(SoldierAvatar, mp/bodies.ts)이다 — 서버가 입장 때 방 안에서 겹치지 않게
+ * 뽑아 준 그 몸 그대로 (2026-09-04 사용자: "나도 군인이여야해"). 없으면(옛 워커) 로봇 폴백.
  */
 import { Suspense, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group, Mesh } from 'three';
 import { RobotAvatar } from '@/world/avatar/RobotAvatar';
+import { SoldierAvatar } from '@/world/avatar/SoldierAvatar';
+import type { BodyId } from '@/world/mp/bodies';
 import { selfPose } from './selfPose';
 
-export function SelfAvatar() {
+export function SelfAvatar({ body }: { body?: BodyId | null }) {
   const group = useRef<Group>(null);
   const shadow = useRef<Mesh>(null);
   useFrame(() => {
@@ -26,7 +32,11 @@ export function SelfAvatar() {
   return (
     <group ref={group}>
       <Suspense fallback={null}>
-        <RobotAvatar getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > 0.02} />
+        {body ? (
+          <SoldierAvatar body={body} getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > 0.02} />
+        ) : (
+          <RobotAvatar getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > 0.02} />
+        )}
         <mesh ref={shadow} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.34, 20]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.35} />

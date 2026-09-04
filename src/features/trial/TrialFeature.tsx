@@ -1,5 +1,5 @@
 /**
- * 물리 미니게임 방 — /trial. 정지선(?game=stopline, 기본)과 낙하 생존(?game=fall). 색 사냥은 아직.
+ * 물리 미니게임 방 — /trial. 정지선(?game=stopline, 기본) · 낙하 생존(?game=fall) · 색 사냥(?game=colorhunt).
  * 방 번호는 ?code= 로 받는다(없으면 '1234' — /world 와 같은 개발 편의 기본값). 복도의 살아있는
  * WS 를 이어받지 않고 새로 연다(TrialConnection 머리말) — `idFromName(roomCode)`가 같은
  * RoomDO 로 보내주므로 로스터는 그대로 이어진다.
@@ -12,9 +12,12 @@ import { useSearchParams } from 'react-router-dom';
 import { BackToRoot } from '@/shared/BackToRoot';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { STOPLINE_MAX_ATTEMPTS, TRIAL_PHASE_MS, TRIAL_SUMMARY_MS } from '@/world/mp/constants';
+import type { BodyId } from '@/world/mp/bodies';
+import { HUNT_LIGHT_RAMP_MS, STOPLINE_MAX_ATTEMPTS, TRIAL_PHASE_MS, TRIAL_SUMMARY_MS } from '@/world/mp/constants';
 import type { AnimState, PlayerSnapshot, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
+import { ColorHuntScene } from './games/color-hunt/ColorHuntScene';
+import { huntState, softLight } from './games/color-hunt/huntState';
 import { FallScene } from './games/fall/FallScene';
 import { fallState } from './games/fall/fallState';
 import { StopLineScene } from './games/stop-line/StopLineScene';
@@ -29,7 +32,7 @@ export function TrialFeature() {
   const dispatch = useAppDispatch();
   const [params] = useSearchParams();
   const roomCode = params.get('code') ?? '1234';
-  const wantGame: TrialGame = params.get('game') === 'fall' ? 'fall' : 'stopline';
+  const wantGame: TrialGame = params.get('game') === 'fall' ? 'fall' : params.get('game') === 'colorhunt' ? 'colorhunt' : 'stopline';
   const nickname = useMemo(() => loadGuestNick() || `테스터${Math.floor(100 + Math.random() * 900)}`, []);
 
   const status = useAppSelector(trialSelectors.selectStatus);
@@ -42,6 +45,8 @@ export function TrialFeature() {
   const roundDurationMs = useAppSelector(trialSelectors.selectRoundDurationMs);
   const myHits = useAppSelector(trialSelectors.selectMyHits);
   const myAttempts = useAppSelector(trialSelectors.selectMyAttempts);
+  const myPicks = useAppSelector(trialSelectors.selectMyPicks);
+  const hunt = useAppSelector(trialSelectors.selectHunt);
   const history = useAppSelector(trialSelectors.selectHistory);
   const liveResult = useAppSelector(trialSelectors.selectLiveResult);
 
@@ -49,6 +54,8 @@ export function TrialFeature() {
   /** 요약 — 판이 끝나면 10초만 (TRIAL_SUMMARY_MS). 지나면 「다시 하기」 */
   const [summaryUntil, setSummaryUntil] = useState(0);
   const [aiIds, setAiIds] = useState<string[]>([]);
+  /** 서버가 입장 때 뽑아 준 내 몸(군인) — 3인칭 게임에서 SelfAvatar 가 입는다 */
+  const [myBody, setMyBody] = useState<BodyId | null>(null);
   const [locked, setLocked] = useState(false);
   /** 피격 연출 — 화면 가장자리가 붉게 번쩍인다 */
   const [flash, setFlash] = useState(0);
@@ -73,8 +80,10 @@ export function TrialFeature() {
     dispatch(trialActions.reset());
     runnerState.clear();
     fallState.clear();
+    huntState.clear();
     remotePlayers.clear();
     setAiIds([]);
+    setMyBody(null);
     dispatch(trialActions.connecting());
 
     const seat = (p: PlayerSnapshot) => runnerState.setLane(p.id, p.seat - 1);
@@ -86,6 +95,7 @@ export function TrialFeature() {
           seat(p);
           if (p.id !== id) remotePlayers.add(p, now);
         }
+        setMyBody(players.find((p) => p.id === id)?.body ?? null);
         dispatch(trialActions.welcomed({ selfId: id, players: players.map((p) => ({ id: p.id, nickname: p.nickname })) }));
       },
       onJoined: (p) => {
@@ -103,6 +113,7 @@ export function TrialFeature() {
       onRoundStart: (g, r, startAt, durationMs) => {
         runnerState.resetAll();
         fallState.clear();
+        huntState.clear();
         dispatch(trialActions.roundStarted({ game: g, round: r, startAt, durationMs: durationMs ?? null }));
       },
       onRunning: (id, startAt) => {
@@ -123,6 +134,15 @@ export function TrialFeature() {
         dispatch(trialActions.hitRecorded(id));
         if (id === selfIdRef.current) setFlash(Date.now());
       },
+      onColorhunt: (msg) => {
+        huntState.sync(msg);
+        dispatch(trialActions.colorhuntSynced({ light: msg.light, target: msg.target, targetHex: msg.targetHex }));
+      },
+      onPicked: (id, objectId) => {
+        huntState.picked(objectId);
+        dispatch(trialActions.pickRecorded(id));
+      },
+      onOrb: (orb) => huntState.orb(orb),
       onResult: (result) => dispatch(trialActions.resultReceived(result)),
       onError: (code) => dispatch(trialActions.errorOccurred(code)),
       onClose: () => dispatch(trialActions.closed()),
@@ -169,6 +189,7 @@ export function TrialFeature() {
   }, [wantGame]);
   const onAccel = useCallback(() => connRef.current?.sendAccel(), []);
   const onBrake = useCallback(() => connRef.current?.sendBrake(), []);
+  const onPick = useCallback((objectId: number) => connRef.current?.sendPick(objectId), []);
   const sendMove = useCallback((x: number, z: number, y: number, heading: number, anim: AnimState) => connRef.current?.sendMove(x, z, y, heading, anim), []);
 
   const others = useMemo(() => Object.keys(roster).filter((id) => id !== selfId).map((id) => ({ id })), [roster, selfId]);
@@ -190,19 +211,27 @@ export function TrialFeature() {
             ? '끝났다'
             : game === 'fall'
               ? `맞음 ${myHits} — WASD 로 피해라. 바닥 그림자가 진해지면 온다`
-              : myAttempts >= STOPLINE_MAX_ATTEMPTS
-                ? '시행 다 썼다'
-                : `시행 ${myAttempts}회 — W 달리기 · S 브레이크 · 붉은 선에 멈춰라`;
-  const title = (game ?? wantGame) === 'fall' ? '낙하 생존' : '정지선';
+              : game === 'colorhunt'
+                ? hunt
+                  ? `주움 ${myPicks} — 「${hunt.target}」 구슬만 E 로 주워라. 헷갈리면 견본판 앞으로`
+                  : '지시를 기다리는 중…'
+                : myAttempts >= STOPLINE_MAX_ATTEMPTS
+                  ? '시행 다 썼다'
+                  : `시행 ${myAttempts}회 — W 달리기 · S 브레이크 · 붉은 선에 멈춰라`;
+  const shownGame = game ?? wantGame;
+  const title = shownGame === 'fall' ? '낙하 생존' : shownGame === 'colorhunt' ? '색 사냥' : '정지선';
   const flashing = Date.now() - flash < 350;
 
   return (
     <div ref={rootRef} onClick={lock} style={{ position: 'fixed', inset: 0, background: '#101d31', overflow: 'hidden' }}>
-      {(game ?? wantGame) === 'fall' ? (
-        <FallScene roster={others} aiIds={aiIds} sendMove={sendMove} />
+      {shownGame === 'fall' ? (
+        <FallScene myBody={myBody} roster={others} aiIds={aiIds} sendMove={sendMove} />
+      ) : shownGame === 'colorhunt' ? (
+        <ColorHuntScene roster={others} aiIds={aiIds} sendMove={sendMove} onPick={onPick} />
       ) : (
         <StopLineScene
           myId={selfId}
+          myBody={myBody}
           roster={others}
           aiIds={aiIds}
           phase={phase}
@@ -213,6 +242,20 @@ export function TrialFeature() {
           sendMove={sendMove}
         />
       )}
+      {/* 색 사냥 — 방이 통째로 조명색에 물든다(multiply). 흰 조명이면 항등이라 안 보인다. HUD 는 이 위에 그려져 안 물든다 */}
+      {shownGame === 'colorhunt' && hunt ? (
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            mixBlendMode: 'multiply',
+            background: softLight(hunt.light),
+            transition: `background ${HUNT_LIGHT_RAMP_MS}ms ease`,
+          }}
+        />
+      ) : null}
       {/* 피격 — 가장자리가 붉게 번쩍인다 (기록은 서버가 이미 했다, 이건 몸으로 느끼는 것) */}
       <div
         aria-hidden
@@ -252,6 +295,32 @@ export function TrialFeature() {
         >
           {secondsLeft}
           <span style={{ fontSize: 14, marginLeft: 6, color: 'var(--dust)' }}>초</span>
+        </div>
+      ) : null}
+      {/* 색 사냥 — 목표색. 스와치는 **기준광 원색**이다(조명 밖 UI): 맵 안 견본판(조명색)과의 대비가 「조명이 색을 바꿨다」를 가르친다 */}
+      {round > 0 && shownGame === 'colorhunt' && hunt && !over ? (
+        <div
+          aria-live="polite"
+          style={{
+            position: 'absolute',
+            top: 64,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 14px',
+            borderRadius: 999,
+            background: 'rgba(0,0,0,0.65)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 13,
+            fontWeight: 700,
+            color: 'var(--linen)',
+            pointerEvents: 'none',
+          }}
+        >
+          <span aria-hidden style={{ width: 15, height: 15, borderRadius: '50%', background: hunt.targetHex, boxShadow: '0 0 0 2px rgba(255,255,255,0.25)' }} />
+          목표 「{hunt.target}」
         </div>
       ) : null}
       <nav style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
@@ -301,6 +370,7 @@ export function TrialFeature() {
       ) : null}
 
       {/* 판이 끝났을 때 10초 — 짧은 요약. 그 뒤엔 「다시 하기」와 기록 탭 */}
+      {/* (색 사냥 오버레이보다 뒤에 그려져 요약은 조명에 안 물든다) */}
       {tab === 'live' && showSummary && liveResult ? (
         <div
           onClick={(e) => e.stopPropagation()}

@@ -99,6 +99,10 @@ export class FallEngine implements GameEngine {
     /* 위와 같다 */
   }
 
+  onPick(): void {
+    /* 낙하 생존은 줍기가 없다 — 색 사냥의 키다 */
+  }
+
   onMove(id: string, x: number, z: number, now: number): void {
     if (!this.ctx) return;
     this.join(id);
