@@ -1,6 +1,6 @@
 /**
  * 물리 미니게임의 방 하나치 라운드 흐름 — RoomDO 생성자에서 한 번 만들어져 그 방의 트라이얼 전부를 맡는다.
- * 게임 규칙은 엔진(engine.ts)이 안다: 정지선(stopline-engine.ts) · 낙하 생존(fall/engine.ts).
+ * 게임 규칙은 엔진(engine.ts)이 안다: 정지선(stopline-engine.ts) · 낙하 생존(fall/engine.ts) · 색 사냥(colorhunt/engine.ts).
  *
  * ★ 소켓을 직접 쥐지 않는다. roster/broadcast/send 는 전부 RoomDO 가 콜백으로 넘긴다 —
  *   room-do.test.ts 와 같은 방식(가짜 소켓 쌍 + 가짜 storage)으로 이 파일도 단위 시험이 된다.
@@ -15,6 +15,7 @@
 import type { PlayerSnapshot, S2CMessage, TrialGame, TrialResultWire } from '../../../src/world/mp/protocol';
 import type { TrialC2SMessage } from '../../../src/world/mp/validate';
 import type { GameEngine } from './engine';
+import { ColorhuntEngine } from './colorhunt/engine';
 import { FallEngine } from './fall/engine';
 import { appendHistory, readHistory } from './history';
 import { groupStats } from './scoring';
@@ -56,6 +57,9 @@ export class TrialRuntime {
           this.engine?.onBrake(snap.id);
           await this.maybeFinalize();
         }
+        return;
+      case 'trial_pick':
+        if (this.active() && this.isConnected(snap.id)) this.engine?.onPick(snap.id, msg.objectId);
         return;
       default:
         return;
@@ -99,7 +103,7 @@ export class TrialRuntime {
     }
     // 판이 없거나(처음) 다 끝났다 — 이 사람이 고른 게임으로 새 판을 연다. 지난 판의 기록은 storage 에 그대로 쌓여 로그 탭에 남는다
     this.engine?.stop();
-    this.engine = game === 'fall' ? new FallEngine() : new StoplineEngine();
+    this.engine = game === 'fall' ? new FallEngine() : game === 'colorhunt' ? new ColorhuntEngine() : new StoplineEngine();
     this.round = 0;
     this.finished = false;
     this.aiIds = [];

@@ -282,6 +282,70 @@ describe('GameRuntime — 판 한 바퀴', () => {
   });
 });
 
+describe('GameRuntime — 죽은 판이 방을 잡고 있지 않다 (2026-09-04 「게임 시작이 안 된다」)', () => {
+  /** 셋이 AI 를 몰아 판을 끝낸다 — 위의 승패 시험과 같은 길 */
+  async function playToEnd(h: ReturnType<typeof harness>): Promise<void> {
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    const mine = new Set(['p1', 'p2', 'p3'].map((p) => h.roleOf(p)!.seatId));
+    const ai = h.lastState().seats.find((s) => !mine.has(s.id))!;
+    for (let i = 0; i < 40 && h.lastState().phase !== 'ended'; i += 1) {
+      for (const p of ['p1', 'p2', 'p3']) await h.rt.handle(p, { t: 'game_accuse', target: ai.id });
+      await vi.advanceTimersByTimeAsync(5_100);
+    }
+    expect(h.lastState().phase).toBe('ended');
+  }
+
+  it('판이 끝나면 잠시 뒤 로비로 돌아오고, 새 판을 열 수 있다', async () => {
+    const h = harness();
+    await playToEnd(h);
+    await vi.advanceTimersByTimeAsync(31_000); // ENDED_LINGER_MS
+    expect(h.lastState().phase).toBe('lobby');
+    await h.rt.handle('p1', { t: 'game_start' });
+    expect(h.lastState().phase).toBe('briefing');
+  });
+
+  it('끝 화면이 아직 서 있어도 방장의 시작은 새 판을 연다', async () => {
+    const h = harness();
+    await playToEnd(h);
+    await h.rt.handle('p1', { t: 'game_start' }); // linger 를 기다리지 않는다
+    expect(h.lastState().phase).toBe('briefing');
+    expect(h.lastState().outcome).toBeNull();
+  });
+
+  it('판에 묶인 사람이 전원 나가면 — 유예 뒤 청소 알람이 판을 접고, 새로 온 사람이 시작할 수 있다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    expect(h.lastState().phase).toBe('discussion');
+
+    // 전원 이탈 — 새로고침으로 id 가 바뀌어 낯선 사람만 남았다 (닉네임도 달라 rebind 도 안 된다)
+    h.roster.splice(0, h.roster.length, player('q9', 1));
+    const t0 = Date.now();
+    await h.rt.onSweep(t0); // 버려진 것을 처음 본다 — 아직 유예
+    expect(h.lastState().phase).toBe('discussion');
+    // 유예 중엔 낯선 사람의 시작이 거절되지 않는다 — 버려진 판이면 접고 새로 연다
+    await h.rt.onSweep(t0 + 95_000); // ABANDONED_AFTER_MS 경과
+    expect(h.lastState().phase).toBe('lobby');
+    await h.rt.handle('q9', { t: 'game_start' });
+    expect(h.lastState().phase).toBe('briefing');
+  });
+
+  it('버려진 판에서는 청소를 기다릴 것 없이 시작 한 번으로 새 판이 열린다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    h.roster.splice(0, h.roster.length, player('q9', 1));
+    await h.rt.handle('q9', { t: 'game_start' });
+    expect(h.lastState().phase).toBe('briefing');
+    // 반대로, 판에 묶인 사람이 남아 있으면 여전히 거절이다
+    const h2 = harness();
+    await h2.rt.handle('p1', { t: 'game_start' });
+    await h2.rt.handle('p1', { t: 'game_start' });
+    expect(h2.direct.at(-1)?.msg).toMatchObject({ t: 'game_reject' });
+  });
+});
+
 describe('GameRuntime — 좌석의 몸 (mp/bodies)', () => {
   it('사람은 입장 때 받은 몸 그대로, 대역·AI 는 남은 몸에서 — 넷이면 넷이 다 다르다', async () => {
     const h = harness({ players: [{ ...player('p1', 1), body: 'sol_fit_f' }, { ...player('p2', 2), body: 'sol_heavy_m' }] });

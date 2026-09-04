@@ -90,7 +90,13 @@ export type C2SMessage =
    * — 클라 타임스탬프를 실으면 그 값 자체가 위조 대상이 된다(규칙 4와 같은 이유).
    */
   | { t: 'trial_accel' }
-  | { t: 'trial_brake' };
+  | { t: 'trial_brake' }
+  /**
+   * 색 사냥: 구슬을 줍는다(E). 어느 구슬인지는 클라가 고르지만 거리 · 쿨다운 · 정오는 전부 서버가
+   * 판정한다(worker/src/trial/colorhunt/engine.ts). 정오는 본인에게도 실시간으로 알려 주지 않는다 —
+   * 전원이 기록 공개에서 처음 안다 (docs/COLORHUNT.md §6).
+   */
+  | { t: 'trial_pick'; objectId: number };
 
 /**
  * 접속이 끊기는 이유.
@@ -132,6 +138,18 @@ export interface TrialResultWire {
   endedAt: number;
 }
 
+/**
+ * 색 사냥 — 구슬 하나의 **겉보기**. `c` 는 지금 조명 아래의 표시색(#rrggbb)이고, 서버가 곱셈
+ * (조명 × 반사율)을 끝낸 결과다. 진짜 색(반사율)과 차단 파장은 서버에만 있다 (P8,
+ * worker/src/trial/colorhunt/palette.ts) — 콘솔을 파도 화면에 보이는 것 이상이 나오지 않는다.
+ */
+export interface ColorOrb {
+  id: number;
+  x: number;
+  z: number;
+  c: string;
+}
+
 /** 서버 → 클라이언트 */
 export type S2CMessage =
   /** 입장 직후 한 번. 지금 방에 있는 전원(본인 포함). */
@@ -162,6 +180,16 @@ export type S2CMessage =
   | { t: 'trial_snapshot'; at: number; objects: { id: number; k: number; x: number; y: number; z: number }[]; ai: { id: string; x: number; z: number }[] }
   /** 낙하물에 맞았다 — 맞은 사람 화면의 연출용. 기록은 서버가 이미 했다 */
   | { t: 'trial_hit'; id: string; objectId: number }
+  /**
+   * 색 사냥 — 판이 열렸거나 조명이 바뀌었다(전체 동기화). 구슬 · 견본판 전부 **표시색**만 온다(P8).
+   * `light` 는 방을 물들일 조명색(연출용), `target` 은 목표색의 **이름**, `targetHex` 는 그 색의
+   * 기준광 원색(HUD 스와치용 — 지시문에 이름이 그대로 적히므로 비밀이 아니다).
+   */
+  | { t: 'trial_colorhunt'; at: number; light: string; target: string; targetHex: string; orbs: ColorOrb[]; board: { name: string; c: string }[] }
+  /** 색 사냥 — 누가 구슬을 주웠다. 그 구슬은 화면에서 사라진다. 맞았는지는 안 실린다 — 전원이 기록 공개에서 처음 안다 */
+  | { t: 'trial_picked'; id: string; objectId: number }
+  /** 색 사냥 — 주워진 자리 근처에 같은 색이 다시 돋았다 (색 분포 유지, docs/COLORHUNT.md §6) */
+  | { t: 'trial_orb'; orb: ColorOrb }
   | { t: 'trial_result'; result: TrialResultWire }
   /** (재)입장 시 지금까지의 전체 기록을 백필한다 — 로그 탭은 이걸로 채운다 */
   | { t: 'trial_history'; results: TrialResultWire[] };

@@ -18,6 +18,7 @@ const LABEL: Record<string, string> = {
   accuracy: '정답률',
   wrongPicks: '오답',
   hesitationMs: '머뭇(ms)',
+  picks: '선택',
 };
 
 export const TEST_TITLE: Record<string, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥' };

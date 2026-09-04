@@ -38,6 +38,7 @@ export const METRIC_LABEL: Record<string, string> = {
   accuracy: '정답률',
   wrongPicks: '오답 수',
   hesitationMs: '조명이 바뀐 뒤 첫 선택까지(ms)',
+  picks: '선택 수',
 };
 
 /* ───────────────────────────── 공개 사실을 글로 ───────────────────────────── */

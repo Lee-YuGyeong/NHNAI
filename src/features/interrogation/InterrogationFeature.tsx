@@ -31,6 +31,8 @@ import type { Teleport } from './scene/FreeRig';
 import type { BodyId } from '@/world/mp/bodies';
 import { fallState } from './scene/fallState';
 import { runnerState } from './scene/stopline/runnerState';
+// 색 사냥의 구슬 상태·오버레이 색은 /trial 과 같은 모듈이다 — 화면은 달라도 게임은 하나다 (huntState 머리말)
+import { huntState, softLight } from '@/features/trial/games/color-hunt/huntState';
 import './interrogation.css';
 
 /** 좌석의 기본 자리 — 홀 가운데 좌석 원 위 (spawn.ts). 판이 열릴 때 전원이 여기서 시작한다 */
@@ -54,6 +56,8 @@ export function InterrogationFeature() {
   const test = useAppSelector(gameSelectors.selectTest);
   const myAttempts = useAppSelector(gameSelectors.selectMyAttempts);
   const myHits = useAppSelector(gameSelectors.selectMyHits);
+  const myPicks = useAppSelector(gameSelectors.selectMyPicks);
+  const hunt = useAppSelector(gameSelectors.selectHunt);
   const latestResult = useAppSelector(gameSelectors.selectLatestResult);
   const roles = useAppSelector(gameSelectors.selectRoles);
   const outcome = useAppSelector(gameSelectors.selectOutcome);
@@ -99,6 +103,7 @@ export function InterrogationFeature() {
     remotePlayers.clear();
     runnerState.clear();
     fallState.clear();
+    huntState.clear();
     dispatch(gameActions.connecting());
 
     const conn = connRef.current!;
@@ -178,6 +183,7 @@ export function InterrogationFeature() {
           dispatch(gameActions.testStarted({ game: msg.game, round: msg.round, startAt: msg.startAt, durationMs: msg.durationMs }));
           runnerState.resetAll();
           fallState.clear();
+          huntState.clear();
           return;
         }
         case 'trial_running':
@@ -202,6 +208,18 @@ export function InterrogationFeature() {
         }
         case 'trial_hit':
           dispatch(gameActions.hitRecorded(msg.id));
+          return;
+        case 'trial_colorhunt':
+          // 색 사냥 — 시작·조명 전환의 전체 동기화. 구슬·견본판은 huntState(가변), 조명·목표는 슬라이스
+          huntState.sync(msg);
+          dispatch(gameActions.colorhuntSynced({ light: msg.light, target: msg.target, targetHex: msg.targetHex }));
+          return;
+        case 'trial_picked':
+          huntState.picked(msg.objectId);
+          dispatch(gameActions.pickRecorded(msg.id));
+          return;
+        case 'trial_orb':
+          huntState.orb(msg.orb);
           return;
         case 'trial_result':
           dispatch(gameActions.resultReceived(msg.result));
@@ -278,6 +296,7 @@ export function InterrogationFeature() {
   const sendMove = useCallback((x: number, z: number, y: number, heading: number, anim: AnimState) => conn.sendMove(x, z, y, heading, anim), [conn]);
   const onAccel = useCallback(() => conn.sendAccel(), [conn]);
   const onBrake = useCallback(() => conn.sendBrake(), [conn]);
+  const onPick = useCallback((objectId: number) => conn.sendPick(objectId), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
   const onClaim = useCallback(
     (text: string) => {
@@ -330,7 +349,9 @@ export function InterrogationFeature() {
             ? `W 달리기 · S 브레이크 · 붉은 선에 정확히 서라 (시행 ${myAttempts})`
             : test.game === 'fall'
               ? `떨어지는 것을 피하라 — WASD (피격 ${myHits})`
-              : '지시된 색의 구슬을 E 로 주워라'
+              : hunt
+                ? `「${hunt.target}」 구슬만 E 로 주워라 (주움 ${myPicks}) — 헷갈리면 견본판과 대조하라`
+                : '지시된 색의 구슬을 E 로 주워라'
           : phase === 'discussion'
             ? 'WASD 이동 · Enter 채팅 · 왼쪽 판에서 지목'
             : '';
@@ -353,8 +374,12 @@ export function InterrogationFeature() {
         paused={modalUp}
         onAccel={onAccel}
         onBrake={onBrake}
+        onPick={onPick}
         sendMove={sendMove}
       />
+
+      {/* 색 사냥 — 방이 통째로 조명색에 물든다(multiply). 흰 조명이면 항등. HUD(.ig-hud)는 이 뒤에 그려져 안 물든다 */}
+      {phase === 'test' && test?.game === 'colorhunt' && hunt ? <div aria-hidden className="ig-huntlight" style={{ background: softLight(hunt.light) }} /> : null}
 
       {flashKey > 0 ? <div key={flashKey} className="ig-hitflash" /> : null}
 
@@ -364,6 +389,13 @@ export function InterrogationFeature() {
         </div>
         {wire ? <TopBar wire={wire} roomCode={roomCode} /> : null}
         {phase === 'test' && wire?.currentTest ? <div className="ig-order">{wire.currentTest.instruction}</div> : null}
+        {/* 색 사냥 — 목표색. 스와치는 **기준광 원색**(조명 밖 UI): 맵 안 견본판(조명색)과의 대비가 「조명이 색을 바꿨다」를 가르친다 */}
+        {phase === 'test' && test?.game === 'colorhunt' && hunt ? (
+          <div className="ig-hunttarget" aria-live="polite">
+            <span aria-hidden className="swatch" style={{ background: hunt.targetHex }} />
+            목표 「{hunt.target}」
+          </div>
+        ) : null}
 
         {wire && inGame ? <Board wire={wire} mySeatId={mySeatId} aiId={me?.aiId ?? null} onAccuse={onAccuse} onWithdraw={onWithdraw} /> : null}
         {inGame && latestResult && phase !== 'result' ? <RecordPanel result={latestResult} nameOf={nameOf} mySeatId={mySeatId} /> : null}

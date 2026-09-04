@@ -120,6 +120,11 @@ export class GameConnection {
     return this.send({ t: 'trial_brake' });
   }
 
+  /** 색 사냥 — E. 어느 구슬인지만 보낸다. 거리·쿨다운·정오는 서버가 본다 */
+  sendPick(objectId: number): boolean {
+    return this.send({ t: 'trial_pick', objectId });
+  }
+
   game(msg: GameC2SMessage): boolean {
     return this.send(msg);
   }

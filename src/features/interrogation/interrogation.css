@@ -580,6 +580,42 @@
 }
 
 /* ── 낙하 피격 번쩍임 ── */
+/* ── 색 사냥 ── */
+/* 방을 조명색으로 물들인다(multiply) — 흰 조명(#ffffff)이면 항등이라 안 보인다.
+   전환 램프 0.5s = mp/constants 의 HUNT_LIGHT_RAMP_MS 와 같은 박자다. */
+.ig-huntlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  transition: background 0.5s ease;
+}
+/* 목표색 알림 — 지시문(.ig-order) 바로 아래 */
+.ig-hunttarget {
+  position: absolute;
+  top: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--linen);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.ig-hunttarget .swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+
 .ig-hitflash {
   position: absolute;
   inset: 0;

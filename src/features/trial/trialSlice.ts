@@ -17,6 +17,10 @@ export interface TrialState {
   myHitsThisRound: number;
   /** 이번 라운드에 내가 마친 시행 수(0~3) — StopLineScene 이 다음 W 를 언제 받을지 여기로 안다 */
   myAttemptsThisRound: number;
+  /** 색 사냥 — 이번 라운드에 내가 주운 횟수. 정오는 여기 없다 — 서버만 알고, 전원이 결과에서 처음 본다 */
+  myPicksThisRound: number;
+  /** 색 사냥 — 지금 조명(#rrggbb)과 목표색. HUD 스와치(원색)와 화면 오버레이가 그린다 */
+  hunt: { light: string; target: string; targetHex: string } | null;
   /** 지금까지 끝난 판 전부(오래된 순) — 로그 탭이 이걸 그대로 보여준다 */
   history: TrialResultWire[];
   /** 이 화면에 있는 동안 **실제로 끝난** 판의 결과 — 백필된 기록과 구분한다. 요약(10초)은 이것만 띄운다 */
@@ -34,6 +38,8 @@ const initialState: TrialState = {
   roundDurationMs: null,
   myHitsThisRound: 0,
   myAttemptsThisRound: 0,
+  myPicksThisRound: 0,
+  hunt: null,
   history: [],
   liveResult: null,
 };
@@ -67,7 +73,17 @@ export const trialSlice = createSlice({
       s.roundDurationMs = a.payload.durationMs;
       s.myAttemptsThisRound = 0;
       s.myHitsThisRound = 0;
+      s.myPicksThisRound = 0;
+      s.hunt = null;
       s.liveResult = null;
+    },
+    /** 색 사냥 — 판이 열렸거나 조명이 바뀌었다(trial_colorhunt). 구슬 자체는 huntState(가변)가 든다 */
+    colorhuntSynced(s, a: PayloadAction<{ light: string; target: string; targetHex: string }>) {
+      s.hunt = a.payload;
+    },
+    /** 색 사냥 — 누가 주웠다(trial_picked). 내 것일 때만 센다 */
+    pickRecorded(s, a: PayloadAction<string>) {
+      if (a.payload === s.selfId) s.myPicksThisRound += 1;
     },
     /** 낙하물에 맞았다(trial_hit) — 그게 내 id일 때만 센다 */
     hitRecorded(s, a: PayloadAction<string>) {
@@ -101,6 +117,8 @@ export const trialSlice = createSlice({
     selectRound: (s) => s.round,
     selectMyAttempts: (s) => s.myAttemptsThisRound,
     selectMyHits: (s) => s.myHitsThisRound,
+    selectMyPicks: (s) => s.myPicksThisRound,
+    selectHunt: (s) => s.hunt,
     selectRoundStartAt: (s) => s.roundStartAt,
     selectRoundDurationMs: (s) => s.roundDurationMs,
     selectHistory: (s) => s.history,
