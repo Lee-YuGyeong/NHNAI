@@ -52,6 +52,7 @@ export const PART_NAMES = {
   trial_gate: '정지선 게이트',
   trial_beacon: '레인 비콘',
   trial_pod: '낙하 포드',
+  trial_hopper: '배출 호퍼',
   ball_basketball: '농구공',
   ball_soccer: '축구공',
   ball_baseball: '야구공',

@@ -3,7 +3,7 @@
  * 국면에 따라 **다리와 바닥**만 바꿔 끼운다. 전부 **3인칭**이다 (2026-09-04 사용자: "그냥 검문소 들어가면
  * 3인칭으로 나오게 해줘") — 몸은 로봇이 아니라 서버가 배정한 군인(SelfAvatar → SoldierAvatar):
  *
- *   토론 · 낙하 생존 · 색 사냥   FreeRig (자유 보행) — 낙하 생존은 마당(FALL_ARENA)이 좁고 낙하물(FallObjects)이
+ *   토론 · 낙하 생존 · 색 사냥   FreeRig (자유 보행) — 낙하 생존은 마당(FALL_ARENA)이 좁고 낙하물(FallStage)이
  *                              떨어지고, 색 사냥은 마당(HUNT_ARENA)에서 구슬을 줍는다(E, PickKey)
  *   움직이는 플랫폼             FreeRig + PlatformCourse (발판 열)
  *   회전 원판                   DiscRig (걷기 명령만 올리고 자리는 서버 것) + DiscStage — 마당 한가운데 원판이 선다
@@ -29,7 +29,7 @@ import { SeatBodies } from './SeatAvatar';
 import { Executioner } from './Executioner';
 import { SelfAvatar } from './SelfAvatar';
 import { selfPose } from './selfPose';
-import { FallObjects } from './FallObjects';
+import { FallStage } from './FallStage';
 import { PlatformCourse } from './PlatformCourse';
 import { PLATFORM_ARENA } from '@/world/mp/platform';
 // 색 사냥의 구슬 · 견본판 · E 키는 /trial 과 같은 부품이다 — 상태(huntState)가 하나라 화면도 하나로 그린다
@@ -115,7 +115,8 @@ export function HallScene(p: HallSceneProps) {
         {stopline && p.test ? <TrackDressing round={p.test.round} /> : null}
       </Suspense>
       {def.Effects ? <def.Effects /> : null}
-      {fall ? <FallObjects /> : null}
+      {/* 낙하 생존 — 공(종류별 GLB · 그림자 원반)과 천장 배출 호퍼는 /trial 과 같은 부품이다 (FallStage 머리말) */}
+      {fall ? <FallStage /> : null}
       {/* 움직이는 플랫폼 — 발판 열은 platformState 로 프레임마다 자리를 잡는다 (PlatformCourse 머리말) */}
       {platform ? (
         <Suspense fallback={null}>

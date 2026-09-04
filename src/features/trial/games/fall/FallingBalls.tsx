@@ -44,7 +44,10 @@ function BallKind({ kind, frames }: { kind: number; frames: React.RefObject<PodF
       _e.set((FALL_SPAWN_Y - f.y) * 0.6, (f.id * 1.7) % Math.PI, 0);
       _q.setFromEuler(_e);
       _p.set(f.x, f.y, f.z);
-      _s.set(scale[0], scale[1], scale[2]);
+      // 스폰 확대 — 첫 0.35m 동안 0 → 실물. 배출 호퍼(FallScene) 입 안에서 커지므로 허공 '팝'이 없다.
+      // 호퍼 격자 틈에 걸린 공도 11m 위 어둠 속에서 스르륵 나타나 팝으로 안 읽힌다. 판정과 무관한 눈속임이다
+      const grow = Math.min(1, Math.max(0, (FALL_SPAWN_Y - f.y) / 0.35));
+      _s.set(scale[0] * grow, scale[1] * grow, scale[2] * grow);
       bm.setMatrixAt(n, _m.compose(_p, _q, _s));
 
       // 그림자 원반 — 크기는 그대로(착지점을 처음부터 알려 준다), 색은 높이에 따라 회색 → 검정
