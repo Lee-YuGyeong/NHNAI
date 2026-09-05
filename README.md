@@ -107,9 +107,8 @@ AI 승리**다(격리된 설계자 본인은 진다). 아무도 격리되지 않
 
 ### 물리 테스트
 
-엔진은 **여섯 종**이 다 살아 있다. 한 판이 여는 셋은 **위 다섯**(`GAME_TEST_POOL`)에서 뽑고,
-맨 아래 하나는 후보에 없다 — 순서표에 한 줄 넣으면 그 자리에서 다시 선다. 어느 것이든 혼자 도는
-시행판(`/trial?game=…`)에서는 지금도 열린다.
+엔진은 **다섯 종**이다. 한 판이 여는 셋은 이 다섯(`GAME_TEST_POOL`)에서 겹치지 않게 뽑는다.
+어느 것이든 혼자 도는 시행판(`/trial?game=…`)에서는 따로 열린다.
 
 | 테스트 | 조작 | 물리 변수 | 판별 지점 |
 |---|---|---|---|
@@ -118,7 +117,6 @@ AI 승리**다(격리된 설계자 본인은 진다). 아무도 격리되지 않
 | **회전 원판** (원심력 · 마찰) | WASD 걷기, Shift 달리기 | 원판 표면 마찰 (강판 → 젖은 강판 → 고무) | 미끄러지기 **시작한 뒤** 몇 초 — 인간은 밀려나고서야 안쪽으로 튼다 |
 | **무게 중심 다리** (토크 · 무게중심) | WASD 걷기 | 판자 윗면 마찰. 크레인이 5~8초마다 상자를 떨군다 | 상자가 떨어진 **뒤** 몇 초 — 인간은 기울고 나서야 반대쪽으로 옮겨 간다 |
 | **무너지는 타워** (질량 · 충돌 · 마모) | WASD, Space 점프, E 밀치기 | 발판 마찰. 무게가 몰린 발판은 기울고, 바깥부터 철거된다 | 발판이 기울기 시작한 뒤의 이동 — 남을 미느냐 제 발판을 버리느냐 |
-| **회전 봉 넘기** (타이밍 · 마찰) | WASD, Space 점프 | 바닥 마찰. 봉의 속도·방향은 불규칙하고 **공개**다 | 봉이 빨라진 직후 몇 번 — 인간은 옛 리듬으로 뛰었다가 맞는다 |
 
 **몸이 넷이라 같은 조건도 같지 않다** — 좌석마다 군인 넷(`mp/bodies.ts`) 중 하나를 랜덤으로
 받는다. 비만인 둘은 달리기가 느리고(5.2 → 3.9) 점프가 낮고(6.8 → 5.6) 발이 덜 잡고(마찰 ×0.7)
@@ -313,8 +311,8 @@ npx wrangler secret put OPENAI_API_KEY   # sk-proj- 로 시작하는 프로젝�
 | 경로 | 무엇 |
 |---|---|
 | **`/interrogation`** | **본판 — 검문소** ([PLANNING.md](PLANNING.md)). 사람 3~8 + AI 1좌석 + 설계자 1~2. 대화 40초 ⇄ 물리 테스트 30초를 **세 번**(후보 다섯에서 뽑는다) 돌고, 그 사이 의심도 100% 는 즉시 격리 — 첫 격리로 판이 끝난다. `?code=` 없이 들어가면 방 1234, `?tests=tower,fall` 로 차례표를 미리 고를 수 있다(시연용). 서버는 `worker/src/game`, 화면은 `src/features/interrogation` |
-| **`/game`** | **미니게임 목록** — 사용자가 고른 여섯(낙하 생존 · 움직이는 플랫폼 · 회전 원판 · 무게 중심 다리 · 무너지는 타워 · 회전 봉 넘기). 카드에서 곧장 들어간다 (`features/game/catalog.ts`) |
-| `/trial` | 물리 시험 단독 실행 — `?game=` 으로 **여섯 종** 전부 열린다 (`fall` · `platform` · `disc` · `seesaw` · `tower` · `bar`) |
+| **`/game`** | **미니게임 목록** — 사용자가 고른 다섯(낙하 생존 · 움직이는 플랫폼 · 회전 원판 · 무게 중심 다리 · 무너지는 타워). 카드에서 곧장 들어간다 (`features/game/catalog.ts`) |
+| `/trial` | 물리 시험 단독 실행 — `?game=` 으로 **다섯 종** 전부 열린다 (`fall` · `platform` · `disc` · `seesaw` · `tower`) |
 | `/menu` | **개발용 화면 목록** — 라우트가 있는 화면이면 다 선다. 옛 루트 화면이 여기로 옮겨 왔다 |
 | `/intro` · `/lobby` | 브리핑 · **열린 방 목록 → 대기방 → 게임 시작** 한 줄 (`?code=1234` 가 곧 초대장). 목록·제목은 등록소 DO 가 들고 있다 |
 | `/login` · `/account/nickname` | 구글 로그인 · 이름 짓기 — **관문이 아니다**, 안 거쳐도 다 돌아간다 |
@@ -351,7 +349,7 @@ npx wrangler secret put OPENAI_API_KEY   # sk-proj- 로 시작하는 프로젝�
 ```
 src/features/     화면별 폴더 = 담당자별 작업 단위 (등록부: features/index.ts)
   interrogation/    본판 검문소 (/interrogation) — 방에 붙어 도는 화면. 판의 진실은 worker/src/game
-  game/             미니게임 목록 (/game) — 카드 여섯의 원본은 catalog.ts
+  game/             미니게임 목록 (/game) — 카드 다섯의 원본은 catalog.ts
   trial/            물리 시험 단독 실행 (/trial?game=…)
   lobby/            브리핑 · 방 목록 · 대기방 · 로그인 (/intro · /lobby · /login)
   world/            3D 구역 멀티플레이 — 복도 · 중앙 시설 · 재검실의 이야기(챕터 1~3)
@@ -365,7 +363,7 @@ src/world/        three.js 관리 라이브러리 (Redux 비의존)
 src/world2/map/   시나리오 2 전용 방들 (MAPS2) — 본판 MAPS 등록부에 올리지 않는다
 src/arena3d/      위의 복사본 — 시행 화면 전용
 worker/src/game/  판의 진실 — 국면 · 배역 · 의심도(suspicion.ts · tells.ts) · 관리 AI(agents.ts)
-worker/src/trial/ 물리 엔진 여섯 종 (fall · platform · disc · seesaw · tower · bar)
+worker/src/trial/ 물리 엔진 다섯 종 (fall · platform · disc · seesaw · tower)
 worker/           워커 진입점 + 방 Durable Object + 방 등록소 (lobby-do.ts)
 supabase/         DB 스키마와 그것을 올리는 통로 (지금은 표가 없다)
 tools/            빌드 · 에셋 · 개발 서버 플러그인
