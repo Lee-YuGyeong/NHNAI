@@ -160,8 +160,10 @@ export class BarEngine implements GameEngine {
   }
 
   results(): TrialPlayerResult[] {
+    // 마감을 판이 먼저 닫았으면 endedAt 이 0 이다 — 지금이 끝이다 (tower/engine.ts results 와 같다)
+    const end = this.endedAt || Date.now();
     return [...this.stats].map(([id, s]) => {
-      const r = s.result(id);
+      const r = s.result(id, this.startedAt, end);
       r.metrics.jumps = this.bodies.get(id)?.jumps ?? 0;
       return r;
     });
@@ -232,7 +234,7 @@ export class BarEngine implements GameEngine {
       }
       const out = stepBarBody(b, mu * gripOf(ctx.bodyOf?.(b.id)), dt, now);
       if (out.fell) {
-        st?.fell();
+        st?.fell(now);
         ctx.broadcast({ t: 'trial_fell', id: b.id });
         continue;
       }

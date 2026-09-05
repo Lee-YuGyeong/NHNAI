@@ -1,7 +1,7 @@
 /**
  * 판이 열 수 있는 물리 테스트 — worker/src/trial 의 엔진(GameEngine 계약)을 그대로 조립한다.
- * 일곱 종이 다 꽂혀 있지만 한 판이 실제로 여는 셋은 판이 열릴 때 후보(game-protocol 의 GAME_TEST_POOL)에서 뽑는다 —
- * 낙하 생존 · 움직이는 플랫폼 · 회전 원판 · 무게 중심 다리 · 무너지는 타워 가운데 셋. 정지선과 색 사냥은 후보에 넣으면 그 자리에서 다시 선다.
+ * 여덟 종이 다 꽂혀 있지만 한 판이 실제로 여는 셋은 판이 열릴 때 후보(game-protocol 의 GAME_TEST_POOL)에서 뽑는다 —
+ * 낙하 생존 · 움직이는 플랫폼 · 회전 원판 · 무게 중심 다리 · 무너지는 타워 · 회전 봉 넘기 가운데 셋. 정지선과 색 사냥은 후보에 넣으면 그 자리에서 다시 선다.
  *
  * 화면 위 한 줄 지시문도 여기 둔다 — 조건값(마찰 · 중력 · 차단 파장)은 문장에도 없다 (P8).
  */
@@ -28,7 +28,7 @@ export const ENGINES: Partial<Record<TrialGame, () => GameEngine>> = {
   seesaw: () => new SeesawEngine(),
   // 무너지는 타워 — 마당에 탑(TOWER_CENTER)이 서고, 자리는 서버가 적분한다 (HallScene 의 TowerStage · TowerRig, 2026-09-05)
   tower: () => new TowerEngine(),
-  // 회전 봉 넘기 — 마당에 무대(BAR_CENTER)가 서고, 자리도 점프도 서버가 적분한다. 검문소 후보(GAME_TEST_POOL)에는 아직 없다
+  // 회전 봉 넘기 — 마당에 무대(BAR_CENTER)가 서고, 자리도 점프도 서버가 적분한다 (HallScene 의 BarStage · BarRig, 2026-09-06 검문소 후보 합류)
   bar: () => new BarEngine(),
 };
 

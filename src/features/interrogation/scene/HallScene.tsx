@@ -9,6 +9,7 @@
  *   회전 원판                   DiscRig (걷기 명령만 올리고 자리는 서버 것) + DiscStage — 마당 한가운데 원판이 선다
  *   무게 중심 다리              SeesawRig (같은 규칙) + SeesawStage — 마당에 길이 14m 판자가 축 하나로 얹힌다
  *   무너지는 타워              TowerRig (같은 규칙 + 점프 · 밀치기) + TowerStage — 마당에 5×5 발판 탑이 선다
+ *   회전 봉 넘기               BarRig (같은 규칙 + 점프) + BarStage — 마당에 봉이 도는 무대가 선다
  *   정지선                      StopRig (레일) + TrackDressing, 남의 몸은 runnerState 타임라인으로 움직인다
  *
  * 남의 몸은 전부 remotePlayers(좌석 id 로 키) → SeatBodies 가 그린다 — **머리 위에 이름표와 의심도 막대**가 붙는다
@@ -51,6 +52,10 @@ import { SeesawStage } from '@/features/trial/games/seesaw/SeesawStage';
 import { TowerRig } from '@/features/trial/games/tower/TowerRig';
 import { TowerStage } from '@/features/trial/games/tower/TowerStage';
 import { TOWER_CENTER, TOWER_TOP } from '@/world/mp/tower';
+// 회전 봉 넘기도 같다 — 봉(무대)과 다리(예측 보정)는 서버 물리와 짝이다
+import { BarRig } from '@/features/trial/games/bar/BarRig';
+import { BarStage } from '@/features/trial/games/bar/BarStage';
+import { BAR_CENTER } from '@/world/mp/constants';
 import { FreeRig, type Teleport } from './FreeRig';
 import { StopRig } from './stopline/StopRig';
 import { TrackDressing } from './stopline/TrackDressing';
@@ -97,15 +102,15 @@ export interface HallSceneProps {
   onPick: (objectId: number) => void;
   /** 회전 원판 — 걷기 명령(월드 기준 m/s). 자리는 안 보낸다 (GameConnection.sendWalk 머리말) */
   onWalk: (x: number, z: number) => void;
-  /** 낙하 생존 · 무너지는 타워 — Space. 몸의 높이는 서버가 적분한다 (FreeRig · TowerRig sendJump) */
+  /** 낙하 생존 · 무너지는 타워 · 회전 봉 — Space. 몸의 높이는 서버가 적분한다 (FreeRig · TowerRig · BarRig sendJump) */
   onJump: () => void;
   /** 무너지는 타워 — 밀치기(E). 카메라가 보는 방향 (GameConnection.sendPush) */
   onPush: (hx: number, hz: number) => void;
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
 }
 
-/** 미리 세우는 무대 — 낙하 · 발판 · 원판 · 다리 넷 (아래 순서대로 하나씩) */
-const STAGE_COUNT = 5;
+/** 미리 세우는 무대 — 낙하 · 발판 · 원판 · 다리 · 타워 · 봉 여섯 (아래 순서대로 하나씩) */
+const STAGE_COUNT = 6;
 /** 홀 부품이 다 자리 잡을 때까지 기다렸다가 첫 무대 */
 const STAGE_WAIT_MS = 2000;
 /** 앞 무대가 「다 데웠다」고 안 알려 올 때(부품이 안 옴 등) 늦어도 이만큼 뒤엔 다음을 세운다 */
@@ -145,6 +150,7 @@ export function HallScene(p: HallSceneProps) {
   const disc = p.test?.game === 'disc';
   const seesaw = p.test?.game === 'seesaw';
   const tower = p.test?.game === 'tower';
+  const bar = p.test?.game === 'bar';
 
   /** 프레임을 보고 고른 해상도 — 캔버스에 걸린 값과 같아야 한다 (AdaptiveResolution 머리말) */
   const [dpr, setDpr] = useState<number | null>(null);
@@ -234,6 +240,15 @@ export function HallScene(p: HallSceneProps) {
           </Suspense>
         </group>
       ) : null}
+      {/* 회전 봉 넘기 — 봉은 서버가 준 각도로 돌고(barState), 그 위의 몸은 스냅샷으로 온다 (InterrogationFeature 의 trial_bar). 같은 이유로 미리 세워 둔다 */}
+      {bar || staged >= 6 ? (
+        <group visible={bar}>
+          <Suspense fallback={null}>
+            <BarStage lights={false} />
+            <Precompile onDone={stageNext} />
+          </Suspense>
+        </group>
+      ) : null}
       {hunt ? (
         <group>
           <HuntOrbs />
@@ -260,6 +275,9 @@ export function HallScene(p: HallSceneProps) {
       ) : tower ? (
         /* 탑 위도 같다 — 점프(Space)와 밀치기(E)는 서버가 판정한다 (TowerRig 머리말) */
         <TowerRig selfId={p.mySeatId} body={p.myBody} sendWalk={p.onWalk} sendPush={p.onPush} sendJump={p.onJump} />
+      ) : bar ? (
+        /* 봉 무대 위도 같다 — 점프(Space)의 포물선도 서버가 적분한다 (BarRig 머리말) */
+        <BarRig selfId={p.mySeatId} body={p.myBody} sendWalk={p.onWalk} sendJump={p.onJump} />
       ) : (
         <FreeRig
           spawn={p.spawn}
@@ -324,7 +342,9 @@ function ArenaWorkLights({ test }: { test: TrialGame | null }) {
           ? { position: [SEESAW_CENTER.x, 8.5, SEESAW_CENTER.z] as const, color: '#dfe9ff', intensity: 45, distance: 26 }
           : test === 'tower'
             ? { position: [TOWER_CENTER.x, TOWER_TOP + 4.5, TOWER_CENTER.z] as const, color: '#dfe9ff', intensity: 60, distance: 22 }
-            : { position: base.position, color: base.color, intensity: test === 'fall' || test === 'colorhunt' ? base.intensity : 0, distance: base.distance };
+            : test === 'bar'
+              ? { position: [BAR_CENTER.x, 7.5, BAR_CENTER.z] as const, color: '#dfe9ff', intensity: 70, distance: 24 }
+              : { position: base.position, color: base.color, intensity: test === 'fall' || test === 'colorhunt' ? base.intensity : 0, distance: base.distance };
   const upper = ARENA_WORK_LIGHTS[1];
   return (
     <>

@@ -241,12 +241,12 @@ export const GAME_MAX_HUMANS = 8;
  *
  *   입장 → 대화 40초 → ① 시험 30초 → 대화 40초 → ② 시험 30초 → 대화 40초 → ③ 시험 30초 → 대화 40초 → 끝
  *
- * 어느 셋인가는 **판이 열릴 때 후보 다섯(GAME_TEST_POOL: 낙하 생존 · 발판 · 원판 · 무게 중심 다리 · 무너지는 타워)에서 무작위로** 뽑는다 — 겹치지 않게, 순서도 뽑힌 대로
- * (2026-09-05 사용자: "검사판 랜덤 게임에 무게중심다리도 들어갈 수 있도록"). 그 전에는 낙하 생존 → 발판 → 원판으로
+ * 어느 셋인가는 **판이 열릴 때 후보 여섯(GAME_TEST_POOL: 낙하 생존 · 발판 · 원판 · 무게 중심 다리 · 무너지는 타워 · 회전 봉 넘기)에서 무작위로** 뽑는다 — 겹치지 않게, 순서도 뽑힌 대로
+ * (2026-09-05 사용자: "검사판 랜덤 게임에 무게중심다리도 들어갈 수 있도록", 2026-09-06 사용자: "회전 봉 넣기 GAME_TEST_POOL에 넣어줘"). 그 전에는 낙하 생존 → 발판 → 원판으로
  * 고정이었다 — 판마다 무엇이 나올지 모르지만 「세 번의 시험」이라는 판의 모양은 그대로다. 뽑힌 차례는 판이 열리는 순간
  * 서버가 정해 GameStateWire.tests 로 공개한다(순서는 공개, 조건값만 비밀). 관리 AI 가 매번 고르던 설계(agents.designNext)는 접었다.
  */
-export const GAME_TEST_POOL: readonly TrialGame[] = ['fall', 'platform', 'disc', 'seesaw', 'tower'];
+export const GAME_TEST_POOL: readonly TrialGame[] = ['fall', 'platform', 'disc', 'seesaw', 'tower', 'bar'];
 /** 한 판이 여는 시험 수 */
 export const GAME_TEST_COUNT = 3;
 
@@ -483,7 +483,7 @@ export function talkFor(game: TrialGame, metrics: Record<string, number>, testMs
 
 /**
  * 시험에서 **지킨 초** — 발언권의 밑값이자 결과 모달의 「버틴 시간」(features/interrogation/hud/ResultTable 의 요약).
- *   낙하 생존  첫 피격까지(안 맞았으면 시험 길이)     발판  도착하고 남긴 초(못 갔으면 0)     원판  첫 낙하까지
+ *   낙하 생존  첫 피격까지(안 맞았으면 시험 길이)     발판  도착하고 남긴 초(못 갔으면 0)     원판  첫 낙하까지     회전 봉  첫 피격·낙하까지
  * 시간을 안 재는 시험(정지선 · 색 사냥)이나 값이 없으면 null. 시험 길이로 자른다 — 엔진이 마감을 틱 하나 넘겨
  * 닫으므로 30초를 다 버틴 기록이 30.08초로 오는데, 그러면 올림이 한 칸 더 간다.
  */
@@ -495,6 +495,7 @@ export function heldSecondsFor(game: TrialGame, metrics: Record<string, number>,
     case 'disc':
     case 'seesaw':
     case 'tower':
+    case 'bar':
       seconds = num(metrics.survivalTime);
       break;
     case 'platform': {

@@ -3,6 +3,8 @@
  * 이르게·늦게 뛴 만큼이 오차다. 수직축이 전부 공개인 판이라(sim.ts 머리말) 이 오차는 순수하게 몸의 리듬이다.
  *   hits            봉에 맞은 횟수
  *   clears          넘은 횟수
+ *   survivalTime    첫 실패(피격·낙하)까지의 시간(s) — 깨끗했으면 라운드 길이. 다른 시험의 같은 이름과 한 눈금이라
+ *                   검문소의 등수·카드·발언권이 이 값 하나로 선다 (game-protocol 의 heldSecondsFor · talkFor)
  *   clearRate       넘은 비율 — clears / (clears + hits)
  *   leadErrMs       스침마다 |체공 중심 − 스침 시각| 평균(ms). 맞은 스침은 상한(ERR_CAP)으로 친다
  *   unnecessaryJumps 봉이 오지도 않는데 뛴 횟수 — 낙하 생존의 헛움직임과 같은 결
@@ -31,6 +33,7 @@ export class BarStats {
   private errs: number[] = [];
   private dirs: number[] = [];
   private transitionErr = 0;
+  private firstFailAt: number | null = null;
 
   /** 틱마다 — 무대 위에 있을 때만 */
   tick(moved: number, slid: number): void {
@@ -43,8 +46,10 @@ export class BarStats {
    * @param phaseStarts 조건이 바뀐 시각들 — 그 뒤 TRANSITION_MS 안의 오차가 전환 직후 오차다
    */
   sweep(hit: boolean, err: number, dir: number, now: number, phaseStarts: readonly number[]): void {
-    if (hit) this.hits += 1;
-    else this.clears += 1;
+    if (hit) {
+      this.hits += 1;
+      if (this.firstFailAt === null) this.firstFailAt = now;
+    } else this.clears += 1;
     this.errs.push(err);
     this.dirs.push(dir);
     if (phaseStarts.some((p) => now >= p && now - p <= TRANSITION_MS)) this.transitionErr += err;
@@ -54,18 +59,23 @@ export class BarStats {
     this.unnecessaryJumps += 1;
   }
 
-  fell(): void {
+  fell(now: number): void {
     this.falls += 1;
+    if (this.firstFailAt === null) this.firstFailAt = now;
   }
 
-  result(id: string): TrialPlayerResult {
+  /** @param gameStart · gameEnd 라운드의 시각 — 없으면 survivalTime 은 NaN (단위 시험용, tower/stats.ts 와 같다) */
+  result(id: string, gameStart?: number, gameEnd?: number): TrialPlayerResult {
     const sweeps = this.hits + this.clears;
     const transitionError = Math.round(this.transitionErr * 100) / 100;
+    const survivalTime =
+      typeof gameStart === 'number' && typeof gameEnd === 'number' ? ((this.firstFailAt ?? gameEnd) - gameStart) / 1000 : Number.NaN;
     return {
       id,
       metrics: {
         hits: this.hits,
         clears: this.clears,
+        survivalTime,
         clearRate: sweeps ? this.clears / sweeps : Number.NaN,
         leadErrMs: this.errs.length ? mean(this.errs) * 1000 : Number.NaN,
         unnecessaryJumps: this.unnecessaryJumps,

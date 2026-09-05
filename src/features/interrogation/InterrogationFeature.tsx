@@ -53,6 +53,8 @@ import { discState } from '@/features/trial/games/disc/discState';
 import { seesawState, worldOf as seesawWorldOf } from '@/features/trial/games/seesaw/seesawState';
 // 무너지는 타워도 같다 — 발판 기울기·상태와 몸의 자리가 여기 들어간다 (towerState 머리말)
 import { towerState } from '@/features/trial/games/tower/towerState';
+// 회전 봉 넘기도 같다 — 봉의 각도와 몸의 자리가 여기 들어간다 (barState 머리말)
+import { barState } from '@/features/trial/games/bar/barState';
 import './interrogation.css';
 
 /** 좌석의 기본 자리 — 홀 가운데 좌석 원 위 (spawn.ts). 판이 열릴 때 전원이 여기서 시작한다 */
@@ -182,6 +184,7 @@ export function InterrogationFeature() {
     discState.clear();
     seesawState.clear();
     towerState.clear();
+    barState.clear();
     dispatch(gameActions.connecting());
 
     const conn = connRef.current!;
@@ -289,6 +292,7 @@ export function InterrogationFeature() {
           discState.clear();
           seesawState.clear();
           towerState.clear();
+          barState.clear();
           // 움직이는 플랫폼 — 발판 열이 서고(platformState), 전원이 출발 발판 위 2×2 자리에서 시작한다 (좌석 번호로, platform.ts startSlot)
           if (msg.game === 'platform') {
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
@@ -380,6 +384,21 @@ export function InterrogationFeature() {
           }
           return;
         }
+        case 'trial_bar': {
+          // 회전 봉 넘기 — 같은 규칙: 사람의 자리도 서버가 적분한다(봉에 밀리는 양·발밑 미끄러짐이 숨은 μ 에서 나온다, P8).
+          // 자리는 월드 좌표 그대로(타워와 같다). 봉의 각도는 barState 가 들고 BarStage · BarRig 가 프레임마다 읽는다
+          barState.push(msg);
+          const at = now();
+          for (const b of msg.players) {
+            if (b.id === meRef.current?.seatId) {
+              myPos.current.x = b.x;
+              myPos.current.z = b.z;
+              continue;
+            }
+            remotePlayers.move(b.id, b.x, b.z, b.y, b.h, b.m === 2 ? 'run' : b.m === 1 ? 'walk' : 'idle', at);
+          }
+          return;
+        }
         case 'trial_fell':
           dispatch(gameActions.fellRecorded(msg.id));
           return;
@@ -404,6 +423,7 @@ export function InterrogationFeature() {
           discState.clear();
           seesawState.clear();
           towerState.clear();
+          barState.clear();
           // 무대가 걷혔다 — 원판(0.75m)·발판(0.5m) 위에 있던 남의 몸을 바닥에 내려놓는다. 안 그러면 다음 샘플이 올 때까지
           // 허공에 서 있다 (remotePlayers.settle 머리말, 2026-09-05 사용자)
           remotePlayers.settle(now());
@@ -437,8 +457,8 @@ export function InterrogationFeature() {
         dispatch(gameActions.playerLeft(id));
       },
       onMoved: (id, x, z, y, heading, anim) => {
-        // 정지선은 레일 타임라인이, 회전 원판 · 무게 중심 다리는 서버 스냅샷이 그린다 — 두 출처로 그리면 몸이 두 자리를 오간다
-        if (testRef.current?.game === 'stopline' || testRef.current?.game === 'disc' || testRef.current?.game === 'seesaw' || testRef.current?.game === 'tower') return;
+        // 정지선은 레일 타임라인이, 회전 원판 · 무게 중심 다리 · 타워 · 회전 봉은 서버 스냅샷이 그린다 — 두 출처로 그리면 몸이 두 자리를 오간다
+        if (testRef.current?.game === 'stopline' || testRef.current?.game === 'disc' || testRef.current?.game === 'seesaw' || testRef.current?.game === 'tower' || testRef.current?.game === 'bar') return;
         remotePlayers.move(id, x, z, y, heading, anim, now());
       },
       onMessage,
@@ -771,6 +791,8 @@ export function InterrogationFeature() {
                     : `착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses}`
                   : test.game === 'tower'
                     ? `낙하 ${myFalls}회 · 밀림 ${myHits}회`
+                  : test.game === 'bar'
+                    ? `피격 ${myHits}회 · 낙하 ${myFalls}회`
                   : test.game === 'disc' || test.game === 'seesaw'
                     ? `낙하 ${myFalls}회`
                     : `주움 ${myPicks}`

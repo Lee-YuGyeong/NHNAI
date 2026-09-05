@@ -240,8 +240,9 @@ export function Chat({
 
 /**
  * 시험마다 화면이 그리는 요약 — **목표 한 문장과 키뿐이다** (2026-09-05 사용자: "정말 필요한 정보만
- * 플레이어가 보기 쉽게"). 서버의 긴 지시문(currentTest.instruction)은 관리 AI 의 방송으로 채팅 로그에
- * 이미 흐르고, 미니 게임 중 화면에 문장을 두 벌 세우면 어느 쪽도 안 읽힌다. 조작키는 여기 키캡으로만
+ * 플레이어가 보기 쉽게"). 시험 개시 방송은 걷었으므로(2026-09-06 「미니게임하는 시간에는 모두 tts 없애줘」,
+ * runtime.openTest) **이 안내판이 시험을 여는 유일한 말이다** — 모르는 게임이 오면 서버의 긴 지시문
+ * (currentTest.instruction)을 fallback 으로 편다. 조작키는 여기 키캡으로만
  * 선다 — 발치 줄(.ig-foot)은 내 수치만 센다 (InterrogationFeature 의 hud).
  */
 const TEST_GUIDE: Record<string, { goal: string; keys: [string, string][] }> = {
@@ -252,6 +253,7 @@ const TEST_GUIDE: Record<string, { goal: string; keys: [string, string][] }> = {
   disc: { goal: '도는 원판 위에서 밀려나지 말고 버텨라', keys: [['WASD', '걷기'], ['Shift', '달리기']] },
   seesaw: { goal: '판자의 무게중심을 축에 맞춰라 — 상자가 놓이면 반대쪽으로', keys: [['WASD', '걷기'], ['Shift', '달리기']] },
   tower: { goal: '탑 위 발판에서 버텨라 — 무게가 몰리면 기울고, 오래 서면 닳는다', keys: [['WASD', '걷기'], ['Space', '점프'], ['E', '밀치기']] },
+  bar: { goal: '바닥을 쓸며 도는 봉을 뛰어넘어라 — 맞으면 넘어져 밀려난다', keys: [['WASD', '걷기'], ['Space', '점프']] },
 };
 
 /**

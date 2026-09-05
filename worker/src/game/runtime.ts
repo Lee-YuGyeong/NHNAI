@@ -842,7 +842,12 @@ export class GameRuntime {
     this.currentTest = { game, round: run, startAt, durationMs: GAME_TEST_MS, instruction: INSTRUCTION[game] };
     this.finishing = false;
 
-    this.leader(LINES.testOpen(game, run, INSTRUCTION[game], step, order.length), 'announce');
+    /*
+     * 시험 개시 방송(LINES.testOpen — 이름·회차·지시문 낭독)이 여기 있었다 — 걷었다 (2026-09-06 사용자:
+     * 「미니게임하는 시간에는 모두 tts 없애줘」). 낭독이 30초 시험의 앞머리를 통째로 덮고 있었다.
+     * 이름·목표·키는 화면의 시험 안내판(hud/Panels 의 TestOrder)이 그리고, 긴 지시문은
+     * currentTest.instruction 으로 남아 안내가 없는 게임의 fallback 이 된다. leader() 도 시험 중에는 입을 다문다.
+     */
     // pace — 움직이는 플랫폼의 발판 배속(공개, mp/platform.ts). 다른 엔진은 안 싣는다
     const pace = engine.paceFor?.(intensity);
     this.deps.broadcast({ t: 'trial_round_start', game, round: run, startAt, durationMs: GAME_TEST_MS, ...(pace === undefined ? {} : { pace }) });
@@ -1720,7 +1725,15 @@ export class GameRuntime {
     return this.seats.filter((s) => !s.isolated && now - s.lastSpokeAt > QUIET_MS).map((s) => s.name);
   }
 
+  /**
+   * 시험 중에는 입을 다문다 (2026-09-06 사용자: 「미니게임하는 시간에는 모두 tts 없애줘」) — 개시 방송은
+   * 걷었고(openTest), 시험 중에 끼어들 수 있는 것들(격리 경보 · 토론 끝물에 물려 늦게 돌아온 judgeClaim ·
+   * judgeCompelled 의 비동기 판정)도 여기서 삼킨다. 화면 쪽 정보는 그대로다 — game_isolated · game_suspicion
+   * 같은 자료 방송은 leader 가 아니라서 안 걸린다. 판이 끝나는 방송은 나간다 — end() 가 phase 를 먼저
+   * 'ended' 로 바꾼 뒤에 부른다.
+   */
   private leader(text: string, kind: LeaderKind): void {
+    if (this.phase === 'test') return;
     this.deps.broadcast({ t: 'game_leader', text, kind, ts: this.now() });
   }
 

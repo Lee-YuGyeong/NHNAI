@@ -732,9 +732,11 @@ export const LINES = {
    * 오프닝 문장은 없다 — 판을 여는 말은 화면의 검문소 프롤로그가 한다
    * (features/interrogation/prologue.ts, runtime 의 advance/'briefing').
    */
-  /** 차례표의 몇 번째인지를 앞에 붙인다 — 「세 번의 시험」이라는 판의 모양이 첫 방송부터 보이게 (GAME_TEST_COUNT) */
-  testOpen: (game: TrialGame, round: number, instruction: string, step?: number, total?: number) =>
-    `${step && total ? `[시험 ${step}/${total}] ` : ''}${TEST_NAME[game]} 테스트 ${round}회차를 연다. ${instruction}`,
+  /*
+   * 시험 개시 문장(testOpen — 「[시험 n/N] ○○ 테스트를 연다. <지시문>」)이 여기 있었다 — 걷었다
+   * (2026-09-06 사용자: 「미니게임하는 시간에는 모두 tts 없애줘」). 이름·목표·키는 화면의 시험 안내판
+   * (features/interrogation/hud/Panels 의 TestOrder)이 그린다. runtime.leader 도 시험 중에는 입을 다문다.
+   */
   isolated: (name: string, role: 'human' | 'designer' | 'ai') =>
     `${name}, 의심도 임계. 즉시 격리한다. 조사 결과 — ${role === 'ai' ? 'AI 였다.' : '사람이었다. AI 는 아직 이 안에 있다.'}`,
   /*

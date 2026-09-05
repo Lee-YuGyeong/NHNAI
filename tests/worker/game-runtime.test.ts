@@ -285,8 +285,8 @@ describe('GameRuntime — 판 한 바퀴', () => {
     await vi.advanceTimersByTimeAsync(GAME_FIRST_DISCUSSION_MS + 10);
     expect(h.lastState().phase).toBe('test');
     expect(h.sent.some((m) => m.t === 'trial_round_start')).toBe(true);
-    // 관리 AI 의 첫 방송은 여기다 — 시험을 여는 말 (LINES.testOpen)
-    expect(h.sent.some((m) => m.t === 'game_leader')).toBe(true);
+    // 시험이 열려도 방송은 없다 — 개시 방송도 걷었고, leader 는 시험 중 입을 다문다 (2026-09-06 「미니게임하는 시간에는 모두 tts 없애줘」)
+    expect(h.sent.some((m) => m.t === 'game_leader')).toBe(false);
     // 엔진에는 좌석 id 가 간다 — 사람 3 + AI 1. AI 좌석에는 전략(tuning)이 붙는다
     expect(h.engine.ids).toHaveLength(4);
     expect(Object.keys(h.engine.tuning ?? {})).toHaveLength(1);
