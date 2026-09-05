@@ -14,6 +14,7 @@
  *   노멀맵만 남기고 가져온 것이라 이 홀의 빛에서는 도크가 구겨진 철판으로, 격납문은 링 안에 안 맞는 문짝으로 읽혔다. 그 자리에는
  *   이 홀의 **철문 두 짝**(STEEL_DOOR, BACK_DOOR_XS)과 벽등이 선다 — 끝벽·옆벽의 문과 같은 얼굴이다.
  *   충돌 목록은 무대·계단·도크를 뺀 HALL_COLLIDERS 다 — 격납고의 COLLIDERS 는 순서로 읽히는 카탈로그라 거기서 빼면 안 되고, 여기서 거른다.
+ * ★ **더하는 것도 여기서 한다** — 끝벽 앞에 선 처형자의 몸 상자 하나(EXECUTIONER). 같은 이유로 격납고 목록에는 안 넣는다.
  *
  * three.js 를 끌어오지 않는 순수 파일이다.
  */
@@ -40,16 +41,35 @@ export {
 import { COLLIDERS, DOCK, DOCK_XS, FAR_Z, NEAR_Z, RIB_ZS, STAGE, STAGE_Z, STEPS, WALL_X } from '../warehouse/layout';
 
 /**
- * 이 홀의 충돌 상자 — 격납고의 COLLIDERS 에서 **무대 1 + 계단 STEPS.n + 도크 DOCK_XS.length** 를 뺀 것 (머리말 ★). 자리로 안
- * 자르고 모양으로 거른다: 무대는 x 0 · z STAGE_Z · 윗면 STAGE.h, 계단은 x 0 의 낮은 단(윗면 ≤ rise × n · 폭 STEPS.w), 도크는
- * 등 뒤 벽(z NEAR_Z 쪽)에 붙은 DOCK.h 높이의 상자다. 격납고가 상자를 더 넣어도 여기서는 그 셋만 빠진다.
+ * 처형자의 몸 — 홀에서 **이 몸만 뚫렸다** (2026-09-06 사용자: "리더 그거 몸이 뚫리는데").
+ * 그 자리를 막던 상자는 무대 하나뿐이었는데 단상을 걷으며 같이 빠졌고(아래 filter), 처형자는 씬에 그려지는 물체라
+ * 몸끼리 밀어내는 목록(net/remote-players 의 pushOut)에도 없다 — 벽도 가구도 남의 어깨도 다 막는 방에서 혼자 통과됐다.
+ *
+ * 자는 **남의 몸과 같게** 잡는다(CHAR_BODY_R 0.35): 그에게 부딪히는 거리가 사람에게 부딪히는 거리와 같아진다.
+ * 정사각이라 모서리 쪽만 조금 멀리서 막히는데, 몸이 표적을 따라 도니까 어느 쪽으로 서도 같은 폭인 편이 낫다.
+ * top 은 그의 키(scene/Executioner 의 HEIGHT 1.9) — 낮은 턱(STEP_UP 0.55)이 아니라 벽처럼 막고, 점프 최고점(≈1.05)으로는
+ * 머리 위에 못 올라선다.
+ *
+ * 복도의 경비·요원은 명부(mp/bystanders)로 같은 일을 하는데(2026-09-05 fix(world)), 이 몸은 **한자리에 붙박이라** 맵의 상자가
+ * 맞다: 프레임마다 자리를 알릴 것이 없고, 홀의 다리 전부(FreeRig · DiscRig · …)가 이미 이 목록을 본다. 그가 걷기 시작하면
+ * 그때 명부로 옮긴다.
  */
-export const HALL_COLLIDERS: readonly (typeof COLLIDERS)[number][] = COLLIDERS.filter((c) => {
-  const stage = c.x === 0 && c.z === STAGE_Z && c.top === STAGE.h;
-  const step = c.x === 0 && c.top <= STEPS.rise * STEPS.n + 1e-6 && Math.abs(c.hw - STEPS.w / 2) < 1e-6;
-  const dock = c.top === DOCK.h && c.z > NEAR_Z - DOCK.depth - 1e-6 && (DOCK_XS as readonly number[]).includes(c.x);
-  return !stage && !step && !dock;
-});
+const EXECUTIONER: (typeof COLLIDERS)[number] = { x: 0, z: STAGE_Z, hw: 0.35, hd: 0.35, rot: 0, top: 1.9 };
+
+/**
+ * 이 홀의 충돌 상자 — 격납고의 COLLIDERS 에서 **무대 1 + 계단 STEPS.n + 도크 DOCK_XS.length** 를 빼고 **처형자 1** 을 더한 것
+ * (머리말 ★). 자리로 안 자르고 모양으로 거른다: 무대는 x 0 · z STAGE_Z · 윗면 STAGE.h, 계단은 x 0 의 낮은 단(윗면 ≤ rise × n ·
+ * 폭 STEPS.w), 도크는 등 뒤 벽(z NEAR_Z 쪽)에 붙은 DOCK.h 높이의 상자다. 격납고가 상자를 더 넣어도 여기서는 그 셋만 빠진다.
+ */
+export const HALL_COLLIDERS: readonly (typeof COLLIDERS)[number][] = [
+  ...COLLIDERS.filter((c) => {
+    const stage = c.x === 0 && c.z === STAGE_Z && c.top === STAGE.h;
+    const step = c.x === 0 && c.top <= STEPS.rise * STEPS.n + 1e-6 && Math.abs(c.hw - STEPS.w / 2) < 1e-6;
+    const dock = c.top === DOCK.h && c.z > NEAR_Z - DOCK.depth - 1e-6 && (DOCK_XS as readonly number[]).includes(c.x);
+    return !stage && !step && !dock;
+  }),
+  EXECUTIONER,
+];
 
 /* ─────────────────────────────── 홀 뼈대 (직사각 콘크리트 박스) ─────────────────────────────── */
 
