@@ -460,6 +460,23 @@ const DOCK_DOTS: Item[] = DOCK_XS.map((x): Item => ({ position: [x, DOCK.h * 0.9
 
 /* ─────────────────────────────── 화물 컨테이너 (격납고 홀 그대로 — 카탈로그 물건) ─────────────────────────────── */
 
+/**
+ * 이 홀에서만 쓰는 컨테이너 색 — 격납고 홀(PART_COLORS.cargo_container = #4a5563)은 그대로 둔다.
+ *
+ * 고친 것은 **색조가 아니라 값**이다. 렌더를 재 보니(1280×720 정면, 카메라 z 4):
+ *   #4a5563 → 컨테이너 밝기 26 · 바로 뒤 옆벽 31 — 물건이 벽보다 어두워 「벽 밑 검은 덩어리」가 됐다.
+ *   색조는 이미 같았다 (컨테이너 B−R +22 · 벽 +20) — 이 홀이 통째로 푸른 것은 앰비언트(#aeb9c9) 탓이다.
+ *
+ * 같은 값이 격납고 홀에서는 멀쩡한 까닭: 저기는 노출 2.0 · 앰비언트 1.2 인데 여기는 1.05 · 0.55 다.
+ * 빛이 4배 가까이 적으니 홀 공용 값이 이 방에서만 가라앉는다. 그래서 **이 홀만** 값을 올린다.
+ *
+ * 후보를 실제로 박아 재 본 값 (어두운 구석 3단 / 그늘진 면, 벽은 31):
+ *   #4a5563 → 26 / 15 (둘 다 벽 아래 — 실패)   #6a7079 → 41 / 25 (그늘 면이 아직 벽 아래)
+ *   #7c828a → 52 / 33 (경계)                  #8b9199 → 61 / 41 (두 면 다 벽 위 — 채택)
+ * 더 올리면(#a8aeb6 → 80) 바닥(62)을 넘어 무대(93)와 다투기 시작한다.
+ */
+const CARGO_TINT = '#8b9199';
+
 const CARGO_FIT: Fit = { x: CARGO.w, y: CARGO.h, z: CARGO.d };
 const CARGO_ITEMS: InstanceItem[] = CARGOS.flatMap((c) =>
   Array.from({ length: c.stack }, (_, i): InstanceItem => {
@@ -563,7 +580,7 @@ export function Govcenter(_props: GovcenterProps) {
   const consoleMat = useShapedMaterial('gov_console');
   const ringMat = useShapedMaterial('sci_bulkhead');
   const blastMat = useShapedMaterial('sci_blast_door');
-  const cargoMat = useShapedMaterial('cargo_container');
+  const cargoMat = useShapedMaterial('cargo_container', CARGO_TINT);
   const dockMat = useShapedMaterial('charge_dock');
   const droneMat = useShapedMaterial('watch_drone');
   const rackMat = useShapedMaterial('gov_server_rack');

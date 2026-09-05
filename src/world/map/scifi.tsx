@@ -16,7 +16,7 @@ import { useTexture } from '@react-three/drei';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
-import { usePartSource, type Fit, type InstanceItem, type PartId } from './corridor/part';
+import { usePartSource, type Fit, type InstanceItem } from './corridor/part';
 import { Instanced, Parts, useTiled, type Item } from './parts';
 
 /* ─────────────────────────────── 단면 ─────────────────────────────── */
@@ -257,21 +257,27 @@ export type ShapedPartId = keyof typeof PART_COLORS;
  * Tripo 부품 재질 — 원본을 복제해 알베도(map)를 떼고 단색을 넣는다. 노멀맵(패널 홈·볼트)만 남긴다.
  * metallicRoughness 맵도 뗀다 — 일부 면의 거칠기가 0 근처라 점광원이 거울처럼 번졌다. 부품당 한 번 만들어 캐시.
  */
-const shapedCache = new Map<PartId, THREE.MeshStandardMaterial>();
-export function useShapedMaterial(id: ShapedPartId): THREE.MeshStandardMaterial {
+const shapedCache = new Map<string, THREE.MeshStandardMaterial>();
+/**
+ * tint 를 주면 PART_COLORS 대신 그 색을 쓴다 — **같은 GLB 를 맵마다 다른 색으로 세울 때만.**
+ * (화물 컨테이너: 격납고 홀은 강청색 그대로, 콘크리트 홀은 중성 회색 — map/govcenter.tsx 의 CARGO_TINT)
+ * 캐시 키가 id + tint 라 두 맵이 서로의 재질을 덮어쓰지 않는다. 색을 **모든 맵에서** 바꿀 것이면 PART_COLORS 를 고친다.
+ */
+export function useShapedMaterial(id: ShapedPartId, tint?: string): THREE.MeshStandardMaterial {
   const src = usePartSource(id);
-  let m = shapedCache.get(id);
+  const key = tint ? `${id}:${tint}` : id;
+  let m = shapedCache.get(key);
   if (!m) {
     m = (src.material as THREE.MeshStandardMaterial).clone();
     m.map = null;
     m.roughnessMap = null;
     m.metalnessMap = null;
-    m.color.set(PART_COLORS[id]);
+    m.color.set(tint ?? PART_COLORS[id]);
     m.metalness = 0.45;
     m.roughness = 0.62;
     m.name = `${m.name} (shaped)`;
     m.needsUpdate = true;
-    shapedCache.set(id, m);
+    shapedCache.set(key, m);
   }
   return m;
 }

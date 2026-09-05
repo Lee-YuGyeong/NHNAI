@@ -596,6 +596,129 @@
   --bl-edge-line: linear-gradient(180deg, rgba(255, 106, 90, 0.95), rgba(255, 106, 90, 0.45));
 }
 
+/* ── 문 (인트로의 「입장하기」) ────────────────────────────────────────
+ *
+ * 구조는 console.tsx 의 EnterButton. 위의 .bl-btn 계열과 **일부러** 다르게 생겼다 —
+ * 저쪽은 모따기 + 채운 청록이고, 이건 각진 빈 테다. 평소에는 흰 선 한 줄뿐이고,
+ * 손이 올라가야 청록으로 켜지면서 빛 한 줄이 아래에서 위로 훑는다.
+ *
+ * ★ .bl-edge 를 못 쓴다. 저 클래스는 ::before/::after 를 **모따기한** 테와 바탕에 쓰는데,
+ *   여기 모서리는 깎이면 안 되고 네 귀퉁이만 그어져 있어야 한다. 그래서 그 다섯 겹
+ *   (모서리 넷 + 훑는 빛)을 자식으로 둔다.
+ * ★ 전역 재질(global.css 의 button)을 지운다 — 테·둥근 모서리·바탕·그림자·들리는 hover 까지.
+ *   여기서 대답하는 것은 들림이 아니라 훑는 빛이다.
+ */
+.bl-enter {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 34px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  transition:
+    border-color 0.5s ease,
+    background-color 0.5s ease,
+    color 0.5s ease;
+}
+.bl-enter:hover:not(:disabled) {
+  transform: none;
+  border-color: rgba(111, 211, 255, 0.5);
+  background: rgba(111, 211, 255, 0.1);
+  box-shadow: none;
+  color: var(--bl-line);
+}
+/* 마지막 칸 — 혼자 서는 자리라 한 벌 크다. 좁은 화면에서 칸을 넘지 않게 clamp 로 준다 */
+.bl-enter--big {
+  gap: 18px;
+  padding: clamp(14px, 2.2vw, 20px) clamp(32px, 7vw, 64px);
+  font-size: clamp(18px, 3.4vw, 28px);
+}
+
+/* 네 귀퉁이의 조준선 — 테가 아니라 **표식**이라, 켜질 때 테보다 진하게 간다 */
+.bl-enter__corner {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 0 solid rgba(255, 255, 255, 0.4);
+  transition: border-color 0.5s ease;
+}
+.bl-enter:hover:not(:disabled) .bl-enter__corner {
+  border-color: var(--bl-line);
+}
+.bl-enter__corner--tl {
+  top: 0;
+  left: 0;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+.bl-enter__corner--tr {
+  top: 0;
+  right: 0;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+.bl-enter__corner--bl {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}
+.bl-enter__corner--br {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+}
+
+/* 화살표는 글자를 따라 큰다 — 큰 벌에서 11px 짜리가 혼자 남으면 붙다 만 것처럼 보인다 */
+.bl-enter svg {
+  width: 0.72em;
+  height: auto;
+  transition: transform 0.3s ease;
+}
+.bl-enter:hover:not(:disabled) svg {
+  transform: translateX(4px);
+}
+
+/*
+ * 훑고 올라가는 빛. 글자 **위로** 지나간다 — 밑에 깔면 빈 테 안에서 바탕이 밝아지는 것으로만
+ * 보이고, 무엇이 움직였는지 안 읽힌다. 1초는 일부러 느리다: 이 화면에서 유일하게 「기계가
+ * 훑는다」고 말하는 움직임이라, 눌리기 전에 한 번은 지나가 있어야 한다.
+ */
+.bl-enter__scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translateY(100%);
+  background: linear-gradient(180deg, transparent, rgba(111, 211, 255, 0.2), transparent);
+  transition: transform 1s ease;
+}
+.bl-enter:hover:not(:disabled) .bl-enter__scan {
+  transform: translateY(-100%);
+}
+
+/* 모션을 꺼 둔 사람에게는 색만 바뀐다 — 훑는 빛도 화살표도 가만히 있는다 (HeroVideo·Typed 와 같은 규칙) */
+@media (prefers-reduced-motion: reduce) {
+  .bl-enter svg,
+  .bl-enter__scan {
+    transition: none;
+  }
+  .bl-enter:hover:not(:disabled) svg {
+    transform: none;
+  }
+  .bl-enter:hover:not(:disabled) .bl-enter__scan {
+    transform: translateY(100%);
+  }
+}
+
 /* ═══════════════════════════════ 입력칸 ═══════════════════════════════ */
 
 /*
@@ -1304,7 +1427,10 @@
 .bl-hero__title--sm {
   font-size: clamp(24px, 4vw, 38px);
 }
-/* 하나뿐인 따뜻한 색 — 「인간」에만 붙는다 (원작 인트로의 앰버 한 점을 그대로 옮겼다) */
+/* 하나뿐인 따뜻한 색. 표식의 제목(heroes.tsx)에 있던 「인간」에 붙던 것인데, 2026-09-05 에
+   그 제목을 걷어내면서 **지금은 걸리는 자리가 없다** — 남은 .bl-hero__title 들(Login ·
+   Nickname · Intro 의 마지막 칸)은 em 을 안 쓴다. 제목에 앰버를 다시 놓을 때 쓸 값이고,
+   같은 일을 하는 살아 있는 규칙은 intro.css 의 .intro-human 이다 */
 .bl-hero__title em {
   font-style: normal;
   color: var(--amber, #ffca8e);
@@ -1540,6 +1666,10 @@
   display: grid;
   justify-items: center;
   gap: 12px;
+}
+/* 큰 벌의 문은 앞뒤로 한 숨 더 띄운다 — 12px 로는 「가려내라」에 붙어서 제목을 밀어낸다 */
+.bl-final__go {
+  margin: 10px 0 6px;
 }
 
 /* ══════════════════════════ 배역 슬라이드 (한 번에 하나) ══════════════════════════
