@@ -7,9 +7,16 @@
 
 import type { GameOutcome, GameRole } from '../../../src/world/mp/game-protocol';
 
-/** AI 설계자 상한 — §1.1 표 그대로 (3명→0 · 4~5명→1 · 6~8명→2) */
-export function designerCap(humans: number): number {
-  if (humans <= 3) return 0;
+/**
+ * AI 설계자 **수** — 사람 수가 정한다 (2026-09-05 사용자: "AI 설계자 1명 사람 2명 AI 1명 이렇게야").
+ *
+ * 예전엔 **상한**이었다 (§1.1 표: 3명→0 · 4~5명→1 · 6~8명→2). 그 안에서 0부터 균등 랜덤으로 뽑았고,
+ * 표의 첫 줄이 0이라 지금 기본 판(사람 3 + AI 1 — InterrogationFeature 의 AUTO_SEATS)에서는 설계자가
+ * **한 번도** 나오지 않았다. 홀에 선 넷은 늘 「그냥 사람 셋 + AI 하나」였다.
+ * 이제 3명이면 하나다. 뽑히는 **수**는 고정이고, 굴리는 것은 **누가**인지뿐이다.
+ */
+export function designerCount(humans: number): number {
+  if (humans <= 2) return 0;
   if (humans <= 5) return 1;
   return 2;
 }
@@ -28,11 +35,10 @@ export interface Assignment {
 
 /**
  * 배역을 굴린다. humanIds 는 실제 플레이어(대역 포함)고, aiId 는 따로 합류하는 좌석이다.
- * 설계자 수는 상한 안에서 **0부터 균등 랜덤** — 인원을 알아도 설계자 수는 알 수 없다 (§1.1).
+ * 설계자 수는 designerCount 가 정한 그 수 그대로다 — 누가 설계자인지만 굴린다.
  */
 export function assignRoles(humanIds: readonly string[], aiId: string, rand: () => number = Math.random): Assignment {
-  const cap = designerCap(humanIds.length);
-  const count = Math.floor(rand() * (cap + 1));
+  const count = Math.min(designerCount(humanIds.length), humanIds.length);
   const pool = [...humanIds];
   const designers: string[] = [];
   for (let i = 0; i < count && pool.length; i += 1) {
@@ -57,30 +63,31 @@ export function shuffled<T>(list: readonly T[], rand: () => number = Math.random
 
 /**
  * 판이 끝났나 — 끝났으면 결과, 아니면 null.
- *   AI 가 격리됨            → 사람 승리 (그 자리에서)
- *   격리 수가 목표에 닿음   → AI 승리 (목표 인원이 격리됐는데 AI 가 없다)
- *   하드캡                  → AI 승리 (격리되지 않고 종료 시점까지 생존)
- * 설계자 개인의 승패는 AI 와 본인이 둘 다 살아 있는가로 갈린다 (§1.3).
+ *
+ * **처형(격리)은 곧 판의 끝이다** (2026-09-05 사용자: "처형되면 그 순간 게임이 끝나고 … 승리 조건이 다르게" — 예전엔
+ * 격리 수가 목표(총원의 절반)에 닿아야 끝나서, 사람이 하나 격리돼도 판이 남은 시간을 다 돌았다).
+ *   AI 가 격리됨           → 사람 승리 (그 자리에서)
+ *   사람이 격리됨          → AI 승리 — 애먼 사람을 쏜 것이고 AI 는 아직 이 안에 있다
+ *   AI 설계자가 격리됨     → AI 승리 — 그가 지키던 AI 는 아직 이 안에 있다. 다만 **그 설계자 본인은 진다**
+ *   하드캡                 → AI 승리 (격리되지 않고 종료 시점까지 생존)
+ * 설계자 개인의 승패는 AI 와 본인이 둘 다 살아 있는가로 갈린다 (§1.3) — AI 가 이기고 본인이 안 잡혔으면 이긴다.
  */
-export function outcomeFor(
-  roles: Record<string, GameRole>,
-  isolated: ReadonlySet<string>,
-  quota: number,
-  hardCapHit: boolean,
-): GameOutcome | null {
+export function outcomeFor(roles: Record<string, GameRole>, isolated: ReadonlySet<string>, hardCapHit: boolean): GameOutcome | null {
   const aiId = Object.keys(roles).find((id) => roles[id] === 'ai') ?? '';
   const designers = Object.keys(roles).filter((id) => roles[id] === 'designer');
   const aiCaught = isolated.has(aiId);
-  const quotaHit = isolated.size >= quota;
-  if (!aiCaught && !quotaHit && !hardCapHit) return null;
+  if (!aiCaught && isolated.size === 0 && !hardCapHit) return null;
 
   const winner = aiCaught ? 'humans' : 'ai';
   const designersWon = winner === 'ai' ? designers.filter((id) => !isolated.has(id)) : [];
   const designersLost = designers.filter((id) => !designersWon.includes(id));
+  const shot = [...isolated].find((id) => id !== aiId);
   const reason = aiCaught
     ? 'AI 가 격리됐다. 사람 진영의 승리.'
-    : quotaHit
-      ? `격리 인원이 ${quota}명에 닿았지만 그 안에 AI 는 없었다. AI 의 승리.`
+    : shot !== undefined
+      ? roles[shot] === 'designer'
+        ? 'AI 설계자가 격리됐다. 그가 지키던 AI 는 아직 이 안에 있다 — AI 의 승리. 격리된 설계자 본인은 졌다.'
+        : '사람이 격리됐다. AI 는 아직 이 안에 있다 — AI 의 승리.'
       : '시간이 다 됐다. AI 는 끝내 들키지 않았다.';
   return { winner, reason, aiId, designersWon, designersLost };
 }

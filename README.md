@@ -247,7 +247,7 @@ npx wrangler secret put OPENAI_API_KEY   # sk-proj- 로 시작하는 프로젝�
 
 | 경로 | 무엇 |
 |---|---|
-| **`/interrogation`** | **본판 — 「인간인 척」** ([PLANNING.md](PLANNING.md)). 사람 3~8 + AI 1좌석 + 설계자 0~2. 대화 40초 ⇄ 물리 테스트 30초를 **세 번**(낙하 생존 → 발판 → 원판) 고정으로 돌고, 그 사이 의심도 100% 는 즉시 격리, 격리가 총원 과반수(내림)면 끝. 서버는 `worker/src/game`, 화면은 `src/features/interrogation` |
+| **`/interrogation`** | **본판 — 「인간인 척」** ([PLANNING.md](PLANNING.md)). 사람 3~8 + AI 1좌석 + 설계자 1~2(기본 판은 설계자 1 · 사람 2 · AI 1). 대화 40초 ⇄ 물리 테스트 30초를 **세 번**(낙하 생존 → 발판 → 원판) 고정으로 돌고, 그 사이 의심도 100% 는 즉시 격리, 격리가 총원 과반수(내림)면 끝. 서버는 `worker/src/game`, 화면은 `src/features/interrogation` |
 | `/arena` | 옛 시행판 — 리더가 지시문을 짜고 판정하던 판 (`features/arena`). 본판에서 갈라져 나온 채로 남아 있다 |
 | `/lab` | 구역 — AI 5개와 섞여 그냥 대화한다. 규정도 검사도 없다 |
 | `/world` | 3D 구역 멀티플레이 — 방 번호로 만난다 |

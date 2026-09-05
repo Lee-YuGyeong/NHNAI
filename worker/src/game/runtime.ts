@@ -1010,8 +1010,9 @@ export class GameRuntime {
       if (withdrawn.length)
         this.deps.broadcast({ t: 'game_suspicion', suspicion: this.book.snapshot(), accusations: this.book.accusationsSnapshot() });
     }
+    // 누가 격리됐으면 판은 거기서 끝난다 — 정체에 따라 승패가 갈린다 (roles.outcomeFor 머리말). 격리 목표(quota)는 더 이상 문턱이 아니다
     const isolated = new Set(this.seats.filter((s) => s.isolated).map((s) => s.id));
-    const outcome = outcomeFor(this.rolesMap(), isolated, this.quota, false);
+    const outcome = outcomeFor(this.rolesMap(), isolated, false);
     if (outcome) this.end(outcome);
     else this.broadcastState();
   }
@@ -1019,7 +1020,7 @@ export class GameRuntime {
   private async hardCap(): Promise<void> {
     if (!this.active()) return;
     const isolated = new Set(this.seats.filter((s) => s.isolated).map((s) => s.id));
-    const outcome = outcomeFor(this.rolesMap(), isolated, this.quota, true);
+    const outcome = outcomeFor(this.rolesMap(), isolated, true);
     if (outcome) this.end(outcome);
   }
 

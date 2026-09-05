@@ -120,8 +120,8 @@ describe('openai callTool — 요청 모양', () => {
 
 describe('openai 모델 이름 옮기기', () => {
   it('관리 AI 는 좋은 것, 노드는 싼 것 — 부르는 횟수가 다르다', () => {
-    expect(mapModel('claude-opus-5')).toBe('gpt-5.6-terra');
-    expect(mapModel('claude-sonnet-5')).toBe('gpt-5.6-luna');
+    expect(mapModel('claude-opus-5')).toBe('gpt-6-astra');
+    expect(mapModel('claude-sonnet-5')).toBe('gpt-5.6-terra');
   });
 
   it('모르는 이름은 싼 것으로 떨어뜨린다 — 판이 400 으로 멈추지 않게', () => {
@@ -136,7 +136,7 @@ describe('openai 모델 이름 옮기기', () => {
   });
 
   it('빈 문자열은 고정이 아니다 — 시크릿을 이름만 만들고 비워 뒀을 때', () => {
-    expect(mapModel('claude-opus-5', '  ')).toBe('gpt-5.6-terra');
+    expect(mapModel('claude-opus-5', '  ')).toBe('gpt-6-astra');
   });
 });
 

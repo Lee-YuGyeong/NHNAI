@@ -1,5 +1,5 @@
 /**
- * 「인간인 척」 판의 프로토콜 — PLANNING.md 의 게임(사람 여러 명 + AI 1 좌석 + AI 설계자 0~2)이
+ * 「인간인 척」 판의 프로토콜 — PLANNING.md 의 게임(사람 여러 명 + AI 1 좌석 + AI 설계자 1~2)이
  * 클라이언트(features/interrogation)와 워커(worker/src/game)가 나눠 보는 **유일한 계약**이다.
  *
  * 물리 테스트(정지선 · 낙하 생존 · 색 사냥)의 이벤트는 여기 없다 — 그쪽은 `protocol.ts` 의 `trial_*`

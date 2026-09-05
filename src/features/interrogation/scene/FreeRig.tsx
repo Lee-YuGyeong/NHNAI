@@ -118,6 +118,13 @@ export function FreeRig({
     pos.current.set(teleport.x, platformState.groundAt(teleport.x, teleport.z, PAD_TOP), teleport.z);
     vy.current = 0;
     grounded.current = true;
+    /*
+     * 옮겨진 몸은 넘어진 채가 아니다. 라운드가 열리는 순간(platformState.start)과 이 효과 사이에 프레임이 하나 끼면,
+     * 그 프레임은 아직 홀 바닥(y 0)에 선 몸을 「떨어졌다」(fell)로 적는다 — 그러고 나서 여기서 발판 위(0.5)로 올라서면
+     * 아래 useFrame 의 돌아가기 분기(바닥일 때만 돈다)가 영영 안 돌아 fellAt 이 안 지워지고, 입력 잠금(held)이 안 풀렸다
+     * (2026-09-05 사용자: "발판 게임 시작하는데 몸이 안 움직이는 건 무슨 버그지"). 옮겨 놓았으면 넘어짐도 끝난 것이다
+     */
+    platformState.respawned();
     yaw.current = yawToFocus(teleport.x, teleport.z);
     heading.current = yaw.current;
     lastSent.current.x = NaN; // 다음 프레임에 무조건 한 번 보낸다
@@ -252,9 +259,13 @@ export function FreeRig({
           platformState.respawned();
           lastSent.current.x = NaN;
         }
-      } else if (!platformState.finished) {
-        const pad = platformState.padUnder(pos.current.x, pos.current.z, nowMs);
-        if (pad && platformState.isFinish(pad.k)) platformState.finish();
+      } else {
+        // 발판 위에 서 있다 — 누가 올려놓았든(순간이동 · 돌아가기) 넘어짐은 끝났다. 위 순간이동 효과의 주석
+        if (platformState.fellAt !== null) platformState.respawned();
+        if (!platformState.finished) {
+          const pad = platformState.padUnder(pos.current.x, pos.current.z, nowMs);
+          if (pad && platformState.isFinish(pad.k)) platformState.finish();
+        }
       }
     }
 

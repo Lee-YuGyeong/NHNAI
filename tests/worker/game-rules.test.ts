@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { SUSPICION, SUSPICION_PRESSURE, pressureFor } from '../../src/world/mp/game-protocol';
-import { assignRoles, designerCap, outcomeFor, quotaFor, shuffled } from '../../worker/src/game/roles';
+import { assignRoles, designerCount, outcomeFor, quotaFor, shuffled } from '../../worker/src/game/roles';
 import { REPEAT_STEP, SuspicionBook } from '../../worker/src/game/suspicion';
 import {
   BACK_MAX_MS,
@@ -19,28 +19,32 @@ import {
 } from '../../worker/src/game/tells';
 
 describe('배역 — §1.1', () => {
-  it('설계자 상한은 실제 플레이어 수로 정해진다 (3→0 · 4~5→1 · 6~8→2)', () => {
-    expect(designerCap(3)).toBe(0);
-    expect(designerCap(4)).toBe(1);
-    expect(designerCap(5)).toBe(1);
-    expect(designerCap(6)).toBe(2);
-    expect(designerCap(8)).toBe(2);
+  it('설계자 수는 실제 플레이어 수로 정해진다 (3~5→1 · 6~8→2)', () => {
+    expect(designerCount(3)).toBe(1);
+    expect(designerCount(4)).toBe(1);
+    expect(designerCount(5)).toBe(1);
+    expect(designerCount(6)).toBe(2);
+    expect(designerCount(8)).toBe(2);
   });
 
-  it('AI 는 정확히 하나고, 설계자는 상한 안에서 0부터 뽑힌다', () => {
+  it('AI 는 정확히 하나고, 설계자 수는 rand 와 무관하게 그 수 그대로다', () => {
     const humans = ['a', 'b', 'c', 'd', 'e', 'f'];
-    // rand 가 1 에 가까우면 상한만큼(2), 0 이면 0명
-    const max = assignRoles(humans, 'ai', () => 0.999);
-    expect(max.designers).toHaveLength(2);
-    expect(Object.values(max.roles).filter((r) => r === 'ai')).toHaveLength(1);
-    expect(max.roles.ai).toBe('ai');
-    const none = assignRoles(humans, 'ai', () => 0);
-    expect(none.designers).toHaveLength(0);
-    expect(Object.values(none.roles).filter((r) => r === 'human')).toHaveLength(6);
+    for (const rand of [() => 0, () => 0.5, () => 0.999]) {
+      const a = assignRoles(humans, 'ai', rand);
+      expect(a.designers).toHaveLength(2);
+      expect(Object.values(a.roles).filter((r) => r === 'ai')).toHaveLength(1);
+      expect(Object.values(a.roles).filter((r) => r === 'human')).toHaveLength(4);
+      expect(a.roles.ai).toBe('ai');
+    }
   });
 
-  it('3명이면 설계자는 절대 없다', () => {
-    for (let i = 0; i < 20; i += 1) expect(assignRoles(['a', 'b', 'c'], 'ai').designers).toHaveLength(0);
+  it('기본 판(사람 3 + AI 1)은 설계자 1 · 사람 2 · AI 1 이다 (2026-09-05 사용자)', () => {
+    for (let i = 0; i < 20; i += 1) {
+      const a = assignRoles(['a', 'b', 'c'], 'ai');
+      expect(a.designers).toHaveLength(1);
+      expect(Object.values(a.roles).filter((r) => r === 'human')).toHaveLength(2);
+      expect(Object.values(a.roles).filter((r) => r === 'ai')).toHaveLength(1);
+    }
   });
 
   it('섞기는 원소를 잃지 않는다', () => {
@@ -52,34 +56,44 @@ describe('배역 — §1.1', () => {
 describe('승패 — §1.3', () => {
   const roles = { h1: 'human', h2: 'human', d1: 'designer', ai: 'ai' } as const;
 
-  it('격리 목표는 총원 절반 내림 (4→2 · 9→4)', () => {
+  it('격리 목표는 총원 절반 내림 (4→2 · 9→4) — 와이어에 남는 수일 뿐, 이제 판을 끝내는 문턱은 아니다', () => {
     expect(quotaFor(4)).toBe(2);
     expect(quotaFor(9)).toBe(4);
   });
 
   it('아무 일도 없으면 계속된다', () => {
-    expect(outcomeFor(roles, new Set(), 2, false)).toBeNull();
-    expect(outcomeFor(roles, new Set(['h1']), 2, false)).toBeNull();
+    expect(outcomeFor(roles, new Set(), false)).toBeNull();
   });
 
   it('AI 가 격리되면 그 자리에서 사람 승리 — 설계자는 전원 패배', () => {
-    const o = outcomeFor(roles, new Set(['ai']), 2, false)!;
+    const o = outcomeFor(roles, new Set(['ai']), false)!;
     expect(o.winner).toBe('humans');
     expect(o.designersLost).toEqual(['d1']);
     expect(o.designersWon).toEqual([]);
   });
 
-  it('목표 인원이 격리됐는데 AI 가 없으면 AI 승리 — 살아 있는 설계자만 개인 승리', () => {
-    const o = outcomeFor(roles, new Set(['h1', 'd1']), 2, false)!;
+  /*
+   * 2026-09-05 사용자: "처형되면 그 순간 게임이 끝나고 … 승리 조건이 다르게" — 예전엔 격리 수가 목표(절반)에
+   * 닿아야 끝나서 사람 하나가 격리돼도 판이 남은 시간을 다 돌았다. 이제 첫 격리가 곧 끝이다.
+   */
+  it('사람이 격리되면 그 자리에서 AI 승리 — 살아 있는 설계자는 개인 승리', () => {
+    const o = outcomeFor(roles, new Set(['h1']), false)!;
     expect(o.winner).toBe('ai');
+    expect(o.reason).toContain('사람이 격리');
+    expect(o.designersWon).toEqual(['d1']);
+    expect(o.designersLost).toEqual([]);
+  });
+
+  it('AI 설계자가 격리되면 AI 승리지만 그 설계자 본인은 진다', () => {
+    const o = outcomeFor(roles, new Set(['d1']), false)!;
+    expect(o.winner).toBe('ai');
+    expect(o.reason).toContain('설계자');
     expect(o.designersWon).toEqual([]);
     expect(o.designersLost).toEqual(['d1']);
-    const o2 = outcomeFor(roles, new Set(['h1', 'h2']), 2, false)!;
-    expect(o2.designersWon).toEqual(['d1']);
   });
 
   it('하드캡이면 AI 승리', () => {
-    expect(outcomeFor(roles, new Set(), 2, true)?.winner).toBe('ai');
+    expect(outcomeFor(roles, new Set(), true)?.winner).toBe('ai');
   });
 });
 
