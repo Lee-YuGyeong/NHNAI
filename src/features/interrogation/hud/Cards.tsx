@@ -18,10 +18,14 @@
  * 한 번 지나간다. 판의 색(--rc)은 고르는 동안 이 화면의 조명색이고, 뒤집은 뒤에는 **그 카드의 색**이다.
  * 값은 전부 interrogation.css 의 .ig-cardpanel 한 벌에 있다.
  *
+ * 그 판이 제 폭 밖으로 새던 것을 잡았다 (2026-09-05 사용자: "강제권 이런거 그거 UI 가 짤려") — 뒤집힌 앞면과
+ * 머리띠의 칩이 모따기에 잘려 나갔고, 창이 좁으면 카드 셋째 장이 판 밖으로 밀렸다. 셋 다 css 쪽 일이다:
+ * .ig-cardpanel 한 벌의 box-sizing · 머리띠 오른쪽 여백 · 칸의 minmax(0, 1fr).
+ *
  * 값을 만들지 않는다 — 카드의 효과(+20 · −20 · 거짓 판정)는 전부 서버 장부의 일이다 (worker/src/game/runtime.ts 의
  * cardUse · settleCompelled, game-protocol 의 CARD).
  */
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CARD, type CardItem, type GameSeat } from '@/world/mp/game-protocol';
 
 /**
@@ -41,16 +45,43 @@ export const CARD_INFO: Record<CardItem, { title: string; glyph: string; blurb: 
   calm: { title: '진정권', glyph: '☺', blurb: `나에게 걸린 의심도를 −${CARD.calmDrop}`, needsTarget: false },
 };
 
-/** 엎어진 카드의 번호 — 뒤집기 전에 이 세 장을 가르는 것은 순서뿐이다 */
-const BACK_MARK = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ', 'Ⅴ'];
-
 /**
  * 엎어진 세 장 중 하나 — 1등의 선택. **뭔지는 안 보인다** (2026-09-05 사용자: "아이템은 처음에 안 보이게 해서
  * 선택했을 때 보이게"). 서버도 장수만 준다(game_cards.offer 는 number) — 순서는 서버가 섞었다 (runtime 의 dealOrder).
  * 고르면 고른 장만 들리고 나머지는 물러난다. 그 뒤 CardReveal 이 같은 자리에 서서 뒤집어 보인다.
+ *
+ * 손은 마우스에만 있지 않다 (2026-09-05 사용자: "카드 고를때 숫자 1 2 3 눌러도 선택되어지게 · 카드에 숫자도
+ * 적어줘"). 카드 왼쪽 위의 키캡이 곧 누를 숫자이고, 그 숫자 키가 그 장을 고른다 — 다만 채팅을 치는 중이면
+ * 아무 일도 없다: 「1등」이라고 치는 손이 카드를 뽑아 버리면 안 된다.
  */
 export function CardOffer({ count, onPick }: { count: number; onPick: (index: number) => void }) {
   const [picked, setPicked] = useState<number | null>(null);
+  /* 고르는 것은 한 번뿐 — 클릭과 숫자 키가 같은 순간에 들어와도 서버에 두 번 가지 않게 ref 로 잠근다 */
+  const done = useRef(false);
+  const pick = useCallback(
+    (index: number) => {
+      if (done.current) return;
+      done.current = true;
+      setPicked(index);
+      onPick(index);
+    },
+    [onPick],
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      const n = Number(e.key);
+      if (!Number.isInteger(n) || n < 1 || n > count) return;
+      e.preventDefault();
+      pick(n - 1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [count, pick]);
+
   return (
     <div className="ig-cardpanel offer" role="dialog" aria-label="전리품 배분">
       <div className="panel">
@@ -75,13 +106,10 @@ export function CardOffer({ count, onPick }: { count: number; onPick: (index: nu
                 type="button"
                 className={`ig-card back${picked === i ? ' picked' : ''}`}
                 disabled={picked !== null}
-                onClick={() => {
-                  setPicked(i);
-                  onPick(i);
-                }}
-                aria-label={`${i + 1}번째 카드`}
+                onClick={() => pick(i)}
+                aria-label={`${i + 1}번 카드 — 숫자 키 ${i + 1}`}
               >
-                <span className="idx">{BACK_MARK[i] ?? i + 1}</span>
+                <span className="idx">{i + 1}</span>
                 <span className="glyph" aria-hidden>
                   ?
                 </span>
@@ -93,6 +121,7 @@ export function CardOffer({ count, onPick }: { count: number; onPick: (index: nu
 
         <div className="ft">
           <span className="ftx">답변 강제권 · 지목권 · 진정권 중 하나 — 뒤집어야 안다</span>
+          <span className="keys">숫자 키 {Array.from({ length: count }, (_, i) => i + 1).join(' ')}</span>
         </div>
       </div>
     </div>

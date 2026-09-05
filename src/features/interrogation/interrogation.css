@@ -1272,6 +1272,17 @@
    예전의 청록(#5fd4c4)은 뺐다: 이 화면은 /arena 에서 구조만 가져오고 색은 안 가져왔는데(맨 위 머리말)
    청록만 그 판의 색으로 남아 있었다. 끝 화면에서 초록(#8fbf87)을 뺀 것과 같은 이유다. */
 
+/* 이 판만 테두리를 폭 안으로 센다 — 전역 리셋이 없어서(styles/global.css) 안 적으면 content-box 다.
+   뒤집힌 앞면(.ig-card.face)이 폭 100% 에 좌우 18px 씩 안쪽 여백과 테두리를 **더해** 판보다 20px 넓어졌고,
+   그만큼이 판의 모따기(clip-path)에 잘려 오른쪽 테두리와 설명 끝이 사라졌다 (2026-09-05 사용자: "강제권
+   이런거 그거 UI 가 짤려"). 단추(.ig-card.back·mini)는 브라우저 기본이 이미 border-box 라 멀쩡했다 */
+.ig-cardpanel,
+.ig-cardpanel *,
+.ig-carddock,
+.ig-carddock * {
+  box-sizing: border-box;
+}
+
 /* 카드 한 장의 색 — 판(.ig-cardpanel)과 카드(.ig-card)가 같은 이름을 나눠 쓴다 */
 .ig-cardpanel.truth,
 .ig-card.truth {
@@ -1304,9 +1315,12 @@
   width: min(408px, calc(100vw - 32px));
   pointer-events: none;
 }
+/* minmax(0, 1fr) 이 아니면 칸의 최소치가 **내용의 최소 폭**이 된다 — 창이 좁을 때 안 줄어드는 카드 세 장이
+   판을 제 폭 밖으로 밀어내서, 셋째 장이 화면 오른쪽으로 잘려 나갔다 */
 .ig-cardpanel .panel {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   clip-path: var(--ig-chamfer);
   font-family: var(--font-mono);
   animation: ig-on 0.42s cubic-bezier(0.2, 0.9, 0.3, 1) both;
@@ -1331,13 +1345,14 @@
   animation: ig-shine 0.85s ease 0.35s 1 forwards;
 }
 
-/* ── 머리띠 ── 끝 화면의 그것과 같은 줄 */
+/* ── 머리띠 ── 끝 화면의 그것과 같은 줄. 오른쪽 여백만 넓다: 모따기가 오른쪽 위를 18px 깎고 지나가는 자리에
+   칩(.chip)의 테두리 있는 귀가 정확히 걸려 잘려 보였다 — 칩을 그 빗금 안쪽으로 물린다 */
 .ig-cardpanel .hd {
   position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px 8px 12px;
+  padding: 8px 20px 8px 12px;
   background: rgba(8, 6, 4, 0.9);
   border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
   border-bottom: 1px solid var(--ig-line-soft);
@@ -1435,6 +1450,7 @@
   justify-content: center;
   gap: 12px;
   margin-top: 14px;
+  min-width: 0;
   perspective: 900px;
 }
 
@@ -1442,8 +1458,9 @@
 .ig-cardpanel .ft {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 4px 10px;
   padding: 9px 12px;
   background: rgba(8, 6, 4, 0.94);
   border-left: 1px solid color-mix(in srgb, var(--rc) 42%, transparent);
@@ -1454,6 +1471,15 @@
   letter-spacing: 0.12em;
   line-height: 1.5;
   color: var(--grime);
+}
+/* 숫자 키 안내 — 카드 왼쪽 위의 키캡과 같은 말을 발치에서 한 번 더 (2026-09-05 사용자: "숫자 1 2 3 눌러도") */
+.ig-cardpanel .keys {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--rc) 72%, transparent);
 }
 /* 판이 걷힐 때까지 — 「배정 통보」처럼 숫자 없이 막대 하나로만 말한다 (--show 는 REVEAL_MS) */
 .ig-cardpanel .prog {
@@ -1532,7 +1558,8 @@
    입장은 한 장씩 차례로 놓인다(딜). fill 은 backwards 라 다 놓인 뒤 transform 은 hover 것이 된다 */
 .ig-card.back {
   --card-hue: rgba(232, 221, 205, 0.4);
-  width: 138px;
+  flex: 0 1 138px;
+  min-width: 0;
   height: 168px;
   padding: 14px 10px;
   gap: 9px;
@@ -1552,10 +1579,22 @@
 .ig-cardpanel .row .ig-card.back:nth-child(3) {
   animation-delay: 0.3s;
 }
+/* 번호 = 누를 키 — 「1」「2」「3」이 키캡 모양으로 선다. 이 숫자가 곧 그 장을 고르는 숫자 키다 */
 .ig-card.back .idx {
-  font-size: 11px;
-  letter-spacing: 0.24em;
-  color: var(--grime);
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  clip-path: var(--ig-chamfer-sm);
+  border: 1px solid rgba(232, 221, 205, 0.26);
+  background: rgba(232, 221, 205, 0.06);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  color: var(--dust);
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
 }
 .ig-card.back .glyph {
   font-size: 42px;
@@ -1574,7 +1613,11 @@
 .ig-card.back:hover:not(:disabled) .glyph {
   color: var(--amber);
 }
-.ig-card.back:hover:not(:disabled) .idx,
+.ig-card.back:hover:not(:disabled) .idx {
+  border-color: color-mix(in srgb, var(--amber) 62%, transparent);
+  background: color-mix(in srgb, var(--amber) 16%, transparent);
+  color: var(--amber);
+}
 .ig-card.back:hover:not(:disabled) .mark {
   color: var(--dust);
 }
@@ -1594,6 +1637,11 @@
 .ig-card.back.picked .glyph {
   color: var(--amber);
   text-shadow: 0 0 18px color-mix(in srgb, var(--amber) 55%, transparent);
+}
+.ig-card.back.picked .idx {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 22%, transparent);
+  color: var(--amber);
 }
 
 /* 뒤집힌 앞면 — 판 안에 한 장. 세로축으로 돌며 선다 */
