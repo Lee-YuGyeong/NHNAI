@@ -1311,6 +1311,8 @@ export class GameRuntime {
       humansOnline: roster.length,
       outcome: this.outcome,
       startedAt: this.startedAt || null,
+      // 붙잡고 있는 동안만 화면이 대본을 튼다 — 트는 쪽과 붙잡는 쪽이 같은 값을 봐야 안 겹친다
+      prologue: this.prologueHold !== null,
       talk: this.talkSnapshot(),
     };
   }

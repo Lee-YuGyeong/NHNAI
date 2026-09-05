@@ -85,13 +85,15 @@ function player(id: string, seat: number): PlayerSnapshot {
   return { id, seat, nickname: `닉${seat}`, x: 0, z: 0, y: 0, heading: 0, anim: 'idle' };
 }
 
-function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; engine?: GameEngine } = {}) {
+/** storage 를 건네면 같은 저장소로 런타임을 하나 더 세울 수 있다 — 워커가 되살리는 길을 재려고. engine 은 가짜 엔진을 바꿔 끼운다 */
+function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; storage?: DurableObjectStorage; engine?: GameEngine } = {}) {
   const roster = opts.players ?? [player('p1', 1), player('p2', 2), player('p3', 3)];
   const sent: Out[] = [];
   const direct: { to: string; msg: Out }[] = [];
   const engine = new FakeEngine();
+  const storage = opts.storage ?? fakeStorage();
   const rt = new GameRuntime({
-    storage: fakeStorage(),
+    storage,
     roster: () => roster,
     broadcast: (m) => sent.push(m),
     sendTo: (to, msg) => {
@@ -104,7 +106,7 @@ function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; engine?: Gam
   });
   const lastState = () => [...sent].reverse().find((m): m is { t: 'game_state'; state: GameStateWire } => m.t === 'game_state')!.state;
   const roleOf = (to: string) => [...direct].reverse().find((d) => d.to === to && d.msg.t === 'game_role')?.msg as Extract<GameS2CMessage, { t: 'game_role' }> | undefined;
-  return { rt, sent, direct, engine, roster, lastState, roleOf };
+  return { rt, sent, direct, engine, roster, storage, lastState, roleOf };
 }
 
 /**
@@ -439,6 +441,51 @@ describe('GameRuntime — 프롤로그 방송이 끝나야 판이 열린다', ()
     expect(h.lastState().phase).toBe('discussion');
     await vi.advanceTimersByTimeAsync(GAME_FIRST_DISCUSSION_MS);
     expect(h.lastState().phase).toBe('test');
+  });
+
+  /*
+   * **트는 쪽과 붙잡는 쪽이 같은 값을 봐야 한다** (2026-09-05 사용자: 「지금 프롤로그를 껴서 겹치거든」).
+   *
+   * 화면이 혼자 「첫 토론이고 시험이 없으면 튼다」로 정하면 서버가 아직 붙잡는 중인지 이미 걷고
+   * 40초를 세는 중인지를 모른다 — 그 어긋남이 곧 방송과 대화가 겹치는 자리다.
+   */
+  it('붙잡고 있는 동안만 화면에 틀라고 알린다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    expect(h.lastState().prologue).toBe(true);
+
+    for (const p of ['p1', 'p2', 'p3']) await h.rt.handle(p, { t: 'game_prologue_done' });
+    expect(h.lastState().prologue).toBe(false);
+  });
+
+  /** 방송이 끝난 뒤 새로고침한 화면이 대본을 처음부터 다시 틀던 자리 — 서버는 이미 40초를 세고 있다 */
+  it('걷힌 뒤 다시 물어도 틀라고 하지 않는다 — 새로고침이 대본을 되감지 않게', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    await vi.advanceTimersByTimeAsync(10_000);
+    // 새로고침한 화면이 붙자마자 상태를 다시 묻는다 (GameConnection 의 game_sync)
+    await h.rt.handle('p1', { t: 'game_sync' });
+    const back = [...h.direct].reverse().find((d) => d.to === 'p1' && d.msg.t === 'game_state')!.msg as { t: 'game_state'; state: GameStateWire };
+    // 국면·시험 수만 보면 첫 토론과 구별이 안 된다 — 그래서 붙잡기를 따로 싣는다
+    expect(back.state.phase).toBe('discussion');
+    expect(back.state.testsDone).toBe(0);
+    expect(back.state.prologue).toBe(false);
+  });
+
+  /** 워커가 되살린 판은 붙잡기 없이 열린다 (restoreIfNeeded) — 화면이 그걸 첫 토론으로 보면 또 겹친다 */
+  it('되살린 판은 틀라고 하지 않는다 — 붙잡기 없이 열리는 판이다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    expect(h.lastState().prologue).toBe(true);
+
+    // 워커가 다시 떴다 — 같은 저장소에 새 런타임이 붙어 판을 되살린다
+    const h2 = harness({ storage: h.storage, players: h.roster });
+    await h2.rt.handle('p1', { t: 'game_sync' });
+    expect(h2.lastState().phase).toBe('discussion');
+    expect(h2.lastState().prologue).toBe(false);
   });
 
   it('방송을 보던 사람이 나가면 남은 사람만 기다린다', async () => {

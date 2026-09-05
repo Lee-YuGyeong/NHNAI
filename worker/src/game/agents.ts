@@ -249,16 +249,28 @@ const STRATEGY_TOOL: ToolSpec = {
 /**
  * "이번엔 얼마나 티 나게 반응할지" — 테스트 시작 전 LLM 한 번 (§4.3). 실행은 서버 프로파일이 한다.
  * 못 받으면 의심도에 따라 규칙으로: 많이 의심받을수록 사람처럼(낮게) 간다.
+ *
+ * **성격이 여기에도 들어간다.** 원래는 persona 를 인자로 받기만 하고 프롬프트에 안 넣었다 —
+ * 그래서 「따지는 민재」든 「말수 적은 하늘」이든 같은 판단을 했고, 말과 몸이 따로 놀았다.
+ * 판을 끄는 성격이 몸만 얌전한 것도, 재는 성격이 몸만 과감한 것도 그 자체로 어긋남이다.
+ * 모델도 성격이 쥔 것으로 고른다 (sayAs 와 같은 자리에서 같은 값을 쓴다).
  */
 export async function aiStrategy(brain: Brain, args: { name: string; persona: Persona; facts: RoomFacts; game: TrialGame; mySuspicion: number }): Promise<number> {
   const fallback = () => clamp01(0.45 + (Math.random() - 0.5) * 0.3 - args.mySuspicion / 250);
   const out = await brain.ask({
-    model: 'claude-sonnet-5',
+    model: args.persona.model,
     system: `${WORLD}
 
 너는 ${args.name} 다. 너는 표식 없는 AI 고, 곧 「${TEST_NAME[args.game]}」 테스트가 열린다. 몸은 서버가 네 대신 움직인다 —
 너는 **얼마나 사람처럼 굴지**만 정한다. 기록은 무리 평균 대비 편차로 전원에게 공개된다: 너무 정확하면 튀고, 너무 엉망이어도 튄다.
-사람들 기록의 흩어짐 안에 숨는 것이 최선이다.`,
+사람들 기록의 흩어짐 안에 숨는 것이 최선이다.
+
+성격:
+${args.persona.prompt}
+
+이 성격은 네가 방에서 말할 때 쓰는 그 성격이다 — **몸도 같은 성격으로 움직여야 한다.**
+신중한 쪽이면 무리 안쪽으로 낮게 잡고, 판을 끄는 쪽이면 조금 더 밀어 본다.
+말은 느긋한데 기록만 완벽하면 그 어긋남이 먼저 걸린다.`,
     user: `${factsText(args.facts)}
 
 지금 너는 ${suspicionWord(args.mySuspicion)} 상태다. precision 을 정해라.`,

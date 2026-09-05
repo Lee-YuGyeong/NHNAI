@@ -55,8 +55,13 @@ export function gravityForPhase(phase: number): number {
  * 새 공. at 을 주면 그 근처(반지름 aimR 안)로 — 통제실이 참가자를 **겨냥해** 떨어뜨릴 때다.
  * 마당이 넓어 아무 데나 떨어뜨리면 한 판에 사람 머리 위로 오는 게 거의 없다 — 그러면
  * 회피 기록이 비어 판별이 안 선다. 겨냥한 것도 마당 밖으로는 안 나간다.
+ *
+ * 겨냥 반경 0.9m 는 맞는 거리(공 0.24 + 몸 0.35 = 0.59m)보다 넓어서, 겨냥한 공의 절반 남짓이 애초에
+ * 빗나가 있었다 — 가만히 서 있어도 안 맞는 공이다. 0.65m 로 좁힌다 (2026-09-05 사용자: "공 난이도도
+ * 높여줘") — 겨냥했으면 **피해야** 안 맞는다. 그래도 정확히 머리 위는 아니다: 어디로 피할지 고르는
+ * 여지가 남아야 회피 방향이 기록으로 남는다 (stats.ts 의 minDistanceAvoid).
  */
-export function spawnObject(id: number, now: number, rand: () => number = Math.random, at?: { x: number; z: number }, aimR = 0.9, kind?: number): FallObject {
+export function spawnObject(id: number, now: number, rand: () => number = Math.random, at?: { x: number; z: number }, aimR = 0.65, kind?: number): FallObject {
   let x = FALL_ARENA.minX + rand() * (FALL_ARENA.maxX - FALL_ARENA.minX);
   let z = FALL_ARENA.minZ + rand() * (FALL_ARENA.maxZ - FALL_ARENA.minZ);
   if (at) {

@@ -14,7 +14,7 @@
  * 이 파일은 모른다 (game-protocol.ts 머리말). **내 머리 위에도 의심도 막대**가 붙는다 — 이름표 없이 막대만
  * (SelfAvatar.tsx 머리말).
  */
-import { Suspense, useCallback, useEffect } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
@@ -23,14 +23,13 @@ import { EYE_HEIGHT, FALL_ARENA, HUNT_ARENA } from '@/world/mp/constants';
 import type { BodyId } from '@/world/mp/bodies';
 import type { AnimState, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
-import { preloadAsset } from '@/world/assets/loader';
 import { AdaptiveFov, Exposure, MouseLook } from '@/world/scene/WorldScene';
 import { WorldCanvas } from '@/world/scene/WorldCanvas';
 import { SeatBodies } from './SeatAvatar';
 import { Executioner } from './Executioner';
 import { SelfAvatar } from './SelfAvatar';
 import { selfPose } from './selfPose';
-import { ARENA_WORK_LIGHTS, FALL_PARTS, FallStage } from './FallStage';
+import { ARENA_WORK_LIGHTS, FallStage } from './FallStage';
 import { PlatformCourse } from './PlatformCourse';
 import { PLATFORM_ARENA } from '@/world/mp/platform';
 // 색 사냥의 구슬 · 견본판 · E 키는 /trial 과 같은 부품이다 — 상태(huntState)가 하나라 화면도 하나로 그린다
@@ -92,13 +91,19 @@ export interface HallSceneProps {
 
 export function HallScene(p: HallSceneProps) {
   /*
-   * 낙하 생존의 GLB(배출 호퍼 · 공 다섯)를 **호루라기 전에** 받아 둔다.
-   * 안 그러면 시험이 열리는 그 프레임에 여섯 개가 한꺼번에 온다 — 받고 · 풀고 · 텍스처를 GPU 로 올리는 일이
-   * 첫 공이 떨어지는 순간과 겹쳐서, 피해야 할 바로 그때 화면이 멎는다 (2026-09-05 측정: 전환 순간 GLB 만 240~450ms).
-   * 홀 자체의 부품 열여섯 개와 다투지 않게 2초 미룬다 — 호루라기까지는 아직 40초가 넘게 남았다.
+   * 낙하 무대를 **판이 열리자마자 안 보이게 세워 둔다** (아래 `stageReady`).
+   *
+   * 호루라기가 울릴 때 세우면 그 한 프레임에 두 가지가 겹쳤다 — 부품 여섯을 받아 풀고(240~450ms),
+   * 그 재질의 셰이더 프로그램을 만들며 링크가 끝나기를 기다리는 것(335ms, 처음 여는 판은 1.3초).
+   * 피하라고 만든 게임이 피할 수 없는 순간부터 시작하고 있었다 (2026-09-05 측정).
+   * 미리 세워 두면 둘 다 토론 중에 끝난다 — 링크는 FallStage 의 Precompile 이 마저 시킨다.
+   *
+   * 2초 미루는 것은 홀 자체의 부품 열여섯 개와 안 다투게 — 호루라기까지는 아직 40초가 넘게 남았다.
+   * 시험이 이미 낙하면(새로고침 등) 기다리지 않고 그 자리에서 세운다.
    */
+  const [stageReady, setStageReady] = useState(false);
   useEffect(() => {
-    const id = window.setTimeout(() => FALL_PARTS.forEach(preloadAsset), 2000);
+    const id = window.setTimeout(() => setStageReady(true), 2000);
     return () => window.clearTimeout(id);
   }, []);
 
@@ -142,8 +147,13 @@ export function HallScene(p: HallSceneProps) {
         {stopline && p.test ? <TrackDressing round={p.test.round} /> : null}
       </Suspense>
       {def.Effects ? <def.Effects /> : null}
-      {/* 낙하 생존 — 공(종류별 GLB · 그림자 원반)과 천장 배출 호퍼는 /trial 과 같은 부품이다 (FallStage 머리말) */}
-      {fall ? <FallStage /> : null}
+      {/* 낙하 생존 — 공(종류별 GLB · 그림자 원반)과 천장 배출 호퍼는 /trial 과 같은 부품이다 (FallStage 머리말).
+          시험 전에도 서 있고 그때는 안 보인다 — 이유는 위의 stageReady */}
+      {fall || stageReady ? (
+        <group visible={fall}>
+          <FallStage />
+        </group>
+      ) : null}
       {/* 움직이는 플랫폼 — 발판 열은 platformState 로 프레임마다 자리를 잡는다 (PlatformCourse 머리말) */}
       {platform ? (
         <Suspense fallback={null}>
