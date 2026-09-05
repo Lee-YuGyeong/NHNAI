@@ -74,6 +74,122 @@ function fmt(v: number | undefined): string {
   return Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2);
 }
 
+/* ── 기록을 말로 — 참가자에게 주는 판 ───────────────────────────────────────────
+ *
+ * ★ **참가자에게는 숫자를 주지 않는다.** 주면 그대로 읽는다 — "회복 986", "중앙착지 0.6".
+ *   사람은 그렇게 말하지 않는다. 게다가 말 읽기(readTalk)의 첫째 눈이 무는 것이 바로
+ *   「사람이 안 쓰는 정밀함(수치·단위를 굳이 정확히)」이라, 지금 구조는 봇에게 숫자를 쥐여 주고
+ *   그걸 읽었다고 의심도를 올리는 덫이었다. suspicionWord 가 의심도에 한 일을 기록에도 한다.
+ *
+ * 관리 AI 는 계속 숫자로 본다 (resultText) — 방송은 원자료를 읽는 자리이고(leaderComment),
+ * 해명을 기록과 대조하려면(judgeClaim · readTalk ②) 값이 정확해야 한다.
+ * 참가자가 근거를 못 대게 되는 것도 아니다: 「너만 균형 회복이 유난히 빨랐잖아」로 충분하고,
+ * 그 말이 맞는지는 여전히 숫자를 쥔 관리 AI 가 판정한다.
+ */
+
+/**
+ * 값이 무리보다 **낮을 때 / 높을 때** 의 말. 단위도 숫자도 안 쓴다.
+ * 어구 자체에는 강도를 넣지 않는다 — 강도는 gapPhrase 의 부사(조금·꽤·혼자만)가 진다.
+ * 「거의 안 맞았다」처럼 어구가 이미 세면 「조금 거의 안 맞았다」가 나온다.
+ */
+const METRIC_DIR: Record<string, [string, string]> = {
+  stopError: ['정지선 앞에서 멈췄다', '정지선을 넘어갔다'],
+  brakeTiming: ['브레이크를 늦게 밟았다', '브레이크를 일찍 밟았다'],
+  transitionError: ['조건이 바뀌어도 안 흔들렸다', '조건이 바뀌자 흔들렸다'],
+  hitCount: ['안 맞았다', '맞았다'],
+  survivalTime: ['일찍 맞았다', '늦게까지 버텼다'],
+  unnecessaryMoves: ['적게 움직였다', '많이 움직였다'],
+  minDistanceAvoid: ['아슬아슬하게 피했다', '여유 있게 피했다'],
+  accuracy: ['오답이 많았다', '정답이 많았다'],
+  wrongPicks: ['오답이 적었다', '오답이 많았다'],
+  hesitationMs: ['빨리 골랐다', '망설이다 골랐다'],
+  picks: ['적게 골랐다', '많이 골랐다'],
+  jumps: ['적게 뛰었다', '많이 뛰었다'],
+  meanAirMs: ['짧게 떴다', '오래 떠 있었다'],
+  landingRate: ['자주 놓쳤다', '잘 착지했다'],
+  centerRate: ['발판 가장자리를 밟았다', '발판 한가운데를 밟았다'],
+  misses: ['안 놓쳤다', '자주 놓쳤다'],
+  meanOffset: ['중심 가까이 섰다', '중심에서 벗어나 섰다'],
+  recoveryMs: ['균형을 빨리 잡았다', '착지하고 휘청였다'],
+  finishMs: ['빨리 끝냈다', '오래 걸렸다'],
+};
+
+/** 무리의 흩어짐 — 전원이 같으면 0 */
+function spreadOf(vals: number[]): number {
+  const ok = vals.filter((v) => Number.isFinite(v));
+  if (ok.length < 2) return 0;
+  const m = ok.reduce((a, b) => a + b, 0) / ok.length;
+  return Math.sqrt(ok.reduce((a, b) => a + (b - m) ** 2, 0) / ok.length);
+}
+
+/** 무리에서 얼마나 떨어졌나 — 흩어짐의 몇 배인가로 본다. 붙을 말이 없으면 빈 문자열 */
+function gapPhrase(v: number, mean: number, sd: number, dir: [string, string] | undefined): string {
+  if (!Number.isFinite(v) || !Number.isFinite(mean) || !dir) return '';
+  const d = v - mean;
+  const word = d < 0 ? dir[0] : dir[1];
+  // 흩어짐이 없으면(전원이 같은 값) 견줄 자리가 없다 — 「무리와 똑같다」가 그 자체로 사실이다
+  if (sd <= 1e-6) return '무리와 똑같다';
+  const z = Math.abs(d) / sd;
+  if (z < 0.5) return '무리와 비슷하다';
+  if (z < 1.2) return `조금 ${word}`;
+  if (z < 2) return `꽤 ${word}`;
+  return `혼자만 ${word}`;
+}
+
+/** 오차 방향 부호열을 말로 — 한쪽으로 쏠렸나, 흔들렸나 (§3 의 「일부러 틀렸다 / 감각이 있다」) */
+function dirPhrase(signs: number[]): string {
+  if (signs.length < 2) return '';
+  const plus = signs.filter((s) => s >= 0).length;
+  if (plus === signs.length || plus === 0) return '오차가 한쪽으로만 쏠렸다';
+  const flips = signs.slice(1).filter((s, i) => s >= 0 !== signs[i] >= 0).length;
+  return flips >= signs.length - 1 ? '오차 방향이 매번 뒤집혔다' : '오차 방향이 왔다갔다 했다';
+}
+
+/** 적응 곡선을 말로 — 사람은 우하향한다. 「처음부터 끝까지 똑같았다」가 이 판에서 제일 무거운 말이다 */
+function adaptPhrase(curve: number[]): string {
+  const ok = curve.filter((v) => Number.isFinite(v));
+  if (ok.length < 2) return '';
+  const first = ok[0];
+  const last = ok[ok.length - 1];
+  const scale = Math.max(Math.abs(first), Math.abs(last), 1e-6);
+  const change = (last - first) / scale;
+  if (change < -0.15) return '갈수록 나아졌다';
+  if (change > 0.15) return '갈수록 나빠졌다';
+  return '처음부터 끝까지 똑같았다';
+}
+
+/** 안 튄 것 — 줄에서 뺀다 (아래 resultWords 머리말) */
+const SAME_AS_GROUP = new Set(['무리와 비슷하다', '무리와 똑같다']);
+
+/** 결과 표 한 장을 **말로** — 참가자(sayAs · aiStrategy)가 보는 판. 숫자가 하나도 없다 */
+export function resultWords(r: TrialResultWire, nameOf: (id: string) => string): string {
+  const keys = Object.keys(r.groupMean);
+  const sd: Record<string, number> = {};
+  for (const k of keys) sd[k] = spreadOf(r.players.map((p) => p.metrics[k]));
+  const transSd = spreadOf(r.players.map((p) => p.transitionError));
+  const transMean = r.players.reduce((a, p) => a + (p.transitionError || 0), 0) / Math.max(1, r.players.length);
+
+  const rows = r.players.map((p) => {
+    /*
+     * **갈린 것만 남긴다.** 「무리와 비슷하다」를 열마다 적으면 한 줄에 네다섯 번 나오고,
+     * 그 잡음 속에서 진짜 튄 한 항목이 묻힌다. 아무것도 안 튀었으면 그 사실을 한 번만 말한다.
+     */
+    const gaps = keys
+      // transitionError 는 아래에서 따로 붙인다 — groupMean 에도 있으면 같은 말이 두 번 나온다
+      .filter((k) => k !== 'transitionError')
+      .map((k) => gapPhrase(p.metrics[k], r.groupMean[k], sd[k], METRIC_DIR[k]))
+      .filter((w) => w && !SAME_AS_GROUP.has(w));
+    const trans = gapPhrase(p.transitionError, transMean, transSd, METRIC_DIR.transitionError);
+    if (trans && !SAME_AS_GROUP.has(trans)) gaps.push(trans);
+    const parts = gaps.length ? gaps : ['무리 안에 있다'];
+    for (const extra of [dirPhrase(p.errorDirection), adaptPhrase(p.adaptationCurve)]) {
+      if (extra) parts.push(extra);
+    }
+    return `${nameOf(p.id)}: ${parts.join(' · ')}`;
+  });
+  return [`[${TEST_NAME[r.game]} · ${r.round}회차] 무리와 견준 자리`, ...rows].join('\n');
+}
+
 /** 의심도를 말로 — 숫자를 주면 모델이 "너 60%잖아" 라고 읽는다 (lab/talk 의 suspicionLabel 과 같은 이유) */
 export function suspicionWord(v: number): string {
   if (v >= 80) return '격리 직전';
@@ -97,6 +213,12 @@ export interface RoomFacts {
   testsDone: number;
 }
 
+/**
+ * 참가자가 보는 공개 사실 — **숫자가 하나도 없다.**
+ * 기록은 resultWords 로 말이 되고(위 머리말), 의심도는 suspicionWord 로 말이 된다.
+ * 이 함수를 쓰는 곳은 sayAs 와 aiStrategy 뿐이다 — 관리 AI 셋(leaderComment · judgeClaim · readTalk)은
+ * resultText 를 직접 써서 계속 숫자로 본다.
+ */
 function factsText(f: RoomFacts): string {
   const alive = f.seats.filter((s) => !s.isolated).map((s) => s.name);
   const iso = f.isolated.length
@@ -111,7 +233,7 @@ function factsText(f: RoomFacts): string {
     .join(', ');
   return `지금 방에 있는 사람: ${alive.join(', ')}.${iso}
 지금까지 열린 테스트: ${f.testsDone}회.
-${f.latest ? `가장 최근 기록:\n${resultText(f.latest, f.nameOf)}` : '아직 공개된 기록이 없다.'}
+${f.latest ? `가장 최근 기록:\n${resultWords(f.latest, f.nameOf)}` : '아직 공개된 기록이 없다.'}
 의심 상태: ${sus || '아직 아무도 안 걸렸다'}
 실시간 지목: ${acc || '없다'}
 최근 대화:
@@ -141,7 +263,8 @@ const SAY_TOOL: ToolSpec = {
 const COMMON_RULES = `공통 규칙:
 - 완전히 사람처럼, 친구들끼리 하는 채팅처럼 쓴다. 마침표를 잘 안 찍고, 말끝을 흐려도 된다. 이모지는 안 쓴다.
 - **짧게.** 한 줄 = 한 문장, 25자 안팎. 하고 싶은 말이 더 있으면 다음 차례에.
-- 화면 수치를 입으로 읽지 않는다 ("의심도 60%" 금지). "너 아까부터 계속 걸리잖아" 처럼 말로 짚는다.
+- **숫자와 단위를 입에 올리지 않는다.** "회복 986", "중앙착지 0.6", "의심도 60%" 전부 금지 —
+  사람은 그렇게 말하지 않는다. "너 착지하고 안 휘청이던데" 처럼 말로 짚는다.
 - 기록을 근거로 말한다 — "정지선에서 너만 반대로 밀렸잖아", "중력 바뀌자마자 바로 피하더라" 처럼 **어느 기록이 걸렸는지** 짚는다.
 - 의심을 던질 때는 죄목을 말한다: "너 AI 아니야?" 처럼. 뭉개서 "수상해" 만 하는 건 금지.
 - 지목당하면 발끈하고 반박한다. 남 얘기로 돌려도 된다.

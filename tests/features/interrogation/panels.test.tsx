@@ -2,14 +2,14 @@
 /**
  * 「인간인 척」의 판들 — 서버 상태를 그대로 그리는지, 그리고 그리면 안 되는 것을 안 그리는지.
  *   ① 결과 모달: 무리 평균이 참가자 줄과 같이 서고 「의심」·「정상」 같은 판정 낱말이 없다
- *   ② 끝 화면: 정체표 전부와 승패 한 줄
+ *   ② 끝 화면: 정체표 전부와 승패 한 줄 · 「다시 — 새 판」이 그 자리에서 새 판을 청한다
  *   ③ 저장소(interrogationSlice): 새 판이 열리면 지난 판의 흔적이 지워진다
  *
  * 좌석판(Board)은 이제 없다 — 의심도는 몸 위의 막대로만 읽고, 눈금을 움직이는 것은 관리 AI 의 말 읽기다
  * (hud/Panels.tsx 머리말 · worker 쪽 시험은 tests/worker/game-runtime.test.ts).
  */
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import { Chat, EndScreen, ResultModal } from '@/features/interrogation/hud/Panels';
 import { gameActions, interrogationSlice } from '@/features/interrogation/interrogationSlice';
@@ -130,6 +130,7 @@ describe('EndScreen', () => {
         mySeatId="s1"
         myRole="human"
         endsAt={null}
+        canStart
         onAgain={() => {}}
       />,
     );
@@ -140,6 +141,50 @@ describe('EndScreen', () => {
     // 내 결과 칩 — 「나는 사람이었다 · 승리」
     expect(screen.getByText('승리')).toBeInTheDocument();
     expect(screen.getByText(/나는/)).toHaveTextContent('사람이었다');
+  });
+
+  /*
+   * 「다시 — 새 판」은 그 자리에서 새 판을 청한다 (2026-09-05 사용자: "새 판 누르면 새판으로 바로 안넘어가").
+   * 예전엔 새로고침이라 다시 붙어도 서버는 아직 끝난 판이었고, 같은 끝 화면이 한 번 더 섰다.
+   */
+  it('「다시 — 새 판」은 한 번만 청하고, 청한 뒤에는 눌리지 않는다', () => {
+    const onAgain = vi.fn();
+    render(
+      <EndScreen
+        outcome={{ winner: 'ai', reason: '사람이 다 격리됐다.', aiId: 's2', designersWon: [], designersLost: [] }}
+        roles={{ s1: 'human', s2: 'ai', s3: 'human' }}
+        seats={WIRE.seats}
+        mySeatId="s1"
+        myRole="human"
+        endsAt={null}
+        canStart
+        onAgain={onAgain}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '다시 — 새 판' }));
+    expect(onAgain).toHaveBeenCalledTimes(1);
+    // 서버가 새 판을 여는 사이 — 한 번 더 눌러도 거절뿐이라 손을 막는다
+    const busy = screen.getByRole('button', { name: '여는 중…' });
+    expect(busy).toBeDisabled();
+    fireEvent.click(busy);
+    expect(onAgain).toHaveBeenCalledTimes(1);
+  });
+
+  it('방장이 아니면 단추가 없다 — 눌러도 서버가 거절할 뿐이다', () => {
+    render(
+      <EndScreen
+        outcome={{ winner: 'humans', reason: 'AI 가 격리됐다.', aiId: 's2', designersWon: [], designersLost: [] }}
+        roles={{ s1: 'human', s2: 'ai', s3: 'human' }}
+        seats={WIRE.seats}
+        mySeatId="s1"
+        myRole="human"
+        endsAt={null}
+        canStart={false}
+        onAgain={() => {}}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /새 판/ })).toBeNull();
+    expect(screen.getByText('방장이 새 판을 연다')).toBeInTheDocument();
   });
 });
 

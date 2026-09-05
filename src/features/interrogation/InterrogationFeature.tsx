@@ -555,6 +555,20 @@ export function InterrogationFeature() {
     autoSent.current = true;
     onStart(AUTO_SEATS - 1);
   }, [phase, status, selfId, hostId, keepLobby, onStart]);
+  /*
+   * 끝 화면의 「다시 — 새 판」 — 서버에 **곧바로** 시작을 청한다. 예전엔 새로고침이었는데, 다시 붙어도 서버는
+   * 아직 끝난 판(ended)이라 같은 끝 화면이 시계도 없이 한 번 더 섰다: GAME_ENDED_MS 가 다 지나 서버가 스스로
+   * 로비로 되돌릴 때까지 기다려야 새 판이 열렸다 (2026-09-05 사용자: "새 판 누르면 새판으로 바로 안넘어가").
+   * 서버는 끝 화면 중에도 방장의 시작을 받는다 — 그 시작이 곧 「다시 하기」다 (runtime.start 의 ended 갈래).
+   *
+   * autoSent 를 미리 세워 둔다: 서버가 판을 접으며 로비를 한 번 스쳐 방송하므로(resetToLobby 의
+   * broadcastState) 그 찰나에 위의 자동 시작이 또 나가면 「이미 판이 열려 있다」로 거절된다. 판이 briefing 으로
+   * 바뀌는 순간 위 효과가 다시 돌며 스스로 내린다.
+   */
+  const onAgain = useCallback(() => {
+    autoSent.current = true;
+    onStart(AUTO_SEATS - 1);
+  }, [onStart]);
   const onTamper = useCallback((target: string, direction: 'suspicious' | 'normal') => conn.game({ t: 'game_tamper', target, direction }), [conn]);
 
   /* ─────────────────────────────── 피격 번쩍임 ─────────────────────────────── */
@@ -762,7 +776,8 @@ export function InterrogationFeature() {
             mySeatId={mySeatId}
             myRole={me?.role ?? null}
             endsAt={endedAt === null ? null : endedAt + GAME_ENDED_MS}
-            onAgain={() => window.location.reload()}
+            canStart={!!selfId && hostId === selfId}
+            onAgain={onAgain}
           />
         ) : null}
       </div>

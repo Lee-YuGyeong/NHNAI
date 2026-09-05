@@ -1068,6 +1068,13 @@
   cursor: pointer;
   white-space: nowrap;
 }
+/* 눌렀다 — 서버가 새 판을 여는 사이. 한 번 더 눌러도 거절뿐이라 손을 막는다 */
+.ig-endpanel .again:disabled {
+  cursor: default;
+  border-color: color-mix(in srgb, var(--rc) 26%, transparent);
+  color: color-mix(in srgb, var(--rc) 62%, transparent);
+  background: transparent;
+}
 .ig-endpanel .again:hover:not(:disabled) {
   transform: none;
   border-color: color-mix(in srgb, var(--rc) 75%, transparent);

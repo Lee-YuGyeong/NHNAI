@@ -54,7 +54,7 @@ import {
   type GameTestInfo,
   type LeaderKind,
 } from '../../../src/world/mp/game-protocol';
-import { pickBody, type BodyId } from '../../../src/world/mp/bodies';
+import { genderOf, pickBody, type BodyId } from '../../../src/world/mp/bodies';
 import { WALK_SPEED } from '../../../src/world/mp/constants';
 import { givenOf, pickKoreanNames } from '../../../src/world/mp/koreanNames';
 import type { PlayerSnapshot, S2CMessage, TrialGame, TrialPlayerResult, TrialResultWire } from '../../../src/world/mp/protocol';
@@ -524,9 +524,10 @@ export class GameRuntime {
     }
 
     // 좌석을 섞는다 — AI 와 설계자도 순열에 든다 (§1.1). 이름은 「SUBJECT 01」이 아니라 한국인 이름이다 — 한 판 안에서
-    // 성도 이름도 겹치지 않게 뽑는다 (mp/koreanNames, 2026-09-05 사용자). 좌석 번호(seat)는 그대로 있어 「3번」도 여전히 통한다
+    // 성도 이름도 겹치지 않고, 몸의 성별을 따른다: 남군은 남자 이름, 여군은 여자 이름 (mp/koreanNames, 2026-09-05 사용자).
+    // 좌석 번호(seat)는 그대로 있어 「3번」도 여전히 통한다
     const order = shuffled([...humans, ai], this.rand);
-    const names = pickKoreanNames(order.length, this.rand);
+    const names = pickKoreanNames(order.map((s) => genderOf(s.body)), this.rand);
     this.seats = order.map((s, i) => ({ ...s, seat: i + 1, name: names[i] }));
     this.bindings = new Map();
     for (const p of roster) {
