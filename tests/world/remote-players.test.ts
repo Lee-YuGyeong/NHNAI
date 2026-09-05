@@ -43,3 +43,31 @@ describe('remotePlayers.settle — 무대가 걷히면 바닥으로', () => {
     expect(remotePlayers.get('c')!.buffer.at(-1)).toEqual({ t: 2000, x: 1, z: 2, y: 0, heading: 0.5 });
   });
 });
+
+describe('remotePlayers.delayOf — 망이 흔들리면 그만큼 뒤에서 그린다', () => {
+  beforeEach(() => remotePlayers.clear());
+
+  it('고른 10Hz 는 기본 지연 그대로, 몰려 오는 샘플은 지연을 늘린다 — 상한 450', () => {
+    remotePlayers.add(snap('a', 0), 0);
+    for (let t = 100; t <= 1500; t += 100) remotePlayers.move('a', t / 1000, 0, 0, 0, 'walk', t);
+    expect(remotePlayers.delayOf(remotePlayers.get('a')!)).toBe(INTERP_DELAY_MS);
+
+    // 배포본의 망 — 두 개가 붙어 오고 한 박자 비고 (100 · 400 · 500 · 800 · 900 …)
+    remotePlayers.add(snap('b', 0), 0);
+    let t = 0;
+    for (let i = 0; i < 20; i += 1) {
+      t += i % 2 ? 100 : 300;
+      remotePlayers.move('b', t / 1000, 0, 0, 0, 'walk', t);
+    }
+    const d = remotePlayers.delayOf(remotePlayers.get('b')!);
+    expect(d).toBeGreaterThan(INTERP_DELAY_MS + 60);
+    expect(d).toBeLessThanOrEqual(450);
+  });
+
+  it('한참 서 있다 온 첫 샘플은 흔들림이 아니다 — 멈춰 있던 몸이 움직이기 시작해도 지연이 안 튄다', () => {
+    remotePlayers.add(snap('c', 0), 0);
+    remotePlayers.move('c', 1, 0, 0, 0, 'walk', 100);
+    remotePlayers.move('c', 1, 0, 0, 0, 'walk', 5_000); // 5초 만에
+    expect(remotePlayers.delayOf(remotePlayers.get('c')!)).toBe(INTERP_DELAY_MS);
+  });
+});

@@ -158,10 +158,16 @@ export const WALL_LAMP = { y: 2.9, size: 0.34, off: 1.1 } as const;
 
 /* ─────────────────────────────── 조명 자리 ─────────────────────────────── */
 
-/** bay 마다 형광등 점광원 — 천장에서 조금 아래. 차갑고 넓게 */
-export const BAY_LIGHT = { y: CEILING_Y - 2.2, intensity: 24, distance: 20 } as const;
-/** 상황판 → 무대·홀 앞쪽으로 번지는 푸른 빛 */
-export const BOARD_LIGHT = { y: 6, off: 3.5, intensity: 22, distance: 16 } as const;
+/**
+ * 형광등 점광원 — 천장에서 조금 아래, 차갑고 넓게. **bay 여덟에 하나씩이 아니라 둘에 하나씩** 넷이다 (2026-09-05 최적화):
+ * 광원은 세기·거리와 무관하게 개수만큼 모든 픽셀의 셰이더 루프를 늘리고, 이 홀은 큰 콘크리트 면이 화면을 채우는 씬이라
+ * 광원 수가 곧 GPU 시간이었다. 거리 20 짜리 여덟이 4m 간격으로 겹쳐 있었으니 넷을 8m 간격 · 거리 24 · 세기 두 배로 놓으면
+ * 바닥의 밝기 분포는 거의 같다. 형광등 **기구**(FLUOR)는 bay 마다 그대로 — 빛나 보이는 것은 발광 재질이지 광원이 아니다.
+ */
+export const BAY_LIGHT = { y: CEILING_Y - 2.2, intensity: 46, distance: 24 } as const;
+export const BAY_LIGHT_ZS = [-16, -8, 0, 8] as const;
+/** 상황판 → 무대·홀 앞쪽으로 번지는 푸른 빛 — 셋(좌·중·우)이 하나로. 세 판이 한 벽에 붙어 있어 한 광원으로 같은 색이 번진다 */
+export const BOARD_LIGHT = { y: 6, off: 3.5, intensity: 44, distance: 20 } as const;
 /** 끝벽 앞 스포트 (천장 기구에서 처형자가 서는 자리) — 단상은 없어졌지만 빛은 그 자리에 그대로 떨어진다 */
 export const STAGE_SPOT = { y: CEILING_Y - 0.4, intensity: 110, angle: 0.5, distance: 16 } as const;
 /** 끝벽 철문 벽등의 점광원 */

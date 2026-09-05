@@ -25,7 +25,6 @@ import * as THREE from 'three';
 
 import { RobotAvatar } from '@/world/avatar/RobotAvatar';
 import { SoldierAvatar } from '@/world/avatar/SoldierAvatar';
-import { INTERP_DELAY_MS } from '@/world/mp/constants';
 import { sampleAt, type Pose } from '@/world/mp/interp';
 import type { AnimState } from '@/world/mp/protocol';
 import { remotePlayers, type RemotePlayer } from '@/world/net/remote-players';
@@ -103,7 +102,8 @@ const SeatAvatar = memo(function SeatAvatar({
 
     // 150ms 과거를 그린다. 최신 샘플을 바로 그리면 패킷이 한 번 늦을 때마다 튄다
     const now = performance.now();
-    if (sampleAt(player.buffer, now - INTERP_DELAY_MS, pose.current)) {
+    // 얼마나 과거를 그리나는 그 몸의 망 흔들림이 정한다 (remotePlayers.delayOf) — 고정 150ms 는 배포본에서 멈췄다 튀었다
+    if (sampleAt(player.buffer, now - remotePlayers.delayOf(player), pose.current)) {
       player.pose.x = pose.current.x;
       player.pose.z = pose.current.z;
       player.pose.y = pose.current.y;

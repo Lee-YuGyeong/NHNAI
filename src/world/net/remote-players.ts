@@ -25,6 +25,13 @@ export interface RemotePlayer {
   buffer: MoveSample[];
   /** 버퍼가 비었을 때 쓸 마지막 자세 */
   pose: Pose;
+  /** 마지막 샘플이 **도착한** 시각(performance.now) — 도착 간격의 흔들림(jitter)을 재는 기준 */
+  arrivedAt: number;
+  /**
+   * 도착 간격의 흔들림(ms, 지수 평활). 보간 지연을 이만큼 더 둔다 (delayOf) — 배포본은 서버가 멀어 10Hz 샘플이
+   * 몰려 오고 벌어져 온다. 지연이 고정(150ms)이면 늦은 샘플마다 몸이 **멈췄다 튄다** (2026-09-05 사용자: "배포 버전은 왜 끊기나")
+   */
+  jitter: number;
   /** 말풍선. 표시 여부는 렌더가 판단한다 */
   bubbleText: string;
   bubbleUntil: number;
@@ -32,6 +39,13 @@ export interface RemotePlayer {
 
 /** 말풍선 수명 (ms). */
 export const BUBBLE_MS = 3_000;
+
+/** 샘플이 오는 박자(ms) — 클라이언트 10Hz(MOVE_THROTTLE_MS) · 봇 스냅샷 100ms. 흔들림은 이 박자에서 벗어난 만큼이다 */
+const SAMPLE_GAP_MS = 100;
+/** 흔들림의 평활 계수 — 샘플 열 개쯤에 걸쳐 따라간다 */
+const JITTER_EMA = 0.1;
+/** 보간 지연의 상한(ms) — 이보다 늦은 망은 그냥 늦게 보이는 것이 맞다. 더 미루면 남의 몸이 반 초 전 자리에 선다 */
+const INTERP_DELAY_MAX_MS = 450;
 
 /** 캐릭터 몸 반지름(m) — 로봇·군인 어깨 폭의 절반쯤. 밀어내기는 양쪽 반지름을 더해 잰다 */
 export const CHAR_BODY_R = 0.35;
@@ -51,6 +65,8 @@ function createRemote(snap: PlayerSnapshot, now: number): RemotePlayer {
     anim: snap.anim,
     buffer: [{ t: now, x: snap.x, z: snap.z, y: snap.y ?? 0, heading: snap.heading }],
     pose: { x: snap.x, z: snap.z, y: snap.y ?? 0, heading: snap.heading },
+    arrivedAt: now,
+    jitter: 0,
     bubbleText: '',
     bubbleUntil: 0,
   };
@@ -78,7 +94,18 @@ export const remotePlayers = {
     const p = players.get(id);
     if (!p) return;
     p.anim = anim;
+    // 도착 간격이 박자(100ms)에서 벗어난 만큼이 흔들림이다 — 한참 안 오다(멈춰 서 있었다) 온 첫 샘플은 흔들림이 아니다
+    const gap = now - p.arrivedAt;
+    if (gap < SAMPLE_GAP_MS * 5) p.jitter += (Math.abs(gap - SAMPLE_GAP_MS) - p.jitter) * JITTER_EMA;
+    p.arrivedAt = now;
     pushSample(p.buffer, { t: now, x, z, y, heading });
+  },
+  /**
+   * 이 몸을 얼마나 과거로 그릴까(ms) — 기본 150 에 흔들림의 두 배를 얹는다 (상한 450).
+   * 망이 고르면 150 그대로고, 배포본처럼 샘플이 몰려 오면 그만큼 뒤에서 그려 「멈췄다 튀는」 것을 없앤다.
+   */
+  delayOf(p: RemotePlayer): number {
+    return Math.min(INTERP_DELAY_MAX_MS, INTERP_DELAY_MS + p.jitter * 2);
   },
   /**
    * (x, z, 발 높이 y) 에 선 반지름 r 의 몸을 원격 캐릭터들 밖으로 민다 — 캐릭터끼리 뚫고 지나가지 않게
@@ -95,7 +122,7 @@ export const remotePlayers = {
     let oz = z;
     const myMass = massOf(body);
     for (const p of players.values()) {
-      const at = sampleAt(p.buffer, now - INTERP_DELAY_MS, probe) ? probe : p.pose;
+      const at = sampleAt(p.buffer, now - remotePlayers.delayOf(p), probe) ? probe : p.pose;
       if (Math.abs(at.y - y) >= PUSH_Y_GAP) continue;
       const dx = ox - at.x;
       const dz = oz - at.z;

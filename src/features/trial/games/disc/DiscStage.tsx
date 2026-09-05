@@ -10,7 +10,7 @@ import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { GlbInstances, GlbPart } from '@/world/map/corridor/part';
-import { DISC_CENTER, DISC_HUB_R, DISC_R, DISC_TOP } from '@/world/mp/constants';
+import { DISC_CAP_R, DISC_CENTER, DISC_HUB_R, DISC_R, DISC_TOP } from '@/world/mp/constants';
 import { discState } from './discState';
 
 const TOP_URL = '/textures/disc/disc_top.webp';
@@ -26,6 +26,9 @@ const RIM_GLOW = new THREE.MeshBasicMaterial({ color: '#ffb347' });
 const HUB_GLOW = new THREE.MeshBasicMaterial({ color: '#5ff0ff' });
 const PIT_MAT = new THREE.MeshBasicMaterial({ color: '#05070a' });
 
+/** 캡 — 거울처럼 광택이 도는 강판. 옆의 무광 윗면과 한눈에 갈린다 */
+const CAP_MAT = new THREE.MeshStandardMaterial({ color: '#c3ccd6', metalness: 0.95, roughness: 0.12 });
+
 function Plate() {
   const tex = useTexture(TOP_URL);
   const topMat = useMemo(() => {
@@ -38,6 +41,10 @@ function Plate() {
       {/* 윗면 — 텍스처의 원이 화면을 꽉 채우므로 CircleGeometry 의 UV(단위원 → [0,1]²)가 그대로 맞는다 */}
       <mesh rotation-x={-Math.PI / 2} position={[0, PLATE_H + 0.002, 0]} material={topMat} receiveShadow>
         <circleGeometry args={[DISC_R, 96]} />
+      </mesh>
+      {/* 가운데 매끈한 강판 캡 — 여기서는 발이 못 잡는다 (mp/constants DISC_CAP_R). 보이는 것은 「어디가」지 「얼마나」가 아니다 */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, PLATE_H + 0.006, 0]} material={CAP_MAT}>
+        <ringGeometry args={[DISC_HUB_R + 0.02, DISC_CAP_R, 64]} />
       </mesh>
       {/* 옆면 */}
       <mesh position={[0, PLATE_H / 2, 0]} material={SIDE_MAT}>

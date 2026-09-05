@@ -73,7 +73,8 @@ export function RoleBriefing({ role, body, aiName, onDone }: {
   const [closing, setClosing] = useState(false);
   const card = ROLE_CARD[role];
   const face = body ?? FALLBACK_BODY;
-  const lines = aiName ? [...card.lines, `표식 없는 AI는 ${aiName} 이다.`] : card.lines;
+  // 설계자에게만 붙는 마지막 줄 — 지시문과 급이 다른 정보라 클래스(reveal)도 따로 받는다
+  const reveal = aiName ? `표식 없는 AI는 ${aiName} 이다.` : null;
 
   // 먼저 닫힘(closing)을 켜서 페이드가 보이게 하고, 그 페이드가 끝난 뒤에야 실제로 걷는다
   const dismiss = useCallback(() => {
@@ -120,9 +121,10 @@ export function RoleBriefing({ role, body, aiName, onDone }: {
             ▪
           </div>
           <ul className={cardStyles.lines}>
-            {lines.map((line) => (
+            {card.lines.map((line) => (
               <li key={line}>{line}</li>
             ))}
+            {reveal && <li className={cardStyles.reveal}>{reveal}</li>}
           </ul>
         </div>
 
