@@ -314,7 +314,7 @@ export function InterrogationFeature() {
            * 원판 각도(theta)는 discState 가 들고 DiscStage · DiscRig 가 프레임마다 읽는다.
            */
           discState.push(msg);
-          dispatch(gameActions.discSynced(msg.omega));
+          // 각속도는 화면에 안 선다 — 10Hz 스냅샷마다 저장소를 건드리면 HUD 전체가 그만큼 다시 그려진다 (discState 가 프레임마다 읽는다)
           const at = now();
           for (const b of msg.players) {
             if (b.id === meRef.current?.seatId) {

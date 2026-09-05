@@ -82,7 +82,8 @@ function Pad({ k }: { k: number }) {
   }, []);
   useFrame(() => {
     const g = group.current;
-    if (!g) return;
+    // 라운드가 없으면(미리 세워 둔 채 안 보이는 동안) 자리를 안 잰다 — HallScene 이 무대를 미리 세운다
+    if (!g || !platformState.active) return;
     const p = platformState.pad(k);
     g.position.set(p.x, 0, p.z);
   });
@@ -141,8 +142,7 @@ export function PlatformCourse() {
       <GlbPart id="pad_beacon" fit={{ y: 1.3 }} position={[PAD_R + 0.9, 0, first.z]} material={beaconMat} receiveShadow={false} />
       <GlbPart id="pad_beacon" fit={{ y: 1.3 }} position={[-(PAD_R + 0.9), 0, last.z]} material={beaconMat} receiveShadow={false} />
       <ArenaEdge />
-      {/* 마당 위 작업등 — 발판 열 가운데 */}
-      <pointLight position={[0, 7.5, (first.z + last.z) / 2]} color="#dfe9ff" intensity={55} distance={24} decay={2} />
+      {/* 마당 위 작업등은 HallScene 의 ArenaWorkLights 가 든다 — 무대가 서면서 광원 수가 바뀌면 셰이더가 전부 다시 링크된다 */}
     </group>
   );
 }

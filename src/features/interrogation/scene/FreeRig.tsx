@@ -37,7 +37,7 @@ import { GRAVITY, JUMP_SPEED, MOVE_THROTTLE_MS, WALK_SPEED, WORLD } from '@/worl
 import { PAD_R, PAD_TOP, PLATFORM_RESPAWN_MS } from '@/world/mp/platform';
 import type { AnimState } from '@/world/mp/protocol';
 import { CHAR_BODY_R, remotePlayers } from '@/world/net/remote-players';
-import { PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, forwardOf, placeChaseCamera } from './chase';
+import { PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, createChaseFollow, forwardOf, placeChaseCamera } from './chase';
 import { fallState } from '@/features/trial/games/fall/fallState';
 import { platformState } from './platformState';
 import { selfPose } from './selfPose';
@@ -79,6 +79,8 @@ export function FreeRig({
   const { camera } = useThree();
   const pos = useRef(new THREE.Vector3(spawn.x, 0, spawn.z));
   const vy = useRef(0);
+  /** 부드러운 추격 카메라 — 몸의 튐을 화면에 안 옮긴다 (chase.ts createChaseFollow) */
+  const follow = useRef(createChaseFollow());
   const grounded = useRef(true);
   /** 이륙할 때의 수평 속도(m/s) — 공중에서는 이걸 넘지 못한다 (관성. 발이 없으면 더 못 민다) */
   const airSpeed = useRef(0);
@@ -118,6 +120,7 @@ export function FreeRig({
     pos.current.set(teleport.x, platformState.groundAt(teleport.x, teleport.z, PAD_TOP), teleport.z);
     vy.current = 0;
     grounded.current = true;
+    follow.current.snap();
     /*
      * 옮겨진 몸은 넘어진 채가 아니다. 라운드가 열리는 순간(platformState.start)과 이 효과 사이에 프레임이 하나 끼면,
      * 그 프레임은 아직 홀 바닥(y 0)에 선 몸을 「떨어졌다」(fell)로 적는다 — 그러고 나서 여기서 발판 위(0.5)로 올라서면
@@ -283,7 +286,7 @@ export function FreeRig({
     selfPose.z = pos.current.z;
     selfPose.heading = heading.current;
     selfPose.anim = anim;
-    placeChaseCamera(camera, pos.current.x, pos.current.y, pos.current.z, yaw.current, pitch.current);
+    follow.current.update(camera, pos.current.x, pos.current.y, pos.current.z, yaw.current, pitch.current, delta);
 
     const now = performance.now();
     const s = lastSent.current;
