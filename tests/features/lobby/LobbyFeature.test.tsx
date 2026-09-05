@@ -389,11 +389,15 @@ describe('브리핑 — 이 줄의 첫 칸 (/intro)', () => {
     account = { status: 'out' };
   });
 
-  it('표식에 **로그인 없이 가는 문**이 남아 있다 — 그게 이 게임의 약속이다', () => {
+  /*
+   * 표식의 「로그인 없이 들어가기」 문은 2026-09-05 사용자 지시로 뺐다. 로그인 없이 노는 길
+   * (shared/guest.ts) 자체는 약속 그대로다 — /lobby 로 곧장 가면 방 목록이 선다 (바로 아래 시험).
+   * 여기서는 그 문이 표식에 **없고**, 옛 「NO SIGN-UP」 거짓말도 돌아오지 않았음을 본다.
+   */
+  it('표식에 「로그인 없이 들어가기」 문은 없다 — 로그인 없이 가는 길은 /lobby 가 맡는다', () => {
     renderLobby('/intro');
     expect(screen.queryByText(/NO SIGN-UP/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '로그인 없이 들어가기' }));
-    expect(screen.getByLabelText('방 제목 검색')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '로그인 없이 들어가기' })).not.toBeInTheDocument();
   });
 
   it('/lobby 는 이제 방 목록이다 — 브리핑이 아니다', () => {

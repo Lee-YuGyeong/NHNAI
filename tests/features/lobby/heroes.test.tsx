@@ -4,12 +4,11 @@
  * 그대로 지킨다:
  *
  *   1. 제목 — 이 화면이 무슨 화면인지 말하는 한 줄
- *   2. 문 셋 — 입장하기 · 규칙 보기 · **로그인 없이 들어가기**
+ *   2. 문 하나 — 입장하기 (제목 바로 밑, 화면 한가운데)
  *   3. 아래로 내려가는 길 — 한 번에 한 칸이라 이게 없으면 여기서 끝인 줄 안다
  *
- * 특히 **로그인 없이 들어가기**가 이 시험의 핵심이다. 그 길은 이 게임의 약속이라
- * (shared/guest.ts) 빠지면 화면은 멀쩡해 보인다 — 그림이 아니라 시험이 잡아야 하는
- * 종류의 사고다.
+ * 「로그인 없이 들어가기」 · 「규칙 보기」 문은 2026-09-05 사용자 지시로 표지에서 뺐다. 로그인 없이
+ * 노는 길(shared/guest.ts) 자체는 /lobby 로 곧장 가면 되므로 살아 있고, 규칙은 아래 칸에 있다.
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -27,8 +26,6 @@ describe('표식 (HeroKey · 복도)', () => {
           titled
           onTitled={() => hit.push('titled')}
           enter={() => hit.push('enter')}
-          guest={() => hit.push('guest')}
-          rules={() => hit.push('rules')}
           next={() => hit.push('next')}
         />
       </div>,
@@ -37,41 +34,39 @@ describe('표식 (HeroKey · 복도)', () => {
   }
 
   /*
-   * 2026-09-05 사용자 지시("아예 제거해줘") — 제목(h1) · 방송 두 줄 · 서명을 걷어냈다.
-   * 그 자리를 배경 영상이 맡았으므로 **글이 다시 기어들어오는 것**을 여기서 막는다:
-   * 걷어낸 이유가 "영상이 하는 말을 글이 되풀이하지 않는다" 였는데, 그건 화면을 안 보면
-   * 눈치채기 어려운 종류의 규칙이다.
+   * 2026-09-05 사용자 지시("아예 제거해줘") — 제목(h1) · 방송 두 줄 · 서명을 걷어냈다가,
+   * 같은 날 **제목만** 되살렸다("누가 인간인가? 제목 다시 살려줘"). 방송과 서명은 배경
+   * 영상이 맡았으므로 그 글이 다시 기어들어오는 것은 여기서 계속 막는다.
    */
-  it('글은 영문 한 줄뿐이다 — 제목도 방송도 서명도 없다', () => {
+  it('제목은 있고, 부제 · 방송 두 줄 · 서명은 없다', () => {
     put();
-    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    const title = screen.getByRole('heading', { level: 1 }).textContent ?? '';
+    expect(title.replace(/\s+/g, '')).toContain('누가인간인가?');
     expect(screen.queryByText(/표식이 붙어 있다/)).not.toBeInTheDocument();
     expect(screen.queryByText(/상시 송출/)).not.toBeInTheDocument();
-    expect(screen.getByText(/SPECIAL AI RESPONSE CENTER/)).toBeInTheDocument();
+    expect(screen.queryByText(/SPECIAL AI RESPONSE CENTER/)).not.toBeInTheDocument();
   });
 
   /*
-   * 문이 올라오는 신호. 제목이 다 찍히면 오던 것이라, 제목을 걷어낸 순간 이게 영영 안 와서
-   * **단추 셋이 통째로 안 보이게 된다**(.hero-late 는 opacity: 0). 화면은 멀쩡해 보이고
-   * 들어갈 길만 없는 종류의 사고라, 붙자마자 오는지를 못 박아 둔다.
+   * 문이 올라오는 신호는 제목이 **다 찍힌 뒤**에 온다 — 붙자마자 오지 않는다. 제목이
+   * 없던 사이에는 붙자마자 놓았는데(a0cc65b), 그러면 문이 영상 위로 툭 튀어나온다.
    */
-  it('붙자마자 문을 올리는 신호가 온다', () => {
-    expect(put()).toEqual(['titled']);
+  it('문을 올리는 신호는 붙자마자 오지 않는다 — 제목이 다 찍힌 뒤다', () => {
+    expect(put()).toEqual([]);
   });
 
-  it('문 셋이 다 있고 각자 제 곳으로 간다', () => {
+  it('문은 입장하기 하나다 — 「규칙 보기」도 「로그인 없이 들어가기」도 없다', () => {
     const hit = put();
     fireEvent.click(screen.getByRole('button', { name: /입장하기/ }));
-    fireEvent.click(screen.getByRole('button', { name: '규칙 보기' }));
-    // 로그인 없이 노는 길 — 표식을 갈아 끼우다 제일 먼저 빠지는 단추다
-    fireEvent.click(screen.getByRole('button', { name: '로그인 없이 들어가기' }));
-    expect(hit).toEqual(['titled', 'enter', 'rules', 'guest']);
+    expect(screen.queryByRole('button', { name: '규칙 보기' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '로그인 없이 들어가기' })).not.toBeInTheDocument();
+    expect(hit).toEqual(['enter']);
   });
 
   it('아래 칸으로 내려가는 길이 있다', () => {
     const hit = put();
     fireEvent.click(screen.getByRole('button', { name: /SCROLL/ }));
-    expect(hit).toEqual(['titled', 'next']);
+    expect(hit).toEqual(['next']);
   });
 
   /*

@@ -212,7 +212,8 @@ export function LobbyIntro() {
    * └──────────────────────────────────────────────────────────────────────┘
    *
    * 주소는 이렇게 이어진다: /intro → 구글 → /login(돌아오는 자리) → /lobby → ?code=1234
-   * 로그인 없이 가는 길은 바로 아래 「로그인 없이 들어가기」다 — 없애지 않았다.
+   * 로그인 없이 가는 길(shared/guest.ts)은 살아 있다 — /lobby 로 곧장 가면 된다. 표지의
+   * 「로그인 없이 들어가기」 문은 2026-09-05 사용자 지시로 뺐다.
    */
   const enter = () => {
     if (account.status !== 'out') {
@@ -295,8 +296,6 @@ export function LobbyIntro() {
           titled={titled}
           onTitled={() => setTitled(true)}
           enter={enter}
-          guest={() => navigate('/lobby')}
-          rules={() => scrollTo('rules')}
           next={() => scrollTo('about')}
         />
       </section>
