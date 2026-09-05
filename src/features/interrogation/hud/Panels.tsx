@@ -167,16 +167,8 @@ export function Chat({
         {/* 켜져 있다는 표시 하나 — 이 방이 살아서 떠들고 있다 */}
         <i aria-hidden className="live" />
         <span className="ttl">구역 통신</span>
-        {/*
-          남은 발언권 — 한 마디에 하나 (game-protocol 의 TALK). 셋 아래로 내려오면 조명색으로 켜지고,
-          비면 붉게 선다: 다음 시험이 이 수를 되돌려 준다는 것을 머리띠가 말해 준다.
-        */}
-        {talk !== null ? (
-          <span className={`talk${talk <= 0 ? ' none' : talk <= 2 ? ' low' : ''}`} title="남은 발언권 — 한 마디에 하나, 시험에서 버틴 3초마다 하나">
-            발언권 <b>{talk}</b>
-          </span>
-        ) : null}
-        {/* 올려 둔 것을 잊으면 **대화가 멎은 것처럼 보인다** — 새 말은 오는데 화면이 안 움직이니까 */}
+        {/* 올려 둔 것을 잊으면 **대화가 멎은 것처럼 보인다** — 새 말은 오는데 화면이 안 움직이니까.
+            발언권 수보다 앞에 선다: 수는 오른쪽 끝에 붙박이고, 버튼이 그 왼쪽으로 끼어든다 */}
         {stick ? null : (
           <button
             type="button"
@@ -190,6 +182,16 @@ export function Chat({
             지난 대화 · 최신 ↓
           </button>
         )}
+        {/*
+          남은 발언권 — 한 마디에 하나 (game-protocol 의 TALK). 셋 아래로 내려오면 조명색으로 켜지고,
+          비면 붉게 선다: 다음 시험이 이 수를 되돌려 준다는 것을 머리띠가 말해 준다.
+          머리띠의 오른쪽 끝에 선다 (2026-09-05 사용자: 라벨 옆이 아니라 우측에).
+        */}
+        {talk !== null ? (
+          <span className={`talk${talk <= 0 ? ' none' : talk <= 2 ? ' low' : ''}`} title="남은 발언권 — 한 마디에 하나, 시험에서 버틴 3초마다 하나">
+            발언권 <b>{talk}</b>
+          </span>
+        ) : null}
       </div>
       <div
         className="ig-feed"

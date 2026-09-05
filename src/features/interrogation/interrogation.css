@@ -233,13 +233,19 @@
   letter-spacing: 0.2em;
   color: var(--dust);
 }
-/* 남은 발언권 — 라벨과 같은 모노. 수만 밝다. 셋 이하면 조명색, 비면 붉은색 (2026-09-05 발언권) */
+/* 남은 발언권 — 라벨과 같은 모노. 수만 밝다. 셋 이하면 조명색, 비면 붉은색 (2026-09-05 발언권).
+   머리띠 오른쪽 끝에 붙박인다 (2026-09-05 사용자: 「구역 통신」 옆이 아니라 우측에) */
 .ig-commhd .talk {
+  margin-left: auto;
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.14em;
   color: var(--dust);
   white-space: nowrap;
+}
+/* 「최신 ↓」 버튼이 떠 있으면 그쪽의 auto 여백이 이미 오른쪽으로 밀었다 — 수는 gap 만 두고 따라붙는다 */
+.ig-commhd .tolatest + .talk {
+  margin-left: 0;
 }
 .ig-commhd .talk b {
   margin-left: 2px;
@@ -274,7 +280,7 @@
 }
 /* 지난 말을 보는 중 (2026-09-04 사용자: 「개체 N」은 뺀다 — 좌석판이 이미 세고 있다).
    이것만이 **지금 뭔가 어긋나 있다**는 표시다: 새 말이 오는데 안 보고 있다.
-   그래서 이 화면의 조명색으로 혼자 켜진다. 발언권 수 옆에 선다 */
+   그래서 이 화면의 조명색으로 혼자 켜진다. 오른쪽 끝의 발언권 수 왼쪽에 선다 */
 .ig-commhd .tolatest {
   margin-left: auto;
   padding: 2px 9px;
