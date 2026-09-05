@@ -68,7 +68,9 @@ export interface GameState {
    * 내 카드 — 시험 1등이 고르는 세 장(offer)과 골라 쥔 것(items). 서버가 본인에게만 보낸다(game_cards).
    * 봇은 카드를 안 받고, 판이 다시 열리면 비운다 (worker/src/game/runtime.ts 의 offerCard).
    */
-  cards: { offer: CardItem[] | null; items: CardItem[] };
+  cards: { offer: number | null; items: CardItem[] };
+  /** 방금 뒤집은 카드 — 엎어진 채 골라서 그때야 뭔지 안다. 몇 초 보이고 도크로 들어간다 */
+  cardReveal: { item: CardItem; ts: number } | null;
   /** 카드가 쓰였다 · 강제된 답이 판정됐다 — 화면 위에 잠깐 서는 한 줄 */
   cardNote: { text: string; tone: 'card' | 'good' | 'bad'; ts: number } | null;
 }
@@ -101,6 +103,7 @@ const initialState: GameState = {
   reject: null,
   talkGained: null,
   cards: { offer: null, items: [] },
+  cardReveal: null,
   cardNote: null,
 };
 
@@ -140,6 +143,7 @@ export const interrogationSlice = createSlice({
       // 새 판이 열렸다 — 지난 판의 흔적을 지운다
       if (prev && prev.phase !== 'briefing' && a.payload.phase === 'briefing') {
         s.cards = { offer: null, items: [] };
+        s.cardReveal = null;
         s.cardNote = null;
         s.feed = [];
         s.history = [];
@@ -223,9 +227,14 @@ export const interrogationSlice = createSlice({
     clearReject(s) {
       s.reject = null;
     },
-    /** 내 카드 상태 (game_cards) — 고를 세 장 · 쥔 것 */
-    cardsReceived(s, a: PayloadAction<{ offer: CardItem[] | null; items: CardItem[] }>) {
+    /** 내 카드 상태 (game_cards) — 엎어진 장수 · 쥔 것. 쥔 것이 늘었으면 그게 방금 뒤집은 카드다 */
+    cardsReceived(s, a: PayloadAction<{ offer: number | null; items: CardItem[] }>) {
+      const gained = a.payload.items.length > s.cards.items.length ? a.payload.items[a.payload.items.length - 1] : null;
       s.cards = { offer: a.payload.offer, items: a.payload.items };
+      if (gained) s.cardReveal = { item: gained, ts: Date.now() };
+    },
+    clearCardReveal(s) {
+      s.cardReveal = null;
     },
     /** 누가 무슨 카드를 썼다 (game_card_used) — 전원이 본다: 로그 한 줄 + 위의 알림 */
     cardUsed(s, a: PayloadAction<{ by: string; item: CardItem; target?: string; text: string; ts?: number }>) {
@@ -327,6 +336,7 @@ export const gameSelectors = {
   selectReject: (r: Root) => r.interrogation.reject,
   selectTalkGained: (r: Root) => r.interrogation.talkGained,
   selectCards: (r: Root) => r.interrogation.cards,
+  selectCardReveal: (r: Root) => r.interrogation.cardReveal,
   selectCardNote: (r: Root) => r.interrogation.cardNote,
   /** 내 남은 발언권 — 좌석이 없으면 null */
   selectMyTalk: (r: Root) => {

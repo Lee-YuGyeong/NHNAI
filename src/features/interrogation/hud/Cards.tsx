@@ -26,24 +26,55 @@ export const CARD_INFO: Record<CardItem, { title: string; glyph: string; blurb: 
   calm: { title: '진정권', glyph: '☺', blurb: `나에게 걸린 의심도를 −${CARD.calmDrop}`, needsTarget: false },
 };
 
-/** 세 장 중 하나 — 1등의 선택 */
-export function CardOffer({ offer, onPick }: { offer: readonly CardItem[]; onPick: (item: CardItem) => void }) {
+/**
+ * 엎어진 세 장 중 하나 — 1등의 선택. **뭔지는 안 보인다** (2026-09-05 사용자: "아이템은 처음에 안 보이게 해서
+ * 선택했을 때 보이게"). 서버도 장수만 준다(game_cards.offer 는 number) — 순서는 서버가 섞었다 (runtime 의 dealOrder).
+ * 고르면 CardReveal 이 그 자리에 서서 뒤집어 보인다.
+ */
+export function CardOffer({ count, onPick }: { count: number; onPick: (index: number) => void }) {
+  const [picked, setPicked] = useState<number | null>(null);
   return (
     <div className="ig-cardoffer" role="dialog" aria-label="카드 선택">
-      <p className="hd">시험 1등 — 카드 한 장을 고른다</p>
+      <p className="hd">시험 1등 — 엎어진 카드 한 장을 고른다</p>
       <div className="row">
-        {offer.map((item) => {
-          const info = CARD_INFO[item];
-          return (
-            <button key={item} type="button" className={`ig-card ${item}`} onClick={() => onPick(item)}>
-              <span className="glyph" aria-hidden>
-                {info.glyph}
-              </span>
-              <span className="ttl">{info.title}</span>
-              <span className="blurb">{info.blurb}</span>
-            </button>
-          );
-        })}
+        {Array.from({ length: count }, (_, i) => (
+          <button
+            key={i}
+            type="button"
+            className={`ig-card back${picked === i ? ' picked' : ''}`}
+            disabled={picked !== null}
+            onClick={() => {
+              setPicked(i);
+              onPick(i);
+            }}
+            aria-label={`${i + 1}번째 카드`}
+          >
+            <span className="glyph" aria-hidden>
+              ?
+            </span>
+            <span className="ttl">{i + 1}</span>
+          </button>
+        ))}
+      </div>
+      <p className="legend">답변 강제권 · 지목권 · 진정권 중 하나 — 뒤집어야 안다</p>
+    </div>
+  );
+}
+
+/** 방금 뒤집은 카드 — 앞면이 서서 3.5초 보이고 도크로 들어간다 (InterrogationFeature 의 clearCardReveal) */
+export function CardReveal({ item }: { item: CardItem }) {
+  const info = CARD_INFO[item];
+  return (
+    <div className="ig-cardoffer reveal" aria-live="polite">
+      <p className="hd">뒤집었다</p>
+      <div className="row">
+        <div className={`ig-card flip ${item}`}>
+          <span className="glyph" aria-hidden>
+            {info.glyph}
+          </span>
+          <span className="ttl">{info.title}</span>
+          <span className="blurb">{info.blurb}</span>
+        </div>
       </div>
     </div>
   );

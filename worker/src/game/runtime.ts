@@ -94,6 +94,16 @@ import {
 
 export type OutMessage = S2CMessage | GameS2CMessage;
 
+/** 카드 세 장을 엎어 놓는 순서 — Fisher–Yates. rand 를 밖에서 주니 시험이 순서를 안다 */
+export function dealOrder(rand: () => number): CardItem[] {
+  const a = [...CARD_ITEMS];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.min(i, Math.floor(rand() * (i + 1)));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export interface GameDeps {
   storage: DurableObjectStorage;
   /** 지금 방에 붙어 있는 실제 사람들 (RoomDO.roster) */
@@ -445,7 +455,7 @@ export class GameRuntime {
         this.prologueDone(playerId);
         return;
       case 'game_card_pick':
-        this.cardPick(playerId, msg.item);
+        this.cardPick(playerId, msg.index);
         return;
       case 'game_card_use':
         this.cardUse(playerId, msg.item, msg.target);
@@ -1256,34 +1266,46 @@ export class GameRuntime {
    * 시험이 끝났다 — **1등**(버틴 초가 가장 긴 사람)에게 카드 셋을 내민다. 봇은 안 받는다(카드는 사람의 것, 1등이 봇이면 카드 없는 시험).
    * 동률이면 앞자리. 고르지 않고 마감(CARD.offerMs)이 지나면 사라진다.
    */
+  /**
+   * 시험 1등에게 카드 — 살아 있는 좌석 중 기록(heldSecondsFor) 최대. **공동 1등이면 그중 하나를 무작위로**
+   * (2026-09-05 사용자: "공동 1등이 있으면 1등에서 랜덤으로"). 뽑힌 쪽이 봇이면 카드 없는 시험이다.
+   * 세 장은 **엎어서** 준다 — 순서를 섞고(dealOrder) 장수만 알린다. 뭔지는 뒤집어야 안다 (cardPick).
+   */
   private offerCard(game: TrialGame, published: TrialPlayerResult[]): void {
-    let best: { seat: Seat; held: number } | null = null;
+    let top = -Infinity;
+    let tied: Seat[] = [];
     for (const p of published) {
       const seat = this.seats.find((s) => s.id === p.id);
       if (!seat || seat.isolated) continue;
       const held = heldSecondsFor(game, p.metrics, GAME_TEST_MS) ?? 0;
-      if (!best || held > best.held) best = { seat, held };
+      if (held > top) {
+        top = held;
+        tied = [seat];
+      } else if (held === top) tied.push(seat);
     }
-    if (!best || best.seat.kind !== 'real') return;
-    const playerId = this.playerOfSeat(best.seat.id);
+    if (tied.length === 0) return;
+    const best = tied[Math.min(tied.length - 1, Math.floor(this.rand() * tied.length))];
+    if (best.kind !== 'real') return;
+    const playerId = this.playerOfSeat(best.id);
     if (!playerId) return;
-    this.cardOffer.set(best.seat.id, { options: [...CARD_ITEMS], until: this.now() + CARD.offerMs });
-    this.sendCards(best.seat.id);
+    this.cardOffer.set(best.id, { options: dealOrder(this.rand), until: this.now() + CARD.offerMs });
+    this.sendCards(best.id);
   }
 
   private sendCards(seatId: string): void {
     const playerId = this.playerOfSeat(seatId);
     if (!playerId) return;
     const offer = this.cardOffer.get(seatId);
-    this.deps.sendTo(playerId, { t: 'game_cards', offer: offer && offer.until > this.now() ? [...offer.options] : null, items: [...(this.items.get(seatId) ?? [])] });
+    this.deps.sendTo(playerId, { t: 'game_cards', offer: offer && offer.until > this.now() ? offer.options.length : null, items: [...(this.items.get(seatId) ?? [])] });
   }
 
-  private cardPick(playerId: string, item: CardItem): void {
+  private cardPick(playerId: string, index: number): void {
     const seat = this.seatOfPlayer(playerId);
     if (!seat || !this.active()) return;
     const offer = this.cardOffer.get(seat.id);
     if (!offer || offer.until < this.now()) return this.reject(playerId, '고를 카드가 없다');
-    if (!offer.options.includes(item)) return this.reject(playerId, '그 카드는 없다');
+    const item = Number.isInteger(index) ? offer.options[index] : undefined;
+    if (!item) return this.reject(playerId, '그 자리엔 카드가 없다');
     const have = this.items.get(seat.id) ?? [];
     if (have.length >= CARD.maxItems) return this.reject(playerId, `카드는 ${CARD.maxItems}장까지`);
     this.cardOffer.delete(seat.id);

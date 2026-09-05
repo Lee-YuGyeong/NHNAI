@@ -146,9 +146,9 @@ export class GameConnection {
     return this.send(msg);
   }
 
-  /** 시험 1등의 카드 — 세 장 중 하나를 고른다 (runtime 의 cardPick) */
-  sendCardPick(item: CardItem): boolean {
-    return this.send({ t: 'game_card_pick', item });
+  /** 시험 1등의 카드 — 엎어진 세 장 중 몇 번째를 뒤집나 (runtime 의 cardPick) */
+  sendCardPick(index: number): boolean {
+    return this.send({ t: 'game_card_pick', index });
   }
 
   /** 쥔 카드를 쓴다 — 지목권·답변 강제권은 대상이 있고, 진정권은 나 자신이다 (runtime 의 cardUse) */

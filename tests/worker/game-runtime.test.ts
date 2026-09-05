@@ -13,6 +13,8 @@ import {
   GAME_FIRST_DISCUSSION_MS,
   GAME_PROLOGUE_MAX_MS,
   CARD,
+  CARD_ITEMS,
+  type CardItem,
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
   GAME_TEST_ORDER,
@@ -25,7 +27,7 @@ import {
 } from '../../src/world/mp/game-protocol';
 import type { PlayerSnapshot, S2CMessage, TrialGame, TrialPlayerResult } from '../../src/world/mp/protocol';
 import type { Brain } from '../../worker/src/game/brain';
-import { GameRuntime } from '../../worker/src/game/runtime';
+import { GameRuntime, dealOrder } from '../../worker/src/game/runtime';
 import { REPEAT_STEP } from '../../worker/src/game/suspicion';
 import { DUCK_WINDOW_MS, MENTION_GAP_MS, STILL_MS } from '../../worker/src/game/tells';
 import type { EngineContext, GameEngine } from '../../worker/src/trial/engine';
@@ -90,7 +92,7 @@ function player(id: string, seat: number): PlayerSnapshot {
 }
 
 /** storage 를 건네면 같은 저장소로 런타임을 하나 더 세울 수 있다 — 워커가 되살리는 길을 재려고. engine 은 가짜 엔진을 바꿔 끼운다 */
-function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; storage?: DurableObjectStorage; engine?: GameEngine } = {}) {
+function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; storage?: DurableObjectStorage; engine?: GameEngine; rand?: () => number } = {}) {
   const roster = opts.players ?? [player('p1', 1), player('p2', 2), player('p3', 3)];
   const sent: Out[] = [];
   const direct: { to: string; msg: Out }[] = [];
@@ -106,7 +108,7 @@ function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; storage?: Du
     },
     brain: opts.brain ?? silentBrain,
     makeEngine: () => opts.engine ?? engine,
-    rand: () => 0.4,
+    rand: opts.rand ?? (() => 0.4),
   });
   const lastState = () => [...sent].reverse().find((m): m is { t: 'game_state'; state: GameStateWire } => m.t === 'game_state')!.state;
   const roleOf = (to: string) => [...direct].reverse().find((d) => d.to === to && d.msg.t === 'game_role')?.msg as Extract<GameS2CMessage, { t: 'game_role' }> | undefined;
@@ -1035,6 +1037,9 @@ describe('GameRuntime — 카드', () => {
   }
   type Cards = Extract<GameS2CMessage, { t: 'game_cards' }>;
   const cardsTo = (h: ReturnType<typeof harness>, to: string) => [...h.direct].reverse().find((d) => d.to === to && d.msg.t === 'game_cards')?.msg as Cards | undefined;
+  /** 카드는 엎어져 온다 — 시험은 harness 의 rand(0.4)로 섞인 순서를 알아 이름으로 뒤집는다 */
+  const DEALT = dealOrder(() => 0.4);
+  const pick = (h: ReturnType<typeof harness>, who: string, item: CardItem) => h.rt.handle(who, { t: 'game_card_pick', index: DEALT.indexOf(item) });
 
   /** p1 이 1등인 판을 첫 시험 뒤 토론까지 돌린다 */
   async function winFirstTest(brain?: Brain) {
@@ -1054,24 +1059,48 @@ describe('GameRuntime — 카드', () => {
   it('1등에게만 카드 셋이 간다 — 고르면 그 카드를 쥐고, 남은 제안은 사라진다', async () => {
     const { h } = await winFirstTest();
     const offer = cardsTo(h, 'p1');
-    expect(offer?.offer).toEqual(['truth', 'accuse', 'calm']);
+    expect(offer?.offer).toBe(3);
+    expect(new Set(DEALT)).toEqual(new Set(CARD_ITEMS));
     expect(offer?.items).toEqual([]);
     expect(cardsTo(h, 'p2')).toBeUndefined();
     expect(cardsTo(h, 'p3')).toBeUndefined();
 
-    await h.rt.handle('p1', { t: 'game_card_pick', item: 'accuse' });
+    await pick(h, 'p1', 'accuse');
     const held = cardsTo(h, 'p1');
     expect(held?.offer).toBeNull();
     expect(held?.items).toEqual(['accuse']);
     // 두 번 고르지는 못한다
-    await h.rt.handle('p1', { t: 'game_card_pick', item: 'calm' });
+    await pick(h, 'p1', 'calm');
     expect(cardsTo(h, 'p1')?.items).toEqual(['accuse']);
     expect(h.direct.at(-1)?.msg.t).toBe('game_reject');
   });
 
+  it('공동 1등이면 그중 하나가 무작위로 카드를 받는다', async () => {
+    for (const [rand, which] of [
+      [() => 0.0, 0],
+      [() => 0.99, 1],
+    ] as const) {
+      const engine = new HeldEngine();
+      const h = harness({ engine, rand });
+      await h.rt.handle('p1', { t: 'game_start' });
+      await openBoard(h);
+      const s1 = h.roleOf('p1')!.seatId;
+      const s2 = h.roleOf('p2')!.seatId;
+      engine.heldOf = (id) => (id === s1 || id === s2 ? 28 : 6);
+      await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+      await vi.advanceTimersByTimeAsync(GAME_TEST_MS + 10);
+      expect(h.lastState().phase).toBe('result');
+      const got = ['p1', 'p2', 'p3'].filter((p) => cardsTo(h, p) !== undefined);
+      expect(got.length).toBe(1);
+      // 공동 1등은 결과표 순서(좌석 순)로 늘어서고 rand 가 그중 하나를 짚는다
+      const order = h.lastState().seats.filter((s) => s.id === s1 || s.id === s2).map((s) => s.id);
+      expect(h.roleOf(got[0])!.seatId).toBe(order[which]);
+    }
+  });
+
   it('지목권은 겨눈 상대를 +20 (그 국면의 압력을 곱해), 진정권은 나를 −20 — 결과 모달 중에는 못 쓴다', async () => {
     const { h, winner } = await winFirstTest();
-    await h.rt.handle('p1', { t: 'game_card_pick', item: 'accuse' });
+    await pick(h, 'p1', 'accuse');
     const other = h.lastState().seats.find((s) => s.id !== winner)!;
     await h.rt.handle('p1', { t: 'game_card_use', item: 'accuse', target: other.id });
     expect(h.direct.at(-1)?.msg.t).toBe('game_reject'); // 토론 중에만
@@ -1089,7 +1118,7 @@ describe('GameRuntime — 카드', () => {
 
   it('진정권 — 몰려 있던 내 눈금이 20 내려간다 (압력을 안 곱한다)', async () => {
     const { h, winner } = await winFirstTest();
-    await h.rt.handle('p1', { t: 'game_card_pick', item: 'calm' });
+    await pick(h, 'p1', 'calm');
     await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
     const given = h.lastState().seats.find((s) => s.id === winner)!.name.slice(1);
     h.rt.onChat('p2', `${given}이 이상해`);
@@ -1102,7 +1131,7 @@ describe('GameRuntime — 카드', () => {
   it('답변 강제권 — 내 다음 말이 질문, 상대의 다음 말이 답. 거짓이면 +25, 진실이면 −10, 마감까지 답이 없으면 회피 +12', async () => {
     const liar: Brain = { mode: 'api', ask: async () => ({ verdict: 'false', reason: '기록은 6초라 했다' }) };
     const { h, winner } = await winFirstTest(liar);
-    await h.rt.handle('p1', { t: 'game_card_pick', item: 'truth' });
+    await pick(h, 'p1', 'truth');
     await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
     const p2Seat = h.roleOf('p2')!.seatId;
     await h.rt.handle('p1', { t: 'game_card_use', item: 'truth', target: p2Seat });
@@ -1125,7 +1154,7 @@ describe('GameRuntime — 카드', () => {
   it('답변 강제권 — 진실이면 내려 주고, 답이 없으면 마감에 회피로 문다', async () => {
     const honest: Brain = { mode: 'api', ask: async () => ({ verdict: 'truthful', reason: '기록과 맞는다' }) };
     const { h, winner } = await winFirstTest(honest);
-    await h.rt.handle('p1', { t: 'game_card_pick', item: 'truth' });
+    await pick(h, 'p1', 'truth');
     await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
     const p2Seat = h.roleOf('p2')!.seatId;
     const given2 = h.lastState().seats.find((s) => s.id === p2Seat)!.name.slice(1);
@@ -1142,7 +1171,7 @@ describe('GameRuntime — 카드', () => {
 
   it('답변 강제권 — 질문이 나왔는데 마감까지 답이 없으면 회피로 문다', async () => {
     const { h } = await winFirstTest();
-    await h.rt.handle('p1', { t: 'game_card_pick', item: 'truth' });
+    await pick(h, 'p1', 'truth');
     await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
     const p2Seat = h.roleOf('p2')!.seatId;
     await h.rt.handle('p1', { t: 'game_card_use', item: 'truth', target: p2Seat });

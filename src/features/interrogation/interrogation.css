@@ -1397,6 +1397,45 @@
 .ig-carddock .targets button:hover {
   background: rgba(232, 221, 205, 0.18);
 }
+/* 엎어진 카드 — 무늬만 있는 뒷면. 고른 것은 살짝 들리고, 앞면은 뒤집히며 선다 */
+.ig-card.back {
+  --card-hue: var(--dust);
+  height: 132px;
+  background: repeating-linear-gradient(135deg, rgba(232, 221, 205, 0.05) 0 6px, rgba(232, 221, 205, 0.11) 6px 12px);
+  align-content: center;
+}
+.ig-card.back .glyph {
+  font-size: 34px;
+  color: rgba(232, 221, 205, 0.55);
+}
+.ig-card.back .ttl {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dust);
+}
+.ig-card.back.picked {
+  transform: translateY(-6px);
+  border-color: var(--amber);
+  opacity: 1;
+}
+.ig-cardoffer .legend {
+  margin: 0;
+  font-size: 11px;
+  color: var(--dust);
+}
+.ig-card.flip {
+  animation: ig-cardflip 0.5s ease-out;
+}
+@keyframes ig-cardflip {
+  from {
+    transform: rotateY(90deg);
+    opacity: 0.2;
+  }
+  to {
+    transform: rotateY(0);
+    opacity: 1;
+  }
+}
 /* 답변 강제 중 — 위 가운데 한 줄. 걸린 사람(onme)에게는 경보 빨강 */
 .ig-compel {
   position: absolute;

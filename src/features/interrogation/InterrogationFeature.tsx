@@ -32,7 +32,7 @@ import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, EndScreen, LobbyPanel, ResultModal, TestOrder, withRo } from './hud/Panels';
 import { SelfSuspicion } from './hud/SelfSuspicion';
-import { CardDock, CardOffer, CompelBar } from './hud/Cards';
+import { CardDock, CardOffer, CardReveal, CompelBar } from './hud/Cards';
 import type { CardItem } from '@/world/mp/game-protocol';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
@@ -120,6 +120,7 @@ export function InterrogationFeature() {
   const talkGained = useAppSelector(gameSelectors.selectTalkGained);
   const cards = useAppSelector(gameSelectors.selectCards);
   const cardNote = useAppSelector(gameSelectors.selectCardNote);
+  const cardReveal = useAppSelector(gameSelectors.selectCardReveal);
 
   const [locked, setLocked] = useState(false);
   const [composing, setComposing] = useState(false);
@@ -578,8 +579,14 @@ export function InterrogationFeature() {
   /** 낙하 생존 — Space. 몸의 높이는 서버가 적분한다 (FreeRig sendJump) */
   const onJump = useCallback(() => conn.sendJump(), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
-  const onCardPick = useCallback((item: CardItem) => conn.sendCardPick(item), [conn]);
+  const onCardPick = useCallback((index: number) => conn.sendCardPick(index), [conn]);
   const onCardUse = useCallback((item: CardItem, target?: string) => conn.sendCardUse(item, target), [conn]);
+  /* 뒤집은 카드는 3.5초 보여 주고 도크로 들어간다 */
+  useEffect(() => {
+    if (!cardReveal) return;
+    const t = window.setTimeout(() => dispatch(gameActions.clearCardReveal()), 3_500);
+    return () => window.clearTimeout(t);
+  }, [cardReveal, dispatch]);
   /* 카드 알림은 6초 뒤 스스로 진다 — 로그에는 남아 있다 */
   useEffect(() => {
     if (!cardNote) return;
@@ -854,7 +861,11 @@ export function InterrogationFeature() {
           * 서버의 고를 시간(CARD.offerMs 45초)은 결과가 난 순간부터라 토론에 들어와도 넉넉히 남는다.
           * 쥔 카드는 오른쪽 아래에 늘 보이고, 토론 중에만 눌린다 (runtime 의 cardUse 가 토론 밖은 거절한다).
           */}
-        {cards.offer && phase === 'discussion' && !prologueUp ? <CardOffer offer={cards.offer} onPick={onCardPick} /> : null}
+        {cardReveal && phase !== 'test' && !prologueUp ? (
+          <CardReveal key={cardReveal.ts} item={cardReveal.item} />
+        ) : cards.offer && phase === 'discussion' && !prologueUp ? (
+          <CardOffer count={cards.offer} onPick={onCardPick} />
+        ) : null}
         {inGame && mySeatId && phase !== 'ended' && phase !== 'test' && !prologueUp ? (
           <CardDock items={cards.items} seats={seats} mySeatId={mySeatId} canUse={phase === 'discussion' && !wire?.compelled} onUse={onCardUse} />
         ) : null}

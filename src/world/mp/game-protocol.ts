@@ -176,7 +176,8 @@ export type GameC2SMessage =
    */
   | { t: 'game_prologue_done' }
   /** 카드 — 1등이 셋 중 하나를 고른다 · 가진 카드를 쓴다 (target 은 truth · accuse 에만) */
-  | { t: 'game_card_pick'; item: CardItem }
+  /** 엎어진 카드 중 몇 번째를 뒤집나 — 뭔지는 뒤집어야 안다 (runtime 의 cardPick) */
+  | { t: 'game_card_pick'; index: number }
   | { t: 'game_card_use'; item: CardItem; target?: string };
 
 /** 서버 → 클라이언트 */
@@ -210,7 +211,8 @@ export type GameS2CMessage =
   /** 거절 사유 한 줄 — 그 소켓에만 (시작 조건 미달 · 권한 없음 · 국면 불일치) */
   | { t: 'game_reject'; why: string }
   /** 본인에게만 — 고를 수 있는 카드(없으면 null)와 쥔 카드 */
-  | { t: 'game_cards'; offer: CardItem[] | null; items: CardItem[] }
+  /** 본인에게만 — offer 는 **엎어진 카드의 장수**다. 뭔지는 서버만 안다: 뒤집으면 items 에 붙어 돌아온다 */
+  | { t: 'game_cards'; offer: number | null; items: CardItem[] }
   /** 전원에게 — 누가 무슨 카드를 누구에게 썼나 */
   | { t: 'game_card_used'; by: string; item: CardItem; target?: string; text: string }
   /** 전원에게 — 강제된 답의 판정 */
