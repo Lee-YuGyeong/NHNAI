@@ -243,6 +243,67 @@ describe('/interrogation 프롤로그 — 상자가 주인이면 줄이 서 있�
   });
 });
 
+/**
+ * 소리가 귀에 닿기까지의 늦음 (2026-09-05 사용자: 「관리자뿐 아니라 다들 조금씩 늦게 시작해」).
+ *
+ * `src.start()` 는 곧바로 돌아오지만 소리는 오디오 장치를 다 지나야 들린다 — 블루투스면 그게
+ * 150~300ms 다. 그동안 자막만 굴러가면 **전부가 조금씩 늦게 시작하는 것처럼** 들린다.
+ * 한 사람만이 아니라 전부라는 것이 이 값의 지문이고, 그래서 줄이 아니라 **첫 글자**에 얹는다.
+ */
+describe('/interrogation 프롤로그 — 자막을 소리가 닿는 때에 연다', () => {
+  const LAG = 300;
+  function lagged(voiceMs: number | undefined, voiceLagMs: number) {
+    const props = (messages: ChatLine[]) => ({
+      messages,
+      selfId: null,
+      touch: false,
+      speaking: true,
+      onLine: () => {},
+      voiceMsOf: voiceMs === undefined ? undefined : () => voiceMs,
+      voiceLagMs,
+    });
+    const view = render(<DialogueBox {...props([])} />);
+    const show = (msgs: ChatLine[]) => act(() => { view.rerender(<DialogueBox {...props(msgs)} />); });
+    const wait = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
+    const onScreen = (text: string) => screen.queryByText(text) !== null;
+    return { show, wait, onScreen };
+  }
+
+  it('첫 글자가 늦음만큼 늦게 찍힌다 — 그 사이에 소리가 스피커까지 간다', () => {
+    const { show, wait, onScreen } = lagged(8_000, LAG);
+    show([line(SHORT)]);
+    // 늦음이 지나기 전에는 한 글자도 안 찍힌다 (글자 간격은 아무리 커도 PER_CHAR 안쪽이다)
+    wait(PER_CHAR);
+    expect(onScreen(SHORT[0])).toBe(false);
+    wait(LAG);
+    expect(onScreen(SHORT[0])).toBe(true);
+  });
+
+  /** 첫 글자에만 얹는다 — 글자마다 얹으면 한 줄이 늦음의 글자 수 배로 늘어난다 */
+  it('둘째 글자부터는 안 늦춘다 — 줄이 통째로 늘어지면 안 된다', () => {
+    const { show, wait, onScreen } = lagged(8_000, LAG);
+    show([line(SHORT)]);
+    wait(LAG + PER_CHAR); // 첫 글자
+    wait(PER_CHAR); // 둘째 글자 — 여기서 또 늦추면 아직 안 나온다
+    expect(onScreen(SHORT.slice(0, 2))).toBe(true);
+  });
+
+  /** 소리가 없는 줄(지문·클립 못 받음)은 기다릴 소리가 없다 — 늦추면 그냥 빈 화면이다 */
+  it('소리 길이를 모르는 줄은 안 늦춘다 — 맞출 소리가 없다', () => {
+    const { show, wait, onScreen } = lagged(undefined, LAG);
+    show([line(SHORT)]);
+    wait(PER_CHAR);
+    expect(onScreen(SHORT[0])).toBe(true);
+  });
+
+  it('안 주면 예전 그대로다 — /world · /lab 의 호출부는 안 늦춰진다', () => {
+    const { show, wait, onScreen } = lagged(8_000, 0);
+    show([line(SHORT)]);
+    wait(PER_CHAR);
+    expect(onScreen(SHORT[0])).toBe(true);
+  });
+});
+
 /*
  * 넘기는 손은 **상자를 누르는 것 하나다.** 찍는 중이면 그 문장을 끝까지 보여주고,
  * 다 찍혔으면 다음 줄로 간다 — 비주얼 노벨이 늘 하던 그것이다.

@@ -109,17 +109,20 @@ interface Pace {
   scale: number;
   /** 다 찍은 뒤 머무는 시간(ms) */
   hold: number;
+  /** 첫 글자를 이만큼 늦게 찍는다 — 소리가 스피커에 닿기까지의 늦음 (voiceLagMs) */
+  lag: number;
 }
 
-function paceFor(text: string, voiceMs: number): Pace {
+function paceFor(text: string, voiceMs: number, lag = 0): Pace {
   const type = typingTime(text);
   const hold = charHold(text);
-  if (!voiceMs) return { scale: 1, hold };
+  // 소리가 없는 줄은 늦출 것도 없다 — 기다릴 소리가 있어야 맞출 것도 있다
+  if (!voiceMs) return { scale: 1, hold, lag: 0 };
   // 줄의 전체 길이는 lineDurationFor 과 같은 값이어야 한다 — 대본이 그걸로 다음 줄을 잡는다
   const total = Math.max(type + hold, voiceMs + VOICE_TAIL_MS);
   const want = Math.min(voiceMs * VOICE_TYPE, total - VOICE_HOLD_MIN_MS);
   const scale = Math.max(TYPE_SCALE_MIN, Math.min(TYPE_SCALE_MAX, want / (type || 1)));
-  return { scale, hold: Math.max(VOICE_HOLD_MIN_MS, total - typingTime(text, scale)) };
+  return { scale, hold: Math.max(VOICE_HOLD_MIN_MS, total - typingTime(text, scale)), lag: Math.max(0, lag) };
 }
 
 /**
@@ -196,9 +199,22 @@ export interface DialogueBoxProps {
    * 안 주면 아무 일도 안 한다 — /world · /world2 · /lab 의 호출부는 그대로다.
    */
   voiceMsOf?: (key: string) => number | null;
+  /**
+   * **소리가 스피커에 닿기까지의 늦음(ms)** — 그만큼 첫 글자를 늦게 찍는다.
+   *
+   * `src.start()` 는 곧바로 돌아오지만 그 소리가 실제로 들리는 것은 오디오 장치를 다 지난
+   * 뒤다 (AudioContext 의 baseLatency + outputLatency). 내장 스피커면 10~30ms 라 안 보이는데,
+   * 블루투스 이어폰이면 150~300ms 다 — 그동안 자막만 먼저 굴러간다.
+   * 2026-09-05 사용자: 「관리자뿐 아니라 다들 조금씩 늦게 시작해」 — **한 사람만이 아니라
+   * 전부**라는 것이 곧 이 값의 지문이다. 목소리마다 다른 것이라면 전부일 리가 없다.
+   *
+   * 소리를 바깥에서 내는 화면만 준다 (심문소 프롤로그). 안 주면 0 이라 예전 그대로다 —
+   * 늦춰 봐야 이 값을 모르는 화면에서는 자막만 뒤처진다.
+   */
+  voiceLagMs?: number;
 }
 
-export function DialogueBox({ messages, selfId, touch, speaking, lifted = false, onShowing, onLine, voiceMsOf }: DialogueBoxProps) {
+export function DialogueBox({ messages, selfId, touch, speaking, lifted = false, onShowing, onLine, voiceMsOf, voiceLagMs = 0 }: DialogueBoxProps) {
   const queue = useRef<Line[]>([]);
   /** 마지막으로 줄 세운 메시지의 열쇠. undefined = 아직 기준선을 안 잡았다, '' = 마운트 때 기록이 비어 있었다 */
   const seen = useRef<string | undefined>(undefined);
@@ -214,7 +230,7 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
   /** 지금 줄의 목소리 — 틀었으면 길이·시작 시각. 다 찍힌 뒤 이 소리가 끝날 때까지는 머문다 */
   const voice = useRef<Promise<Playing | null>>(Promise.resolve(null));
   /** 지금 줄의 타자 속도·머무름 — 클립이 있으면 목소리에 맞춰 늘어난다 (paceFor) */
-  const pace = useRef<Pace>({ scale: 1, hold: HOLD_MIN_MS });
+  const pace = useRef<Pace>({ scale: 1, hold: HOLD_MIN_MS, lag: 0 });
   /**
    * 머무름이 시작된 시각. `speaking` 이 바뀌면 아래 효과가 다시 도는데, 그때마다 머무름을
    * 처음부터 다시 세면 줄 하나가 몇 배로 늘어난다. 0 = 아직 안 머물고 있다 (advance 가 되돌린다)
@@ -240,6 +256,9 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
   /** voiceMsOf 도 같은 이유로 ref */
   const voiceMsOfRef = useRef(voiceMsOf);
   voiceMsOfRef.current = voiceMsOf;
+  /** 소리가 스피커에 닿기까지의 늦음도 같은 이유로 ref — 줄이 뜨는 순간의 값을 쓴다 */
+  const voiceLagRef = useRef(voiceLagMs);
+  voiceLagRef.current = voiceLagMs;
 
   const clearTimer = () => {
     if (timer.current !== null) {
@@ -282,7 +301,7 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
           : ownVoice.current
             ? (voiceMsOfRef.current?.(next.key) ?? 0)
             : (voiceLines.durationOf(next.nickname, next.text, next.isSelf) ?? 0) * 1000;
-      pace.current = paceFor(next.text, voiceMs);
+      pace.current = paceFor(next.text, voiceMs, voiceLagRef.current);
       voice.current = silent ? Promise.resolve(null) : voiceLines.play(next.nickname, next.text, next.isSelf);
       // 바깥이 이 줄을 읽을 수 있게 알린다 (onLine 머리말). 클립을 트는 화면에서는 대개 안 준다
       onLineRef.current?.(next.key);
@@ -338,7 +357,13 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
     if (shown < current.text.length) {
       phase.current = 'typing';
       const ch = current.text[shown - 1] ?? '';
-      timer.current = window.setTimeout(() => setShown((n) => n + 1), (PAUSE_CHARS.test(ch) ? PAUSE_MS : TYPE_MS) * pace.current.scale);
+      /*
+       * 첫 글자에만 늦음을 얹는다 (voiceLagMs) — 소리는 start() 를 부른 뒤 오디오 장치를 다
+       * 지나야 들리므로, 그동안 글자가 굴러가면 자막이 목소리를 앞선다. 한 줄의 전체 길이는
+       * 그만큼 늘어나는데 그게 맞다: 소리도 그만큼 늦게 시작해 그만큼 늦게 끝난다.
+       */
+      const first = shown === 0 ? pace.current.lag : 0;
+      timer.current = window.setTimeout(() => setShown((n) => n + 1), (PAUSE_CHARS.test(ch) ? PAUSE_MS : TYPE_MS) * pace.current.scale + first);
       return clearTimer;
     }
     phase.current = 'holding';

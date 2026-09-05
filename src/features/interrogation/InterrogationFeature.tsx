@@ -25,7 +25,7 @@ import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
 import { PROLOGUE, prologueLineOf, prologueLines } from './prologue';
-import { prefetchPrologue, prologueClipMs, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
+import { prefetchPrologue, prologueClipMs, prologueLagMs, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal } from './hud/Panels';
@@ -405,6 +405,8 @@ export function InterrogationFeature() {
    * 같은 좌석으로 한 번만 세지만(prologueSeen), 안 보낸 것과 두 번 보낸 것은 뜻이 다르니 여기서 잠근다.
    */
   const prologueReported = useRef(false);
+  /** 소리가 스피커에 닿기까지의 늦음(ms) — 자막을 그만큼 늦게 연다 (prologueVoice 의 prologueLagMs) */
+  const [prologueLag, setPrologueLag] = useState(0);
   const startedAt = wire?.startedAt ?? null;
   const testsDone = wire?.testsDone ?? 0;
   useEffect(() => {
@@ -422,6 +424,12 @@ export function InterrogationFeature() {
      */
     resetPrologueVoice();
     prefetchPrologue(PROLOGUE);
+    /*
+     * 소리가 스피커에 닿기까지의 늦음 — 자막을 그만큼 늦게 연다 (DialogueBox 의 voiceLagMs).
+     * 판이 열릴 때 한 번 잰다: 장치가 판 도중에 바뀌는 일은 드물고, 줄마다 다시 재면 같은
+     * 대본 안에서 자막이 들쭉날쭉해진다.
+     */
+    setPrologueLag(prologueLagMs());
     prologueReported.current = false;
     setPrologueUp(true);
     setPrologue(prologueLines(seatsRef.current, startedAt));
@@ -580,6 +588,7 @@ export function InterrogationFeature() {
         onShowing={onPrologueShowing}
         onLine={onPrologueLine}
         voiceMsOf={prologueVoiceMs}
+        voiceLagMs={prologueLag}
       />
       <HallScene
         mySeatId={mySeatId}

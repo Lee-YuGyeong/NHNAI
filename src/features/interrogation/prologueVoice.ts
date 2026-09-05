@@ -231,6 +231,32 @@ function paWanted(): boolean {
   return (window as unknown as { __prologuePA?: boolean }).__prologuePA !== false;
 }
 
+/**
+ * **소리가 스피커에 닿기까지 몇 ms 인가** — 자막을 그만큼 늦게 연다 (DialogueBox 의 voiceLagMs).
+ *
+ * `src.start()` 는 곧바로 돌아오지만 그 소리가 실제로 들리는 것은 오디오 장치를 다 지난 뒤다:
+ * baseLatency(브라우저가 채워 두는 버퍼) + outputLatency(OS·장치까지의 길). 내장 스피커면
+ * 합쳐 10~30ms 라 눈에 안 띄는데 **블루투스 이어폰이면 150~300ms** 고, 그 동안 자막만 먼저 굴러간다.
+ *
+ * 2026-09-05 사용자: 「관리자뿐 아니라 다들 조금씩 늦게 시작해」. **전부**라는 것이 이 값의
+ * 지문이다 — 목소리마다 · 체인마다 다른 것이라면 전부일 리가 없다. (앞서 통제실만 늦다고 보고
+ * 앞머리 무음을 짚었다가 틀렸다: 재어 보니 통제실이 오히려 짧았다.)
+ *
+ * 상한을 둔다 — 브라우저가 터무니없는 값을 주면 자막이 통째로 밀린다. 그럴 바엔 안 맞추는 게 낫다.
+ * 귀로 맞춰 보려면 `window.__prologueLag = 200` (개발 중, ms). 0 을 넣으면 안 늦춘다.
+ */
+const MAX_LAG_MS = 400;
+
+export function prologueLagMs(): number {
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    const dial = (window as unknown as { __prologueLag?: unknown }).__prologueLag;
+    if (typeof dial === 'number' && Number.isFinite(dial)) return Math.max(0, Math.min(MAX_LAG_MS, dial));
+  }
+  const ctx = audioContext();
+  const lag = ((ctx.baseLatency ?? 0) + (ctx.outputLatency ?? 0)) * 1000;
+  return Number.isFinite(lag) ? Math.max(0, Math.min(MAX_LAG_MS, lag)) : 0;
+}
+
 // 콘솔에서 `__prologuePA` 를 쳐 보면 스위치가 있다는 걸 알 수 있다 (world/probe.ts 와 같은 방식)
 if (import.meta.env.DEV && typeof window !== 'undefined') {
   const w = window as unknown as { __prologuePA?: boolean };
@@ -284,8 +310,9 @@ export async function speakPrologueLine(line: PrologueLine): Promise<void> {
     if (import.meta.env.DEV) {
       // 체인이 붙는 지연(baseLatency)까지 같이 적는다 — 통제실만 다른 길을 타므로 여기서 갈릴 수 있다
       const chain = v.pa && paWanted() ? 'PA' : '원음';
+      const path = `버퍼 ${Math.round((ctx.baseLatency ?? 0) * 1000)}ms + 장치 ${Math.round((ctx.outputLatency ?? 0) * 1000)}ms`;
       console.info(
-        `[prologue] ${line.who}/${chain} 줄→소리 ${Math.round(performance.now() - shownAt)}ms · 출력지연 ${Math.round((ctx.baseLatency ?? 0) * 1000)}ms — ${line.text.slice(0, 12)}`,
+        `[prologue] ${line.who}/${chain} 줄→start ${Math.round(performance.now() - shownAt)}ms · 귀까지 ${path} = 늦춤 ${Math.round(prologueLagMs())}ms — ${line.text.slice(0, 12)}`,
       );
     }
   });
