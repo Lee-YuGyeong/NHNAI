@@ -53,6 +53,11 @@ import {
   type GameStateWire,
   type GameTestInfo,
   type LeaderKind,
+  CARD,
+  CARD_ITEMS,
+  heldSecondsFor,
+  type CardItem,
+  type CompelledVerdict,
 } from '../../../src/world/mp/game-protocol';
 import { genderOf, pickBody, type BodyId } from '../../../src/world/mp/bodies';
 import { WALK_SPEED } from '../../../src/world/mp/constants';
@@ -64,7 +69,7 @@ import type { GameEngine, SeatTuning } from '../trial/engine';
 import { appendHistory, readHistory } from '../trial/history';
 import { groupStats } from '../trial/scoring';
 import type { TrialResult } from '../trial/types';
-import { LINES, aiStrategy, judgeClaim, leaderComment, personaPool, readTalk, sayAs, type RoomFacts } from './agents';
+import { LINES, aiStrategy, judgeClaim, judgeCompelled, leaderComment, personaPool, readTalk, sayAs, type RoomFacts } from './agents';
 import type { Brain } from './brain';
 import { ENGINES, INSTRUCTION, availableGames } from './engines';
 import { assignRoles, outcomeFor, quotaFor, shuffled } from './roles';
@@ -239,6 +244,14 @@ export class GameRuntime {
   private called = new Map<string, number>();
   /** 좌석 → 회피 횟수. DUCK_FREE 번까지는 안 문다 */
   private ducked = new Map<string, number>();
+  /* ── 카드 (game-protocol CARD) — 시험 1등이 셋 중 하나를 고르고, 가진 것을 토론에서 쓴다. 메모리에만 산다(되살린 판은 빈손) ── */
+  /** 좌석 → 고르는 중인 카드 셋과 마감 */
+  private cardOffer = new Map<string, { options: CardItem[]; until: number }>();
+  /** 좌석 → 쥔 카드 */
+  private items = new Map<string, CardItem[]>();
+  /** 답변 강제권이 걸려 있다 — by 의 다음 말이 질문, 그다음 target 의 말이 답 */
+  private compelled: { by: string; target: string; question: string | null; until: number } | null = null;
+  private compelledInFlight = false;
   /** 거론(⑩) — 대상 좌석 → 센 횟수와 「누가 언제 마지막으로 불렀나」 (MENTION_GAP_MS 안의 연타는 한 번) */
   private mentions = new Map<string, { n: number; lastBy: Map<string, number> }>();
   /** 좌석 → 마지막 되풀이 판정 시각 (ECHO_GAP_MS) */
@@ -431,6 +444,12 @@ export class GameRuntime {
       case 'game_prologue_done':
         this.prologueDone(playerId);
         return;
+      case 'game_card_pick':
+        this.cardPick(playerId, msg.item);
+        return;
+      case 'game_card_use':
+        this.cardUse(playerId, msg.item, msg.target);
+        return;
       default:
         return;
     }
@@ -545,6 +564,9 @@ export class GameRuntime {
     const order = shuffled([...humans, ai], this.rand);
     const names = pickKoreanNames(order.map((s) => genderOf(s.body)), this.rand);
     this.seats = order.map((s, i) => ({ ...s, seat: i + 1, name: names[i] }));
+    this.cardOffer = new Map();
+    this.items = new Map();
+    this.compelled = null;
     this.bindings = new Map();
     for (const p of roster) {
       this.bindings.set(p.id, `seat-${p.id}`);
@@ -846,6 +868,7 @@ export class GameRuntime {
     this.currentTest = null;
     this.deps.broadcast({ t: 'trial_result', result: wire });
     this.grantTalk(engine.game, raw);
+    this.offerCard(engine.game, raw);
     this.setPhase('result', this.now() + GAME_RESULT_MODAL_MS);
     void this.persist();
 
@@ -1122,6 +1145,11 @@ export class GameRuntime {
         accusedBy: this.book.accusersOf(pick.id),
         freshResult: fresh,
         opening: this.testsDone === 0 && this.log.length < 3,
+        // 답변 강제권의 과녁이고 질문이 나왔다 — 이번 말이 그 답이다
+        compelled:
+          this.compelled && this.compelled.target === pick.id && this.compelled.question !== null
+            ? { by: this.nameOf(this.compelled.by), question: this.compelled.question }
+            : null,
       });
       if (!out || !this.active() || pick.isolated) return;
       // 말을 짓는 동안 지갑이 비었을 수 있다 (같은 좌석의 앞 차례) — 그러면 이 말은 버린다
@@ -1156,6 +1184,7 @@ export class GameRuntime {
     seat.lastSpokeAt = now;
     this.deps.broadcast({ t: 'chat', id: seat.id, nickname: seat.name, text, ts: now });
     this.pushLog(seat.id, text);
+    this.onCompelledSpeech(seat, text, now);
 
     /*
      * 이 말이 누구에게 말을 건 것인가 — 그 사람이 DUCK_WINDOW_MS 안에 안 답하면 회피다 (watchDucks).
@@ -1219,6 +1248,159 @@ export class GameRuntime {
       const d = this.book.tell(m.id, 'mention', `거듭 거론됨 (${rec.n}회)`);
       if (d) this.applyDeltas([d]);
     }
+  }
+
+  /* ─────────────────────────────── 카드 (docs/SUSPICION.md ⑪ · game-protocol CARD) ─────────────────────────────── */
+
+  /**
+   * 시험이 끝났다 — **1등**(버틴 초가 가장 긴 사람)에게 카드 셋을 내민다. 봇은 안 받는다(카드는 사람의 것, 1등이 봇이면 카드 없는 시험).
+   * 동률이면 앞자리. 고르지 않고 마감(CARD.offerMs)이 지나면 사라진다.
+   */
+  private offerCard(game: TrialGame, published: TrialPlayerResult[]): void {
+    let best: { seat: Seat; held: number } | null = null;
+    for (const p of published) {
+      const seat = this.seats.find((s) => s.id === p.id);
+      if (!seat || seat.isolated) continue;
+      const held = heldSecondsFor(game, p.metrics, GAME_TEST_MS) ?? 0;
+      if (!best || held > best.held) best = { seat, held };
+    }
+    if (!best || best.seat.kind !== 'real') return;
+    const playerId = this.playerOfSeat(best.seat.id);
+    if (!playerId) return;
+    this.cardOffer.set(best.seat.id, { options: [...CARD_ITEMS], until: this.now() + CARD.offerMs });
+    this.sendCards(best.seat.id);
+  }
+
+  private sendCards(seatId: string): void {
+    const playerId = this.playerOfSeat(seatId);
+    if (!playerId) return;
+    const offer = this.cardOffer.get(seatId);
+    this.deps.sendTo(playerId, { t: 'game_cards', offer: offer && offer.until > this.now() ? [...offer.options] : null, items: [...(this.items.get(seatId) ?? [])] });
+  }
+
+  private cardPick(playerId: string, item: CardItem): void {
+    const seat = this.seatOfPlayer(playerId);
+    if (!seat || !this.active()) return;
+    const offer = this.cardOffer.get(seat.id);
+    if (!offer || offer.until < this.now()) return this.reject(playerId, '고를 카드가 없다');
+    if (!offer.options.includes(item)) return this.reject(playerId, '그 카드는 없다');
+    const have = this.items.get(seat.id) ?? [];
+    if (have.length >= CARD.maxItems) return this.reject(playerId, `카드는 ${CARD.maxItems}장까지`);
+    this.cardOffer.delete(seat.id);
+    this.items.set(seat.id, [...have, item]);
+    this.sendCards(seat.id);
+  }
+
+  /**
+   * 카드를 쓴다 — 토론 중에만. 지목권은 남에게 +CARD.accuseBoost, 진정권은 나에게 −CARD.calmDrop,
+   * 답변 강제권은 「내 다음 말이 질문, 그다음 상대의 말이 답」을 건다 (onCompelledSpeech).
+   */
+  private cardUse(playerId: string, item: CardItem, targetId?: string): void {
+    if (this.phase !== 'discussion') return this.reject(playerId, '카드는 토론 중에만 쓴다');
+    const me = this.seatOfPlayer(playerId);
+    if (!me || me.isolated) return;
+    const have = this.items.get(me.id) ?? [];
+    const at = have.indexOf(item);
+    if (at < 0) return this.reject(playerId, '그 카드가 없다');
+    let target: Seat | null = null;
+    if (item !== 'calm') {
+      target = this.seats.find((s) => s.id === targetId) ?? null;
+      if (!target || target.isolated || target.id === me.id) return this.reject(playerId, '겨눌 사람을 골라라');
+    }
+    if (item === 'truth' && this.compelled) return this.reject(playerId, '이미 답변 강제권이 걸려 있다');
+
+    have.splice(at, 1);
+    this.items.set(me.id, have);
+    this.sendCards(me.id);
+
+    const text = LINES.cardUsed(me.name, item, target?.name ?? null);
+    this.deps.broadcast({ t: 'game_card_used', by: me.id, item, ...(target ? { target: target.id } : {}), text });
+    this.leader(text, 'announce');
+    this.pushLog(me.id, `(${item === 'truth' ? '답변 강제권' : item === 'accuse' ? '지목권' : '진정권'}) ${text}`);
+
+    if (item === 'accuse' && target) {
+      const d = this.book.boost(target.id, CARD.accuseBoost, me.id, '지목권');
+      if (d) this.applyDeltas([d]);
+    } else if (item === 'calm') {
+      const d = this.book.boost(me.id, -CARD.calmDrop, me.id, '진정권');
+      if (d) this.applyDeltas([d]);
+    } else if (item === 'truth' && target) {
+      this.compelled = { by: me.id, target: target.id, question: null, until: this.now() + CARD.answerMs };
+      this.broadcastState();
+    }
+  }
+
+  /**
+   * 답변 강제권의 흐름 — say() 가 매 말마다 부른다.
+   *   by 의 첫 말 = 질문 (마감 CARD.answerMs 를 새로 센다). 과녁이 봇이면 곧 답할 차례를 잡는다.
+   *   그 뒤 target 의 첫 말 = 답 → 관리 AI 가 기록·앞말과 대조한다 (agents.judgeCompelled). 판정은 전원이 본다.
+   */
+  private onCompelledSpeech(seat: Seat, text: string, now: number): void {
+    const c = this.compelled;
+    if (!c || !this.judging()) return;
+    if (c.question === null) {
+      if (seat.id !== c.by) return;
+      c.question = text;
+      c.until = now + CARD.answerMs;
+      this.broadcastState();
+      const target = this.seats.find((s) => s.id === c.target);
+      if (target && target.kind !== 'real') this.scheduleTalk(BOT_DEFEND_MIN_MS);
+      return;
+    }
+    if (seat.id !== c.target || this.compelledInFlight) return;
+    void this.resolveCompelled(text);
+  }
+
+  private async resolveCompelled(answer: string): Promise<void> {
+    const c = this.compelled;
+    if (!c || c.question === null) return;
+    this.compelledInFlight = true;
+    try {
+      const target = this.seats.find((s) => s.id === c.target);
+      const prior = this.log
+        .filter((l) => l.id === c.target)
+        .slice(-PRIOR_LINES - 1, -1)
+        .map((l) => l.text);
+      const v = await judgeCompelled(this.deps.brain, {
+        by: this.nameOf(c.by),
+        target: this.nameOf(c.target),
+        question: c.question,
+        answer,
+        facts: this.facts(),
+        results: this.history,
+        prior,
+      });
+      if (!this.active() || !target || target.isolated) return;
+      this.settleCompelled(v.verdict, v.reason);
+    } finally {
+      this.compelledInFlight = false;
+    }
+  }
+
+  /** 판정을 눈금에 얹고 알린다 — 거짓 +truthLie · 회피 +truthEvade · 진실 truthHonest(−). 그러고 나면 강제권은 풀린다 */
+  private settleCompelled(verdict: CompelledVerdict, reason: string): void {
+    const c = this.compelled;
+    if (!c) return;
+    this.compelled = null;
+    const amount = verdict === 'false' ? CARD.truthLie : verdict === 'evasive' ? CARD.truthEvade : CARD.truthHonest;
+    const d = this.book.boost(c.target, amount, 'LEADER', verdict === 'false' ? '강제 답변 — 거짓' : verdict === 'evasive' ? '강제 답변 — 회피' : '강제 답변 — 진실');
+    const text = LINES.compelled(this.nameOf(c.target), verdict, reason);
+    this.deps.broadcast({ t: 'game_compelled', by: c.by, target: c.target, verdict, text, delta: d?.amount ?? 0 });
+    this.leader(text, verdict === 'false' ? 'alarm' : 'readout');
+    if (d) this.applyDeltas([d]);
+    else this.broadcastState();
+  }
+
+  /** 질문이 나왔는데 마감까지 답이 없다 — 회피로 친다. 질문조차 안 나온 채 마감이면 그냥 푼다 */
+  private watchCompelled(now: number): void {
+    const c = this.compelled;
+    if (!c || this.compelledInFlight || now < c.until) return;
+    if (c.question === null) {
+      this.compelled = null;
+      this.broadcastState();
+      return;
+    }
+    this.settleCompelled('evasive', '마감까지 답이 없다');
   }
 
   /**
@@ -1400,6 +1582,7 @@ export class GameRuntime {
     }
     this.readBodies(poses, now);
     this.watchDucks(now);
+    this.watchCompelled(now);
   }
 
   /* ─────────────────────────────── 공개 사실 · 유틸 ─────────────────────────────── */
@@ -1552,6 +1735,7 @@ export class GameRuntime {
       // 붙잡고 있는 동안만 화면이 대본을 튼다 — 트는 쪽과 붙잡는 쪽이 같은 값을 봐야 안 겹친다
       prologue: this.prologueHold !== null,
       talk: this.talkSnapshot(),
+      compelled: this.compelled ? { ...this.compelled } : null,
     };
   }
 

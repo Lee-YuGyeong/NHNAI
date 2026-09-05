@@ -114,9 +114,42 @@ export interface GameStateWire {
    * 공개다 — 남은 수는 곧 시험 기록이고, 기록은 어차피 전원이 본다 (§3).
    */
   talk: Record<string, number>;
+  /**
+   * 답변 강제권이 걸려 있다 — 전원이 본다: target 은 by 의 다음 질문에 진실만 답해야 한다.
+   * question 은 by 가 그 뒤 처음 한 말(질문). 아직 안 물었으면 null. until 은 답을 기다리는 마감.
+   */
+  compelled: { by: string; target: string; question: string | null; until: number } | null;
 }
 
 /** 관리 AI 방송의 결 — 화면 배너·TTS 가 같은 값을 본다 (shared/broadcast-kind 의 부분집합) */
+/**
+ * 카드 — 시험에서 **1등**을 한 사람이 셋 중 하나를 고른다 (2026-09-05 사용자: "미니게임에서 1등하면 카드 3개를 선택할 수 있게").
+ *   truth   답변 강제권 — 상대는 내 다음 질문에 **진실만** 답해야 한다. 관리 AI 가 그 답을 기록과 대조해 거짓이면 크게, 교묘히 피하면
+ *           조금 올리고, 진실이면 내려 준다. 상대(사람이든 봇이든)의 전략은 둘 — 진실을 말하거나, 교묘하게 피하거나.
+ *   accuse  지목권 — 겨눈 상대의 의심도를 CARD.accuseBoost 만큼 올린다.
+ *   calm    진정권 — 내 의심도를 CARD.calmDrop 만큼 내린다.
+ * 카드는 가진 사람만 안다(game_cards 는 본인에게만). 쓰면 전원이 본다(game_card_used). 봇은 카드를 안 받는다 — 1등이 봇이면 카드 없는 시험이다.
+ */
+export type CardItem = 'truth' | 'accuse' | 'calm';
+export const CARD_ITEMS: readonly CardItem[] = ['truth', 'accuse', 'calm'];
+export const CARD = {
+  /** 지목권 · 진정권의 걸음 */
+  accuseBoost: 20,
+  calmDrop: 20,
+  /** 고르기 유예(ms) — 결과 모달(7초)과 다음 대화 앞머리까지 */
+  offerMs: 45_000,
+  /** 답변 강제권 — 질문이 나온 뒤 이 안에 답이 없으면 회피로 친다 */
+  answerMs: 25_000,
+  /** 강제된 답이 기록과 어긋난다(거짓) · 교묘히 피한다 · 진실이다 */
+  truthLie: 25,
+  truthEvade: 12,
+  truthHonest: -10,
+  /** 한 사람이 쥘 수 있는 카드 수 */
+  maxItems: 3,
+} as const;
+/** 강제된 답의 판정 — 관리 AI 가 기록·앞뒤와 대조한다 (worker/src/game/agents.ts judgeCompelled) */
+export type CompelledVerdict = 'truthful' | 'evasive' | 'false';
+
 export type LeaderKind = 'announce' | 'readout' | 'alarm';
 
 /** 주장 판정 결과 (§1.2 · §4.2). match −10 · mismatch +10 · unclear 0 */
@@ -141,7 +174,10 @@ export type GameC2SMessage =
    * 자막을 맞추므로(prologueVoice) 판마다·기기마다 다르다. 그래서 「끝났다」만 올린다: 그때까지
    * 대역과 AI 참가자는 입을 다물고, 첫 토론의 40초도 그때부터 센다 (runtime 의 prologueHold).
    */
-  | { t: 'game_prologue_done' };
+  | { t: 'game_prologue_done' }
+  /** 카드 — 1등이 셋 중 하나를 고른다 · 가진 카드를 쓴다 (target 은 truth · accuse 에만) */
+  | { t: 'game_card_pick'; item: CardItem }
+  | { t: 'game_card_use'; item: CardItem; target?: string };
 
 /** 서버 → 클라이언트 */
 export type GameS2CMessage =
@@ -172,7 +208,13 @@ export type GameS2CMessage =
    */
   | { t: 'game_talk'; talk: Record<string, number>; gained?: Record<string, number>; game?: TrialGame }
   /** 거절 사유 한 줄 — 그 소켓에만 (시작 조건 미달 · 권한 없음 · 국면 불일치) */
-  | { t: 'game_reject'; why: string };
+  | { t: 'game_reject'; why: string }
+  /** 본인에게만 — 고를 수 있는 카드(없으면 null)와 쥔 카드 */
+  | { t: 'game_cards'; offer: CardItem[] | null; items: CardItem[] }
+  /** 전원에게 — 누가 무슨 카드를 누구에게 썼나 */
+  | { t: 'game_card_used'; by: string; item: CardItem; target?: string; text: string }
+  /** 전원에게 — 강제된 답의 판정 */
+  | { t: 'game_compelled'; by: string; target: string; verdict: CompelledVerdict; text: string; delta: number };
 
 export function isGameMessage(msg: { t: string }): msg is GameC2SMessage {
   return msg.t.startsWith('game_');

@@ -32,6 +32,8 @@ import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, EndScreen, LobbyPanel, ResultModal, TestOrder, withRo } from './hud/Panels';
 import { SelfSuspicion } from './hud/SelfSuspicion';
+import { CardDock, CardOffer, CompelBar } from './hud/Cards';
+import type { CardItem } from '@/world/mp/game-protocol';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
@@ -116,6 +118,8 @@ export function InterrogationFeature() {
   const reject = useAppSelector(gameSelectors.selectReject);
   const myTalk = useAppSelector(gameSelectors.selectMyTalk);
   const talkGained = useAppSelector(gameSelectors.selectTalkGained);
+  const cards = useAppSelector(gameSelectors.selectCards);
+  const cardNote = useAppSelector(gameSelectors.selectCardNote);
 
   const [locked, setLocked] = useState(false);
   const [composing, setComposing] = useState(false);
@@ -257,6 +261,15 @@ export function InterrogationFeature() {
           return;
         case 'game_talk':
           dispatch(gameActions.talkReceived(msg));
+          return;
+        case 'game_cards':
+          dispatch(gameActions.cardsReceived({ offer: msg.offer, items: msg.items }));
+          return;
+        case 'game_card_used':
+          dispatch(gameActions.cardUsed({ by: msg.by, item: msg.item, target: msg.target, text: msg.text }));
+          return;
+        case 'game_compelled':
+          dispatch(gameActions.compelledReceived({ by: msg.by, target: msg.target, verdict: msg.verdict, text: msg.text, delta: msg.delta }));
           return;
         case 'trial_round_start': {
           dispatch(gameActions.testStarted({ game: msg.game, round: msg.round, startAt: msg.startAt, durationMs: msg.durationMs }));
@@ -565,6 +578,14 @@ export function InterrogationFeature() {
   /** 낙하 생존 — Space. 몸의 높이는 서버가 적분한다 (FreeRig sendJump) */
   const onJump = useCallback(() => conn.sendJump(), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
+  const onCardPick = useCallback((item: CardItem) => conn.sendCardPick(item), [conn]);
+  const onCardUse = useCallback((item: CardItem, target?: string) => conn.sendCardUse(item, target), [conn]);
+  /* 카드 알림은 6초 뒤 스스로 진다 — 로그에는 남아 있다 */
+  useEffect(() => {
+    if (!cardNote) return;
+    const t = window.setTimeout(() => dispatch(gameActions.clearCardNote()), 6_000);
+    return () => window.clearTimeout(t);
+  }, [cardNote, dispatch]);
   const onStart = useCallback(
     (fillTo: number) => {
       dispatch(gameActions.clearReject());
@@ -828,6 +849,21 @@ export function InterrogationFeature() {
         {/* 소집 대기 판은 ?lobby 로 들어왔거나 자동 시작이 거절됐을 때만 선다 — 나머지는 판이 열리는 한순간뿐이다 */}
         {wire && phase === 'lobby' && (keepLobby || reject) ? <LobbyPanel wire={wire} players={players} selfId={selfId} myBody={myBody} reject={reject} onStart={onStart} /> : null}
         {reject && phase !== 'lobby' ? <p className="ig-banner alarm">{reject}</p> : null}
+        {/*
+          * 카드 (hud/Cards 머리말). 고르는 판은 **토론이 열린 뒤** 선다 — 결과 모달(7초)과 같은 자리에 겹쳐 서지 않도록.
+          * 서버의 고를 시간(CARD.offerMs 45초)은 결과가 난 순간부터라 토론에 들어와도 넉넉히 남는다.
+          * 쥔 카드는 오른쪽 아래에 늘 보이고, 토론 중에만 눌린다 (runtime 의 cardUse 가 토론 밖은 거절한다).
+          */}
+        {cards.offer && phase === 'discussion' && !prologueUp ? <CardOffer offer={cards.offer} onPick={onCardPick} /> : null}
+        {inGame && mySeatId && phase !== 'ended' && phase !== 'test' && !prologueUp ? (
+          <CardDock items={cards.items} seats={seats} mySeatId={mySeatId} canUse={phase === 'discussion' && !wire?.compelled} onUse={onCardUse} />
+        ) : null}
+        {wire?.compelled && phase === 'discussion' ? <CompelBar compelled={wire.compelled} mySeatId={mySeatId} nameOf={nameOf} /> : null}
+        {cardNote && phase !== 'test' ? (
+          <p key={cardNote.ts} className={`ig-cardnote ${cardNote.tone}`}>
+            {cardNote.text}
+          </p>
+        ) : null}
         {phase === 'result' && latestResult ? (
           <ResultModal
             result={latestResult}

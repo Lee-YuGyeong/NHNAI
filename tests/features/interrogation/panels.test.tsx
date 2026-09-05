@@ -46,6 +46,7 @@ const WIRE: GameStateWire = {
   minHumans: 3,
   humansOnline: 1,
   outcome: null,
+  compelled: null,
   startedAt: 1,
   talk: {},
 };

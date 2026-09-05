@@ -278,6 +278,17 @@ export class SuspicionBook {
     return this.tellNth.get(`${id}:${kind}`) ?? 0;
   }
 
+  /**
+   * 카드 — 지목권 · 진정권 · 답변 강제권의 판정 (game-protocol CARD). 겨눔도 표식도 아닌 **제3의 걸음**이다:
+   * 철회로 안 걷히고(겨눔이 아니다), 누계도 상한도 안 탄다(표식이 아니다). 올리는 쪽만 압력을 곱한다.
+   */
+  boost(id: string, amount: number, by: string, why: string): SuspicionDelta | null {
+    if (!this.value.has(id) || this.frozen.has(id) || amount === 0) return null;
+    const scaled = amount > 0 ? this.scale(amount) : amount;
+    this.bump(id, scaled);
+    return { target: id, amount: scaled, by, why };
+  }
+
   /** 관리 AI 의 주장 판정 (§4.2) — 그 사람의 눈금이 움직인다 */
   judge(id: string, verdict: 'match' | 'mismatch' | 'unclear'): SuspicionDelta | null {
     if (!this.value.has(id) || this.frozen.has(id) || verdict === 'unclear') return null;

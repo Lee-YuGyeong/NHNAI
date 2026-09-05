@@ -12,7 +12,7 @@
 
 import type { Effort, ToolSpec } from '../../../src/lab/agent';
 import { EXTRA_PERSONAS, PERSONAS, type Persona } from '../../../src/lab/personas';
-import { GAME_TEST_MS, SUSPICION, heldSecondsFor, type ClaimVerdict, type GameSeat } from '../../../src/world/mp/game-protocol';
+import { CARD, GAME_TEST_MS, SUSPICION, heldSecondsFor, type CardItem, type ClaimVerdict, type CompelledVerdict, type GameSeat } from '../../../src/world/mp/game-protocol';
 import type { TrialGame, TrialResultWire } from '../../../src/world/mp/protocol';
 import type { Brain } from './brain';
 
@@ -292,6 +292,12 @@ export interface SayArgs {
   freshResult: boolean;
   /** 판이 방금 열렸다 */
   opening: boolean;
+  /**
+   * 답변 강제권을 받았다 — by 의 질문에 진실만 답해야 한다고 방이 안다. 이번 발화는 그 답이다.
+   * 봇의 전략은 둘: 진실을 말하거나(AI 라면 위험할 수 있다), 교묘하게 피하거나(관리 AI 가 회피로 읽으면 조금 오른다).
+   * 거짓말은 기록과 대조돼 들키면 크게 오른다 (CARD.truthLie).
+   */
+  compelled?: { by: string; question: string } | null;
 }
 
 export interface SayOut {
@@ -344,10 +350,17 @@ ${COMMON_RULES}`;
 성격에 맞으면 그중 한 사람의 **이름을 불러 직접 물어라** ("${quiet[0]} 너는 어떻게 생각해?" 처럼).`
     : '';
 
+  const compelled = a.compelled
+    ? `\n\n**${a.compelled.by} 이(가) 너에게 답변 강제권을 썼다.** 방 전체가 「너는 이 질문에 진실만 답해야 한다」고 안다:
+"${a.compelled.question}"
+관리 AI 가 네 답을 공개된 기록과 앞서 한 말에 대조한다 — 거짓이면 크게(+${CARD.truthLie}), 교묘하게 피하면 조금(+${CARD.truthEvade}), 진실이면 내려 준다(${CARD.truthHonest}).
+이번 발화는 **그 답**이다. 성격대로 둘 중 하나를 골라라: 진실을 말하거나, 거짓말은 하지 않되 답이 안 되게 교묘하게 피하거나.`
+    : '';
+
   const out = await brain.ask({
     model: self.persona.model,
     system,
-    user: `${factsText(facts)}${situation}${heat}${silence}
+    user: `${factsText(facts)}${situation}${heat}${silence}${compelled}
 
 지금 네 차례다. 한 줄만.`,
     tool: SAY_TOOL,
@@ -651,6 +664,56 @@ ${records}`,
   return { marks };
 }
 
+/**
+ * 강제된 답의 판정 — 답변 강제권(CARD.truth)이 걸린 질문에 상대가 한 답을 **공개된 기록 · 앞서 한 말**과 대조한다.
+ *   false     기록이나 앞말이 분명히 반박한다 — 거짓
+ *   evasive   답이 아니다 — 되묻기 · 화제 돌리기 · 「모른다」로 넘기기 · 질문의 핵심을 안 건드림
+ *   truthful  질문에 답했고 기록·앞말과 어긋나지 않는다
+ * 두뇌가 없으면(로컬 폴백) 빈 답만 회피로 치고 나머지는 진실로 둔다 — 판이 400 으로 멈추는 것보다 낫다.
+ */
+export async function judgeCompelled(
+  brain: Brain,
+  args: { by: string; target: string; question: string; answer: string; facts: RoomFacts; results: TrialResultWire[]; prior: string[] },
+): Promise<{ verdict: CompelledVerdict; reason: string }> {
+  if (!args.answer.trim()) return { verdict: 'evasive', reason: '답이 없다' };
+  const records = args.results.length ? args.results.map((r) => resultText(r, args.facts.nameOf)).join('\n\n') : '(아직 기록이 없다)';
+  const out = await brain.ask({
+    model: 'claude-opus-5',
+    system: `${WORLD}
+
+너는 이 시설의 **관리 AI** 다. ${args.by} 이(가) ${args.target} 에게 **답변 강제권**을 썼다 — ${args.target} 은(는) 그 질문에 진실만 답해야 한다.
+너는 누가 AI 인지 모른다. 근거는 공개된 기록과 그 사람이 앞서 한 말뿐이다.
+판정은 셋 중 하나다:
+- false: 기록이나 앞서 한 말이 그 답을 **분명히** 반박한다.
+- evasive: 답이 아니다 — 되묻기, 화제 돌리기, 「모른다」「기억 안 난다」로 넘기기, 질문의 핵심을 안 건드리기.
+- truthful: 질문에 답했고 기록·앞말과 어긋나지 않는다. 기록에 없는 것은 반박할 수 없으니 truthful 이다.
+관대하지도 가혹하지도 않게.`,
+    user: `공개된 기록:
+${records}
+
+${args.target} 이(가) 앞서 한 말: ${args.prior.length ? args.prior.map((l) => `"${l}"`).join(' / ') : '(없다)'}
+
+질문 (${args.by}): "${args.question}"
+답 (${args.target}): "${args.answer}"`,
+    tool: {
+      name: 'judge_compelled',
+      description: '강제된 답의 판정',
+      input_schema: {
+        type: 'object',
+        properties: {
+          verdict: { type: 'string', enum: ['truthful', 'evasive', 'false'] },
+          reason: { type: 'string', description: '한 줄 — 무엇과 대조했나' },
+        },
+        required: ['verdict', 'reason'],
+      },
+    },
+    effort: 'medium',
+  });
+  const v = String(out?.verdict ?? '');
+  if (v !== 'truthful' && v !== 'evasive' && v !== 'false') return { verdict: 'truthful', reason: '대조할 근거가 없다' };
+  return { verdict: v, reason: String(out?.reason ?? '').trim().slice(0, 80) };
+}
+
 /** 관리 AI 의 정해진 문장들 — LLM 없이 나가는 방송 */
 export const LINES = {
   /*
@@ -672,6 +735,19 @@ export const LINES = {
       : v === 'mismatch'
         ? `${name}의 해명은 기록과 다르다. ${reason}`
         : `${name}의 주장은 기록만으로 판단할 수 없다. ${reason}`,
+  /** 카드 — 쓰는 순간의 방송. 카드를 고른 것은 방송하지 않는다(본인만 안다) */
+  cardUsed: (by: string, item: CardItem, target: string | null) =>
+    item === 'truth'
+      ? `${by}, 답변 강제권 행사. ${target} 은(는) ${by} 의 다음 질문에 진실만 답하라.`
+      : item === 'accuse'
+        ? `${by}, 지목권 행사. ${target} 의 의심도 상향.`
+        : `${by}, 진정권 행사. 본인 의심도 하향.`,
+  compelled: (target: string, v: CompelledVerdict, reason: string) =>
+    v === 'false'
+      ? `강제 답변 판정 — ${target} 의 답은 기록과 어긋난다. ${reason}`
+      : v === 'evasive'
+        ? `강제 답변 판정 — ${target} 은(는) 답을 피했다. ${reason}`
+        : `강제 답변 판정 — ${target} 의 답은 기록과 맞는다. ${reason}`,
   ended: (winner: 'humans' | 'ai', reason: string) => (winner === 'humans' ? `판정 종료. ${reason}` : `판정 종료. ${reason}`),
 } as const;
 

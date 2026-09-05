@@ -6,7 +6,7 @@
  */
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { PAD_FINISH } from '@/world/mp/platform';
-import type { ClaimVerdict, GameOutcome, GameRole, GameStateWire, LeaderKind } from '@/world/mp/game-protocol';
+import type { CardItem, ClaimVerdict, CompelledVerdict, GameOutcome, GameRole, GameStateWire, LeaderKind } from '@/world/mp/game-protocol';
 import type { TrialGame, TrialResultWire } from '@/world/mp/protocol';
 
 export interface ChatEntry {
@@ -64,6 +64,13 @@ export interface GameState {
   reject: string | null;
   /** 마지막 시험이 준 발언권 — 결과 모달의 열 하나 (game_talk 의 gained) */
   talkGained: { game: TrialGame; gained: Record<string, number> } | null;
+  /**
+   * 내 카드 — 시험 1등이 고르는 세 장(offer)과 골라 쥔 것(items). 서버가 본인에게만 보낸다(game_cards).
+   * 봇은 카드를 안 받고, 판이 다시 열리면 비운다 (worker/src/game/runtime.ts 의 offerCard).
+   */
+  cards: { offer: CardItem[] | null; items: CardItem[] };
+  /** 카드가 쓰였다 · 강제된 답이 판정됐다 — 화면 위에 잠깐 서는 한 줄 */
+  cardNote: { text: string; tone: 'card' | 'good' | 'bad'; ts: number } | null;
 }
 
 const initialState: GameState = {
@@ -93,6 +100,8 @@ const initialState: GameState = {
   endedAt: null,
   reject: null,
   talkGained: null,
+  cards: { offer: null, items: [] },
+  cardNote: null,
 };
 
 const FEED_KEEP = 120;
@@ -130,6 +139,8 @@ export const interrogationSlice = createSlice({
       if (a.payload.outcome) s.outcome = a.payload.outcome;
       // 새 판이 열렸다 — 지난 판의 흔적을 지운다
       if (prev && prev.phase !== 'briefing' && a.payload.phase === 'briefing') {
+        s.cards = { offer: null, items: [] };
+        s.cardNote = null;
         s.feed = [];
         s.history = [];
         s.latestResult = null;
@@ -211,6 +222,26 @@ export const interrogationSlice = createSlice({
     },
     clearReject(s) {
       s.reject = null;
+    },
+    /** 내 카드 상태 (game_cards) — 고를 세 장 · 쥔 것 */
+    cardsReceived(s, a: PayloadAction<{ offer: CardItem[] | null; items: CardItem[] }>) {
+      s.cards = { offer: a.payload.offer, items: a.payload.items };
+    },
+    /** 누가 무슨 카드를 썼다 (game_card_used) — 전원이 본다: 로그 한 줄 + 위의 알림 */
+    cardUsed(s, a: PayloadAction<{ by: string; item: CardItem; target?: string; text: string; ts?: number }>) {
+      const ts = a.payload.ts ?? Date.now();
+      push(s, { id: 'system', name: '', text: a.payload.text, ts, kind: 'system' });
+      s.cardNote = { text: a.payload.text, tone: 'card', ts };
+    },
+    /** 강제된 답의 판정 (game_compelled) — 거짓·회피는 나쁜 색, 진실은 좋은 색 */
+    compelledReceived(s, a: PayloadAction<{ by: string; target: string; verdict: CompelledVerdict; text: string; delta: number; ts?: number }>) {
+      const ts = a.payload.ts ?? Date.now();
+      push(s, { id: 'system', name: '', text: a.payload.text, ts, kind: 'system' });
+      s.cardNote = { text: a.payload.text, tone: a.payload.verdict === 'truthful' ? 'good' : 'bad', ts };
+      if (s.wire) s.wire.compelled = null;
+    },
+    clearCardNote(s) {
+      s.cardNote = null;
     },
     testStarted(s, a: PayloadAction<{ game: TrialGame; round: number; startAt: number; durationMs?: number }>) {
       s.test = a.payload;
@@ -295,6 +326,8 @@ export const gameSelectors = {
   selectEndedAt: (r: Root) => r.interrogation.endedAt,
   selectReject: (r: Root) => r.interrogation.reject,
   selectTalkGained: (r: Root) => r.interrogation.talkGained,
+  selectCards: (r: Root) => r.interrogation.cards,
+  selectCardNote: (r: Root) => r.interrogation.cardNote,
   /** 내 남은 발언권 — 좌석이 없으면 null */
   selectMyTalk: (r: Root) => {
     const me = r.interrogation.me;
