@@ -200,7 +200,7 @@ export type S2CMessage =
       /**
        * 서버가 움직이는 좌석들. `h` 는 **몸이 보는 쪽**(heading, rad) — 있으면 그대로 쓰고, 없으면
        * 예전처럼 이동 방향에서 뽑는다. 토론 중 배회하는 대역이 **몸을 안 돌리고 물러설 때**만 실린다:
-       * 이동 방향에서 뽑으면 뒤로 걷는 몸이 앞으로 걷는 것으로 그려진다 (docs/SUSPICION.md §3).
+       * 이동 방향에서 뽑으면 뒤로 걷는 몸이 앞으로 걷는 것으로 그려진다 (docs/SUSPICION.md 「봇도 굳고 뒤로 걷는다」).
        */
       ai: { id: string; x: number; z: number; y?: number; h?: number }[];
       /**
