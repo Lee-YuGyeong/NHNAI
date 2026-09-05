@@ -54,7 +54,11 @@ export function OpeningVideo({ onDone, remember = true }: OpeningVideoProps) {
   /** 소리 있는 자동재생이 막혔다 — 소리 없이 돌리는 중이고, 가운데에 「소리 켜기」 단추를 낸다 */
   const [tap, setTap] = useState(false);
   /** 전체화면에 들어가 있나. 못 들어간 판에서는 왼쪽 위에 손잡이를 낸다 */
-  const [full, setFull] = useState(false);
+  /*
+   * 전체화면인가 — 처음부터 본다. 앱이 문서 뿌리를 이미 전체화면으로 올려 두었으면(shared/Fullscreen)
+   * 「전체화면」 손잡이를 낼 이유가 없다: 이 칸은 fixed·inset:0 이라 그 안에서 이미 화면을 다 덮는다.
+   */
+  const [full, setFull] = useState(() => typeof document !== 'undefined' && !!document.fullscreenElement);
   /** 파일 자체를 못 받아 왔다 — 검은 화면만 남지 않게 한 줄 적는다 */
   const [broken, setBroken] = useState(false);
   /**
@@ -87,8 +91,10 @@ export function OpeningVideo({ onDone, remember = true }: OpeningVideoProps) {
     if (remember) markOpeningSeen();
     // 소리를 끌고 나가지 않는다 — 다음 화면으로 넘어간 뒤에도 계속 울리면 유령이 된다
     videoRef.current?.pause?.();
-    // 우리가 들어간 전체화면은 우리가 나온다 — 다음 화면이 전체화면에 갇혀 있으면 안 된다
-    if (typeof document !== 'undefined' && document.fullscreenElement) {
+    // 우리가 들어간 전체화면은 우리가 나온다 — 다음 화면이 전체화면에 갇혀 있으면 안 된다.
+    // ★ **우리가 올린 것만** 벗긴다. 앱이 문서 뿌리를 올려 둔 것(shared/Fullscreen)은 그대로 둔다 —
+    //   여기서 벗기면 영상이 끝날 때마다 게임 전체화면이 풀린다.
+    if (typeof document !== 'undefined' && document.fullscreenElement === boxRef.current) {
       void document.exitFullscreen?.()?.catch(() => {});
     }
     onDone();
@@ -118,7 +124,7 @@ export function OpeningVideo({ onDone, remember = true }: OpeningVideoProps) {
    */
   useEffect(() => {
     goFull();
-    const onChange = () => setFull(document.fullscreenElement === boxRef.current);
+    const onChange = () => setFull(!!document.fullscreenElement); // 우리 칸이든 문서 뿌리든 — 전체화면이면 손잡이는 접는다
     document.addEventListener('fullscreenchange', onChange);
 
     const v = videoRef.current;

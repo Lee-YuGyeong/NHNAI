@@ -1,0 +1,174 @@
+/*
+ * 게임 목록(/game)의 옷 — 색·재질·모따기는 **하나도 새로 정하지 않는다.**
+ * lobby.css 의 파란 콘솔을 그대로 입는다 (.bl · .bl-edge · --bl-* 토큰). 여기 있는 것은
+ * 저쪽에 없던 **격자 하나**뿐이다: 방 목록은 한 줄에 방 하나인 표고, 이 화면은 카드가
+ * 늘어선 판이라 .bl-row 의 네 칸(No · 제목 · 상태 · 인원)을 쓸 수 없다.
+ *
+ * 한 화면에 말투가 둘이면 안 된다 — 인트로에서 여기로 넘어올 때 화면이 갈아끼워진 것처럼
+ * 보이면 안 되므로, 머리말도 배경도 저쪽 것을 그대로 쓴다.
+ */
+
+/* ══════════════════════════════ 화면 뼈대 ══════════════════════════════ */
+
+.gm {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  padding: 34px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/*
+ * 머리 — 제목 한 줄뿐이다. 설명 두 줄과 방 번호 칸은 2026-09-05 사용자 지시로 걷었다
+ * ("다 삭제해줘") — 고르러 온 화면에 읽을 것을 세우면 그건 안내가 아니라 지연이다.
+ */
+.gm-lede {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 31px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ══════════════════════════════ 카드 ══════════════════════════════ */
+
+.gm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 11px;
+}
+
+/*
+ * 판 하나로 들어가는 문. .bl-edge 가 모따기와 1px 청록 선을 그리고, 여기서는 그 안의 배치만 짠다.
+ * 평소에는 가라앉아 있다가 손이 올라가면 선이 밝아진다 — 「입장하기」(.bl-enter)와 같은 규칙이다:
+ * 켜지는 쪽이 안 켜진 쪽보다 세다.
+ */
+.gm-card {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: start;
+  gap: 15px;
+  width: 100%;
+  padding: 17px 17px 15px;
+  text-align: left;
+  color: var(--bl-ink);
+  font: inherit;
+  text-decoration: none;
+  transition: transform 0.16s ease;
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.3), rgba(63, 143, 194, 0.12));
+  --bl-edge-fill: linear-gradient(160deg, rgba(12, 30, 48, 0.82), rgba(5, 16, 27, 0.9));
+}
+.gm-card:hover,
+.gm-card:focus-visible {
+  transform: translateY(-1px);
+  --bl-edge-line: linear-gradient(180deg, rgba(111, 211, 255, 0.9), rgba(111, 211, 255, 0.36));
+  --bl-edge-fill: linear-gradient(160deg, rgba(19, 48, 74, 0.92), rgba(7, 22, 37, 0.9));
+}
+@media (prefers-reduced-motion: reduce) {
+  .gm-card {
+    transition: none;
+  }
+  .gm-card:hover,
+  .gm-card:focus-visible {
+    transform: none;
+  }
+}
+
+.gm-card__art {
+  width: 54px;
+  height: 54px;
+  color: var(--bl-line-2);
+  opacity: 0.85;
+  transition: color 0.16s ease, opacity 0.16s ease;
+}
+.gm-card:hover .gm-card__art,
+.gm-card:focus-visible .gm-card__art {
+  color: var(--bl-line);
+  opacity: 1;
+}
+.gm-card__art svg {
+  width: 100%;
+  height: 100%;
+}
+
+.gm-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.gm-card__name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.gm-card__name b {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+/* 길이 — 이름 옆에 붙는 단위 표기라 표 글꼴로 (lobby.css 의 .bl-mono 와 같은 자리) */
+.gm-card__span {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--bl-faint);
+}
+.gm-card__phys {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--bl-line);
+  opacity: 0.85;
+}
+.gm-card__blurb {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.62;
+  color: var(--bl-dim);
+}
+
+/*
+ * 「들어가기 →」 — 카드 전체가 링크라 누르는 자리가 따로 있는 게 아니다. 평소엔 거의 안 보이고
+ * 손이 올라간 카드에서만 켜진다: 여섯 장에 다 진하게 있으면 그건 신호가 아니라 무늬다.
+ */
+.gm-card__go {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--bl-faint);
+  transition: color 0.16s ease;
+}
+.gm-card:hover .gm-card__go,
+.gm-card:focus-visible .gm-card__go {
+  color: var(--bl-line);
+}
+.gm-card__go svg {
+  transition: transform 0.16s ease;
+}
+.gm-card:hover .gm-card__go svg,
+.gm-card:focus-visible .gm-card__go svg {
+  transform: translateX(3px);
+}
+
+@media (max-width: 560px) {
+  .gm {
+    padding: 22px 16px 64px;
+  }
+  .gm-card {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+  }
+  .gm-card__art {
+    width: 42px;
+    height: 42px;
+  }
+}
