@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { FALL_BALLS, FALL_SPAWN_Y, FALL_TICK_MS } from '../../src/world/mp/constants';
 import type { S2CMessage } from '../../src/world/mp/protocol';
 import { BALL_DRAG, BODY_H, HIT_R, gravityForPhase, overlapsBody, spawnObject, stepObject, timeToGround } from '../../worker/src/trial/fall/sim';
+import { METRIC_LABEL } from '../../worker/src/game/agents';
 import { FallEngine } from '../../worker/src/trial/fall/engine';
 import { DodgeStats } from '../../worker/src/trial/fall/stats';
 
@@ -118,6 +119,26 @@ describe('FallEngine — 점프는 서버 것이다 (숨은 중력이 체공을 
       expect(engine.results()[0].metrics.jumps).toBe(1);
       // 체공은 그 구간의 중력이 정한다 — 클라가 쓰던 복도 중력(15, 0.75초)이 아니다
       expect(engine.results()[0].metrics.meanAirMs).toBeGreaterThan(1000);
+      engine.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /**
+   * 지표 이름이 그대로 대화에 샌 적이 있다 (2026-09-05 사용자: 「airMs 가 왜 대화에서 나와?」) —
+   * resultText 는 이름표가 없으면 키를 그대로 쓴다 (agents.ts 의 `METRIC_LABEL[k] ?? k`).
+   * 새 지표를 낼 때 이름표를 같이 안 넣으면 AI 가 변수명을 읽는다: 「meanAirMs 512」.
+   */
+  it('내는 지표마다 한국어 이름표가 있다 — 없으면 AI 가 변수명을 그대로 읽는다', () => {
+    vi.useFakeTimers();
+    try {
+      const { engine } = harness();
+      engine.onMove('p1', 0, 0, Date.now());
+      vi.advanceTimersByTime(FALL_TICK_MS * 2);
+      for (const key of Object.keys(engine.results()[0].metrics)) {
+        expect(METRIC_LABEL, `METRIC_LABEL 에 ${key} 의 이름표가 없다`).toHaveProperty(key);
+      }
       engine.stop();
     } finally {
       vi.useRealTimers();

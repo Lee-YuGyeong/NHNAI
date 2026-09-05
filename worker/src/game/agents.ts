@@ -41,6 +41,7 @@ export const METRIC_LABEL: Record<string, string> = {
   hesitationMs: '조명이 바뀐 뒤 첫 선택까지(ms)',
   picks: '선택 수',
   jumps: '점프 수',
+  meanAirMs: '평균 체공(ms)',
   landingRate: '착지 성공률',
   centerRate: '발판 중앙 착지율',
   misses: '점프 실패 수',
