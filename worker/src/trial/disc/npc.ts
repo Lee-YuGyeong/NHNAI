@@ -5,8 +5,11 @@
  * precision 1(기계 같음): 기둥 둘레 — 원심력이 가장 작은 고리 — 에 붙어 거의 움직이지 않는다. 미끄러지기 시작하면 그 순간
  *   「이 표면이 잡아 주는 가속도」를 알아채고(gripEst), 그 뒤로는 필요한 만큼만 회전 반대 방향으로 달려 마찰 요구를 정확히
  *   μg 아래로 눌러 둔다. 이동거리가 짧고, 반지름이 흔들리지 않고, 반응이 즉각적이다.
- * precision 0(사람 같음): 가운데보다 조금 바깥(2~3.4m)에 서고, 밀리기 시작하면 한 박자 늦게 안쪽으로 크게 걷고, 회전이 바뀌면
- *   놀라서 반대로 뛰거나 엉뚱한 쪽으로 반 걸음 가고, 이따금 이유 없이 자리를 옮긴다. 이동거리가 길다.
+ * precision 0(사람 같음): 가운데보다 조금 바깥(2~3.4m)에 서고, 원판이 눈에 띄게 돌면 **실려 가는 반대쪽으로 어설프게 뛴다**
+ *   (사용자 스펙 "반대 방향으로 뛰면서 버팀" — 비율이 좌석·사건마다 달라 정확하지 않다). 밀리기 시작하면 한 박자 늦게 안쪽으로
+ *   크게 걷고, 회전이 바뀌면 놀라서 반대로 뛰거나 엉뚱한 쪽으로 반 걸음 가고, 이따금 이유 없이 자리를 옮긴다. 이동거리가 길다.
+ *   (2026-09-05 사용자: "AI가 원판 게임에서 안 움직이고 있어" — 미끄러질 때만 반응하게 두면 마찰 좋은 구간 내내 동상이 된다.
+ *   원판에 실려 도는 것은 걷기가 아니다 — 스냅샷의 m 이 0 이라 화면에서 부동자세 그대로 미끄러져 다닌다.)
  *
  * 어느 좌석이 어느 쪽인지 서버는 말하지 않는다 — 기록(이동거리 · 반지름 편차 · 반응 시간)에만 남는다.
  */
@@ -24,6 +27,8 @@ export interface DiscProfile {
   wanderPerSec: number;
   /** 회전이 바뀌었을 때 엉뚱한 쪽으로 먼저 갈 확률 */
   wrongWayP: number;
+  /** 원판이 돌 때 실려 가는 반대쪽으로 뛰는 비율(0~1, 원판 속도 ωr 대비). 기계 좌석은 0 — 필요할 때만 정확히 뛴다 */
+  jog: number;
   /** 표면을 「계산」하는가 — 미끄러진 순간의 마찰 요구를 기억해 그 아래로 유지한다 */
   computes: boolean;
 }
@@ -37,6 +42,7 @@ export function makeDiscProfile(index: number, precision?: number, rand: () => n
     overcorrect: 1 + (1 - p) * (0.6 + r() * 1.2),
     wanderPerSec: (1 - p) * (0.08 + r() * 0.15),
     wrongWayP: (1 - p) * (0.2 + r() * 0.3),
+    jog: (1 - p) * (0.35 + r() * 0.45),
     computes: p > 0.7,
   };
 }
@@ -55,13 +61,29 @@ export interface DiscBot {
   /** 이유 없는 이동의 목표 반지름 */
   wanderR: number | null;
   wanderUntil: number;
+  /** 지금 회전을 거슬러 뛰는 비율 — 사건마다 프로파일 jog 언저리에서 새로 잡는다 */
+  jogK: number;
+  /** 회전이 바뀐 직후 이 시각까지는 멈칫한다 — 그 뒤에야 새 비율로 뛴다 */
+  jogFrom: number;
 }
 
 export function makeDiscBot(body: DiscBody, profile: DiscProfile): DiscBot {
-  return { body, profile, gripEst: 0.5 * G, slideSince: null, reactUntil: 0, wrongUntil: 0, wrongDir: { x: 0, z: 0 }, wanderR: null, wanderUntil: 0 };
+  return {
+    body,
+    profile,
+    gripEst: 0.5 * G,
+    slideSince: null,
+    reactUntil: 0,
+    wrongUntil: 0,
+    wrongDir: { x: 0, z: 0 },
+    wanderR: null,
+    wanderUntil: 0,
+    jogK: profile.jog,
+    jogFrom: 0,
+  };
 }
 
-/** 회전 목표가 바뀌었다 — 사람 같은 좌석은 놀란다 */
+/** 회전 목표가 바뀌었다 — 사람 같은 좌석은 놀라고, 반응 지연만큼 멈칫했다가 새 비율로 다시 뛴다 */
 export function botSpinEvent(bot: DiscBot, now: number, rand: () => number = Math.random): void {
   const p = bot.profile;
   if (rand() < p.wrongWayP) {
@@ -69,6 +91,8 @@ export function botSpinEvent(bot: DiscBot, now: number, rand: () => number = Mat
     bot.wrongDir = { x: Math.cos(a), z: Math.sin(a) };
     bot.wrongUntil = now + p.reactionMs + 250 + rand() * 250;
   }
+  bot.jogK = Math.min(1, p.jog * (0.7 + rand() * 0.6));
+  bot.jogFrom = now + p.reactionMs;
 }
 
 /**
@@ -115,6 +139,15 @@ export function stepBot(bot: DiscBot, omega: number, need: number, now: number, 
   }
   if (bot.wanderR !== null && now > bot.wanderUntil) bot.wanderR = null;
   const wantR = bot.wanderR ?? p.targetR;
+
+  // 사람 같은 좌석 — 원판이 눈에 띄게 돌면 실려 가는 반대쪽으로 뛴다 (머리말: "반대 방향으로 뛰면서 버팀").
+  // 비율(jogK)이 좌석·사건마다 달라 정확하지 않고, 회전이 바뀌면 반응 지연만큼 멈칫한다(jogFrom).
+  // 실려 가는 것을 지우는 만큼(코리올리) 마찰 요구도 줄어서, 뛰는 좌석이 더 오래 버틴다 — 사람이 실제로 하는 그 놀이다
+  if (!p.computes && bot.jogK > 0.05 && Math.abs(omega) >= 0.5 && now >= bot.jogFrom) {
+    const t = cross(omega, { x: b.px, z: b.pz }); // 원판이 실어 나르는 방향(ω r)
+    wx += -t.x * bot.jogK;
+    wz += -t.z * bot.jogK;
+  }
 
   // 반지름 유지 — 목표보다 바깥이면 안쪽으로, 안쪽이면 바깥으로. 계산하는 좌석은 정확히, 사람 같은 좌석은 문턱이 넓다
   const dr = r - wantR;
