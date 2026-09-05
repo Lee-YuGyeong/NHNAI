@@ -422,9 +422,12 @@ const READ_TOOL: ToolSpec = {
             name: { type: 'string', description: '대상의 좌석 이름 — 예: SUBJECT 03. 이번 장면에서 실제로 말한 사람만' },
             amount: {
               type: 'number',
-              description: `${SUSPICION.readMin} ~ +${SUSPICION.readMax} 의 정수. +는 기계처럼 읽히거나 기록과 어긋나는 말, −는 사람처럼 읽히거나 기록이 뒷받침하는 말. 애매하면 0 대신 아예 담지 않는다`,
+              description: `${SUSPICION.readMin} ~ +${SUSPICION.readMax} 의 정수. +는 기계처럼 읽히거나 · 기록과 어긋나거나 · 제 앞말과 어긋나는 말, −는 사람처럼 읽히거나 기록이 뒷받침하는 말. 애매하면 0 대신 아예 담지 않는다`,
             },
-            reason: { type: 'string', description: '그 말의 **어느 대목**이 근거인지 한 줄 (25자 안팎). 기록을 짚었으면 어느 기록인지' },
+            reason: {
+              type: 'string',
+              description: '그 말의 **어느 대목**이 근거인지 한 줄 (25자 안팎). 기록을 짚었으면 어느 기록인지, 앞말과 어긋났으면 앞서 뭐라고 했는지',
+            },
           },
           required: ['name', 'amount', 'reason'],
         },
@@ -455,13 +458,27 @@ export interface ReadMark {
  * 한 마디씩이 아니라 **몇 마디를 한 장면으로** 읽는다 (READ_MIN_LINES~READ_MAX_LINES): 한 줄만 떼어 보면
  * 짧은 대답이 전부 수상해지고, 값이 매 마디마다 튄다. 근거는 그 장면과 공개된 기록뿐이다 — 관리 AI 에게도
  * 정체표는 없다 (P5). 못 받으면 빈 배열이고, 눈금은 안 움직인다 (§9 폴백: 판은 LLM 없이도 굴러간다).
+ *
+ * ★ 눈이 셋이다 (docs/SUSPICION.md ②). 셋째(**앞뒤 모순**)를 위해 그 사람의 **앞선 발언**(prior)을 같이 넘긴다 —
+ *   이 장면만 보면 "아까는 반대로 말했잖아"를 볼 수가 없다. AI 는 없는 기억을 지어내다 앞말과 어긋나므로,
+ *   이 눈이 이 판에서 AI 를 실제로 가르는 자리다.
  */
 export async function readTalk(
   brain: Brain,
-  args: { facts: RoomFacts; results: TrialResultWire[]; lines: { name: string; text: string }[] },
+  args: {
+    facts: RoomFacts;
+    results: TrialResultWire[];
+    lines: { name: string; text: string }[];
+    /** 이번 장면에서 말한 사람들이 **그 전에** 한 말 (runtime 이 로그에서 뽑아 넘긴다, PRIOR_LINES 줄) */
+    prior?: { name: string; lines: string[] }[];
+  },
 ): Promise<{ marks: ReadMark[]; broadcast: string }> {
   if (!args.lines.length) return { marks: [], broadcast: '' };
   const records = args.results.length ? args.results.map((r) => resultText(r, args.facts.nameOf)).join('\n\n') : '(아직 기록이 없다)';
+  const priorText = (args.prior ?? [])
+    .filter((p) => p.lines.length)
+    .map((p) => `[${p.name}] 앞서: ${p.lines.map((l) => `"${l}"`).join(' / ')}`)
+    .join('\n');
   const out = await brain.ask({
     model: 'claude-opus-5',
     system: `${WORLD}
@@ -469,7 +486,7 @@ export async function readTalk(
 너는 이 시설의 **관리 AI** 다. 방에서 방금 오간 말을 읽고, 말한 사람마다 의심도를 움직인다.
 너는 누가 AI 인지 **모른다**. 근거는 아래 대화와 공개된 기록뿐이다.
 
-보는 눈은 **둘**이다.
+보는 눈은 **셋**이다.
 
 ① **말하는 방식** — 말의 내용이 옳은지가 아니라 사람이 그렇게 말하는지를 본다.
 - 올린다(+): 사람이 안 쓰는 정밀함(수치·단위를 굳이 정확히), 감정이 빠진 설명체, 질문을 받은 뒤에야 도는 대답,
@@ -483,6 +500,14 @@ export async function readTalk(
 - 표현이 달라도 같은 주장이면 같은 판정이어야 한다. 기록에 없는 것은 판단하지 않는다 — 담지 않는다.
 - 몰린 사람이 기록으로 자기를 변호했으면 그 자리에서 내려 준다. 눈금은 한 방향으로만 움직이지 않는다.
 
+③ **앞뒤가 맞는가** — 같은 사람이 **앞서 한 말**(아래 「앞서 한 말」)과 지금 한 말을 맞춰 본다.
+- 어긋나면 크게 올린다(+8~${SUSPICION.readMax}). 시각·순서·누가 무엇을 했는지·자기 기록에 대한 설명이 뒤집혔는가,
+  아까는 모른다던 것을 지금은 아는가, 아까 댄 이유와 지금 대는 이유가 다른가.
+- **말을 바꾼 것과 정정하는 것은 다르다.** 스스로 "아까 잘못 말했다"·"헷갈렸다"고 하면 안 문다 —
+  틀린 것을 인정하는 것은 사람의 몸짓이다.
+- 화제가 옮겨 간 것을 모순으로 읽지 않는다. **같은 사실을 두고 다르게 말한 것**만 담는다.
+- 앞서 한 말이 없는 사람은 이 눈으로 판단하지 않는다.
+
 공통:
 - 짧은 대답 하나만으로는 올리지 않는다. **조용한 것은 근거가 아니다** — 이번 장면에서 말한 사람만 담는다.
 - 지목하는 말은 그 자체로 벌하지 않는다 — 몰아가는 쪽이 아니라 **몰리는 쪽의 말**을 본다.
@@ -491,7 +516,7 @@ export async function readTalk(
 근거를 한 줄로 못 대겠으면 그 사람은 아예 담지 않는다.`,
     user: `방금 오간 말 (오래된 것부터):
 ${args.lines.map((l) => `[${l.name}] ${l.text}`).join('\n')}
-
+${priorText ? `\n이번에 말한 사람들이 **앞서 한 말** (③ 의 근거. 오래된 것부터):\n${priorText}\n` : ''}
 지금 의심도: ${Object.entries(args.facts.suspicion)
       .map(([id, v]) => `${args.facts.nameOf(id)} ${Math.round(v)}%`)
       .join(' · ')}
@@ -534,6 +559,11 @@ export const LINES = {
    */
   read: (name: string, amount: number, reason: string) =>
     `발화 분석 — ${name}, 의심도 ${amount > 0 ? '상승' : '하락'}. ${reason || '근거는 방금의 말이다.'}`,
+  /**
+   * 규칙이 잡은 표식의 방송 (docs/SUSPICION.md ⑥⑦⑧⑨) — LLM 을 안 부르고 나간다.
+   * 말 읽기(read)와 문장 모양을 나눈 이유: 이쪽은 **관측**이라 사유가 늘 같은 말이고, 근거를 지어낼 여지가 없다.
+   */
+  tell: (name: string, amount: number, why: string) => `패턴 관측 — ${name}, ${why}. 의심도 +${amount}.`,
   verdict: (name: string, v: ClaimVerdict, reason: string) =>
     v === 'match'
       ? `${name}의 해명은 기록과 일치한다. ${reason}`

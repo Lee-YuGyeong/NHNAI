@@ -261,7 +261,8 @@ export class RoomDO implements DurableObject {
         const outId = this.game.active() ? (this.game.seatIdOf(snap.id) ?? snap.id) : snap.id;
         this.broadcast({ t: 'player_moved', id: outId, x: snap.x, z: snap.z, y: snap.y, heading: snap.heading, anim: snap.anim }, ws);
         // 물리 미니게임(낙하 생존)이 사람의 자리를 아는 길 — 범위 검증을 통과한 좌표만 넘긴다
-        if (this.game.active()) this.game.onMove(snap.id, snap.x, snap.z, now, snap.y);
+        // heading 까지 넘긴다 — 토론 중의 몸 판정(굳음·뒷걸음)이 「보는 쪽과 가는 쪽」을 견줘야 한다 (docs/SUSPICION.md §2)
+        if (this.game.active()) this.game.onMove(snap.id, snap.x, snap.z, now, snap.y, snap.heading);
         else this.trial.onMove(snap.id, snap.x, snap.z, now, snap.y);
         return;
       }

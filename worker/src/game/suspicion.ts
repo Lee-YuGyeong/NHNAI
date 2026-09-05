@@ -1,23 +1,28 @@
 /**
  * 의심도 상태머신 — 순수 클래스다. 시각도 소켓도 모른다 (PLANNING §1.2 · P1).
  *
- * 의심도를 움직이는 것은 **오직 말뿐**이다 — 발언(지목 · 동조 · 철회), 관리 AI 의 주장 판정,
- * 그리고 관리 AI 가 방의 대화를 읽고 내리는 판정(read).
- * 물리 테스트의 어떤 수치도 여기로 자동으로 흘러들지 않는다 — 그 값은 화면에 뜨고, 사람이 그걸 보고
- * 지목해야만 눈금이 움직인다. 이 파일에 테스트 결과 타입을 import 하지 않는 것이 그 약속이다.
+ * **전체 규칙은 docs/SUSPICION.md 에 있다.** 이 파일은 그 문서의 집행부다.
  *
- * 두 층이 있다:
- *   · **지목 상태** — 지금 누가 누구를 겨누고 있나 (실시간 공개). 몰이(2인 이상)와 철회의 근거다.
- *   · **발언** — 눈금을 실제로 움직이는 한 걸음. 같은 사람이 같은 대상을 거듭 말해도 매번 걸음이다 (§1.2 "상승도 발언").
+ * 물리 테스트의 어떤 수치도 여기로 자동으로 흘러들지 않는다 — 그 값은 화면에 뜨고, 사람이 그걸 보고
+ * 말해야만 눈금이 움직인다. 이 파일에 테스트 결과 타입을 import 하지 않는 것이 그 약속이다.
+ *
+ * 두 층이 있다 (docs/SUSPICION.md §0):
+ *   · **겨눔(pointing)** — 지금 누가 누구를 겨누고 있나 (실시간 공개). 몰이(2인 이상)와 철회의 근거다.
+ *     얹은 만큼 되돌아가므로 회계가 필요하다 (staked).
+ *   · **표식(tell)** — 그 사람의 **말·몸 자체**에 붙는 판정. 겨눔도 되돌림도 안 남긴다 —
+ *     남이 철회해도 안 걷힌다. read · echo · duck · still · backstep 이 전부 이 층이다.
  *
  * 걸음(SUSPICION, game-protocol.ts):
- *   지목            아무도 안 겨누던 대상을 처음 지목하는 발언 +8
- *   동조            이미 남이 겨누는 대상에 얹는 발언 +5
+ *   지목            아무도 안 겨누던 대상을 처음 지목하는 발언 +12
+ *   동조            이미 남이 겨누는 대상에 얹는 발언 +8
  *   되풀이          같은 사람이 같은 대상을 다시 말하는 발언 +3 — 혼자서 같은 말로 눈금을 밀 수는 있지만 느리다
- *   몰이            2인 이상이 같은 대상을 겨누는 동안, 발언마다 +2 가산 — 몰이 한 번(episode)에 +6 까지
+ *   몰이            2인 이상이 같은 대상을 겨누는 동안, 발언마다 +3 가산 — 몰이 한 번(episode)에 +12 까지
  *   철회            겨누기를 거두면 **그동안 그 대상에 얹은 만큼** 되돌린다 ("건 만큼 되돌림")
- *   주장 판정       일치 −10 · 불일치 +10 (§4.2 가 곧 이 트리거다)
- *   말 읽기         관리 AI 가 몇 마디를 한 장면으로 읽고 −8 ~ +12 (read) — 겨눔이 아니라 그 사람의 말에 붙는 값이라 철회로 안 걷힌다
+ *   주장 판정       일치 −12 · 불일치 +15 (§4.2)
+ *   말 읽기         관리 AI 가 몇 마디를 한 장면으로 읽고 −10 ~ +16 (read)
+ *   되풀이 말       자기가 아까 한 말을 다시 친다 +6 (echo) — 거듭할수록 +4 씩
+ *   말 회피         불렀는데 대답 없이 넘긴다, 2회째부터 +8 (duck) — 몰린 채면 +4 더
+ *   굳음 · 뒷걸음   +5 (still · backstep) — 둘을 합쳐 좌석당 bodyCap(30) 까지만
  *   100             격리 — 눈금이 얼어붙고, 그 사람이 건 지목은 전부 철회된다 (죽은 사람은 몰지 못한다)
  */
 
@@ -33,6 +38,19 @@ export interface SuspicionDelta {
 /** 같은 사람이 같은 대상을 되풀이하는 발언의 걸음 — 제안값(§10) */
 export const REPEAT_STEP = 3;
 
+/** 표식의 종류 — 말 둘(echo · duck)과 몸 둘(still · backstep). 관리 AI 의 말 읽기(read)는 크기를 밖에서 정하므로 따로다 */
+export type TellKind = 'echo' | 'duck' | 'still' | 'backstep';
+
+const TELL_BASE: Record<TellKind, number> = {
+  echo: SUSPICION.echo,
+  duck: SUSPICION.duck,
+  still: SUSPICION.still,
+  backstep: SUSPICION.backstep,
+};
+
+/** 몸에서 오는 표식 — 이것들만 bodyCap 을 함께 나눠 쓴다 */
+const BODY_TELLS: readonly TellKind[] = ['still', 'backstep'];
+
 export class SuspicionBook {
   private readonly value = new Map<string, number>();
   /** 겨누는 사람 → 대상 */
@@ -41,6 +59,10 @@ export class SuspicionBook {
   private readonly staked = new Map<string, number>();
   /** 대상별로 이번 몰이 동안 얹은 가산의 합 — 몰이가 풀리면 0 으로 */
   private readonly mobGiven = new Map<string, number>();
+  /** `좌석:종류` → 그 좌석이 그 항목에 걸린 횟수. 통과로 안 지워진다 (SUSPICION.repeatWeight) */
+  private readonly tellNth = new Map<string, number>();
+  /** 좌석 → 몸이 그 좌석에 물린 총량. SUSPICION.bodyCap 에서 멈춘다 */
+  private readonly bodyGiven = new Map<string, number>();
   private readonly frozen = new Set<string>();
 
   constructor(ids: readonly string[]) {
@@ -142,6 +164,41 @@ export class SuspicionBook {
     if (clamped === 0) return null;
     this.bump(id, clamped);
     return { target: id, amount: clamped, by: 'LEADER', why };
+  }
+
+  /**
+   * 말·몸의 표식 한 걸음 (docs/SUSPICION.md ⑥⑦⑧⑨) — **규칙이 잡는다. LLM 을 안 부른다.**
+   *
+   * read 와 같은 층이다: 겨눔(pointing)도 되돌림(staked)도 안 남긴다 — 남의 철회로 안 걷히는 값이다.
+   *
+   * 여기서 지키는 것 둘:
+   *   · **누계** — 같은 좌석이 **같은 항목**에 거듭 걸리면 repeatWeight 만큼 무거워진다. 한 번은 실수,
+   *     두 번은 우연, 세 번은 정체다. 이 누계는 지워지지 않는다.
+   *   · **몸의 상한** — 굳음·뒷걸음이 한 좌석에 물릴 수 있는 총량은 bodyCap 까지다. 몸만으로는 격리 못 시킨다.
+   *     자판에서 손을 떼고 돌아왔더니 폐기돼 있으면 그건 게임이 아니다.
+   *
+   * extra 는 그 자리의 사정으로 더 얹는 양이다 (회피할 때 이미 몰려 있었다 — SUSPICION.duckAccused).
+   */
+  tell(id: string, kind: TellKind, why: string, extra = 0): SuspicionDelta | null {
+    if (!this.value.has(id) || this.frozen.has(id)) return null;
+    const key = `${id}:${kind}`;
+    const nth = this.tellNth.get(key) ?? 0;
+    this.tellNth.set(key, nth + 1);
+
+    let amount = TELL_BASE[kind] + SUSPICION.repeatWeight * nth + extra;
+    if (BODY_TELLS.includes(kind)) {
+      const given = this.bodyGiven.get(id) ?? 0;
+      amount = Math.max(0, Math.min(amount, SUSPICION.bodyCap - given));
+      if (amount === 0) return null; // 이 좌석의 몸은 이미 물릴 만큼 물렸다
+      this.bodyGiven.set(id, given + amount);
+    }
+    this.bump(id, amount);
+    return { target: id, amount, by: 'LEADER', why };
+  }
+
+  /** 그 좌석이 그 항목에 지금까지 몇 번 걸렸나 — 방송 문구가 「세 번째」를 부를 때 쓴다 */
+  tellCount(id: string, kind: TellKind): number {
+    return this.tellNth.get(`${id}:${kind}`) ?? 0;
   }
 
   /** 관리 AI 의 주장 판정 (§4.2) — 그 사람의 눈금이 움직인다 */

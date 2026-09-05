@@ -268,7 +268,9 @@ export function InterrogationFeature() {
             const p = remotePlayers.get(a.id);
             if (!p) continue;
             const moved = Math.hypot(p.pose.x - a.x, p.pose.z - a.z) > 0.03;
-            const heading = moved ? Math.atan2(a.x - p.pose.x, a.z - p.pose.z) : p.pose.heading;
+            // h 가 실려 오면 그대로 — 토론 중 **몸을 안 돌리고 물러서는** 대역은 이동 방향에서 뽑으면
+            // 앞으로 걷는 것으로 그려진다 (docs/SUSPICION.md §3). 안 실려 오면 예전대로 이동 방향에서
+            const heading = a.h ?? (moved ? Math.atan2(a.x - p.pose.x, a.z - p.pose.z) : p.pose.heading);
             // y — 움직이는 플랫폼의 봇은 발판 위(0.5)에 서고 뛴다. 다른 게임은 안 실려 0
             remotePlayers.move(a.id, a.x, a.z, a.y ?? 0, heading, moved ? 'walk' : 'idle', at);
           }
