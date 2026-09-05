@@ -249,7 +249,7 @@ export const SUSPICION = {
   readMin: -10,
   cut: 100,
 
-  /* ── 표식(tell) — 겨눔이 아니라 그 사람의 말·몸에 붙는 값이라 남의 철회로 안 걷힌다 (docs/SUSPICION.md §0) ── */
+  /* ── 표식(tell) — 겨눔이 아니라 그 사람의 말·몸에 붙는 값이라 남의 철회로 안 걷힌다 (docs/SUSPICION.md 「두 개의 층」) ── */
 
   /** 같은 말 되풀이 — 자기 발화를 다시 친다 (tells.echoes) */
   echo: 6,

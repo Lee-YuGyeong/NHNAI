@@ -699,6 +699,26 @@ describe('GameRuntime — 표식', () => {
     expect(h.lastState().suspicion[h.roleOf('p2')!.seatId]).toBe(0);
   });
 
+  it('프롤로그 방송 동안은 아무것도 안 잰다 — 못 움직이게 해 놓고 안 움직였다고 물면 안 된다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    expect(h.lastState().phase).toBe('discussion'); // 열려 있지만 아직 대본이 흐르는 중이다
+
+    // 자리는 알려져 있고(대본이 뜨기 직전의 한 걸음), 그 뒤로 방송이 걷힐 때까지 아무도 못 움직인다.
+    // 굳음 문턱(25초)을 두 번이나 넘기고도 눈금은 0 이어야 한다 — 방송은 75초까지 간다
+    h.rt.onMove('p1', 3, 4, Date.now(), 0, 0);
+    await vi.advanceTimersByTimeAsync(GAME_PROLOGUE_MAX_MS - 100);
+    for (const s of h.lastState().seats) expect(h.lastState().suspicion[s.id]).toBe(0);
+
+    // 방송이 걷히고 나서야 시계가 돈다
+    for (const p of h.roster) await h.rt.handle(p.id, { t: 'game_prologue_done' });
+    const p1Seat = h.roleOf('p1')!.seatId;
+    h.rt.onMove('p1', 3, 4, Date.now(), 0, 0);
+    await vi.advanceTimersByTimeAsync(STILL_MS + 500);
+    expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still);
+  });
+
   it('한자리에 오래 굳어 있으면 문다 — 몸은 bodyCap 안에서만 문다', async () => {
     const h = harness();
     await h.rt.handle('p1', { t: 'game_start' });

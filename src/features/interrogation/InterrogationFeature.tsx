@@ -269,7 +269,7 @@ export function InterrogationFeature() {
             if (!p) continue;
             const moved = Math.hypot(p.pose.x - a.x, p.pose.z - a.z) > 0.03;
             // h 가 실려 오면 그대로 — 토론 중 **몸을 안 돌리고 물러서는** 대역은 이동 방향에서 뽑으면
-            // 앞으로 걷는 것으로 그려진다 (docs/SUSPICION.md §3). 안 실려 오면 예전대로 이동 방향에서
+            // 앞으로 걷는 것으로 그려진다 (docs/SUSPICION.md 「봇도 굳고 뒤로 걷는다」). 안 실려 오면 예전대로 이동 방향에서
             const heading = a.h ?? (moved ? Math.atan2(a.x - p.pose.x, a.z - p.pose.z) : p.pose.heading);
             // y — 움직이는 플랫폼의 봇은 발판 위(0.5)에 서고 뛴다. 다른 게임은 안 실려 0
             remotePlayers.move(a.id, a.x, a.z, a.y ?? 0, heading, moved ? 'walk' : 'idle', at);
@@ -493,6 +493,11 @@ export function InterrogationFeature() {
   // 화면을 떠나는데 통제실이 계속 말하고 있으면 안 된다
   useEffect(() => () => stopPrologue(), []);
 
+  /**
+   * 내가 격리됐다 — 처형자가 겨누고 있고 몸은 곧 넘어간다 (scene/Downed). 그 순간부터 **한 발짝도 안 움직인다**:
+   * 서버는 이미 내 이동을 안 받고(runtime 의 onMove), 화면에서만 걷는 시체가 남으면 총알이 빈자리를 쏜다.
+   */
+  const iAmOut = !!mySeat?.isolated;
   // 판이 떠 있는 동안은 잠금을 푼다 — 결과 모달 · 끝 화면 · 역할 카드 · 대기
   const modalUp = phase === 'result' || phase === 'ended' || phase === 'lobby' || showRole;
   useEffect(() => {
@@ -547,13 +552,27 @@ export function InterrogationFeature() {
   }, [phase, status, selfId, hostId, keepLobby, onStart]);
   const onTamper = useCallback((target: string, direction: 'suspicious' | 'normal') => conn.game({ t: 'game_tamper', target, direction }), [conn]);
 
-  /* ─────────────────────────────── 낙하 피격 번쩍임 ─────────────────────────────── */
+  /* ─────────────────────────────── 피격 번쩍임 ─────────────────────────────── */
   const [flashKey, setFlashKey] = useState(0);
   const hitsSeen = useRef(0);
   useEffect(() => {
     if (myHits > hitsSeen.current) setFlashKey((k) => k + 1);
     hitsSeen.current = myHits;
   }, [myHits]);
+  /*
+   * 처형 — **내가 맞을 때마다** 같은 붉은 판이 한 번 번쩍인다 (낙하 생존의 피격과 같은 .ig-hitflash).
+   * 3인칭이라 총알이 내 몸에 박히는 것은 뒤에서 보이는데, 그것만으로는 「저 몸이 맞았다」에 그친다 —
+   * 화면이 같이 붉어져야 맞은 것이 나다.
+   */
+  useEffect(() => {
+    let seen = -Infinity;
+    return executioner.subscribe(() => {
+      const e = executioner.get();
+      if (e.phase !== 'fire' || e.targetId !== meRef.current?.seatId || e.shotAt === seen) return;
+      seen = e.shotAt;
+      setFlashKey((k) => k + 1);
+    });
+  }, []);
 
   /* ─────────────────────────────── 그리기 ─────────────────────────────── */
 
@@ -628,7 +647,7 @@ export function InterrogationFeature() {
         spawn={spawn}
         teleport={teleport}
         composing={composing}
-        paused={modalUp}
+        paused={modalUp || iAmOut}
         onAccel={onAccel}
         onBrake={onBrake}
         onPick={onPick}
@@ -712,7 +731,13 @@ export function InterrogationFeature() {
         {wire && phase === 'lobby' && (keepLobby || reject) ? <LobbyPanel wire={wire} players={players} selfId={selfId} myBody={myBody} reject={reject} onStart={onStart} /> : null}
         {reject && phase !== 'lobby' ? <p className="ig-banner alarm">{reject}</p> : null}
         {phase === 'result' && latestResult ? <ResultModal result={latestResult} nameOf={nameOf} mySeatId={mySeatId} endsAt={wire?.phaseEndsAt ?? null} /> : null}
-        {phase === 'ended' && outcome ? (
+        {/*
+          * 끝 화면은 **처형이 다 끝나야 선다** (2026-09-05 사용자: "로봇 총쏨 → 나 맞고 쓰러짐 → 패배 보여줌
+          * 이 순서로"). 서버는 격리와 판의 끝을 같은 순간에 보내므로(worker 의 checkIsolation) 여태는
+          * 총성 위로 이 판이 그대로 덮였다 — 관리 AI 가 겨누는 것도, 내가 넘어가는 것도 아무도 못 봤다.
+          * dying 은 격리된 몸이 홀에 남아 있는 동안만 차 있다 (EXECUTION_MS — 조준 · 세 발 · 넘어짐 · 한 박자).
+          */}
+        {phase === 'ended' && outcome && dying.size === 0 ? (
           <EndScreen
             outcome={outcome}
             roles={roles}

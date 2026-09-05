@@ -219,7 +219,7 @@ export class GameRuntime {
     string,
     { x: number; z: number; tx: number; tz: number; hx: number; hz: number; restUntil: number; heading: number; back: boolean }
   >();
-  /** 사람 좌석의 마지막 자리 — move 가 올 때만 갱신된다. 안 오는 것이 곧 「안 움직인다」다 (docs/SUSPICION.md §2) */
+  /** 사람 좌석의 마지막 자리 — move 가 올 때만 갱신된다. 안 오는 것이 곧 「안 움직인다」다 (docs/SUSPICION.md 「몸」) */
   private humanPos = new Map<string, { x: number; z: number; backing: boolean; at: number }>();
   /** 몸의 장면을 모으는 눈 (tells.BodyWatch) — 토론마다 새로 센다 */
   private bodyWatch = new BodyWatch();
@@ -278,6 +278,22 @@ export class GameRuntime {
     return this.phase !== 'result';
   }
 
+  /**
+   * **판이 실제로 굴러가는 중인가** — 사람이 말할 수도 움직일 수도 있는 시간.
+   *
+   * 토론 국면인 것만으로는 부족하다: 첫 토론은 화면에서 검문소 대본이 흐르는 동안 열려 있고(prologueHold),
+   * 그 동안 사람은 조작이 잠긴 채 방송을 보고 있다 (InterrogationFeature 의 modalUp).
+   * 그때도 의심도를 재면 **못 움직이게 해 놓고 안 움직였다고 무는 셈**이다
+   * (2026-09-05 사용자: "방송할때 안움직였다고 이렇게떠"). 방송은 75초까지 갈 수 있어서
+   * (GAME_PROLOGUE_MAX_MS) 굳음 25초가 세 번까지 걸렸고, 누계까지 붙어 판이 열리기도 전에
+   * 몸의 상한(bodyCap)을 다 써 버렸다.
+   *
+   * 그래서 표식(굳음 · 뒷걸음 · 되풀이 · 회피)도 봇 차례도 전부 이 문 하나를 지난다.
+   */
+  private judging(): boolean {
+    return this.phase === 'discussion' && this.prologueHold === null;
+  }
+
   /** 입장 직후 — 지금 상태와 (앉아 있던 자리가 있으면) 배역을 그 사람에게만 보낸다 */
   async onJoin(playerId: string): Promise<void> {
     await this.restoreIfNeeded();
@@ -307,7 +323,7 @@ export class GameRuntime {
       if (this.engine) this.engine.onMove(seat.id, x, z, now, y);
       return;
     }
-    // 토론 중의 몸 — 굳음과 뒷걸음을 재는 자리다 (docs/SUSPICION.md §2). 자리만 적어 두고 판정은 idleTick 이 한다:
+    // 토론 중의 몸 — 굳음과 뒷걸음을 재는 자리다 (docs/SUSPICION.md 「몸」). 자리만 적어 두고 판정은 idleTick 이 한다:
     // 클라는 **자리가 바뀔 때만** move 를 보내므로(WorldScene 의 changed &&), 굳어 있으면 여기가 아예 안 불린다.
     if (this.phase !== 'discussion') return;
     const prev = this.humanPos.get(seat.id);
@@ -1052,8 +1068,8 @@ export class GameRuntime {
   /* ─────────────────────────────── 봇 발화 (AI 참가자 · 대역) ─────────────────────────────── */
 
   private scheduleTalk(delayMs?: number): void {
-    // 프롤로그 방송이 흐르는 동안은 아무 차례도 안 잡는다 — 판을 여는 말은 대본의 것이다 (prologueHold)
-    if (this.phase !== 'discussion' || this.prologueHold !== null) return;
+    // 프롤로그 방송이 흐르는 동안은 아무 차례도 안 잡는다 — 판을 여는 말은 대본의 것이다 (judging)
+    if (!this.judging()) return;
     const delay = delayMs ?? BOT_TALK_MIN_MS + this.rand() * BOT_TALK_JITTER_MS;
     // 이미 더 이른 차례가 잡혀 있으면 그대로 둔다 — 없거나 이번이 더 이르면 바꾼다
     if (this.talkTimer !== null) {
@@ -1127,7 +1143,7 @@ export class GameRuntime {
     const now = this.now();
     // 이 사람은 대답했다 — 불려 있었다면 회피가 아니다 (호명을 새로 잡기 **전에** 지운다)
     this.called.delete(seat.id);
-    if (this.phase === 'discussion') this.checkEcho(seat, text, now);
+    if (this.judging()) this.checkEcho(seat, text, now);
 
     seat.lastSpokeAt = now;
     this.deps.broadcast({ t: 'chat', id: seat.id, nickname: seat.name, text, ts: now });
@@ -1135,7 +1151,7 @@ export class GameRuntime {
 
     // 이 말이 누구에게 말을 건 것인가 — 그 사람이 DUCK_WINDOW_MS 안에 안 답하면 회피다 (watchDucks)
     const called = calledIn(text, this.seats, seat.id);
-    if (called && this.phase === 'discussion') this.called.set(called, now);
+    if (called && this.judging()) this.called.set(called, now);
 
     // 사람의 말이든 봇의 말이든 같은 문으로 들어간다 — 관리 AI 는 누가 사람인지 모른다 (P5)
     this.unread.push({ name: seat.name, text });
@@ -1304,7 +1320,7 @@ export class GameRuntime {
     const now = this.now();
     const step = (IDLE_SPEED * IDLE_TICK_MS) / 1000;
     const ai: { id: string; x: number; z: number; h: number }[] = [];
-    /** 이번 눈금에 몸을 볼 좌석들 — 대역은 여기서, 사람은 마지막으로 받은 자리에서 (docs/SUSPICION.md §2) */
+    /** 이번 눈금에 몸을 볼 좌석들 — 대역은 여기서, 사람은 마지막으로 받은 자리에서 (docs/SUSPICION.md 「몸」) */
     const poses: { id: string; x: number; z: number; backing: boolean }[] = [];
     for (const s of this.seats) {
       const p = this.botPos.get(s.id);
@@ -1341,7 +1357,7 @@ export class GameRuntime {
       poses.push({ id: s.id, x: p.x, z: p.z, backing: moving && p.back });
     }
     if (ai.length) this.deps.broadcast({ t: 'trial_snapshot', at: now, objects: [], ai });
-    if (this.phase !== 'discussion') return;
+    if (!this.judging()) return;
     for (const s of this.seats) {
       if (s.kind !== 'real' || s.isolated) continue;
       const p = this.humanPos.get(s.id);
