@@ -216,13 +216,25 @@ function fetchClip(line: PrologueLine, voiceId: string | undefined): Promise<Aud
 }
 
 /**
+ * 한 번에 몇 발까지 미리 받나. ElevenLabs 는 **계정당 동시 요청 6개**가 상한이다
+ * (2026-09-05 계측 — 11발 동시에 쏘니 뒤의 넷이 429 concurrent_limit_exceeded, 그게
+ * wrangler 터미널의 「502 벽」이었다). 탭마다 제 몫을 쏘므로(4인 판이면 ×4) 둘씩만 간다 —
+ * 감독의 첫 방송이 낄 자리도 남는다. 열한 줄에 왕복 300ms 꼴이면 두 줄이 끝나기 전에 다 받는다.
+ */
+const PREFETCH_LANES = 2;
+
+/**
  * 대본 전체를 미리 받아 둔다 — 판이 열릴 때 한 번. 실패는 조용히 지나간다(차례에 다시 해 본다).
- * 소리를 내지 않으므로 자동재생 자물쇠와 무관하다.
+ * 소리를 내지 않으므로 자동재생 자물쇠와 무관하다. 한꺼번에가 아니라 둘씩 순서대로다 (PREFETCH_LANES).
  */
 export function prefetchPrologue(lines: readonly PrologueLine[]): void {
-  for (const line of lines) {
-    void fetchClip(line, voiceOf(line).voiceId);
-  }
+  const queue = [...lines];
+  const next = (): void => {
+    const line = queue.shift();
+    if (!line) return;
+    void fetchClip(line, voiceOf(line).voiceId).then(next, next);
+  };
+  for (let i = 0; i < PREFETCH_LANES; i += 1) next();
 }
 
 /**
