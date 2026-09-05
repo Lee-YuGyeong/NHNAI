@@ -4,6 +4,8 @@
 
 ### 대한민국 정부 · Special AI Response Center
 
+![NHN AI 게임 해커톤](https://img.shields.io/badge/NHN%20AI%20%EA%B2%8C%EC%9E%84%20%ED%95%B4%EC%BB%A4%ED%86%A4-AI%EC%97%86%EC%9C%BC%EB%A9%B4%EB%AA%BB%EC%82%B4%EC%A1%B0-D97757?style=for-the-badge)
+
 **2026년, AI 식별 표지 의무화가 시행된다. 표지 없는 휴머노이드 개체들이 통제를 벗어나 인간 사회로 숨어든다.**
 
 말투도 표정도 인간과 같다. 다른 건 **몸이 물리에 반응하는 방식**뿐이다.
@@ -399,3 +401,11 @@ tools/            빌드 · 에셋 · 개발 서버 플러그인
 - feature 끼리 import 금지 — 공유는 `src/shared/` 또는 store
 - **다른 세션의 미커밋 변경은 섞지 않는다**
 - 시크릿은 `.dev.vars` 에만. 코드·문서에 값을 쓰지 않는다
+
+---
+
+<div align="center">
+
+**NHN AI 게임 해커톤** · 조 이름 **AI없으면못살조**
+
+</div>
