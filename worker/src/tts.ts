@@ -209,6 +209,9 @@ export async function handleTts(request: Request, env: TtsEnv): Promise<Response
   if (!upstream.ok) {
     // 조용히 삼키지 않는다 — 키·보이스·크레딧 중 무엇이 막혔는지는 저쪽 본문에만 적혀 있다
     const detail = await upstream.text();
+    // 로그에도 남긴다 — 사유를 본문에 실어 보내도 부르는 쪽이 전부 조용히 넘기므로
+    // (TtsPlayer 는 폴백으로, 프롤로그는 무음으로), wrangler 터미널에는 502 만 벽처럼 찍혔다
+    console.error(`[tts] elevenlabs ${upstream.status} (${tone}/${voice}): ${detail.slice(0, 300)}`);
     return fail(`elevenlabs ${upstream.status}: ${detail.slice(0, 300)}`, 502);
   }
 

@@ -13,7 +13,7 @@
  * │   게임 시작       broadcast (호스트 좌석만 낼 수 있다)     ← 서버가 막는다 │
  * │                                                                          │
  * │ 그래서 이 화면에 뜨는 사람은 **정말로 그 방에 붙어 있는 사람**이고,       │
- * │ 「게임 시작」을 누르면 그 방의 전원이 같은 순간에 복도로 넘어간다.        │
+ * │ 「게임 시작」을 누르면 그 방의 전원이 같은 순간에 검문소로 넘어간다.      │
  * └──────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ 준비 상태를 말로 나르는 이유 ───────────────────────────────────────────┐
@@ -60,7 +60,6 @@ import {
 } from './console';
 import { Launch, LinkBoot } from './live';
 import { fetchRooms } from './rooms';
-import { warmCast } from '@/lab/cast-warm';
 
 /* ───────────────────────────── 이 방의 약속 ───────────────────────────── */
 
@@ -83,13 +82,18 @@ const UNREADY_LINE = '준비 해제';
 const START_LINE = ROOM_START_LINE;
 
 /**
- * 판이 서는 곳 — **복도**(/world)다. 거기서부터 이야기가 이어진다:
- * 복도 → 열린 격납문 → 중앙 시설 → 검문 → 검증실 → 검문소 (shared/start.ts 머리말).
+ * 판이 서는 곳 — **검문소**(/interrogation)다. 누르면 거기가 바로 열린다
+ * (2026-09-05 사용자: "게임 시작하기 누르면 /interrogation 여기로 바로 가야해. 중간에 다 필요없어 이제").
+ *
+ * 그전에는 복도(/world)로 넘어가 중앙 시설 → 재검실을 걸어서 왔다. 그 길은 라우트도 이야기도
+ * 그대로 살아 있다 — 끊은 것은 **이 버튼의 행선지 한 줄**뿐이다 (shared/start.ts 머리말과 같은 결정).
  *
  * ★ 방 번호를 **그대로 들고 간다.** /play 는 혼자 도는 새 방을 뽑지만(storyStartHref),
- *   여기는 이미 모인 방이 있다 — 같은 번호로 들어가야 대기방에서 만난 사람들이 같은 복도에 선다.
+ *   여기는 이미 모인 방이 있다 — 같은 번호로 들어가야 대기방에서 만난 사람들이 같은 판에 앉는다.
+ * ★ 닉네임도 들고 간다. 검문소는 ?nick= 이 없으면 저장된 게스트 이름으로 떨어지는데, 대기방에서
+ *   쓰던 이름과 다를 수 있다 — 좌석에 앉는 순간 이름이 바뀌면 옆자리가 딴 사람으로 본다.
  */
-const startHref = (code: string, nick: string) => `/world?code=${code}&nick=${encodeURIComponent(nick)}`;
+const startHref = (code: string, nick: string) => `/interrogation?code=${code}&nick=${encodeURIComponent(nick)}`;
 
 /**
  * 고를 수 있는 말. 원작은 서버에서 목록을 받았지만(cfg.lines) 여기서는 화면이 들고 있다.
@@ -232,12 +236,10 @@ export function Waitroom({ code, nickname }: { code: string; nickname: string })
          */
         if (!text.startsWith(START_LINE)) return;
         /*
-         * 판이 열렸다. **여기서 성격 다섯을 짓기 시작한다** (src/lab/cast-warm.ts).
-         * 이 방 사람들은 이제 복도부터 걸어서 검문소까지 간다 — 그 몇 분이 생성 시간을
-         * 통째로 덮는다. 거기 도착해서 짓기 시작하면 문 앞에서 다시 기다려야 한다.
-         * 크레딧이 나가는 호출이지만 판당 한 번이고, 어차피 판이 열렸으면 반드시 필요한 값이다.
+         * 여기서 성격 다섯을 미리 짓던 호출(src/lab/cast-warm.ts)은 뺐다 (2026-09-05).
+         * 그 값을 받아 가는 화면은 /arena 고, 복도부터 걸어오는 몇 분이 생성 시간을 덮어 주던
+         * 것이 이유였다 — 이제 이 버튼은 검문소를 곧장 연다. 걷는 시간도, 그 값을 쓸 화면도 없다.
          */
-        warmCast();
         setLaunching(true);
       },
       onError: (c) => {

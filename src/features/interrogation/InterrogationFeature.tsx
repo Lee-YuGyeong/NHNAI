@@ -11,6 +11,8 @@
  * 좌석은 전부 SUBJECT nn 이고 채팅 · 이동도 좌석 id 로 온다 (src/world/mp/game-protocol.ts 머리말).
  *
  * 방 번호는 ?code= (없으면 '1234' — /world · /trial 과 같은 개발 편의 기본값). 같은 번호면 같은 판이다.
+ * 이름은 ?nick= (없으면 저장된 게스트 이름) — 「게임 시작」이 여기로 곧장 걸리면서 대기방에서 쓰던
+ * 이름을 같이 들고 온다 (2026-09-05, shared/start.ts · lobby/Waitroom 의 startHref).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -65,7 +67,14 @@ export function InterrogationFeature() {
   const dispatch = useAppDispatch();
   const [params] = useSearchParams();
   const roomCode = params.get('code') ?? '1234';
-  const nickname = useMemo(() => loadGuestNick() || `테스터${Math.floor(100 + Math.random() * 900)}`, []);
+  // 주소에 실려 온 이름이 먼저다 — 대기방에서 앉아 있던 그 이름이라야 옆자리가 같은 사람으로 본다.
+  // 한 번 정하면 안 바꾼다(deps []): 판이 도는 중에 이름이 갈리면 서버가 다른 사람으로 받는다
+  const nickFromUrl = params.get('nick')?.trim() ?? '';
+  const nickname = useMemo(
+    () => nickFromUrl || loadGuestNick() || `테스터${Math.floor(100 + Math.random() * 900)}`,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const status = useAppSelector(gameSelectors.selectStatus);
   const errorText = useAppSelector(gameSelectors.selectErrorText);
