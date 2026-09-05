@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 import { useAsset } from '@/world/assets/loader';
+import { bystanders } from '@/world/mp/bystanders';
 import { health, SHOT_DAMAGE } from '@/world/mp/health';
 
 import { attachRifle, buildRig, curlHands, EnforcerPoser, POSE, type PoseMode } from './enforcerPose';
@@ -30,6 +31,8 @@ const WALK = 1.9;
 const STAND_OFF = 4.5;
 /** 사격 간격 — 섬광·피해 */
 const SHOT_EVERY_MS = 320;
+/** bystanders 명부에서 이 몸의 이름 — 순찰 경비(agent:N)와 겹치지 않는다 */
+const ENFORCER_ID = 'enforcer';
 /** 모델(+x 를 본다)을 +z 를 보게 — 겉 그룹의 heading 계산이 +z 기준이다 */
 const MODEL_YAW = -Math.PI / 2;
 
@@ -184,7 +187,17 @@ export function Enforcer({ spawn }: { spawn: { x: number; z: number } }) {
     g.position.set(s.x, 0, s.z);
     g.rotation.y = s.heading;
     g.visible = s.visible;
+    /*
+     * 내가 여기 있다고 알린다 — 플레이어 몸이 개체 밖으로 밀려나는 건 bystanders 명부를 보고 한다 (WorldScene LocalRig).
+     * 여태 순찰 경비(AgentRobot)만 올렸고 이 몸은 안 올려서, 총을 겨누고 선 요원의 몸을 플레이어가 그대로 뚫고 지나갔다
+     * (2026-09-05 사용자: "총든정부요원 몸이 뚫리는데 안뚫리게해줘"). 안 보이는 동안은 자리를 거둔다 — 허공이 막으면 안 된다
+     */
+    if (s.visible) bystanders.set(ENFORCER_ID, s.x, s.z, s.heading);
+    else bystanders.drop(ENFORCER_ID);
   });
+
+  // 장면을 떠나면 자리도 거둔다
+  useEffect(() => () => bystanders.drop(ENFORCER_ID), []);
 
   return (
     <group ref={group} visible={false}>

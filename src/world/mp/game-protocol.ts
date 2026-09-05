@@ -118,7 +118,7 @@ export interface GameStateWire {
   talk: Record<string, number>;
   /**
    * 답변 강제권이 걸려 있다 — 전원이 본다: target 은 by 의 다음 질문에 진실만 답해야 한다.
-   * question 은 by 가 그 뒤 처음 한 말(질문). 아직 안 물었으면 null. until 은 답을 기다리는 마감.
+   * question 은 by 가 그 뒤 처음 한 말(질문). 아직 안 물었으면 null. until 은 답을 기다리는 마감 — 지나면 무응답 +CARD.truthSilent.
    */
   compelled: { by: string; target: string; question: string | null; until: number } | null;
 }
@@ -142,17 +142,24 @@ export const CARD = {
   calmDrop: 20,
   /** 고르기 유예(ms) — 결과 모달(7초)과 다음 대화 앞머리까지 */
   offerMs: 45_000,
-  /** 답변 강제권 — 질문이 나온 뒤 이 안에 답이 없으면 회피로 친다 */
-  answerMs: 25_000,
-  /** 강제된 답이 기록과 어긋난다(거짓) · 교묘히 피한다 · 진실이다 */
+  /**
+   * 답변 강제권 — 질문이 나온 뒤 이 안에 답이 없으면 **무응답**으로 친다 (2026-09-05 사용자: "10초 이상 답변 없으면 의심도 올리는 걸로" → 2026-09-06 "15초로").
+   * 회피(+truthEvade)보다 무겁다 — 답을 안 하는 것이 최적 전략이 되면 카드가 죽는다.
+   */
+  answerMs: 15_000,
+  /** 강제된 답이 기록과 어긋난다(거짓) · 교묘히 피한다 · 진실이다 · 마감까지 말이 없다(무응답 — 거짓과 같은 상한, 헌법 13 단일 증가 ≤ 25) */
   truthLie: 25,
   truthEvade: 12,
   truthHonest: -10,
+  truthSilent: 25,
   /** 한 사람이 쥘 수 있는 카드 수 */
   maxItems: 3,
 } as const;
-/** 강제된 답의 판정 — 관리 AI 가 기록·앞뒤와 대조한다 (worker/src/game/agents.ts judgeCompelled) */
-export type CompelledVerdict = 'truthful' | 'evasive' | 'false';
+/**
+ * 강제된 답의 판정 — 관리 AI 가 기록·앞뒤와 대조한다 (worker/src/game/agents.ts judgeCompelled).
+ * silent 만 관리 AI 가 아니라 시계가 낸다 — CARD.answerMs 안에 말이 없었다 (runtime 의 watchCompelled).
+ */
+export type CompelledVerdict = 'truthful' | 'evasive' | 'false' | 'silent';
 
 export type LeaderKind = 'announce' | 'readout' | 'alarm';
 

@@ -266,10 +266,10 @@ export function CompelBar({
       : `답변 강제권 — 지금 치는 다음 말이 ${nameOf(compelled.target)} 에게 던지는 질문이 된다`
     : onMe
       ? compelled.question
-        ? `${nameOf(compelled.by)} 의 질문 「${compelled.question}」 — 다음 말이 답이다. 거짓 +${CARD.truthLie} · 회피 +${CARD.truthEvade} · 진실 −${-CARD.truthHonest}`
+        ? `${nameOf(compelled.by)} 의 질문 「${compelled.question}」 — ${Math.round(CARD.answerMs / 1000)}초 안에 답하라. 거짓 +${CARD.truthLie} · 회피 +${CARD.truthEvade} · 무응답 +${CARD.truthSilent} · 진실 −${-CARD.truthHonest}`
         : `${nameOf(compelled.by)} 가 답변 강제권을 걸었다 — 질문이 오면 다음 말로 답해야 한다`
       : compelled.question
-        ? `${nameOf(compelled.by)} → ${nameOf(compelled.target)} 「${compelled.question}」 — 답을 기다린다`
+        ? `${nameOf(compelled.by)} → ${nameOf(compelled.target)} 「${compelled.question}」 — ${Math.round(CARD.answerMs / 1000)}초 안에 답해야 한다`
         : `${nameOf(compelled.by)} 가 ${nameOf(compelled.target)} 에게 답변 강제권을 걸었다`;
   return <p className={`ig-compel${onMe ? ' onme' : ''}`}>{text}</p>;
 }

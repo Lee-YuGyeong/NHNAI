@@ -757,9 +757,11 @@ export const LINES = {
   compelled: (target: string, v: CompelledVerdict, reason: string) =>
     v === 'false'
       ? `강제 답변 판정 — ${target} 의 답은 기록과 어긋난다. ${reason}`
-      : v === 'evasive'
-        ? `강제 답변 판정 — ${target} 은(는) 답을 피했다. ${reason}`
-        : `강제 답변 판정 — ${target} 의 답은 기록과 맞는다. ${reason}`,
+      : v === 'silent'
+        ? `강제 답변 판정 — ${target} 은(는) 답하지 않았다. ${reason}`
+        : v === 'evasive'
+          ? `강제 답변 판정 — ${target} 은(는) 답을 피했다. ${reason}`
+          : `강제 답변 판정 — ${target} 의 답은 기록과 맞는다. ${reason}`,
   ended: (winner: 'humans' | 'ai', reason: string) => (winner === 'humans' ? `판정 종료. ${reason}` : `판정 종료. ${reason}`),
 } as const;
 
