@@ -239,7 +239,7 @@ describe('GameRuntime — 판 한 바퀴', () => {
       ask: async ({ tool }) => {
         if (tool.name !== 'read_room') return null;
         asked += 1;
-        return { marks: [{ name: target, amount: 9, reason: '소수점까지 읽었다' }], broadcast: '' };
+        return { marks: [{ name: target, amount: 9, reason: '소수점까지 읽었다' }] };
       },
     };
     const h = harness({ brain });
@@ -257,8 +257,8 @@ describe('GameRuntime — 판 한 바퀴', () => {
     await vi.advanceTimersByTimeAsync(20);
     expect(asked).toBe(1);
     expect(h.lastState().suspicion[p1Seat]).toBe(9);
-    const leader = [...h.sent].reverse().find((m): m is Extract<GameS2CMessage, { t: 'game_leader' }> => m.t === 'game_leader')!;
-    expect(leader.text).toContain('발화 분석');
+    // 방송은 없다 — 관측은 소리로 안 나간다 (runtime.readRoom 의 「방송은 없다」). 근거는 delta 의 why 로 피드에 남는다
+    expect(h.sent.some((m) => m.t === 'game_leader')).toBe(false);
     // 겨눔은 안 생긴다 — 말에 붙은 값이라 철회로 걷히지 않는다
     expect(h.lastState().accusations).toEqual({});
 
@@ -882,6 +882,18 @@ describe('GameRuntime — 표식', () => {
     await vi.advanceTimersByTimeAsync(STILL_MS + 500);
     expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still);
     expect(h.lastState().suspicion[p1Seat]).toBeLessThan(SUSPICION.bodyCap);
+  });
+
+  it('토론이 열린 뒤 한 번도 안 움직여도 문다 — 가만히 있는 것이 굳음을 피하는 길이면 안 된다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    // 브리핑에서 자리를 한 번 알린 뒤로 그 자리에 그대로 서 있다 — 클라는 바뀔 때만 보내므로 move 가 더는 안 온다
+    h.rt.onMove('p1', 3, 4, Date.now(), 0, 0);
+    await openBoard(h);
+    const p1Seat = h.roleOf('p1')!.seatId;
+
+    await vi.advanceTimersByTimeAsync(STILL_MS + 500);
+    expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still);
   });
 
   it('토론 사이에는 몸을 새로 센다 — 시험 30초를 굳어 있었다고 치지 않는다', async () => {

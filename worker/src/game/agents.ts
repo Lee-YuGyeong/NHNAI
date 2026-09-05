@@ -11,9 +11,8 @@
  */
 
 import type { Effort, ToolSpec } from '../../../src/lab/agent';
-import { PAD_FINISH } from '../../../src/world/mp/platform';
 import { EXTRA_PERSONAS, PERSONAS, type Persona } from '../../../src/lab/personas';
-import { SUSPICION, type ClaimVerdict, type GameSeat } from '../../../src/world/mp/game-protocol';
+import { GAME_TEST_MS, SUSPICION, heldSecondsFor, type ClaimVerdict, type GameSeat } from '../../../src/world/mp/game-protocol';
 import type { TrialGame, TrialResultWire } from '../../../src/world/mp/protocol';
 import type { Brain } from './brain';
 
@@ -81,8 +80,7 @@ function fmt(v: number | undefined): string {
  *   「사람이 안 쓰는 정밀함(수치·단위를 굳이 정확히)」이라, 지금 구조는 봇에게 숫자를 쥐여 주고
  *   그걸 읽었다고 의심도를 올리는 덫이었다. suspicionWord 가 의심도에 한 일을 기록에도 한다.
  *
- * 관리 AI 는 계속 숫자로 본다 (resultText) — 방송은 원자료를 읽는 자리이고(leaderComment),
- * 해명을 기록과 대조하려면(judgeClaim · readTalk ②) 값이 정확해야 한다.
+ * 관리 AI 는 계속 숫자로 본다 (resultText) — 해명을 기록과 대조하려면(judgeClaim · readTalk ②) 값이 정확해야 한다.
  * 참가자가 근거를 못 대게 되는 것도 아니다: 「너만 균형 회복이 유난히 빨랐잖아」로 충분하고,
  * 그 말이 맞는지는 여전히 숫자를 쥔 관리 AI 가 판정한다.
  */
@@ -219,6 +217,8 @@ export interface RoomFacts {
   latest: TrialResultWire | null;
   nameOf: (id: string) => string;
   testsDone: number;
+  /** 한참 한 마디도 안 한 좌석의 이름 (runtime.quietSeats · QUIET_MS) — 판이 막 열렸을 때는 비어 있다 */
+  quiet: string[];
 }
 
 /**
@@ -333,11 +333,21 @@ ${COMMON_RULES}`;
   const heat = a.accusedBy.length
     ? `\n\n**${a.accusedBy.map(facts.nameOf).join(', ')} 이(가) 지금 너를 지목하고 있다.** 해명하든, 되받아치든, 남 얘기로 돌리든 성격대로.`
     : '';
+  /*
+   * 조용한 사람 — 이름을 불러 주라고 시키는 자리다 (runtime 의 QUIET_MS 머리말).
+   * 방의 문은 전부 말에 매여 있어서, 아무도 안 부르면 입 다문 좌석은 판정에 한 번도 안 걸린다.
+   * 「의심하라」가 아니라 「물어봐라」다: 근거 없이 몰면 애먼 사람이 격리되고 그건 AI 의 승리다 (identity).
+   */
+  const quiet = facts.quiet.filter((n) => n !== me);
+  const silence = quiet.length
+    ? `\n\n**${quiet.join(', ')} 은(는) 한참 아무 말이 없다.** 조용한 것 자체가 죄는 아니지만 이 방에서 볼 수 있는 건 말과 기록뿐이다 —
+성격에 맞으면 그중 한 사람의 **이름을 불러 직접 물어라** ("${quiet[0]} 너는 어떻게 생각해?" 처럼).`
+    : '';
 
   const out = await brain.ask({
     model: self.persona.model,
     system,
-    user: `${factsText(facts)}${situation}${heat}
+    user: `${factsText(facts)}${situation}${heat}${silence}
 
 지금 네 차례다. 한 줄만.`,
     tool: SAY_TOOL,
@@ -426,58 +436,24 @@ function clamp01(v: number): number {
  * (2026-09-05 사용자: 낙하 생존 → 발판 → 원판). 강도는 몇 번째 시험인가로 오른다 (runtime.openTest).
  */
 
-/* ───────────────────────────── 관리 AI — 기록 해설 ───────────────────────────── */
+/* ───────────────────────────── 관리 AI — 결과 방송 ───────────────────────────── */
 
-const COMMENT_TOOL: ToolSpec = {
-  name: 'comment',
-  description: '결과 공개 직후의 방송 한두 문장',
-  input_schema: {
-    type: 'object',
-    properties: { text: { type: 'string', description: '한국어 두 문장 이내, 80자 안팎. 편차를 짚되 누구의 정체도 단정하지 않는다' } },
-    required: ['text'],
-  },
-};
-
-/** 결과 공개 직후 방송 — 편차를 짚어 토론에 불을 붙인다. 정체표 없음(P5). 못 받으면 표에서 가장 먼 사람을 규칙으로 짚는다 */
-export async function leaderComment(brain: Brain, r: TrialResultWire, nameOf: (id: string) => string): Promise<string> {
-  const fallback = () => {
-    /*
-     * 움직이는 플랫폼 — 열 번 뛰어 열 번 정중앙이면 그것이 곧 표식이다 (2026-09-05 사용자 스펙). 판정은 않는다 —
-     * 눈금은 여전히 사람들의 지목으로만 움직인다 (P1). 여기서는 그 기록을 방송으로 짚어 토론에 올릴 뿐이다.
-     */
-    if (r.game === 'platform') {
-      // 완주가 여섯 번 뛰기(PAD_FINISH)다 — 다섯 번 넘게 뛰어 전부 정중앙이면 짚는다
-      const perfect = r.players.filter((p) => (p.metrics.jumps ?? 0) >= PAD_FINISH - 1 && p.metrics.centerRate >= 0.999);
-      if (perfect.length) {
-        const p = perfect[0];
-        return `움직이는 플랫폼 ${r.round}회차. ${nameOf(p.id)} — ${p.metrics.jumps}번 뛰어 ${p.metrics.jumps}번 모두 발판 정중앙. 사람의 발은 그렇게 안 내린다. 해석은 너희 몫이다.`;
-      }
-      const rate = r.groupMean.centerRate;
-      const far = [...r.players].filter((p) => Number.isFinite(p.metrics.centerRate)).sort((a, b) => b.metrics.centerRate - a.metrics.centerRate)[0];
-      if (far && Number.isFinite(rate)) return `움직이는 플랫폼 ${r.round}회차. 중앙 착지율 무리 평균 ${fmt(rate)}. ${nameOf(far.id)}의 착지가 가장 고르다. 해석은 너희 몫이다.`;
-    }
-    const key = 'transitionError';
-    const mean = r.groupMean[key] ?? 0;
-    const far = [...r.players].sort((a, b) => Math.abs(b.transitionError - mean) - Math.abs(a.transitionError - mean))[0];
-    if (!far) return `${TEST_NAME[r.game]} 기록을 공개한다.`;
-    return `${TEST_NAME[r.game]} ${r.round}회차. 전환 직후 오차 무리 평균 ${fmt(mean)}. ${nameOf(far.id)}의 기록이 평균에서 가장 멀다. 해석은 너희 몫이다.`;
-  };
-  const out = await brain.ask({
-    model: 'claude-sonnet-5',
-    system: `${WORLD}
-
-너는 이 시설의 **관리 AI** 다. 방금 끝난 테스트의 기록을 방송으로 해설한다.
-너는 누가 AI 인지 모른다 — 근거는 아래 공개된 원자료뿐이다. 판정하지 않는다: "누가 AI 다" 라고 말하지 않는다.
-무리 평균과 편차를 짚어 사람들이 서로 의심하게 만드는 것이 네 역할이다. 차갑고 짧게, 시설 방송 말투로.`,
-    user: `${resultText(r, nameOf)}
-
-두 문장 이내로 방송한다.`,
-    tool: COMMENT_TOOL,
-    effort: 'low',
-    timeoutMs: 25_000,
+/**
+ * 결과 공개 직후 방송 — **등수만 부른다** (2026-09-05 사용자: 「그렇게 자세하게 하지 말고, 누가 몇등인지만」).
+ *
+ * 원자료를 LLM 이 읽고 편차를 짚던 해설(COMMENT_TOOL)은 걷었다 — 방송이 수치를 늘어놓는 동안
+ * 결과 모달이 이미 같은 표를 그리고 있었다. 등수는 그 모달과 같은 셈이다 (hud/ResultTable 의
+ * ResultSummary — 버틴 시간으로, 같으면 같은 등수 1·1·3): 목소리와 표가 다른 등수를 부르면 안 된다.
+ * LLM 을 안 거치므로 폴백도 없고, 모달과 같은 순간에 나간다.
+ */
+export function leaderComment(r: TrialResultWire, nameOf: (id: string) => string): string {
+  const rows = r.players.map((p) => ({ id: p.id, held: heldSecondsFor(r.game, p.metrics, GAME_TEST_MS) }));
+  rows.sort((a, b) => (b.held ?? -1) - (a.held ?? -1));
+  const called = rows.map((row) => {
+    const rank = rows.findIndex((x) => (x.held ?? null) === (row.held ?? null)) + 1;
+    return `${rank}등 ${nameOf(row.id)}`;
   });
-  const text = String(out?.text ?? '').trim();
-  return text ? text.slice(0, 160) : fallback();
+  return `${TEST_NAME[r.game]} ${r.round}회차 종료. ${called.join(' · ')}.`;
 }
 
 /* ───────────────────────────── 관리 AI — 주장 판정 (§4.2) ───────────────────────────── */
@@ -567,7 +543,6 @@ const READ_TOOL: ToolSpec = {
           required: ['name', 'amount', 'reason'],
         },
       },
-      broadcast: { type: 'string', description: '방에 읽어 줄 관리 AI 의 한 줄. 움직인 것이 없으면 빈 문자열' },
     },
     required: ['marks'],
   },
@@ -607,8 +582,8 @@ export async function readTalk(
     /** 이번 장면에서 말한 사람들이 **그 전에** 한 말 (runtime 이 로그에서 뽑아 넘긴다, PRIOR_LINES 줄) */
     prior?: { name: string; lines: string[] }[];
   },
-): Promise<{ marks: ReadMark[]; broadcast: string }> {
-  if (!args.lines.length) return { marks: [], broadcast: '' };
+): Promise<{ marks: ReadMark[] }> {
+  if (!args.lines.length) return { marks: [] };
   const records = args.results.length ? args.results.map((r) => resultText(r, args.facts.nameOf)).join('\n\n') : '(아직 기록이 없다)';
   const priorText = (args.prior ?? [])
     .filter((p) => p.lines.length)
@@ -673,7 +648,7 @@ ${records}`,
     marks.push({ name, amount, reason: String(r.reason ?? '').trim().slice(0, 60) });
     if (marks.length >= 2) break; // 한 장면에 둘까지 — 프롬프트의 약속을 코드로도 지킨다
   }
-  return { marks, broadcast: String(out?.broadcast ?? '').trim().slice(0, 160) };
+  return { marks };
 }
 
 /** 관리 AI 의 정해진 문장들 — LLM 없이 나가는 방송 */
@@ -685,28 +660,12 @@ export const LINES = {
   /** 차례표의 몇 번째인지를 앞에 붙인다 — 「세 번의 시험」이라는 판의 모양이 첫 방송부터 보이게 (GAME_TEST_ORDER) */
   testOpen: (game: TrialGame, round: number, instruction: string, step?: number, total?: number) =>
     `${step && total ? `[시험 ${step}/${total}] ` : ''}${TEST_NAME[game]} 테스트 ${round}회차를 연다. ${instruction}`,
-  /**
-   * 검문 단계가 올랐다 (SUSPICION_PRESSURE) — 후반 토론이 열릴 때 한 번.
-   *
-   * 이 방송이 있어야 하는 이유: 걸음의 크기가 말없이 커지면 사람은 그걸 **버그로 읽는다.**
-   * 화면에는 새 계기를 안 붙이기로 했으므로(상단 줄과 좌석 카드를 걷어냈다 — hud/Panels 머리말)
-   * 규칙이 바뀌었다는 사실이 지나가는 길은 여기와 피드 한 줄의 「압력 ×N」뿐이다.
-   */
-  pressure: (stage: string, mult: number) => `검문 단계를 ${stage}(으)로 올린다. 지금부터 모든 관측은 ${mult}배로 기록된다.`,
   isolated: (name: string, role: 'human' | 'designer' | 'ai') =>
     `${name}, 의심도 임계. 즉시 격리한다. 조사 결과 — ${role === 'ai' ? 'AI 였다.' : '사람이었다. AI 는 아직 이 안에 있다.'}`,
-  /**
-   * 말 읽기의 방송 — 판정기가 제 문장을 안 주면 이걸로 나간다 (readTalk).
-   * 「기계적 특징 / 인간적 특징」이라고만 하던 것을 방향으로 바꿨다 — 이제 이 판정에는 말투만이 아니라
-   * **기록 대조**도 들어 있어서(거짓 해명 · 확인된 해명), 말투 이름표 하나로는 근거를 못 덮는다.
+  /*
+   * read(발화 분석)·tell(패턴 관측)·pressure(검문 단계)의 방송 문장이 여기 있었다 — 걷었다 (2026-09-05 사용자:
+   * 「감독 tts 가 자꾸 얘기해. 자막이 없는데도」). 관측은 이제 delta 의 why 로만 남는다 (runtime.readRoom 의 「방송은 없다」).
    */
-  read: (name: string, amount: number, reason: string) =>
-    `발화 분석 — ${name}, 의심도 ${amount > 0 ? '상승' : '하락'}. ${reason || '근거는 방금의 말이다.'}`,
-  /**
-   * 규칙이 잡은 표식의 방송 (docs/SUSPICION.md ⑥⑦⑧⑨) — LLM 을 안 부르고 나간다.
-   * 말 읽기(read)와 문장 모양을 나눈 이유: 이쪽은 **관측**이라 사유가 늘 같은 말이고, 근거를 지어낼 여지가 없다.
-   */
-  tell: (name: string, amount: number, why: string) => `패턴 관측 — ${name}, ${why}. 의심도 +${amount}.`,
   verdict: (name: string, v: ClaimVerdict, reason: string) =>
     v === 'match'
       ? `${name}의 해명은 기록과 일치한다. ${reason}`

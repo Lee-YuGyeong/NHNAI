@@ -44,8 +44,6 @@ import {
   READ_MAX_LINES,
   READ_MIN_LINES,
   SUSPICION,
-  SUSPICION_PRESSURE,
-  SUSPICION_STAGE,
   pressureFor,
   type GameC2SMessage,
   type GameOutcome,
@@ -149,6 +147,16 @@ const BOT_TALK_JITTER_MS = 6_500;
  */
 const BOT_TALK_CONCURRENCY = 2;
 /**
+ * 이만큼(ms) 한 마디도 안 하면 **조용한 좌석**이다 — 봇의 차례 가중치(botTurn)와 봇이 보는 사실(facts.quiet)이
+ * 같은 값을 쓴다. 두 자리가 다른 값을 보면 「오래 조용하다」는 말의 뜻이 판 안에서 갈린다.
+ *
+ * 왜 봇에게 알려 주나 — 판의 모든 문이 **말**에 매여 있다: 말 읽기는 발언을 읽고, 지목은 발언에서 나오고,
+ * 회피(duck)는 「불렀는데 안 답한 것」만 문다. 그래서 입을 다물면 어느 문에도 안 걸린다
+ * (2026-09-05 사용자: "AI 가 나한테 말도 안걸고 의심도 안해"). 침묵을 직접 무는 대신 **봇이 이름을 부르게** 한다 —
+ * 그러면 그 자리는 호명이 되고, 계속 안 답하면 회피가 문다. 규칙은 그대로 두고 판이 사람을 향하게 하는 길이다.
+ */
+const QUIET_MS = 30_000;
+/**
  * 토론이 닫히기 이만큼 전에 남은 말을 **마지막으로 한 번** 읽는다.
  * openDiscussion 이 unread 를 비우므로(시험을 건너온 말은 지난 장면이다), 이 한 번이 없으면 토론 막판에
  * 친 말은 통째로 버려진다 — 사람이 "말했는데 아무 반응이 없다"고 느끼던 자리다.
@@ -197,8 +205,6 @@ export class GameRuntime {
   private startedAt = 0;
   private phaseEndsAt: number | null = null;
   private testsDone = 0;
-  /** 마지막으로 방송한 검문 단계의 배수 — 「올랐을 때 한 번」만 말하게 (announcePressure) */
-  private announcedPressure = 0;
   private history: TrialResultWire[] = [];
   private currentTest: GameTestInfo | null = null;
   /** 지금 테스트의 조건 강도(1~3) — 엔진의 round 인자. 와이어에는 안 실린다 (P8) */
@@ -345,9 +351,15 @@ export class GameRuntime {
       if (this.engine) this.engine.onMove(seat.id, x, z, now, y);
       return;
     }
-    // 토론 중의 몸 — 굳음과 뒷걸음을 재는 자리다 (docs/SUSPICION.md 「몸」). 자리만 적어 두고 판정은 idleTick 이 한다:
-    // 클라는 **자리가 바뀔 때만** move 를 보내므로(WorldScene 의 changed &&), 굳어 있으면 여기가 아예 안 불린다.
-    if (this.phase !== 'discussion') return;
+    /*
+     * 몸 — 굳음과 뒷걸음을 재는 자리다 (docs/SUSPICION.md 「몸」). 자리만 적어 두고 판정은 idleTick 이 한다:
+     * 클라는 **자리가 바뀔 때만** move 를 보내므로(WorldScene 의 changed &&), 굳어 있으면 여기가 아예 안 불린다.
+     *
+     * 브리핑의 자리도 적는다. 토론이 열릴 때 사람이 이미 굳어 있으면 그 뒤로 move 가 영영 안 오는데,
+     * 여기서 브리핑을 버리면 **그 좌석은 판 내내 표본이 0개**가 된다 — 가만히 있는 것이 굳음을 피하는 길이었다
+     * (2026-09-05 사용자: "나 안움직이고 있는데 의심도 안올라"). 시험 중의 자리는 시험판 좌표라 여기 안 들어온다.
+     */
+    if (this.phase !== 'discussion' && this.phase !== 'briefing') return;
     const prev = this.humanPos.get(seat.id);
     const backing = prev ? isBacking(x - prev.x, z - prev.z, heading) : false;
     this.humanPos.set(seat.id, { x, z, backing, at: now });
@@ -564,7 +576,6 @@ export class GameRuntime {
     this.quota = quotaFor(this.seats.length);
     this.startedAt = this.now();
     this.testsDone = 0;
-    this.announcedPressure = 0;
     this.history = [];
     this.testRuns = new Map();
     this.latestResult = null;
@@ -655,9 +666,12 @@ export class GameRuntime {
      * 몸과 호명도 토론마다 새로 센다 — 시험 30초 동안 몸은 시험판을 돌아다녔고(굳음이 아니다),
      * 시험을 사이에 두고 불린 사람에게 「대답이 없다」고 하는 것도 말이 안 된다 (docs/SUSPICION.md ⑦⑧).
      * 누계(tellNth)는 안 지운다 — 거듭 걸린 것은 판이 끝날 때까지 남는다.
+     *
+     * **시계를 되감는 것은 bodyWatch.clear() 하나다.** humanPos 는 판정이 아니라 「마지막으로 알려진 자리」라
+     * 같이 지우면 안 된다 — 지우면 토론이 열린 뒤 처음 움직이는 사람만 표본이 생기고, 끝까지 가만히 선 사람은
+     * 표본이 없어서 굳음이 영영 안 걸린다. 그 자리는 다음 move 가 오면 알아서 갱신된다.
      */
     this.bodyWatch.clear();
-    this.humanPos.clear();
     this.called.clear();
     /*
      * 몰이 상한도 토론마다 새로 센다 (SuspicionBook.newRound). 겨눔은 안 지워지므로 2차 토론부터는
@@ -676,25 +690,11 @@ export class GameRuntime {
     // 기다릴 사람이 아무도 안 붙어 있으면 그 자리에서 걷는다 (봇만 남은 판)
     if (opening) this.releasePrologue();
     else {
-      this.announcePressure();
+      // 검문 단계 방송(announcePressure)이 여기 있었다 — 걷었다. 자막 없는 목소리였다 (readRoom 의 「방송은 없다」)
       this.scheduleTalk(2_000);
       this.armReadFlush(ms);
     }
     void this.persist();
-  }
-
-  /**
-   * 검문 단계가 올랐으면 그 사실을 방송한다 — 압력이 1.0 인 동안(1차 토론)은 아무 말도 안 한다.
-   *
-   * 「올랐을 때 한 번」을 지키는 것은 announcedPressure 하나다: 되살린 판(restoreIfNeeded 도 openDiscussion 을
-   * 지난다)에서는 0 에서 시작하므로 지금 단계를 한 번 알려 주고 만다 — 돌아온 사람도 판이 어느 단계인지는 알아야 한다.
-   */
-  private announcePressure(): void {
-    const mult = this.pressure();
-    if (mult <= 1 || mult <= this.announcedPressure) return;
-    this.announcedPressure = mult;
-    const at = Math.max(0, Math.min(SUSPICION_PRESSURE.length - 1, this.testsDone));
-    this.leader(LINES.pressure(SUSPICION_STAGE[at] ?? '마감', mult), 'alarm');
   }
 
   /**
@@ -863,10 +863,8 @@ export class GameRuntime {
     this.setPhase('result', this.now() + GAME_RESULT_MODAL_MS);
     void this.persist();
 
-    // 해설은 모달이 떠 있는 동안 도착한다 — 방송은 그대로 나간다 (토론에 불을 붙이는 첫 마디)
-    void leaderComment(this.deps.brain, wire, (id) => this.nameOf(id)).then((text) => {
-      if (this.phase !== 'ended') this.leader(text, 'readout');
-    });
+    // 결과 방송 — 등수만 부른다 (agents.leaderComment). LLM 을 안 거치므로 모달과 같은 순간에 나간다
+    this.leader(leaderComment(wire, (id) => this.nameOf(id)), 'readout');
   }
 
   /**
@@ -975,9 +973,9 @@ export class GameRuntime {
   private applyDeltas(deltas: SuspicionDelta[]): void {
     if (!deltas.length) return;
     /*
-     * 압력이 걸린 걸음에는 사유 뒤에 「· 압력 ×1.5」를 붙인다 — 화면에 새 계기를 안 붙이기로 했으므로
-     * (상단 줄과 좌석 카드를 걷어냈다, hud/Panels 머리말) 피드의 이 한 줄과 검문 단계 방송이
-     * 규칙이 바뀐 것을 알리는 유일한 길이다. 내려가는 걸음은 압력을 안 타므로 안 붙는다.
+     * 압력이 걸린 걸음에는 사유 뒤에 「· 압력 ×1.5」를 붙인다 — 화면에 새 계기를 안 붙이기로 했고
+     * (상단 줄과 좌석 카드를 걷어냈다, hud/Panels 머리말) 검문 단계 방송도 걷었으므로(자막 없는 목소리였다)
+     * 피드의 이 한 줄이 규칙이 바뀐 것을 알리는 유일한 길이다. 내려가는 걸음은 압력을 안 타므로 안 붙는다.
      */
     const mult = this.pressure();
     for (const d of deltas) {
@@ -1174,7 +1172,7 @@ export class GameRuntime {
     if (!bots.length) return;
     const now = this.now();
     // 지목당한 봇이 먼저, 오래 조용했던 봇이 다음 — 그 안에서 무작위
-    const weight = (s: Seat) => (this.book.accusersOf(s.id).length ? 3 : 1) * (now - s.lastSpokeAt > 30_000 ? 1.6 : 1) * (0.5 + this.rand());
+    const weight = (s: Seat) => (this.book.accusersOf(s.id).length ? 3 : 1) * (now - s.lastSpokeAt > QUIET_MS ? 1.6 : 1) * (0.5 + this.rand());
     const pick = [...bots].sort((a, b) => weight(b) - weight(a))[0];
     if (!pick?.persona) return;
 
@@ -1248,10 +1246,9 @@ export class GameRuntime {
       .map((l) => l.text);
     if (!echoes(text, mine)) return;
     this.lastEchoAt.set(seat.id, now);
-    const nth = this.book.tellCount(seat.id, 'echo') + 1;
     const d = this.book.tell(seat.id, 'echo', '같은 말을 되풀이함');
     if (!d) return;
-    this.leader(LINES.tell(seat.name, d.amount, `앞서 한 말을 그대로 되풀이했다 (${nth}회)`), 'readout');
+    // 방송은 없다 — 관측은 소리로 안 나간다 (readRoom 의 「방송은 없다」)
     this.applyDeltas([d]);
   }
 
@@ -1274,7 +1271,7 @@ export class GameRuntime {
       const extra = this.book.accusersOf(id).length ? SUSPICION.duckAccused : 0;
       const d = this.book.tell(id, 'duck', '호명에 응답 없음', extra);
       if (!d) continue;
-      this.leader(LINES.tell(seat.name, d.amount, `${n}번째 호명에 응답이 없다`), 'alarm');
+      // 방송은 없다 — 관측은 소리로 안 나간다 (readRoom 의 「방송은 없다」)
       this.applyDeltas([d]);
     }
   }
@@ -1288,12 +1285,11 @@ export class GameRuntime {
     for (const p of poses) {
       const seat = this.seats.find((s) => s.id === p.id);
       if (!seat || seat.isolated) continue;
+      // 방송은 없다 — 관측은 소리로 안 나간다 (readRoom 의 「방송은 없다」)
       for (const kind of this.bodyWatch.sample(p.id, p.x, p.z, now, p.backing)) {
-        const why = kind === 'still' ? '한자리에서 미동이 없다' : '몸을 돌리지 않고 물러섰다';
         const d = this.book.tell(seat.id, kind, kind === 'still' ? '장시간 부동' : '역방향 이동');
         if (!d) continue;
         deltas.push(d);
-        this.leader(LINES.tell(seat.name, d.amount, why), 'readout');
       }
     }
     if (deltas.length) this.applyDeltas(deltas);
@@ -1345,26 +1341,21 @@ export class GameRuntime {
       const out = await readTalk(this.deps.brain, { facts: this.facts(), results: this.history, lines, prior });
       if (!this.active()) return;
       const deltas: SuspicionDelta[] = [];
-      const said: string[] = [];
       for (const m of out.marks) {
         const seat = this.seatByName(m.name);
         if (!seat || seat.isolated || !spoke.has(seat.name)) continue;
         const d = this.book.read(seat.id, m.amount, m.reason || '발화 분석');
         if (!d) continue;
         deltas.push(d);
-        said.push(LINES.read(seat.name, d.amount, m.reason));
       }
       if (!deltas.length) return;
-      /**
-       * 눈금은 늘 움직인다. **방송만** 토론 중일 때 내보낸다 — 마지막 읽기(closing)는 국면이 바뀌기 전에
-       * 시작하지만 판정기가 늦으면 답이 시험 개시 뒤에 온다. 그때 배너를 덮으면 사람이 이번 시험에서
-       * 무엇을 해야 하는지를 잃는다. 근거는 안 사라진다 — 걸음마다의 why 가 피드에 그대로 남는다 (applyDeltas).
+      /*
+       * **방송은 없다** (2026-09-05 사용자: 「감독 tts 가 자꾸 얘기해. 자막이 없는데도」). 채팅 판이
+       * 대화만 그리게 된 뒤로(hud/Panels — kind 'chat' 만) 이 판정의 문장은 화면 어디에도 안 뜨는데
+       * 목소리만 남아, 관리 AI 가 **속마음을 소리 내어 읽는** 꼴이었다. 되풀이·회피·몸의 관측
+       * (checkEcho · watchDucks · readBodies)도 같은 이유로 조용하다. 근거는 안 사라진다 —
+       * 걸음마다의 why 가 delta 로 피드에 그대로 남고(applyDeltas), 눈금은 몸 위 막대가 전한다.
        */
-      if (this.phase === 'discussion') {
-        // 판정기가 제 문장을 줬고 그 문장이 가리킨 사람이 전부 적용됐을 때만 그 문장을 쓴다 — 아니면 정해진 문장으로
-        const line = out.broadcast && deltas.length === out.marks.length ? out.broadcast : said.join(' ');
-        this.leader(line, deltas.some((d) => d.amount > 0) ? 'alarm' : 'readout');
-      }
       this.applyDeltas(deltas);
     } finally {
       this.readBusy = false;
@@ -1454,7 +1445,20 @@ export class GameRuntime {
       latest: this.latestResult,
       nameOf: (id) => this.nameOf(id),
       testsDone: this.testsDone,
+      quiet: this.quietSeats(),
     };
+  }
+
+  /**
+   * QUIET_MS 넘게 한 마디도 안 한 좌석들 — 봇이 보는 사실에 실린다 (QUIET_MS 머리말).
+   *
+   * 판이 막 열렸을 때는 비워 둔다: 그때는 전원이 lastSpokeAt 0 이라 「방 전체가 조용하다」가 되고,
+   * 그건 아무 정보도 아니면서 첫 마디를 「너 왜 조용해」로 만든다 (sayAs 의 opening 과 같은 문턱).
+   */
+  private quietSeats(): string[] {
+    if (this.log.length < 3) return [];
+    const now = this.now();
+    return this.seats.filter((s) => !s.isolated && now - s.lastSpokeAt > QUIET_MS).map((s) => s.name);
   }
 
   private leader(text: string, kind: LeaderKind): void {
