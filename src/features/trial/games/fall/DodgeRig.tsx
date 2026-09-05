@@ -3,10 +3,10 @@
  * 카메라가 몸을 도는 각(yaw · pitch)을 바꾼다. WASD 는 카메라가 보는 방향 기준이고, 몸은 **움직이는 쪽을 본다** —
  * 옆으로 가면 옆모습, 물러서면 앞모습이 보인다 (2026-09-04 사용자: "계속 뒷모습만 보이는데 움직임에 따라 다르게").
  * 멈추면 마지막으로 향하던 쪽을 그대로 본다.
- * **점프(Space)는 서버 것이다.** 그 구간의 중력이 숨은 값이라(P8) 클라가 스스로 포물선을 그리려면 중력을 알아야 한다 —
+ * **점프(Space)는 서버 것이다.** 높이가 피격 판정 대상이라 y 를 만드는 쪽도 서버여야 한다(fall/engine.ts 머리말) —
  * 그래서 여기서는 `trial_jump`(눌렀다)만 올리고 발 높이는 스냅샷의 air 로 돌려받는다(fallState.selfY). 예전에는 복도와
- * 같은 고정 중력(GRAVITY=15)으로 클라가 띄웠고 서버 판정은 y 를 아예 안 봐서, **중력이 바뀌어도 몸은 아무것도 느끼지
- * 못했고 점프는 장식이었다.** 이제 중력이 60% 면 몸이 두 배 넘게 오래 떠 있고, 뜬 몸은 공을 더 일찍 만난다.
+ * 같은 고정 중력(GRAVITY=15)으로 클라가 띄웠고 서버 판정은 y 를 아예 안 봐서 점프가 장식이었다. 이제 뜬 몸은
+ * 공을 더 일찍 만난다. (중력은 판 내내 상수다 — 구간 변화를 걷어냈다, worker 쪽 condition.ts)
  * 이모트 · 가구 충돌 · 의심도 감지가 없고, 발은 FALL_ARENA 로만 막는다.
  *
  * 내 좌표는 LocalRig 과 같은 규칙으로 방에 보낸다(바뀌었을 때만 10Hz). 서버는 이 좌표로 위협·피격을 잰다
@@ -33,7 +33,7 @@ export function DodgeRig({
 }: {
   body?: BodyId | null;
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
-  /** Space — 「눌렀다」만 올린다. 얼마나 오래 뜨는지는 서버의 숨은 중력이 정한다 */
+  /** Space — 「눌렀다」만 올린다. 포물선은 서버가 적분한다 */
   sendJump?: () => void;
 }) {
   const { camera } = useThree();
@@ -111,7 +111,7 @@ export function DodgeRig({
     pos.current.x = Math.min(Math.max(pos.current.x, FALL_ARENA.minX + FALL_BODY_R), FALL_ARENA.maxX - FALL_BODY_R);
     pos.current.z = Math.min(Math.max(pos.current.z, FALL_ARENA.minZ + FALL_BODY_R), FALL_ARENA.maxZ - FALL_BODY_R);
 
-    // 점프 — 「눌렀다」만 올린다. 뜨는 것도 내려오는 것도 서버가 그 구간의 숨은 중력으로 적분한다(P8)
+    // 점프 — 「눌렀다」만 올린다. 뜨는 것도 내려오는 것도 서버가 적분한다 (머리말)
     if (input.jump && !jumpHeld.current) sendJump?.();
     jumpHeld.current = input.jump;
     // 발 높이는 서버 것 — 스냅샷의 air 를 마지막 두 표본으로 외삽해 그린다 (fallState.selfY)

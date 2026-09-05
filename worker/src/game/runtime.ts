@@ -455,7 +455,7 @@ export class GameRuntime {
         this.engine.onWalk?.(seat.id, msg.x, msg.z, this.now());
         return;
       case 'trial_jump':
-        // 낙하 생존 — 몸의 높이는 서버가 그 구간의 숨은 중력으로 적분한다 (worker/src/trial/fall/engine.ts)
+        // 낙하 생존 — 몸의 높이는 서버가 적분한다 (worker/src/trial/fall/engine.ts)
         this.engine.onJump?.(seat.id, this.now());
         return;
       default:

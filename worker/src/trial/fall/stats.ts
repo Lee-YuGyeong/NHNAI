@@ -15,7 +15,7 @@ import { HIT_R, THREAT_R, horizontalDist, type FallObject } from './sim';
 const MOVE_SPEED_MIN = 0.6;
 /** 샘플이 이만큼(ms) 끊기면 멈춘 것으로 본다 (클라는 안 움직이면 안 보낸다) */
 const STILL_AFTER_MS = 300;
-/** 조건이 바뀐 직후로 보는 창(ms) — 새 중력에 아직 적응 못 한 회피들. 20초마다 바뀌므로 창이 셋이다 */
+/** 20초 구간 경계 직후로 보는 창(ms) — 구간마다 하나, 셋이다. 중력이 몰래 바뀌던 시절의 눈금인데(지금은 상수, condition.ts) 시간대별 표본으로 남겨 둔다 */
 export const TRANSITION_MS = 5000;
 /** 이보다 멀리 벗어나면 "크게 피했다"(+), 아니면 "딱 필요한 만큼"(−) — 오차 방향의 정의 */
 const OVER_DODGE_M = HIT_R + 0.7;
