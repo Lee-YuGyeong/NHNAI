@@ -27,6 +27,7 @@ import { INTERP_DELAY_MS } from '@/world/mp/constants';
 import { sampleAt, type Pose } from '@/world/mp/interp';
 import type { AnimState } from '@/world/mp/protocol';
 import { remotePlayers, type RemotePlayer } from '@/world/net/remote-players';
+import { ChatBubble } from './ChatBubble';
 import { hallGroundAt } from './ground';
 import { SuspicionBar } from './SuspicionBar';
 
@@ -144,40 +145,7 @@ const SeatAvatar = memo(function SeatAvatar({
 
       <Html position={[0, 2.0, 0]} center distanceFactor={9} zIndexRange={[10, 0]}>
         <div style={{ position: 'relative', pointerEvents: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          {bubble ? (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '100%',
-                left: '50%',
-                marginBottom: 10,
-                transform: 'translateX(-50%)',
-                width: 'max-content',
-                maxWidth: 220,
-                borderRadius: 16,
-                border: '1px solid #374151',
-                background: 'rgba(30,30,30,0.62)',
-                padding: '12px 24px',
-                boxShadow: '0 10px 15px rgba(0,0,0,0.3)',
-              }}
-            >
-              <span style={{ display: 'block', fontSize: 14, fontWeight: 500, lineHeight: 1.3, color: '#fff' }}>{bubble}</span>
-              <span
-                aria-hidden
-                style={{
-                  position: 'absolute',
-                  bottom: -8,
-                  left: '50%',
-                  width: 0,
-                  height: 0,
-                  transform: 'translateX(-50%)',
-                  borderLeft: '8px solid transparent',
-                  borderRight: '8px solid transparent',
-                  borderTop: '8px solid rgba(30,30,30,0.62)',
-                }}
-              />
-            </div>
-          ) : null}
+          <ChatBubble text={bubble} />
 
           <div
             style={{

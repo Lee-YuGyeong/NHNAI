@@ -89,6 +89,26 @@ describe('Chat — 발언권', () => {
     render(<Chat feed={[]} mySeatId={null} markId={null} disabled={false} talk={null} onSend={noop} onComposing={noop} />);
     expect(screen.queryByTitle(/남은 발언권/)).toBeNull();
   });
+
+  /*
+   * 2026-09-05 사용자: "대화창은 대화만 보이게" — 관리 AI 의 지시문(leader) · 발언권 지급(system) · 의심도의
+   * 오르내림(delta)은 저장소에는 남되 판에는 안 그린다. 지시문은 안내판과 목소리가, 의심도는 몸 위 막대가 전한다.
+   */
+  it('대화만 그린다 — 관리 AI 방송 · 판의 소식 · 의심도 줄은 저장소에 있어도 판에 없다', () => {
+    const feed = [
+      { id: 's1', name: 'SUBJECT 01', text: '난 사람이야', ts: 1, kind: 'chat' as const },
+      { id: 'LEADER', name: '관리 AI', text: '[시험 2/3] 움직이는 플랫폼 테스트 1회차를 연다. 30초.', ts: 2, kind: 'leader' as const },
+      { id: 'system', name: '', text: '발언권 지급 — SUBJECT 02 +1 · SUBJECT 01 +0', ts: 3, kind: 'system' as const },
+      { id: 'system', name: '', text: '관리 AI → SUBJECT 03 -3 (즉흥적 감탄)', ts: 4, kind: 'delta' as const },
+      { id: 's2', name: 'SUBJECT 02', text: '그건 AI 도 그렇게 말하지', ts: 5 },
+    ];
+    render(<Chat feed={feed} mySeatId="s1" markId={null} disabled={false} talk={4} onSend={noop} onComposing={noop} />);
+    expect(screen.getByText('난 사람이야')).toBeTruthy();
+    expect(screen.getByText('그건 AI 도 그렇게 말하지')).toBeTruthy();
+    expect(screen.queryByText(/시험 2\/3/)).toBeNull();
+    expect(screen.queryByText(/발언권 지급/)).toBeNull();
+    expect(screen.queryByText(/SUBJECT 03 -3/)).toBeNull();
+  });
 });
 
 describe('ResultModal — 발언권 열', () => {

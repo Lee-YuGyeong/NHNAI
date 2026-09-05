@@ -59,14 +59,24 @@ export function BigClock({ endsAt, maxSeconds, urgentBelow = 10 }: { endsAt: num
 
 /* ─────────────────────────────── 채팅 ─────────────────────────────── */
 
+/** 채팅 판에 그리는 줄 — 사람(과 좌석)이 한 말뿐이다 (Chat 머리말 ★). 저장소의 다른 줄은 여기서 걸러진다 */
+export function chatOnly(feed: readonly ChatEntry[]): ChatEntry[] {
+  return feed.filter((l) => (l.kind ?? 'chat') === 'chat');
+}
+
 /**
  * 방의 대화 「구역 통신」 — 판 하나에 머리띠 · 로그 · 입력줄.
  *
  * 생김새는 /arena 의 통신판(ArenaFeature 의 .comms)을 그대로 옮긴 것이다
  * (2026-09-04 사용자: "채팅 디자인 who is human 에서" · **디자인만**).
- * 옮겨 온 것은 넷이다 — 살아 있다는 표시가 붙은 머리띠 · 말한 이를 가리키는 색점 ·
- * 판을 뒤집는 말(관리 AI · 판의 소식 · 의심도)을 줄 전체로 물들이는 결 ·
+ * 옮겨 온 것은 셋이다 — 살아 있다는 표시가 붙은 머리띠 · 말한 이를 가리키는 색점 ·
  * 지난 말을 읽으려 올려 두면 안 끌어내리는 규칙. 색만 이 화면의 것이다 (interrogation.css).
+ *
+ * ★ **대화만 보인다** (2026-09-05 사용자: "대화창은 대화만 보이게" — 「[시험 2/3] … 30초.」 지시문과
+ *   「발언권 지급 — …」 을 빼 달라고). 저장소(interrogationSlice)에는 관리 AI 의 방송(leader) · 판의
+ *   소식(system) · 의심도의 오르내림(delta)이 그대로 쌓이지만, 이 판은 kind 가 chat 인 줄만 그린다.
+ *   지시문은 화면 위 안내판(.ig-order)과 관리 AI 의 목소리가 이미 전하고, 의심도는 몸 위 막대가 보인다 —
+ *   같은 것을 채팅에 한 번 더 적으면 대화가 장부가 된다. 결(줄 전체를 물들이던 색)은 그래서 이제 안 쓰인다.
  */
 export function Chat({
   feed,
@@ -169,27 +179,14 @@ export function Chat({
           setStick(followsBottom(el.scrollHeight, el.scrollTop, el.clientHeight));
         }}
       >
-        {feed.map((l, i) => {
-          const kind = l.kind ?? 'chat';
-          /*
-           * 결이 붙은 줄(관리 AI · 판의 소식 · 의심도)에는 **이름을 안 붙인다** — 본문이 대개
-           * 좌석 번호로 시작해서, 이름까지 붙으면 누가 말하고 누가 걸렸는지가 안 갈린다.
-           * 말하는 쪽은 색이 가른다 (/arena 통신판과 같은 규칙).
-           */
-          const toned = kind !== 'chat';
+        {chatOnly(feed).map((l, i) => {
           const mine = l.id === mySeatId;
           return (
-            <p key={`${l.ts}-${i}`} className={`ig-line ${kind}${mine ? ' me' : ''}${l.id === markId ? ' marked' : ''}`}>
+            <p key={`${l.ts}-${i}`} className={`ig-line chat${mine ? ' me' : ''}${l.id === markId ? ' marked' : ''}`}>
               <i aria-hidden className="pip" />
               <span>
-                {toned ? (
-                  l.text
-                ) : (
-                  <>
-                    <b>{l.name}</b>
-                    {l.text}
-                  </>
-                )}
+                <b>{l.name}</b>
+                {l.text}
               </span>
             </p>
           );
@@ -362,7 +359,7 @@ export function LobbyPanel({
     <div className="ig-lobby">
       <h2>소집 대기</h2>
       <p>
-        실제 플레이어 {GAME_MIN_HUMANS}~{GAME_MAX_HUMANS}명 + AI 1좌석. 사람이 모자라면 대역이 채운다 — 판이 열리면 좌석이 섞이고 전원 SUBJECT 번호로만 불린다.
+        실제 플레이어 {GAME_MIN_HUMANS}~{GAME_MAX_HUMANS}명 + AI 1좌석. 사람이 모자라면 대역이 채운다 — 판이 열리면 좌석이 섞이고 전원 새로 받은 이름으로만 불린다.
       </p>
       {body ? (
         <p>

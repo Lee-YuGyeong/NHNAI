@@ -29,6 +29,7 @@ import { prefetchPrologue, prologueClipMs, prologueLagMs, resetPrologueVoice, sp
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TestOrder } from './hud/Panels';
+import { SelfSuspicion } from './hud/SelfSuspicion';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
@@ -37,6 +38,7 @@ import type { BodyId } from '@/world/mp/bodies';
 import { fallState } from '@/features/trial/games/fall/fallState';
 import { EXECUTION_MS, executioner } from './scene/executionerStore';
 import { platformState } from './scene/platformState';
+import { selfBubble } from './scene/selfBubble';
 import { PAD_START_Z, startSlot } from '@/world/mp/platform';
 import { runnerState } from './scene/stopline/runnerState';
 // 색 사냥의 구슬 상태·오버레이 색은 /trial 과 같은 모듈이다 — 화면은 달라도 게임은 하나다 (huntState 머리말)
@@ -130,6 +132,7 @@ export function InterrogationFeature() {
   useEffect(() => {
     dispatch(gameActions.reset());
     remotePlayers.clear();
+    selfBubble.clear();
     runnerState.clear();
     fallState.clear();
     executioner.reset();
@@ -146,10 +149,10 @@ export function InterrogationFeature() {
       switch (msg.t) {
         case 'chat': {
           dispatch(gameActions.chatReceived({ id: msg.id, name: msg.nickname, text: msg.text, ts: msg.ts, kind: 'chat' }));
-          if (msg.id !== meRef.current?.seatId) {
-            remotePlayers.bubble(msg.id, msg.text, now());
-            setBubbleTick((n) => n + 1);
-          }
+          // 말풍선 — 남의 말은 그 몸에, 내 말은 내 머리 위에 (selfBubble, 2026-09-05 사용자). 둘 다 bubbleTick 으로 다시 그린다
+          if (msg.id !== meRef.current?.seatId) remotePlayers.bubble(msg.id, msg.text, now());
+          else selfBubble.set(msg.text, now());
+          setBubbleTick((n) => n + 1);
           return;
         }
         case 'game_state': {
@@ -695,6 +698,8 @@ export function InterrogationFeature() {
           />
         ) : null}
 
+        {/* 내 의심도 — 발치 줄 위의 고정 계기 (hud/SelfSuspicion 머리말). 좌석이 있을 때만, 끝 화면에서는 걷는다 */}
+        {inGame && mySeatId && phase !== 'ended' ? <SelfSuspicion getValue={() => getSuspicion(mySeatId)} /> : null}
         {/* 시험 중의 발치 줄은 수치판(.stat)이다 — 안내 문장일 때보다 크고 밝게, 숫자는 자리를 안 떤다 */}
         {hud ? (
           <p className={`ig-foot${phase === 'test' ? ' stat' : ''}`}>
