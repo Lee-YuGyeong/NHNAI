@@ -1582,6 +1582,12 @@
     grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
   }
 }
+/* 넓은 화면에서는 사진 칸을 한 단 키운다 — 제목 밑에 붙은 카드가 칸을 제대로 채우게 (2026-09-05) */
+@media (min-width: 1100px) and (min-height: 800px) {
+  .bl-slide {
+    grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
+  }
+}
 .bl-slide--on {
   opacity: 1;
   visibility: visible;
@@ -2181,6 +2187,61 @@
   font-size: 13.5px;
 }
 
+/*
+ * ── 브리핑·배역 칸의 세로 배분 (2026-09-05) ──────────────────────────────────
+ * 기본 .bl-scene 은 위·아래로 벌린다(space-between). 칸이 셋인 브리핑에서는 그 규칙이
+ * 제목·본문·계기 사이를 **똑같이** 벌려서, 본문이 복판에 홀로 떠 세 덩이가 따로 노는
+ * 꼴이 됐다(제목→본문 180px, 본문→계기 150px). 배역 칸은 제목과 카드 둘뿐이라 그 사이가
+ * 통째로 비었다.
+ *
+ * 고친 규칙: **제목과 그 아래 글은 한 덩이**로 붙인다. 브리핑은 계기 한 줄만 바닥에
+ * 남긴다(제목 위·계기 아래·그 사이는 공기 — 원래 이 칸이 말하던 짜임 그대로). 배역은
+ * 제목 아래 곧장 카드가 서고, 남는 자리는 카드 밑으로 간다 — 카드가 이 칸의 무게중심이다.
+ */
+.bl-scene--brief {
+  grid-template-rows: auto auto 1fr;
+  gap: 0;
+}
+/*
+ * 브리핑의 글 비율 (2026-09-05, 사용자가 준 참고 화면) — 제목이 화면의 주인이다.
+ * 세 줄(연도 / 흐린 줄 / 굵은 줄)이 각각 제 줄을 갖고, 화면 폭의 4.6% 로 선다.
+ * 본문은 그 밑에 **왼쪽 절반 폭의 단**으로 앉는다 — 긴 줄은 접힌다(참고 화면도 그렇다).
+ * 세로는 vh 로도 묶는다: 100dvh 한 칸 안에 제목 세 줄·본문 아홉 줄·계기 한 줄이 다 들어와야
+ * 스냅이 안 깨진다 (1916×849 기준 제목 72px · 본문 17px 로 계산해 맞췄다).
+ */
+.bl-scene--brief > div:first-child {
+  max-width: min(760px, 52%);
+}
+.bl-scene--brief .bl-scene__h {
+  font-size: clamp(36px, min(4.6vw, 8.5vh), 76px);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+}
+.bl-scene--brief .bl-narr {
+  margin-top: clamp(28px, 4vh, 44px);
+  max-width: min(740px, 46%);
+  gap: clamp(12px, 2.2vh, 20px);
+}
+.bl-scene--brief .bl-scene__lead {
+  font-size: clamp(14px, min(1vw, 2vh), 17.5px);
+  line-height: 1.8;
+}
+.bl-scene--brief .bl-brief-foot {
+  align-self: end;
+  margin-top: 32px;
+}
+/* 좁은 화면에서는 절반 폭이 너무 좁다 — 단을 다시 풀어 준다 */
+@media (max-width: 899px) {
+  .bl-scene--brief > div:first-child,
+  .bl-scene--brief .bl-narr {
+    max-width: none;
+  }
+}
+.bl-scene--roles {
+  align-content: start;
+  gap: clamp(28px, 4.5vh, 44px);
+}
+
 /* ── 진행: 카드 다섯 장이 아니라 **한 줄의 순서** ─────────────────── */
 
 .bl-flow {
@@ -2310,6 +2371,39 @@
   .bl-scene__bleed img {
     animation: none;
   }
+}
+/*
+ * ── 칸을 통째로 덮는 장면 (2026-09-05 시안, 브리핑) ──────────────────────────
+ * 표식 칸의 영상(heroes.css .hero-key__art)과 같은 태도다: 사진을 파랗게 담그지 않고
+ * **제 색 그대로** 깔되, 글이 앉는 왼쪽과 바닥만 눌러 둔다. 기본 bleed 의 luminosity ·
+ * 마스크는 걷는다 — 저건 사진을 「공기」로 만드는 처리고, 여기서는 사진이 장면이다.
+ */
+.bl-scene__bleed--full {
+  opacity: 1;
+  mask-image: none;
+  background: #04101c;
+}
+.bl-scene__bleed--full img {
+  mix-blend-mode: normal;
+  filter: brightness(0.66) saturate(0.82) contrast(1.04);
+  object-position: 64% 30%; /* 위를 더 보인다 — 병사 머리 위가 안 잘리게. 바닥의 콘솔은 잘려도 된다 */
+  animation-duration: 46s;
+}
+/* 왼쪽은 글, 바닥은 계기 — 그 두 자리만 어둡다. 오른쪽 위(병사들·연구원)는 사진의 것 */
+.bl-scene__bleed--full::after {
+  background:
+    linear-gradient(90deg, rgba(3, 12, 22, 0.92) 0%, rgba(3, 12, 22, 0.78) 34%, rgba(3, 12, 22, 0.3) 66%, rgba(3, 12, 22, 0.42) 100%),
+    linear-gradient(180deg, rgba(2, 8, 15, 0.5) 0%, transparent 24%, transparent 58%, rgba(2, 8, 15, 0.92) 100%);
+}
+/* 필름 그레인 한 겹 — 표식 칸과 재질을 맞춘다 (heroes.css .hero-key__grain 과 같은 무늬) */
+.bl-scene__bleed--full::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.14;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /*

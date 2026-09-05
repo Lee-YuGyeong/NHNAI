@@ -277,10 +277,17 @@ export function LobbyIntro() {
             비워 둔다 — 브리핑 화면이 늘 그렇게 생겼다. */}
       <section id={anchor('about')} className={`bl-snap${on('about')}`}>
         {/* 빈 화면 복판을 채우는 것은 글이 아니라 공기다 — 사진을 옅게 깔아 장면으로 만든다 */}
-        <span className="bl-scene__bleed" aria-hidden>
-          <img src="/intro/hero.jpg" alt="" />
+        {/*
+          2026-09-05 시안: 오른쪽 반만 옅게 깔던 hero.jpg 대신 **표식 칸(영상 화면)처럼 칸을
+          통째로 덮는** 장면 — 관제실, 줄 선 병사들, 놀란 연구원(/intro/brief-bg.jpg).
+          글은 왼쪽 절반에 앉으므로 왼쪽을 어둡게 누른다(lobby.css .bl-scene__bleed--full).
+          마음에 안 들면 이 두 줄을 옛 것으로 되돌리면 된다:
+            <span className="bl-scene__bleed" aria-hidden><img src="/intro/hero.jpg" alt="" /></span>
+        */}
+        <span className="bl-scene__bleed bl-scene__bleed--full" aria-hidden>
+          <img src="/intro/brief-bg.jpg" alt="" />
         </span>
-        <div className="bl-scene bl-snap__in">
+        <div className="bl-scene bl-scene--brief bl-snap__in">
           <div>
             <span className="bl-label">01 // BRIEFING</span>
             {/*
@@ -297,7 +304,7 @@ export function LobbyIntro() {
             <h2 className="bl-scene__h">
               <Typed
                 start={seen.includes('about')}
-                parts={['2026.', 'br', { dim: '표식 없는 개체가' }, ' 새어 나왔다...']}
+                parts={['2026.', 'br', { dim: '표식 없는 개체가' }, 'br', '새어 나왔다...']}
               />
             </h2>
           </div>
@@ -372,7 +379,7 @@ export function LobbyIntro() {
 
       {/* ── 3. 배역 ───────────────────────────────────────────────────── */}
       <section id={anchor('roles')} className={`bl-snap${on('roles')}`}>
-        <div className="bl-scene bl-snap__in">
+        <div className="bl-scene bl-scene--roles bl-snap__in">
           <div>
             <span className="bl-label">02 // ROLES</span>
             {/*
