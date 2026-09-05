@@ -24,7 +24,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LEADER_NAME } from '@/lab/personas';
 import { WHO_IS_AI_SRC } from '@/shared/opening';
-import { ArrowIcon } from './console';
+import { EnterButton } from './console';
 import { Typed } from './live';
 import './heroes.css';
 
@@ -98,9 +98,8 @@ function Title({ onDone, className = '' }: { onDone: () => void; className?: str
 function Cta({ enter, rules, className = '' }: { enter: () => void; rules: () => void; className?: string }) {
   return (
     <div className={`bl-hero__cta ${className}`}>
-      <button type="button" className="bl-btn bl-btn--go bl-edge" data-sfx="clank" onClick={enter}>
-        입장하기 <ArrowIcon />
-      </button>
+      {/* 표지의 문은 **작은 벌**이다 — 「규칙 보기」와 나란히 서는 자리라, 큰 벌을 놓으면 옆칸이 부속으로 보인다 */}
+      <EnterButton onClick={enter} />
       <button type="button" className="bl-btn bl-edge" onClick={rules}>
         규칙 보기
       </button>

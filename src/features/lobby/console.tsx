@@ -124,6 +124,48 @@ export function SeatArt() {
   );
 }
 
+/* ═══════════════════════════════ 문 ═══════════════════════════════ */
+
+/** 조준선이 그어지는 네 귀퉁이. 순서는 화면 왼쪽 위부터 — 생김새는 lobby.css 의 .bl-enter__corner */
+const CORNERS = ['tl', 'tr', 'bl', 'br'] as const;
+
+/**
+ * 「입장하기」 — 인트로의 문. 두 자리(표지 CTA · 마지막 칸)가 같은 벌을 쓴다
+ * (2026-09-05 사용자가 넘긴 마크업. Tailwind 를 안 쓰는 판이라 lobby.css 로 옮겼다).
+ *
+ * ★ .bl-btn 계열이 **아니다.** 저쪽 --go 는 모따기한 채운 청록이라 제가 먼저 "눌러라"고
+ *   소리치는데, 이 문은 반대로 비어 있다 — 평소엔 각진 흰 테 한 줄뿐이고 손이 올라가야
+ *   청록으로 켜진다. 켜지는 쪽이 안 켜진 쪽보다 세다.
+ * ★ 자식 다섯(모서리 넷 + 훑는 빛)은 전부 절대 배치라 글자 자리를 건드리지 않는다.
+ *
+ * @param big 마지막 칸의 큰 벌인가 — 단독으로 서는 자리라 한 벌 크다.
+ */
+export function EnterButton({
+  onClick,
+  big = false,
+  className = '',
+}: {
+  onClick: () => void;
+  big?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      className={`bl-enter${big ? ' bl-enter--big' : ''}${className ? ` ${className}` : ''}`}
+      data-sfx="clank"
+      onClick={onClick}
+    >
+      {CORNERS.map((at) => (
+        <span key={at} className={`bl-enter__corner bl-enter__corner--${at}`} aria-hidden />
+      ))}
+      입장하기
+      <ArrowIcon />
+      <span className="bl-enter__scan" aria-hidden />
+    </button>
+  );
+}
+
 /* ═══════════════════════════════ 아이콘 ═══════════════════════════════ */
 /* 원작과 같은 규칙 — CDN 아이콘 대신 인라인 SVG. 배포본에서 외부 요청이 나가지 않는다 */
 

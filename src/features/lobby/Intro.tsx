@@ -86,7 +86,7 @@ import {
   GAME_TEST_MS,
   GAME_TEST_ORDER,
 } from '@/world/mp/game-protocol';
-import { ArrowIcon, Backdrop } from './console';
+import { Backdrop, EnterButton } from './console';
 import { Typed } from './live';
 import './lobby.css';
 /*
@@ -550,9 +550,8 @@ export function LobbyIntro() {
             */}
             <h2 className="bl-hero__title bl-hero__title--sm">가려내라.</h2>
             <p className="bl-final__sub">전원이 인간이라고 말할 것이다. 하나는 아니다.</p>
-            <button type="button" className="bl-btn bl-btn--go bl-edge" data-sfx="clank" onClick={enter}>
-              입장하기 <ArrowIcon />
-            </button>
+            {/* 마지막 칸의 문은 **큰 벌**이다 — 다섯 칸을 다 읽고 닿는 자리라, 여기서는 이것 하나만 서 있다 */}
+            <EnterButton onClick={enter} big className="bl-final__go" />
             <p className="bl-label">다음: 구글 로그인 → 방 목록 → 대기방 → 게임 시작</p>
           </div>
         </div>
