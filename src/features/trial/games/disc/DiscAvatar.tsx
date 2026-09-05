@@ -11,10 +11,19 @@ import { RobotAvatar } from '@/world/avatar/RobotAvatar';
 import { SoldierAvatar } from '@/world/avatar/SoldierAvatar';
 import type { BodyId } from '@/world/mp/bodies';
 import type { AnimState } from '@/world/mp/protocol';
+import { warp } from '@/features/interrogation/scene/warp';
 import { discState } from './discState';
 
 export function DiscAvatar({ id, label, body }: { id: string; label: string; body?: BodyId | null }) {
   const group = useRef<Group>(null);
+  /**
+   * 순간이동 중의 몸 — 떨어져 다시 서는 동안 가늘어졌다 다시 선다 (games/common/fallWarp.ts).
+   * **눕는 그룹 바깥**이다: 배율과 들림은 세워진 축(월드 y)으로 걸려야 「빨려 올라간다」로 보인다.
+   * 안쪽에 걸면 누운 몸이 바닥을 따라 늘어난다
+   */
+  const warped = useRef<Group>(null);
+  /** 눕기 · 방향 — 옛날 그대로 한 줄로 건다 (Euler XYZ = 눕기 다음 방향) */
+  const posed = useRef<Group>(null);
   const shadow = useRef<Mesh>(null);
   const anim = useRef<AnimState>('idle');
   const speed = useRef(0);
@@ -34,18 +43,32 @@ export function DiscAvatar({ id, label, body }: { id: string; label: string; bod
     last.current = { x: p.x, z: p.z, at: now };
     g.position.set(p.x, p.y, p.z);
     // 떨어진 몸은 눕는다
-    g.rotation.set(p.fallen ? -Math.PI / 2 : 0, p.heading, 0);
-    if (shadow.current) shadow.current.visible = !p.fallen;
+    if (posed.current) posed.current.rotation.set(p.fallen ? -Math.PI / 2 : 0, p.heading, 0);
+    // 순간이동 — 원판 밖으로 떨어져 다시 서기까지 (discState 의 순간이동, 빛기둥은 DiscStage 의 WarpFx)
+    const w = warp.bodyAt(id, now);
+    if (warped.current) {
+      warped.current.scale.set(w.xz, w.y, w.xz);
+      warped.current.position.y = w.lift;
+    }
+    if (shadow.current) {
+      shadow.current.visible = !p.fallen;
+      // 그림자는 몸이 사라지는 만큼 옅어진다 — 눕히지도 들지도 않는다 (늘 바닥이다)
+      shadow.current.scale.set(w.xz, w.xz, 1);
+    }
   });
 
   return (
     <group ref={group}>
       <Suspense fallback={null}>
-        {body ? (
-          <SoldierAvatar body={body} getAnim={() => anim.current} getAirborne={() => false} getSpeed={() => (anim.current === 'idle' ? 0 : Math.max(speed.current, 1))} />
-        ) : (
-          <RobotAvatar getAnim={() => anim.current} getAirborne={() => false} />
-        )}
+        <group ref={warped}>
+          <group ref={posed}>
+            {body ? (
+              <SoldierAvatar body={body} getAnim={() => anim.current} getAirborne={() => false} getSpeed={() => (anim.current === 'idle' ? 0 : Math.max(speed.current, 1))} />
+            ) : (
+              <RobotAvatar getAnim={() => anim.current} getAirborne={() => false} />
+            )}
+          </group>
+        </group>
         <mesh ref={shadow} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.34, 20]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.35} />

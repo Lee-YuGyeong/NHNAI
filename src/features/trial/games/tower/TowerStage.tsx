@@ -9,6 +9,7 @@ import { Suspense, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
+import { WarpFx } from '@/features/interrogation/scene/WarpFx';
 import { GlbInstances, GlbPart } from '@/world/map/corridor/part';
 import { GRAVITY } from '@/world/mp/constants';
 import { TOWER_CENTER, TOWER_FALL_KEEP_MS, TOWER_GAP, TOWER_N, TOWER_SLAB, TOWER_SLAB_H, TOWER_TOP, slabCenter } from '@/world/mp/tower';
@@ -119,6 +120,11 @@ export function TowerStage({ lights = true }: { lights?: boolean } = {}) {
         <Slabs />
       </Suspense>
       {lights ? <pointLight position={[TOWER_CENTER.x, TOWER_TOP + 4.5, TOWER_CENTER.z]} color="#dfe9ff" intensity={60} distance={22} decay={2} /> : null}
+      {/*
+       * 바닥에 떨어져 발판에 다시 서는 순간이동의 빛기둥 (interrogation/scene/warp.ts). 무대에 붙여 둔다 —
+       * 이 게임을 그리는 화면은 이 무대를 쓰는 화면과 같다. 걸린 것이 없으면 여덟 자리가 다 꺼져 있다
+       */}
+      <WarpFx dim={0.45} />
     </group>
   );
 }

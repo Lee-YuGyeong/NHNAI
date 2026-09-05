@@ -47,6 +47,12 @@ const JITTER_EMA = 0.1;
 /** 보간 지연의 상한(ms) — 이보다 늦은 망은 그냥 늦게 보이는 것이 맞다. 더 미루면 남의 몸이 반 초 전 자리에 선다 */
 const INTERP_DELAY_MAX_MS = 450;
 
+/**
+ * 샘플 두 장 사이가 이만큼 넘게 벌어지면 걸어간 것이 아니라 **옮겨진 것**이다 (원판 · 판자 · 발판에서 떨어져
+ * 제자리로 돌아가기 — 순간이동). 달리기 상한이 5m/s 라 10Hz 샘플로는 0.5m 가 최대고, 3m 는 그 여섯 배다.
+ */
+const TELEPORT_M = 3;
+
 /** 캐릭터 몸 반지름(m) — 로봇·군인 어깨 폭의 절반쯤. 밀어내기는 양쪽 반지름을 더해 잰다 */
 export const CHAR_BODY_R = 0.35;
 /** 발 높이 차가 이보다 크면 다른 층(발판 위/아래)이다 — 서로 밀지 않는다 */
@@ -98,6 +104,14 @@ export const remotePlayers = {
     const gap = now - p.arrivedAt;
     if (gap < SAMPLE_GAP_MS * 5) p.jitter += (Math.abs(gap - SAMPLE_GAP_MS) - p.jitter) * JITTER_EMA;
     p.arrivedAt = now;
+    /*
+     * 옮겨진 것은 **보간하지 않는다.** 보간은 두 자리를 잇는 것뿐이라, 그냥 넣으면 떨어졌다 돌아온 몸이 마당을
+     * 0.1초에 가로질러 **미끄러져** 간다 (움직이는 발판의 봇에서 같은 것을 고쳤다 — scene/platformState.ts).
+     * 떠난 자리의 샘플을 1ms 앞에 한 장 더 넣어 그 사이를 끊는다 — 몸은 떠난 자리에 있다가 새 자리에 선다.
+     * 사라지고 나타나는 연출은 그 위에 따로 얹힌다 (interrogation/scene/warp.ts 의 빛기둥)
+     */
+    const last = p.buffer.length ? p.buffer[p.buffer.length - 1] : p.pose;
+    if (Math.hypot(x - last.x, z - last.z) > TELEPORT_M) pushSample(p.buffer, { t: now - 1, x: last.x, z: last.z, y: last.y, heading: last.heading });
     pushSample(p.buffer, { t: now, x, z, y, heading });
   },
   /**

@@ -149,6 +149,12 @@ export function TowerRig({ selfId, body = null, sendWalk, sendPush }: { selfId: 
     selfPose.z = z;
     selfPose.heading = heading.current;
     selfPose.anim = anim;
+    /*
+     * 바닥에 떨어져 발판에 다시 서는 3초 — 순간이동으로 보여 준다 (games/common/fallWarp.ts). **떨어지는 중(f=1)은
+     * 아직 아니다**: 서버의 다시서기 시계는 바닥에 닿은 그 순간부터 돈다. 몸을 줄이는 것은 SelfAvatar,
+     * 빛기둥은 TowerStage 의 WarpFx 다
+     */
+    towerState.warpSelf(selfId, (s?.f ?? 0) === 2, x, y, z, now);
 
     const c = cam.current;
     if (Number.isNaN(c.x) || Math.hypot(x - c.x, z - c.z) > 4) {

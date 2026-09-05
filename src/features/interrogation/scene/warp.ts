@@ -64,6 +64,10 @@ export const warp = {
   /**
    * 기둥 하나를 건다. 같은 열쇠로 다시 걸면 앞의 것을 덮는다 — 회수 다음에 도착이 오는 것이 정상이다.
    * 몸을 줄이려면 그 몸의 열쇠로 걸어야 한다 (내 몸은 SELF_WARP, AI 좌석은 좌석 id).
+   *
+   * **`at` 은 앞날이어도 된다** — 그때까지 이 기둥은 없는 것과 같다(안 그려지고 몸도 안 줄인다). 서버가 세우는
+   * 게임(회전 원판 · 무게 중심 다리 · 무너지는 타워)이 그렇게 건다: 그쪽은 떨어진 자리에 2~3초를 누워 있는데
+   * 회수는 다시 서기 직전에만 돌아야 해서, 걸어 두고 때를 기다린다 (trial/games/common/fallWarp.ts).
    */
   beam(key: string, kind: WarpKind, x: number, y: number, z: number, now = Date.now()): void {
     live.set(key, { key, kind, at: now, x, y, z });
@@ -76,6 +80,7 @@ export const warp = {
   beams(now = Date.now()): readonly WarpBeam[] {
     shown.length = 0;
     for (const b of live.values()) {
+      if (now < b.at) continue; // 아직 때가 아니다 (beam 머리말)
       const k = progress(b, now);
       if (k >= 1) {
         if (b.kind === 'in') live.delete(b.key);
@@ -88,7 +93,7 @@ export const warp = {
   /** 그 몸을 지금 얼마나 줄여 그릴까 — 걸린 것이 없으면 원래 크기 */
   bodyAt(key: string, now = Date.now()): WarpBody {
     const b = live.get(key);
-    if (!b) return STILL;
+    if (!b || now < b.at) return STILL;
     const k = progress(b, now);
     if (b.kind === 'out') {
       // 가로는 빠르게 좁아지고, 세로는 늘어났다가(빨려 올라간다) 마지막에 접힌다
