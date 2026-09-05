@@ -26,6 +26,7 @@ import { remotePlayers } from '@/world/net/remote-players';
 import { AdaptiveFov, Exposure, MouseLook } from '@/world/scene/WorldScene';
 import { WorldCanvas } from '@/world/scene/WorldCanvas';
 import { SeatBodies } from './SeatAvatar';
+import { DeathCam } from './Downed';
 import { Executioner } from './Executioner';
 import { SelfAvatar } from './SelfAvatar';
 import { selfPose } from './selfPose';
@@ -198,11 +199,14 @@ export function HallScene(p: HallSceneProps) {
           sendJump={fall ? p.onJump : undefined}
         />
       )}
+      {/* 처형당하면 카메라가 물러나며 쓰러진 내 몸을 내려다본다 (scene/Downed) — **리그 뒤**에 서야 한다.
+          리그가 매 프레임 카메라를 다시 놓으므로, 앞에 두면 이 시점이 그 자리에서 덮인다 */}
+      <DeathCam id={p.mySeatId} getPose={() => ({ x: selfPose.x, z: selfPose.z })} />
       {hunt && p.mySeatId ? <PickKey getPos={() => ({ x: selfPose.x, z: selfPose.z })} onPick={p.onPick} /> : null}
       {/* 서버 welcome 이 오기 전엔 myBody 가 잠깐 null 이다 — 그 사이엔 로봇 대신 아예 안 그린다
           (2026-09-04 사용자: "처음에 딱 누르면 로봇이 1초 나와") */}
       {/* 내 머리 위에도 의심도 막대 — 좌석이 없으면(로비) 남들과 같이 빈 막대 */}
-      {p.myBody ? <SelfAvatar body={p.myBody} getSuspicion={() => (p.mySeatId ? p.getSuspicion(p.mySeatId) : 0)} /> : null}
+      {p.myBody ? <SelfAvatar body={p.myBody} seatId={p.mySeatId} getSuspicion={() => (p.mySeatId ? p.getSuspicion(p.mySeatId) : 0)} /> : null}
       <MouseLook />
     </WorldCanvas>
   );
