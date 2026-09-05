@@ -251,6 +251,7 @@ const TEST_GUIDE: Record<string, { goal: string; keys: [string, string][] }> = {
   platform: { goal: '발판을 건너 도착까지 — 떨어지면 출발로', keys: [['W', '전진'], ['Space', '점프']] },
   disc: { goal: '도는 원판 위에서 밀려나지 말고 버텨라', keys: [['WASD', '걷기'], ['Shift', '달리기']] },
   seesaw: { goal: '판자의 무게중심을 축에 맞춰라 — 상자가 놓이면 반대쪽으로', keys: [['WASD', '걷기'], ['Shift', '달리기']] },
+  tower: { goal: '탑 위 발판에서 버텨라 — 무게가 몰리면 기울고, 오래 서면 닳는다', keys: [['WASD', '걷기'], ['Space', '점프'], ['E', '밀치기']] },
 };
 
 /**

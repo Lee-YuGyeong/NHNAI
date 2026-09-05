@@ -142,6 +142,11 @@ export class GameConnection {
     return this.send({ t: 'trial_jump' });
   }
 
+  /** 무너지는 타워 — 밀치기(E). 카메라가 보는 방향만 올린다. 누구를 얼마나 미는지는 서버 (worker/src/trial/tower/engine.ts onPush) */
+  sendPush(hx: number, hz: number): boolean {
+    return this.send({ t: 'trial_push', hx, hz });
+  }
+
   game(msg: GameC2SMessage): boolean {
     return this.send(msg);
   }
