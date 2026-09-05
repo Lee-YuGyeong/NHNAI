@@ -39,8 +39,6 @@ export interface TrialEvents {
   onFell(id: string): void;
   /** 무게 중심 다리 — 서버 물리 스냅샷(~10Hz): 판자 기울기·각속도와 전원의 판자 좌표 자리, 상자 */
   onSeesaw(msg: Extract<S2CMessage, { t: 'trial_seesaw' }>): void;
-  /** 폭발 충격파 — 서버 물리 스냅샷(~10Hz): 전원의 자리·속도·자세, 놓인 폭약, 최근 폭발 */
-  onBlast(msg: Extract<S2CMessage, { t: 'trial_blast' }>): void;
   /** 움직이는 플랫폼 — 착지한 발이 밀렸다. 마찰계수가 아니라 곱셈이 끝난 미끄러짐만 온다(P8) */
   onSlip(id: string, vx: number, vz: number, ms: number): void;
   onResult(result: TrialResultWire): void;
@@ -160,9 +158,6 @@ export class TrialConnection {
         case 'trial_seesaw':
           events.onSeesaw(msg);
           break;
-        case 'trial_blast':
-          events.onBlast(msg);
-          break;
         case 'trial_slip':
           events.onSlip(msg.id, msg.vx, msg.vz, msg.ms);
           break;
@@ -205,11 +200,6 @@ export class TrialConnection {
   /** 회전 원판 · 무게 중심 다리 — 걷기 명령(월드 기준 속도). 자리는 안 보낸다, 서버가 적분한다 (DiscRig · SeesawRig 머리말) */
   sendWalk(x: number, z: number): boolean {
     return this.send({ t: 'trial_walk', x, z });
-  }
-
-  /** 폭발 충격파 — 낮은 자세(C). 서버가 충격량에 곱한다 (BlastRig 머리말) */
-  sendCrouch(on: boolean): boolean {
-    return this.send({ t: 'trial_crouch', on });
   }
 
   /** 낙하 생존 — Space. 높이는 안 보낸다, 서버가 적분한다 (DodgeRig 머리말) */

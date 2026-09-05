@@ -54,10 +54,3 @@ export const PLATFORM_GRIP: readonly number[] = [0.85, 0.3, 1.15];
  */
 export const SEESAW_GRIP: readonly number[] = [0.3, 0.12, 0.5];
 
-/**
- * 폭발 충격파 3구간의 **폭약 세기 배율** — 기준 → 1.6배 → 0.7배. 같은 통이 터지는데 구간마다 밀어내는 힘이 다르다: 첫 구간에서 「이 거리면
- * 안전하다」를 몸으로 익힌 사람은 둘째 구간의 첫 폭발에 그 거리에서 날아간다 — 그 전환 직후의 비행 거리가 P3 의 transitionError 다.
- * P8: 세기는 와이어로 안 나간다. 스냅샷의 폭발(booms)에는 자리와 시각만 실리고, 몸에 실린 것은 곱셈이 끝난 속도다 (worker/src/trial/blast/sim.ts).
- */
-export const BLAST_YIELD: readonly number[] = [1.0, 1.6, 0.7];
-

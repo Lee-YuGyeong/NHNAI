@@ -44,11 +44,6 @@ const COLS: Record<TrialGame, Col[]> = {
     { key: 'walked', label: '이동거리', unit: 'm', digits: 1 },
     { key: 'falls', label: '낙하', unit: '회', digits: 0 },
   ],
-  blast: [
-    { key: 'flightTotal', label: '날아간 거리', unit: 'm', digits: 1 },
-    { key: 'coverRate', label: '엄폐·자세 비율', unit: '', digits: 2 },
-    { key: 'launches', label: '날아감', unit: '회', digits: 0 },
-  ],
 };
 
 function fmt(v: unknown, unit: string, digits: number): string {

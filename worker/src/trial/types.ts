@@ -14,8 +14,6 @@ export interface TrialCondition {
   platformGrip?: readonly number[];
   /** 무게 중심 다리 — 구간별 판자 윗면 마찰계수 (SEESAW_GRIP) */
   seesawGrip?: readonly number[];
-  /** 폭발 충격파 — 구간별 폭약 세기 배율 (BLAST_YIELD) */
-  blastYield?: readonly number[];
 }
 
 /**

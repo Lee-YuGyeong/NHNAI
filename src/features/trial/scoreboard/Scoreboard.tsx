@@ -96,27 +96,13 @@ const SPEC: Record<TrialGame, Spec> = {
     curveLabel: '미끄러진 거리 추이 (에피소드 1 → 2 → 3 …, m)',
     dirLabel: '미끄러진 뒤 자리 (낮은 쪽으로 밀림 + / 높은 쪽으로 고침 −)',
   },
-  blast: {
-    primary: { key: 'flightTotal', label: '날아간 거리 합', unit: 'm', digits: 1 },
-    rows: [
-      { key: 'coverRate', label: '터질 때 가려져 있던 · 자세를 낮춘 비율', unit: '', digits: 2 },
-      { key: 'maxFlight', label: '한 번에 가장 멀리', unit: 'm', digits: 1 },
-      { key: 'launches', label: '날아간 횟수', unit: '회', digits: 0 },
-      { key: 'reactionMs', label: '폭약이 놓인 뒤 반응까지', unit: 'ms', digits: 0 },
-      { key: 'transitionError', label: '세기가 바뀐 직후 날아간 거리', unit: 'm', digits: 1 },
-      { key: 'walked', label: '이동거리', unit: 'm', digits: 1 },
-      { key: 'survivalTime', label: '처음 날아가기까지', unit: '초', digits: 1 },
-    ],
-    curveLabel: '비행 거리 추이 (폭발 1 → 2 → 3 …, m)',
-    dirLabel: '터질 때 움직이던 방향 (폭심 쪽 + / 반대 −)',
-  },
 };
 
 function fmt(v: unknown, unit: string, digits: number): string {
   return typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(digits)}${unit}` : '—';
 }
 
-const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리', blast: '폭발 충격파' };
+const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리' };
 
 export function Scoreboard({ result, roster }: { result: TrialResultWire; roster: Record<string, string> }) {
   const spec = SPEC[result.game] ?? SPEC.stopline;

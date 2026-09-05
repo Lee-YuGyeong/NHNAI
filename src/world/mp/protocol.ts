@@ -108,12 +108,7 @@ export type C2SMessage =
    * 쪽도 서버여야 하기 때문이다(fall/engine.ts 머리말). 클라는 「눌렀다」만 올리고 y 는 스냅샷으로 돌려받는다
    * (회전 원판이 걷기 명령만 올리는 것과 같은 수법). 시각은 서버가 수신 시점으로 찍는다
    */
-  | { t: 'trial_jump' }
-  /**
-   * 폭발 충격파: 낮은 자세(C)를 잡았다 · 풀었다. 자세는 서버가 충격량에 곱하는 값이라(mp/blast.ts BLAST_CROUCH_K) 서버가 들고 있어야 한다.
-   * 회전 원판 · 무게 중심 다리와 같이 자리는 걷기 명령(trial_walk)만 올리고 스냅샷(trial_blast)으로 돌려받는다
-   */
-  | { t: 'trial_crouch'; on: boolean };
+  | { t: 'trial_jump' };
 
 /**
  * 접속이 끊기는 이유.
@@ -125,10 +120,9 @@ export type ErrorCode = 'version_mismatch' | 'room_full' | 'bad_request' | 'kick
 
 /**
  * 물리 미니게임의 식별자. 'platform' 은 움직이는 플랫폼(2026-09-05, mp/platform.ts) — 넷째 게임.
- * 'seesaw' 는 무게 중심 다리(2026-09-05, worker/src/trial/seesaw/) — 여섯째, 'blast' 는 폭발 충격파 피하기(worker/src/trial/blast/) — 일곱째.
- * 둘은 /trial 에서만 열린다 (검문소 차례표에는 없다)
+ * 'seesaw' 는 무게 중심 다리(2026-09-05, worker/src/trial/seesaw/) — 여섯째. /trial 에서만 열린다 (검문소 차례표에는 없다)
  */
-export type TrialGame = 'stopline' | 'colorhunt' | 'fall' | 'platform' | 'disc' | 'seesaw' | 'blast';
+export type TrialGame = 'stopline' | 'colorhunt' | 'fall' | 'platform' | 'disc' | 'seesaw';
 
 /** 판정 대상 한 명의 결과 한 라운드치. 게임마다 metrics 의 키가 다르다 (PLANNING P1~P4). */
 export interface TrialPlayerResult {
@@ -237,7 +231,6 @@ export type S2CMessage =
    * 기준광 원색(HUD 스와치용 — 지시문에 이름이 그대로 적히므로 비밀이 아니다).
    */
   | { t: 'trial_colorhunt'; at: number; light: string; target: string; targetHex: string; orbs: ColorOrb[]; board: { name: string; c: string }[] }
-  /** (trial_hit 은 낙하 생존의 피격이자 폭발 충격파의 「날아갔다」다 — objectId 는 그때 공 · 폭약의 번호) */
   /** 색 사냥 — 누가 구슬을 주웠다. 그 구슬은 화면에서 사라진다. 맞았는지는 안 실린다 — 전원이 기록 공개에서 처음 안다 */
   | { t: 'trial_picked'; id: string; objectId: number }
   /** 색 사냥 — 주워진 자리 근처에 같은 색이 다시 돋았다 (색 분포 유지, docs/COLORHUNT.md §6) */
@@ -271,19 +264,6 @@ export type S2CMessage =
       omega: number;
       players: { id: string; u: number; v: number; h: number; m: number; f: number; s: number }[];
       crates: { id: number; u: number; v: number; at: number }[];
-    }
-  /**
-   * 폭발 충격파 — 서버 물리 스냅샷(~10Hz). `players` 는 전원의 월드 자리(사람의 자리도 서버가 적분한다): `y` 는 발 높이(날아가는 중이면 > 0),
-   * `vx · vz · vy` 는 속도(m/s, 뜬 몸의 포물선을 클라가 다음 스냅샷까지 잇는 데 쓴다), `f` 는 0 서 있음 · 1 공중 · 2 쓰러짐, `c` 는 낮은 자세(1),
-   * `m` 은 걷기(1) · 달리기(2), `h` 는 보는 방향. `charges` 는 놓인 폭약(놓인 시각 `at` · 터질 시각 `boomAt` — 등이 빨라지는 연출),
-   * `booms` 는 최근 BLAST_BOOM_KEEP_MS 안에 터진 것(연출용 — 자리와 시각만. 세기는 없다, P8)
-   */
-  | {
-      t: 'trial_blast';
-      at: number;
-      players: { id: string; x: number; z: number; y: number; vx: number; vz: number; vy: number; h: number; m: number; f: number; c: number }[];
-      charges: { id: number; x: number; z: number; at: number; boomAt: number }[];
-      booms: { id: number; x: number; z: number; at: number }[];
     }
   | { t: 'trial_result'; result: TrialResultWire }
   /** (재)입장 시 지금까지의 전체 기록을 백필한다 — 로그 탭은 이걸로 채운다 */

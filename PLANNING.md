@@ -47,7 +47,6 @@
 | ✅ | 물리 미니게임 **회전 원판 생존** — 회전 좌표계 물리, 이동거리 판별(§2.4) | `worker/src/trial/disc/` · `src/features/trial/games/disc/` |
 | ✅ | 물리 미니게임 **움직이는 발판** — 점프 정확도 · 착지 미끄러짐(§2.5) | `worker/src/trial/platform/` · `src/world/mp/platform.ts` |
 | ✅ | 물리 미니게임 **무게 중심 다리** — 축 하나로 선 판자, 무게중심 · 토크 · 경사 마찰. **/trial 전용**(검문소 차례표에는 없다) | `worker/src/trial/seesaw/` · `src/features/trial/games/seesaw/` |
-| ✅ | 물리 미니게임 **폭발 충격파 피하기** — 충격량 · 거리 감쇠 · 포물선 · 연쇄 폭발, 장애물 가림 · 낮은 자세. **/trial 전용** | `worker/src/trial/blast/` · `src/world/mp/blast.ts` · `src/features/trial/games/blast/` |
 | ✅ | **의심도**(§1.2) — 지목 · 동조 · 몰이 · 철회 · 주장 판정 | `worker/src/game/suspicion.ts` |
 | ✅ | **지목 · 격리 · 승패**(§1.2 · §1.3) | `worker/src/game/runtime.ts` · `roles.ts`. 격리는 무대 위 처형자가 쏜다 |
 | ✅ | **AI 설계자**(§1.1) | `roles.assignRoles`. 아는 것이 전부다 — 기록 조작은 걷었다(P7) |
