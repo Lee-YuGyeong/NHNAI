@@ -11,7 +11,12 @@ import { fitScale, usePartSource, type PartId } from '@/world/map/corridor/part'
 import { FALL_BALLS, FALL_SPAWN_Y } from '@/world/mp/constants';
 import { fallState, type PodFrame } from './fallState';
 
-/** 한 종류가 동시에 공중·바닥에 있을 수 있는 최대 수 — 0.4초 간격 스폰 · 낙하 ~2초 · 착지 후 1초 잔류 = 동시 ~8개, 다섯 종류로 나뉜다 */
+/**
+ * 한 종류가 동시에 공중·바닥에 있을 수 있는 최대 수.
+ * 0.25초 간격 스폰(FALL_SPAWN_MS)이면 한 종류는 1.25초에 하나씩 생긴다 — 가장 오래 사는 탁구공이
+ * 낙하 3.75초 + 잔류 1초를 살아 평균 넷, 나머지는 둘 남짓이다. 열여섯은 그 위로 넉넉한 자리다.
+ * 넘치면 넘친 공은 **안 그려진다**(판정은 서버가 하므로 맞기는 맞는다) — 간격을 더 줄이면 여기부터 본다.
+ */
 const MAX_PER_KIND = 16;
 const _m = new THREE.Matrix4();
 const _p = new THREE.Vector3();

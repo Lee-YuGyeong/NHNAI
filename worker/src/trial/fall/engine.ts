@@ -26,8 +26,12 @@ import { DodgeStats } from './stats';
 
 /** 사람이 순간이동했다고 볼 속도 — 걷기의 2배. 그보다 빠른 move 는 버린다 (서버는 범위만 봤다, room-do.ts) */
 const MAX_SPEED = WALK_SPEED * 2;
-/** 낙하물 열에 일곱은 참가자를 겨냥한다 — sim.ts spawnObject 주석 */
-const AIM_RATIO = 0.7;
+/**
+ * 낙하물 열에 여덟 하고 반은 참가자를 겨냥한다 — sim.ts spawnObject 주석.
+ * 일곱이었다 (2026-09-05 사용자: "공 난이도도 높여줘") — 마당이 12×19m 라 안 겨냥한 공은 대개
+ * 아무 일 없이 빈 바닥에 떨어진다. 겨냥 비율이 곧 **사람이 실제로 피해야 하는 공의 수**다.
+ */
+const AIM_RATIO = 0.85;
 
 /** 공중에 뜬 몸 — 발 높이와 수직 속도. 그 구간의 **숨은 중력**으로 서버가 적분한다 */
 interface Air {
