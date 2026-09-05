@@ -32,10 +32,15 @@ const API = 'https://api.openai.com/v1/responses';
  *
  * 나누는 기준은 **호출 횟수**다. 관리 AI 의 설계는 라운드당 한 번이라 좋은 것을 써도 싸고,
  * 노드 다섯은 응답·발화·투표로 페이즈마다 부르니 싼 것이어야 판이 굴러간다.
+ *
+ * 등급은 로컬의 클로드 짝에 맞춘다 (2026-09-05 사용자: "리더는 gpt-6-astra, 개체는 gpt-5.6-terra"):
+ *   opus-5   → gpt-6-astra    같은 급 (Artificial Analysis 63 : 61). 단가는 두 배($10/$50)지만 리더 호출은 판당 몇 번이다
+ *   sonnet-5 → gpt-5.6-terra  같은 급 (공유 벤치마크 35개에서 18 : 17). 예전의 luna 는 한 등급 아래였다
+ *   haiku    → gpt-5.6-luna   제일 싼 것끼리
  */
 const MODEL_MAP: Record<string, string> = {
-  'claude-opus-5': 'gpt-5.6-terra',
-  'claude-sonnet-5': 'gpt-5.6-luna',
+  'claude-opus-5': 'gpt-6-astra',
+  'claude-sonnet-5': 'gpt-5.6-terra',
   'claude-haiku-4-5': 'gpt-5.6-luna',
 };
 
