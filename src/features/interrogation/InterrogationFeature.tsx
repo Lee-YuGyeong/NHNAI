@@ -589,7 +589,8 @@ export function InterrogationFeature() {
     <div ref={rootRef} className="ig-root" onClick={lock}>
       {/* 프롤로그 대화창 — 화면 아래 가운데, 채팅 판과 별개 (prologue.ts). 줄이 다 지나면 상자가 스스로 사라진다.
           speaking · onLine 을 준다 = **소리는 이쪽이 낸다** (DialogueBox 의 speaking 머리말). 상자는 줄을
-          넘기는 주인이고 여기는 그 줄을 읽고 「아직 읽는 중」이라고만 알린다 — 그래야 한 줄이 끝나야 다음 줄이 뜬다 */}
+          넘기는 주인이고 여기는 그 줄을 읽고 「아직 읽는 중」이라고만 알린다 — 그래야 한 줄이 끝나야 다음 줄이 뜬다.
+          skin="terminal" = 옆 「구역 통신」판과 같은 검은 모따기 판·호박 선·모노 라벨 (2026-09-05 사용자: /world 의 청록 프레임은 이 홀과 안 어울린다) */}
       <DialogueBox
         messages={prologue}
         selfId={null}
@@ -599,6 +600,7 @@ export function InterrogationFeature() {
         onLine={onPrologueLine}
         voiceMsOf={prologueVoiceMs}
         voiceLagMs={prologueLag}
+        skin="terminal"
       />
       <HallScene
         mySeatId={mySeatId}

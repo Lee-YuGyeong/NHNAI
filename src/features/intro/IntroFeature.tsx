@@ -291,7 +291,7 @@ export function IntroFeature() {
           </div>
           <ul className="intro-roles">
             <li className="intro-role">
-              <img className="intro-role-img" src="/intro/role-ai.jpg" alt="AI — 인간과 구별되지 않는 차가운 얼굴" />
+              <img className="intro-role-img" src="/intro/role-ai.jpg" alt="AI — 인간과 구별되지 않는 얼굴, 목에 가느다란 이음매 선" />
               <div className="intro-role-code">
                 <span>A-··</span>
                 <span>×1</span>
@@ -306,16 +306,15 @@ export function IntroFeature() {
             </li>
             <li className="intro-role">
               {/*
-                2026-09-05 사용자 지급(image/spy.png) — 도면 벽 앞에서 두 손을 펼친 후드 실루엣.
-                파일 이름은 role-designer.jpg 그대로 둔다: 두 인트로 화면이 같은 자리를 보므로
-                (lobby/Intro.tsx 의 ROLES) 그림만 갈아 끼우면 둘이 같이 바뀐다.
-                네모로 잘리는 카드라(intro-role-img: aspect-ratio 1 · cover) 원본 아래쪽에 박힌
-                「TYPE: CONTROLLER」는 화면에 안 나온다 — 이 판의 낱말이 아니라 그림의 글자다.
+                2026-09-05 09:21 에 image/spy.png(도면 벽 앞 후드 실루엣)로 갈았다가, 같은 날 09:25
+                사용자가 준 새 그림(안경 쓴 연구원)으로 다시 갈았다 — lobby/Intro.tsx 의 ROLES 머리말.
+                파일 이름은 role-designer.jpg 그대로: 두 인트로 화면이 같은 자리를 보므로
+                그림만 갈아 끼우면 둘이 같이 바뀐다.
               */}
               <img
                 className="intro-role-img"
                 src="/intro/role-designer.jpg"
-                alt="AI 설계자 — 도면 벽 앞에서 두 손을 펼친 후드 실루엣"
+                alt="AI 설계자 — 안경을 쓴 연구원이 손으로 입을 가린 채 고민한다"
               />
               <div className="intro-role-code">
                 <span>A-··</span>
@@ -330,7 +329,7 @@ export function IntroFeature() {
               </ul>
             </li>
             <li className="intro-role intro-role--human">
-              <img className="intro-role-img" src="/intro/role-human.jpg" alt="사람 — 앰버 빛에 반쯤 드러난 얼굴, 조용히 하라는 손짓" />
+              <img className="intro-role-img" src="/intro/role-human.jpg" alt="사람 — 전투복 차림의 굳은 얼굴" />
               <div className="intro-role-code">
                 <span>A-··</span>
                 <span>×?</span>

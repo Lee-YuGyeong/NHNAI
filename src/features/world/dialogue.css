@@ -1,4 +1,4 @@
-/* 1인칭 대화창 (DialogueBox.tsx) — 청록 라인의 SF 프레임. 좌표계는 900×210 SVG, 나머지는 그 비율 위에 절대 배치 */
+/* 1인칭 대화창 (DialogueBox.tsx) — 청록 라인의 SF 프레임(기본) · 검문소용 단말 옷(dlg--terminal, 파일 끝). 좌표계는 900×210 SVG, 나머지는 그 비율 위에 절대 배치 */
 
 .dlg {
   position: absolute;
@@ -217,3 +217,162 @@
   background: #a9b6c4;
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════════
+ * 단말 옷 (dlg--terminal) — 검문소(/interrogation)의 「구역 통신」판과 같은 얼굴 (2026-09-05 사용자: 대화창을 그 판의 색감으로).
+ *
+ * 값의 출처는 interrogation.css 의 .ig-chat 한 벌이다: 거의 검은 바닥 rgba(8,6,4,.8) · 왼쪽 호박 선 · 모노 라벨(자간 0.2em, dust)
+ * · 켜짐 점(호박, 숨쉰다) · 3px 스캔라인. 청록(#6fd3ff)은 한 점도 없다 — 저 화면의 조명색은 호박·리넨이다.
+ * 판·좌표계(900×210)·타자·소리는 그대로고, 여기서는 색과 선만 갈아입는다. 프레임 자체는 DialogueBox 의 TerminalFrame.
+ * ══════════════════════════════════════════════════════════════════════════════ */
+.dlg--terminal {
+  font-family: var(--font-sans, 'IBM Plex Sans KR', system-ui, sans-serif);
+  /* 판의 모따기 — 오른쪽 위 18 · 왼쪽 아래 12 (900 좌표) */
+  --dlg-t-chamfer: polygon(0 0, calc(100% - 18 * var(--dlg-unit)) 0, 100% calc(18 * var(--dlg-unit)), 100% 100%, calc(12 * var(--dlg-unit)) 100%, 0 calc(100% - 12 * var(--dlg-unit)));
+  --dlg-t-amber: #ffca8e;
+  --dlg-t-linen: #e8ddcd;
+  --dlg-t-bone: #d6cfc2;
+  --dlg-t-dust: #9c9287;
+}
+/* 스캔라인 — 판 전체를 한 겹으로 덮는다 (초상·글자 위까지, 저 판이 그렇다) */
+.dlg--terminal .dlg__box::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  clip-path: var(--dlg-t-chamfer);
+  opacity: 0.35;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.12) 50%);
+  background-size: 100% 3px;
+}
+
+/* 초상 — 둥근 창 대신 네 귀를 4px 만 깎은 각진 창. 남색으로 물든 사진을 이 화면의 등불 쪽으로 데운다 */
+.dlg--terminal .dlg__portrait {
+  left: calc(16 * var(--dlg-unit));
+  top: calc(16 * var(--dlg-unit));
+  width: calc(172 * var(--dlg-unit));
+  height: calc(178 * var(--dlg-unit));
+  border-radius: 0;
+  clip-path: polygon(0 4px, 4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%);
+  background: #0b0805;
+  box-shadow: none;
+}
+.dlg--terminal .dlg__portrait img {
+  filter: saturate(0.55) sepia(0.3) contrast(1.05) brightness(0.92);
+}
+.dlg--terminal .dlg__portrait::after {
+  background:
+    linear-gradient(180deg, rgba(8, 6, 4, 0) 60%, rgba(8, 6, 4, 0.8) 100%),
+    linear-gradient(90deg, rgba(8, 6, 4, 0.3), rgba(8, 6, 4, 0) 22%, rgba(8, 6, 4, 0) 78%, rgba(8, 6, 4, 0.3)),
+    linear-gradient(180deg, rgba(255, 202, 142, 0.1), rgba(255, 202, 142, 0) 45%);
+}
+.dlg--terminal .dlg__portrait-ring {
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px rgba(232, 221, 205, 0.22);
+}
+.dlg--terminal .dlg__portrait--self .dlg__portrait-ring {
+  box-shadow: inset 0 0 0 1px rgba(255, 202, 142, 0.6);
+}
+
+/* 이름 — 튀어나온 탭이 아니라 판 안의 머리띠. 호박 점 + 모노 라벨, 저 판의 「● 구역 통신」과 같은 줄 */
+.dlg--terminal .dlg__name {
+  left: calc(206 * var(--dlg-unit));
+  top: calc(16 * var(--dlg-unit));
+  height: calc(34 * var(--dlg-unit));
+  min-width: 0;
+  padding: 0;
+  gap: calc(9 * var(--dlg-unit));
+  background: none;
+  border: 0;
+  clip-path: none;
+  box-shadow: none;
+  color: var(--dlg-t-dust);
+  font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace);
+  font-size: calc(15 * var(--dlg-unit));
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+.dlg--terminal .dlg__name--self {
+  color: var(--dlg-t-amber);
+}
+.dlg--terminal .dlg__live {
+  flex: none;
+  width: calc(7 * var(--dlg-unit));
+  height: calc(7 * var(--dlg-unit));
+  border-radius: 50%;
+  background: var(--dlg-t-amber);
+  box-shadow: 0 0 calc(9 * var(--dlg-unit)) var(--dlg-t-amber);
+  animation: dlg-live 2.6s ease-in-out infinite;
+}
+@keyframes dlg-live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dlg--terminal .dlg__live {
+    animation: none;
+  }
+}
+
+/* 본문 — 리넨, 청록 번짐 없이 검은 그림자만 */
+.dlg--terminal .dlg__text {
+  left: calc(206 * var(--dlg-unit));
+  right: calc(36 * var(--dlg-unit));
+  top: calc(62 * var(--dlg-unit));
+  bottom: calc(34 * var(--dlg-unit));
+  color: var(--dlg-t-linen);
+  font-size: calc(21 * var(--dlg-unit));
+  line-height: 1.6;
+  text-shadow: 0 1px 3px #000;
+}
+.dlg--terminal .dlg__caret {
+  background: var(--dlg-t-amber);
+}
+.dlg--terminal.dlg--thought .dlg__text {
+  color: var(--dlg-t-dust);
+  text-shadow: 0 1px 3px #000;
+}
+.dlg--terminal.dlg--thought .dlg__caret {
+  background: var(--dlg-t-dust);
+}
+
+/* ▼ — 오른쪽 아래 구석, 호박 */
+.dlg--terminal .dlg__next {
+  left: auto;
+  right: calc(26 * var(--dlg-unit));
+  bottom: calc(10 * var(--dlg-unit));
+  transform: none;
+  color: var(--dlg-t-amber);
+  font-size: calc(13 * var(--dlg-unit));
+}
+.dlg--terminal .dlg__next--on {
+  animation: dlg-bob-t 1.1s ease-in-out infinite;
+}
+@keyframes dlg-bob-t {
+  50% {
+    transform: translateY(calc(3 * var(--dlg-unit)));
+  }
+}
+
+/* 오른쪽 위 표시등 — 리넨 눈금, 첫 칸만 호박 */
+.dlg--terminal .dlg__deco {
+  right: calc(30 * var(--dlg-unit));
+  top: calc(28 * var(--dlg-unit));
+  gap: calc(4 * var(--dlg-unit));
+}
+.dlg--terminal .dlg__deco i {
+  width: calc(10 * var(--dlg-unit));
+  height: calc(2 * var(--dlg-unit));
+  background: var(--dlg-t-linen);
+  opacity: 0.22;
+}
+.dlg--terminal .dlg__deco i:first-child {
+  background: var(--dlg-t-amber);
+  opacity: 0.85;
+  box-shadow: none;
+}
