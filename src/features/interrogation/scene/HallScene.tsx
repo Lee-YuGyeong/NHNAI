@@ -205,8 +205,9 @@ export function HallScene(p: HallSceneProps) {
       {hunt && p.mySeatId ? <PickKey getPos={() => ({ x: selfPose.x, z: selfPose.z })} onPick={p.onPick} /> : null}
       {/* 서버 welcome 이 오기 전엔 myBody 가 잠깐 null 이다 — 그 사이엔 로봇 대신 아예 안 그린다
           (2026-09-04 사용자: "처음에 딱 누르면 로봇이 1초 나와") */}
-      {/* 내 머리 위에도 의심도 막대 — 좌석이 없으면(로비) 남들과 같이 빈 막대 */}
-      {p.myBody ? <SelfAvatar body={p.myBody} seatId={p.mySeatId} getSuspicion={() => (p.mySeatId ? p.getSuspicion(p.mySeatId) : 0)} /> : null}
+      {/* 내 머리 위에는 말풍선만 — 내 의심도는 화면 아래 계기(hud/SelfSuspicion)로 내렸다. 막대와 말풍선이 한자리에 겹쳐 섰다.
+          seatId 는 처형(scene/Downed)이 내 몸을 넘어뜨릴 때 쓴다 */}
+      {p.myBody ? <SelfAvatar body={p.myBody} seatId={p.mySeatId} bubbleTick={p.bubbleTick} /> : null}
       <MouseLook />
     </WorldCanvas>
   );

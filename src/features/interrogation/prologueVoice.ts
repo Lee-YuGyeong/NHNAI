@@ -2,7 +2,8 @@
  * 프롤로그 목소리 — 대본(prologue.ts)의 줄을 소리로 낸다 (2026-09-05 사용자).
  *
  *   피실험자 01 · 02 · 03  → 지정된 세 목소리 (features/tts/openingSpeakers.ts), **원음**
- *                            — 단, 몸이 남자 얼굴이면 남자 목소리 (BODY_VOICE: 얼굴과 성별을 맞춘다)
+ *                            — 몸의 성별을 따른다: 남자 몸은 남자 목소리, 여자 몸은 여자 목소리 둘을
+ *                              씨앗으로 섞어 나눠 갖는다 (voicesForCast: 얼굴과 성별을 맞춘다)
  *   정부 통제실            → 관리 AI 목소리 (worker 의 LEADER_VOICE = Ethan), **시설 방송 음색**
  *
  * ┌─ 왜 방송 큐(TtsPlayer)를 안 타나 ─────────────────────────────────────────┐
@@ -27,9 +28,8 @@
 
 import { audioContext, masterOut, paOut } from '@/features/tts/engine';
 import { OPENING_CAST, OPENING_SETTINGS } from '@/features/tts/openingSpeakers';
-import type { BodyId } from '@/world/mp/bodies';
 import type { GameSeat } from '@/world/mp/game-protocol';
-import type { PrologueLine } from './prologue';
+import { mulberry32, type PrologueLine } from './prologue';
 
 /** 대본 클립과 같은 조리법 — 한 번 굽고 계속 쓰는 문장이라 품질 쪽이다 (openingSpeakers 머리말) */
 const MODEL = 'eleven_multilingual_v2';
@@ -48,25 +48,42 @@ let fails = 0;
 const GIVE_UP = 3;
 
 /**
- * 몸 → 목소리 — **얼굴과 목소리의 성별을 맞춘다** (2026-09-05 사용자: 「비만 남군은 셋 중
- * 남자 목소리로」). 초상이 좌석의 몸이라(prologue.ts 의 faceOf), 번호로만 목소리를 주면
- * 남자 얼굴에서 여자 목소리가 나는 판이 선다 — 배역(castSubjects)이 무작위이기 때문이다.
- *
- * 여기 없는 몸은 번호 배정(OPENING_CAST[n-1])을 그대로 쓴다 — 아직 몸마다 다 정하지 않았다.
- * 목소리를 찾는 열쇠는 성별이다(id 를 또 적으면 배역표와 두 군데가 된다).
+ * 이 판의 피실험자 01·02·03 이 무슨 목소리인가 — 판이 열릴 때 몸을 보고 정한다 (resetPrologueVoice).
+ * 비어 있으면(배역을 모르는 화면) 번호 배정(OPENING_CAST[n-1])으로 간다.
  */
-const BODY_VOICE: Partial<Record<BodyId, string | undefined>> = {
-  sol_heavy_m: OPENING_CAST.find((s) => s.gender === '남')?.voiceId,
-};
+let castVoices: (string | undefined)[] = [];
 
-/** 이 판의 피실험자 01·02·03 이 무슨 몸인가 — 판이 열릴 때 적는다 (resetPrologueVoice) */
-let castBodies: (BodyId | undefined)[] = [];
+/**
+ * 몸 → 목소리 — **얼굴과 목소리의 성별을 맞춘다** (2026-09-05 사용자: 「비만 남군은 셋 중
+ * 남자 목소리로」「다른 두 명은 랜덤으로 그 두 여자 목소리」). 초상이 좌석의 몸이라
+ * (prologue.ts 의 faceOf), 번호로만 목소리를 주면 남자 얼굴에서 여자 목소리가 나는 판이
+ * 선다 — 배역(castSubjects)이 무작위이기 때문이다.
+ *
+ *   남자 몸(_m)  → 남자 목소리 하나 (Yohan). 배역에 남자 몸이 둘이면 둘 다 이 목소리다 —
+ *                  남자 얼굴에 여자 목소리를 얹는 것보다 낫다.
+ *   여자 몸(_f)  → 여자 목소리 둘을 씨앗으로 섞어 나눠 갖는다 — 판마다 갈리고, 네 화면이 같다.
+ *   몸을 모르면  → 남자 목소리 — 얼굴도 같은 이유로 남군이다 (prologue.ts 의 FALLBACK_FACE).
+ *
+ * 성별로 찾는다(id 를 또 적으면 배역표와 두 군데가 된다).
+ */
+function voicesForCast(cast: readonly GameSeat[], seed: number): (string | undefined)[] {
+  const male = OPENING_CAST.find((s) => s.gender === '남')?.voiceId;
+  const fem = OPENING_CAST.filter((s) => s.gender === '여').map((s) => s.voiceId);
+  const rand = mulberry32(seed);
+  for (let i = fem.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [fem[i], fem[j]] = [fem[j], fem[i]];
+  }
+  let f = 0;
+  // 여자 몸이 목소리보다 많으면(좌석 다섯부터 몸이 겹친다) 처음으로 돌아간다 — 무음보다 겹침이 낫다
+  return cast.map((s) => (s.body?.endsWith('_f') ? fem[f++ % fem.length] : male));
+}
 
 /**
  * 그 줄을 누가 읽나 — 모든 줄이 누군가의 말이다 (지문은 없다, prologue.ts 머리말).
  *
- * 피실험자는 몸이 먼저다(BODY_VOICE) — 얼굴이 남자인데 번호가 여자 목소리면 안 된다.
- * 몸에 짝이 없으면 번호(n)로 간다.
+ * 피실험자는 배역의 목소리(castVoices)가 먼저다 — 얼굴이 남자인데 번호가 여자 목소리면 안 된다.
+ * 배역을 모르면 번호(n)로 간다.
  *
  * 통제실은 voiceId 를 **안 준다** — 워커가 관리 AI 목소리(LEADER_VOICE)로 읽는다.
  * 여기서 id 를 적으면 관리 AI 목소리가 두 군데에 있게 되고, 한쪽만 바뀌는 날이 온다.
@@ -74,9 +91,7 @@ let castBodies: (BodyId | undefined)[] = [];
 export function voiceOf(line: PrologueLine): { voiceId?: string; pa: boolean } {
   if (line.who === 'control') return { pa: true };
   const i = (line.n ?? 1) - 1;
-  const body = castBodies[i];
-  const bodyVoice = body ? BODY_VOICE[body] : undefined;
-  return { voiceId: bodyVoice ?? OPENING_CAST[i]?.voiceId, pa: false };
+  return { voiceId: castVoices[i] ?? OPENING_CAST[i]?.voiceId, pa: false };
 }
 
 /** 소리 상자들(clips · seconds · leads)의 열쇠 — 문장만으로는 모자란다: 같은 줄이 판마다 딴 목소리로 읽힐 수 있다 */
@@ -232,14 +247,15 @@ export function stopPrologue(): void {
 }
 
 /**
- * 판이 새로 선다 — 앞 판의 포기 표를 비우고, **이 판의 배역이 무슨 몸인지** 적는다 (voiceOf 가 본다).
- * 받아 둔 소리는 그대로 쓴다 — 열쇠에 목소리가 들어 있어(clipKey) 몸이 갈려도 딴 클립과 안 섞인다.
+ * 판이 새로 선다 — 앞 판의 포기 표를 비우고, **이 판의 배역이 무슨 목소리인지** 정한다 (voicesForCast).
+ * 씨앗은 배역을 뽑은 것(castSubjects 의 startedAt)과 같은 것을 준다 — 네 화면이 같은 배정을 듣는다.
+ * 받아 둔 소리는 그대로 쓴다 — 열쇠에 목소리가 들어 있어(clipKey) 배정이 갈려도 딴 클립과 안 섞인다.
  *
- * ★ prefetchPrologue **보다 먼저** 불러야 한다 — 미리 받는 목소리가 이 배역을 따르기 때문이다.
+ * ★ prefetchPrologue **보다 먼저** 불러야 한다 — 미리 받는 목소리가 이 배정을 따르기 때문이다.
  */
-export function resetPrologueVoice(cast: readonly GameSeat[] = []): void {
+export function resetPrologueVoice(cast: readonly GameSeat[] = [], seed = 0): void {
   fails = 0;
-  castBodies = cast.map((s) => s.body);
+  castVoices = voicesForCast(cast, seed);
 }
 
 /* ───────────────────────────── 늦는 자리를 가르는 눈금 (개발용) ───────────────────────────── */

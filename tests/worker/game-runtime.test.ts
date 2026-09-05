@@ -16,10 +16,12 @@ import {
   GAME_TEST_MS,
   GAME_TEST_ORDER,
   SUSPICION,
+  TALK,
+  talkFor,
   type GameS2CMessage,
   type GameStateWire,
 } from '../../src/world/mp/game-protocol';
-import type { PlayerSnapshot, S2CMessage, TrialPlayerResult } from '../../src/world/mp/protocol';
+import type { PlayerSnapshot, S2CMessage, TrialGame, TrialPlayerResult } from '../../src/world/mp/protocol';
 import type { Brain } from '../../worker/src/game/brain';
 import { GameRuntime } from '../../worker/src/game/runtime';
 import { REPEAT_STEP } from '../../worker/src/game/suspicion';
@@ -85,8 +87,8 @@ function player(id: string, seat: number): PlayerSnapshot {
   return { id, seat, nickname: `닉${seat}`, x: 0, z: 0, y: 0, heading: 0, anim: 'idle' };
 }
 
-/** storage 를 건네면 같은 저장소로 런타임을 하나 더 세울 수 있다 — 워커가 되살리는 길을 재려고 */
-function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; storage?: DurableObjectStorage } = {}) {
+/** storage 를 건네면 같은 저장소로 런타임을 하나 더 세울 수 있다 — 워커가 되살리는 길을 재려고. engine 은 가짜 엔진을 바꿔 끼운다 */
+function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; storage?: DurableObjectStorage; engine?: GameEngine } = {}) {
   const roster = opts.players ?? [player('p1', 1), player('p2', 2), player('p3', 3)];
   const sent: Out[] = [];
   const direct: { to: string; msg: Out }[] = [];
@@ -101,7 +103,7 @@ function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; storage?: Du
       return true;
     },
     brain: opts.brain ?? silentBrain,
-    makeEngine: () => engine,
+    makeEngine: () => opts.engine ?? engine,
     rand: () => 0.4,
   });
   const lastState = () => [...sent].reverse().find((m): m is { t: 'game_state'; state: GameStateWire } => m.t === 'game_state')!.state;
@@ -134,7 +136,13 @@ describe('GameRuntime — 판 한 바퀴', () => {
     expect(state.phase).toBe('briefing');
     // 사람 3 + 대역 2 + AI 1
     expect(state.seats).toHaveLength(6);
-    expect(state.seats.map((s) => s.name)).toEqual(['SUBJECT 01', 'SUBJECT 02', 'SUBJECT 03', 'SUBJECT 04', 'SUBJECT 05', 'SUBJECT 06']);
+    // 이름은 한국인 이름이다 (2026-09-05 사용자) — 전원 세 글자, 성도 이름도 서로 다르다. 좌석 번호는 1부터 차례로
+    const names = state.seats.map((s) => s.name);
+    for (const n of names) expect(n).toMatch(/^[가-힣]{3}$/);
+    expect(new Set(names).size).toBe(6);
+    expect(new Set(names.map((n) => n[0])).size).toBe(6);
+    expect(new Set(names.map((n) => n.slice(1))).size).toBe(6);
+    expect(state.seats.map((s) => s.seat)).toEqual([1, 2, 3, 4, 5, 6]);
     for (const s of state.seats) {
       expect(s).not.toHaveProperty('kind');
       expect(s).not.toHaveProperty('role');
@@ -157,7 +165,7 @@ describe('GameRuntime — 판 한 바퀴', () => {
     const chat = h.sent.at(-1) as Extract<S2CMessage, { t: 'chat' }>;
     expect(chat.t).toBe('chat');
     expect(chat.id).toBe(h.roleOf('p1')!.seatId);
-    expect(chat.nickname).toMatch(/^SUBJECT \d\d$/);
+    expect(chat.nickname).toMatch(/^[가-힣]{3}$/);
     expect(chat.nickname).not.toBe('닉1');
   });
 
@@ -177,6 +185,21 @@ describe('GameRuntime — 판 한 바퀴', () => {
     await vi.advanceTimersByTimeAsync(6_000);
     h.rt.onChat('p1', '아 배고파');
     expect(h.lastState().suspicion[other.id]).toBe(SUSPICION.accuse);
+  });
+
+  it('이름으로 부르는 지목 — 성 없이 「지훈이 너 AI 아니야?」 도 그 좌석이다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    const p1Seat = h.roleOf('p1')!.seatId;
+    const other = h.lastState().seats.find((s) => s.id !== p1Seat)!;
+    const given = other.name.slice(1);
+    // 감싸 주는 말은 지목이 아니다
+    h.rt.onChat('p1', `${given}이는 AI 아닌 것 같아`);
+    expect(h.lastState().suspicion[other.id] ?? 0).toBe(0);
+    h.rt.onChat('p1', `${given}이 너 AI 아니야?`);
+    expect(h.lastState().suspicion[other.id]).toBe(SUSPICION.accuse);
+    expect(h.lastState().accusations[p1Seat]).toBe(other.id);
   });
 
   /**
@@ -641,6 +664,128 @@ describe('GameRuntime — 좌석의 몸 (mp/bodies)', () => {
     // 사람의 몸은 바뀌지 않는다 (좌석 id 는 seat-<playerId>)
     expect(seats.find((s) => s.id === 'seat-p1')?.body).toBe('sol_fit_f');
     expect(seats.find((s) => s.id === 'seat-p2')?.body).toBe('sol_heavy_m');
+  });
+});
+
+/**
+ * 발언권 (2026-09-05 사용자: "처음에 각자 대화 발언권 갯수가 주어지고, 미니게임에서 이겼을 때 게임마다 추가").
+ * 값의 근거는 game-protocol 의 TALK 머리말. 여기서는 규칙의 모양만 잡는다:
+ *   시작 지갑 · 한 마디에 하나 · 비면 거절 · 시험이 끝나면 버틴 3초마다 하나(최소 1) · 상한.
+ */
+describe('GameRuntime — 발언권', () => {
+  /** 시간제 가짜 엔진 — 좌석마다 정해 둔 기록을 돌려준다. 판이 30초에 닫는다 (GAME_TEST_MS) */
+  class TimedEngine implements GameEngine {
+    ids: string[] = [];
+    constructor(
+      readonly game: TrialGame,
+      private readonly metricsOf: (id: string, i: number) => Record<string, number>,
+    ) {}
+    condition() {
+      return { friction: 0.6 };
+    }
+    start(_round: number, real: readonly string[], ai: readonly string[]) {
+      this.ids = [...real, ...ai];
+    }
+    stop() {}
+    join() {}
+    onAccel() {}
+    onBrake() {}
+    onMove() {}
+    onPick() {}
+    done() {
+      return false;
+    }
+    results(): TrialPlayerResult[] {
+      return this.ids.map((id, i) => ({ id, metrics: this.metricsOf(id, i), transitionError: 0.1, errorDirection: [1], adaptationCurve: [0.1] }));
+    }
+  }
+  const talks = (h: ReturnType<typeof harness>) => h.sent.filter((m): m is Extract<GameS2CMessage, { t: 'game_talk' }> => m.t === 'game_talk');
+  const rejects = (h: ReturnType<typeof harness>) => h.direct.filter((d) => d.msg.t === 'game_reject');
+
+  it('판이 열리면 전원이 시작 지갑을 받고, 한 마디에 하나씩 쓴다 — 비면 말이 안 나가고 거절 한 줄이 온다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const state = h.lastState();
+    for (const s of state.seats) expect(state.talk[s.id]).toBe(TALK.start);
+
+    const mySeat = h.roleOf('p1')!.seatId;
+    for (let i = 0; i < TALK.start; i += 1) expect(h.rt.onChat('p1', `말 ${i}`)).toBe(true);
+    // 차감은 game_talk 로만 나간다 — 상태 전체(game_state)를 말마다 다시 쏘지 않는다
+    expect(talks(h).at(-1)?.talk[mySeat]).toBe(0);
+
+    const chatsBefore = h.sent.filter((m) => m.t === 'chat').length;
+    expect(h.rt.onChat('p1', '하나 더')).toBe(true); // 처리는 했다 — RoomDO 가 흘리면 안 된다
+    expect(h.sent.filter((m) => m.t === 'chat').length).toBe(chatsBefore);
+    expect(rejects(h).at(-1)?.to).toBe('p1');
+    // 다른 사람의 지갑은 그대로다
+    expect(talks(h).at(-1)?.talk[h.roleOf('p2')!.seatId]).toBe(TALK.start);
+  });
+
+  it('낙하 생존 — 첫 피격까지 버틴 3초마다 하나, 최소 하나, 지갑 상한까지', async () => {
+    // 첫째는 끝까지 버텼다 — 엔진이 마감을 틱 하나 넘겨 닫으므로 30.08초로 온다 (실제 판에서 +11 이 찍히던 자리). 셋째는 곧바로 맞았다
+    const survival: Record<number, number> = { 0: 30.08, 1: 8, 2: 0.4 };
+    const engine = new TimedEngine('fall', (_id, i) => ({ survivalTime: survival[i] ?? 30, hitCount: 1, transitionError: 0.1 }));
+    const h = harness({ engine });
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+    expect(h.lastState().phase).toBe('test');
+    await vi.advanceTimersByTimeAsync(GAME_TEST_MS + 10);
+    expect(h.lastState().phase).toBe('result');
+
+    const grant = talks(h).find((m) => m.gained)!;
+    expect(grant.game).toBe('fall');
+    const [full, eight, instant] = engine.ids;
+    // 30.08초 → 30초로 잘라 10. 지급은 온전히 — 안 쓴 6 중 넘어가는 것은 carry(5)까지라 지갑은 5 + 10
+    expect(grant.gained[full]).toBe(10);
+    expect(talkFor('fall', { survivalTime: 30.08 }, GAME_TEST_MS)).toBe(10);
+    expect(talkFor('disc', { survivalTime: 31 }, GAME_TEST_MS)).toBe(10);
+    expect(grant.gained[eight]).toBe(3); // 8초 → ceil(8/3)
+    expect(grant.gained[instant]).toBe(TALK.min); // 0.4초 → 최소
+    expect(h.lastState().talk[full]).toBe(TALK.carry + 10);
+    expect(h.lastState().talk[eight]).toBe(TALK.carry + 3);
+  });
+
+  it('발판 — 도착하고 남긴 초로, 못 갔으면 최소만', async () => {
+    const engine = new TimedEngine('platform', (_id, i) => ({ finishMs: i === 0 ? 12_000 : Number.NaN, jumps: 4, transitionError: 0.1 }));
+    const h = harness({ engine });
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+    await vi.advanceTimersByTimeAsync(GAME_TEST_MS + 10);
+    const grant = talks(h).find((m) => m.gained)!;
+    const [finished, stuck] = engine.ids;
+    expect(grant.gained[finished]).toBe(6); // 30 − 12 = 18초 남김 → 6
+    expect(grant.gained[stuck]).toBe(TALK.min);
+  });
+
+  it('아껴 둔 것은 다섯까지만 넘어가고, 지급은 1등이든 꼴등이든 제 몫을 온전히 받는다', async () => {
+    const engine = new TimedEngine('disc', () => ({ survivalTime: 30, falls: 0, transitionError: 0.1 }));
+    const h = harness({ engine });
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    // p1 은 다 쓰고, 나머지는 한 마디도 안 한다 — 시험에서는 전원이 끝까지 버텼다
+    for (let i = 0; i < TALK.start; i += 1) h.rt.onChat('p1', `말 ${i}`);
+    await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+    await vi.advanceTimersByTimeAsync(GAME_TEST_MS + 10);
+    const grant = talks(h).find((m) => m.gained)!;
+    const spent = h.roleOf('p1')!.seatId;
+    // 받은 것은 똑같이 10 — 상한이 지급을 깎지 않는다 (예전엔 아낀 쪽이 +9, 다음 시험엔 +0 이었다)
+    for (const id of engine.ids) expect(grant.gained[id]).toBe(10);
+    expect(h.lastState().talk[spent]).toBe(10); // 0 + 10
+    for (const id of engine.ids) if (id !== spent) expect(h.lastState().talk[id]).toBe(TALK.carry + 10); // 6 → 5 + 10
+  });
+
+  it('주장도 한 마디다 — 지갑이 비면 판정에 안 오른다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    for (let i = 0; i < TALK.start; i += 1) h.rt.onChat('p1', `말 ${i}`);
+    const chatsBefore = h.sent.filter((m) => m.t === 'chat').length;
+    await h.rt.handle('p1', { t: 'game_claim', text: '2회차는 내가 제일 늦었다' });
+    expect(h.sent.filter((m) => m.t === 'chat').length).toBe(chatsBefore);
+    expect(rejects(h).at(-1)?.msg).toMatchObject({ t: 'game_reject' });
   });
 });
 

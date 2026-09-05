@@ -17,7 +17,7 @@ import { GAME_MAX_HUMANS, GAME_MIN_HUMANS, type GameOutcome, type GameRole, type
 import type { TrialResultWire } from '@/world/mp/protocol';
 import { BODIES, type BodyId } from '@/world/mp/bodies';
 import type { ChatEntry } from '../interrogationSlice';
-import { ResultTable, TEST_TITLE } from './ResultTable';
+import { ResultSummary, ResultTable, TEST_TITLE } from './ResultTable';
 
 export const ROLE_LABEL: Record<GameRole, string> = { human: '사람', designer: 'AI 설계자', ai: 'AI' };
 
@@ -59,21 +59,31 @@ export function BigClock({ endsAt, maxSeconds, urgentBelow = 10 }: { endsAt: num
 
 /* ─────────────────────────────── 채팅 ─────────────────────────────── */
 
+/** 채팅 판에 그리는 줄 — 사람(과 좌석)이 한 말뿐이다 (Chat 머리말 ★). 저장소의 다른 줄은 여기서 걸러진다 */
+export function chatOnly(feed: readonly ChatEntry[]): ChatEntry[] {
+  return feed.filter((l) => (l.kind ?? 'chat') === 'chat');
+}
+
 /**
  * 방의 대화 「구역 통신」 — 판 하나에 머리띠 · 로그 · 입력줄.
  *
  * 생김새는 /arena 의 통신판(ArenaFeature 의 .comms)을 그대로 옮긴 것이다
  * (2026-09-04 사용자: "채팅 디자인 who is human 에서" · **디자인만**).
- * 옮겨 온 것은 넷이다 — 살아 있다는 표시가 붙은 머리띠 · 말한 이를 가리키는 색점 ·
- * 판을 뒤집는 말(관리 AI · 판의 소식 · 의심도)을 줄 전체로 물들이는 결 ·
+ * 옮겨 온 것은 셋이다 — 살아 있다는 표시가 붙은 머리띠 · 말한 이를 가리키는 색점 ·
  * 지난 말을 읽으려 올려 두면 안 끌어내리는 규칙. 색만 이 화면의 것이다 (interrogation.css).
+ *
+ * ★ **대화만 보인다** (2026-09-05 사용자: "대화창은 대화만 보이게" — 「[시험 2/3] … 30초.」 지시문과
+ *   「발언권 지급 — …」 을 빼 달라고). 저장소(interrogationSlice)에는 관리 AI 의 방송(leader) · 판의
+ *   소식(system) · 의심도의 오르내림(delta)이 그대로 쌓이지만, 이 판은 kind 가 chat 인 줄만 그린다.
+ *   지시문은 화면 위 안내판(.ig-order)과 관리 AI 의 목소리가 이미 전하고, 의심도는 몸 위 막대가 보인다 —
+ *   같은 것을 채팅에 한 번 더 적으면 대화가 장부가 된다. 결(줄 전체를 물들이던 색)은 그래서 이제 안 쓰인다.
  */
 export function Chat({
   feed,
   mySeatId,
   markId,
-  talkLeft,
   disabled,
+  talk,
   onSend,
   onComposing,
 }: {
@@ -81,9 +91,9 @@ export function Chat({
   mySeatId: string | null;
   /** 내가 겨누고 있는 좌석 — 그 좌석의 말에는 색점이 호박으로 켜진다 (몸 위 이름표와 같은 규칙) */
   markId: string | null;
-  /** 남은 대화권 — 머리띠 오른쪽 끝에 센다. null 이면 안 센다(로비) (2026-09-05 사용자: "대화권(발언권)이라는 게 추가될거야") */
-  talkLeft: number | null;
   disabled: boolean;
+  /** 내 남은 발언권 — 판이 도는 동안만 수. 0 이면 「말하기」가 잠기고, null 이면 세지 않는다(로비) */
+  talk: number | null;
   onSend: (text: string) => void;
   onComposing: (v: boolean) => void;
 }) {
@@ -119,10 +129,14 @@ export function Chat({
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // 지갑이 비었다 — 판은 서 있되 입력만 잠긴다. 남의 말은 계속 읽어야 다음 시험에서 무엇을 되찾을지 안다
+  const broke = talk !== null && talk <= 0;
+  const locked = disabled || broke;
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const t = text.trim();
-    if (!t || disabled) return;
+    if (!t || locked) return;
     onSend(t);
     setText('');
   };
@@ -133,6 +147,15 @@ export function Chat({
         {/* 켜져 있다는 표시 하나 — 이 방이 살아서 떠들고 있다 */}
         <i aria-hidden className="live" />
         <span className="ttl">구역 통신</span>
+        {/*
+          남은 발언권 — 한 마디에 하나 (game-protocol 의 TALK). 셋 아래로 내려오면 조명색으로 켜지고,
+          비면 붉게 선다: 다음 시험이 이 수를 되돌려 준다는 것을 머리띠가 말해 준다.
+        */}
+        {talk !== null ? (
+          <span className={`talk${talk <= 0 ? ' none' : talk <= 2 ? ' low' : ''}`} title="남은 발언권 — 한 마디에 하나, 시험에서 버틴 3초마다 하나">
+            발언권 <b>{talk}</b>
+          </span>
+        ) : null}
         {/* 올려 둔 것을 잊으면 **대화가 멎은 것처럼 보인다** — 새 말은 오는데 화면이 안 움직이니까 */}
         {stick ? null : (
           <button
@@ -147,12 +170,6 @@ export function Chat({
             지난 대화 · 최신 ↓
           </button>
         )}
-        {/* 남은 대화권 — 아직 세기만 한다. 차감·회복 규칙이 붙으면 이 수가 움직인다 */}
-        {talkLeft != null ? (
-          <span className="quota">
-            남은 대화권 <b>{talkLeft}</b>
-          </span>
-        ) : null}
       </div>
       <div
         className="ig-feed"
@@ -162,27 +179,14 @@ export function Chat({
           setStick(followsBottom(el.scrollHeight, el.scrollTop, el.clientHeight));
         }}
       >
-        {feed.map((l, i) => {
-          const kind = l.kind ?? 'chat';
-          /*
-           * 결이 붙은 줄(관리 AI · 판의 소식 · 의심도)에는 **이름을 안 붙인다** — 본문이 대개
-           * 좌석 번호로 시작해서, 이름까지 붙으면 누가 말하고 누가 걸렸는지가 안 갈린다.
-           * 말하는 쪽은 색이 가른다 (/arena 통신판과 같은 규칙).
-           */
-          const toned = kind !== 'chat';
+        {chatOnly(feed).map((l, i) => {
           const mine = l.id === mySeatId;
           return (
-            <p key={`${l.ts}-${i}`} className={`ig-line ${kind}${mine ? ' me' : ''}${l.id === markId ? ' marked' : ''}`}>
+            <p key={`${l.ts}-${i}`} className={`ig-line chat${mine ? ' me' : ''}${l.id === markId ? ' marked' : ''}`}>
               <i aria-hidden className="pip" />
               <span>
-                {toned ? (
-                  l.text
-                ) : (
-                  <>
-                    <b>{l.name}</b>
-                    {l.text}
-                  </>
-                )}
+                <b>{l.name}</b>
+                {l.text}
               </span>
             </p>
           );
@@ -198,11 +202,11 @@ export function Chat({
           onKeyDown={(e) => {
             if (e.key === 'Escape') (e.target as HTMLInputElement).blur();
           }}
-          placeholder={disabled ? '기록 공개 중 — 입력이 잠긴다' : 'Enter 로 말하기'}
-          disabled={disabled}
+          placeholder={disabled ? '기록 공개 중 — 입력이 잠긴다' : broke ? '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다' : 'Enter 로 말하기'}
+          disabled={locked}
           maxLength={200}
         />
-        <button type="submit" disabled={disabled || !text.trim()}>
+        <button type="submit" disabled={locked || !text.trim()}>
           말하기
         </button>
       </form>
@@ -276,7 +280,20 @@ export function RecordPanel({ result, nameOf, mySeatId }: { result: TrialResultW
  * 석 줄 설명(전환 직후 오차 · 오차 방향 · 적응 곡선의 정의)은 7초 안에 표를 읽어야 할 눈을 뺏었다.
  * 판정 낱말이 없는 것은 그대로다 (ResultTable 머리말 — 시스템은 판정하지 않는다).
  */
-export function ResultModal({ result, nameOf, mySeatId, endsAt }: { result: TrialResultWire; nameOf: (id: string) => string; mySeatId: string | null; endsAt: number | null }) {
+export function ResultModal({
+  result,
+  nameOf,
+  mySeatId,
+  endsAt,
+  gained,
+}: {
+  result: TrialResultWire;
+  nameOf: (id: string) => string;
+  mySeatId: string | null;
+  endsAt: number | null;
+  /** 이 시험이 준 발언권 (game_talk 의 gained) — 표의 마지막 열 */
+  gained?: Record<string, number>;
+}) {
   const left = useCountdown(endsAt);
   // 발치의 막대는 켜지는 순간 남은 시간만큼 한 번에 빠진다 — 머리띠의 숫자와 같은 endsAt (EndScreen 과 같은 버릇)
   const [showMs] = useState(() => (endsAt === null ? 0 : Math.max(0, endsAt - Date.now())));
@@ -292,10 +309,14 @@ export function ResultModal({ result, nameOf, mySeatId, endsAt }: { result: Tria
           <p className="ig-title">
             {TEST_TITLE[result.game]} <span>{result.round}회차</span>
           </p>
-          <ResultTable result={result} nameOf={nameOf} mySeatId={mySeatId} />
+          {/*
+            요약만 (2026-09-05 사용자: "간단하게 몇 초 안 맞았냐 · 몇 등 · 발언권 몇 개, 대충 통계만") — 상세 표는
+            모달이 걷힌 뒤 옆에 서는 기록판(RecordPanel)이 그대로 든다. 7초 모달은 읽는 자리가 아니라 보는 자리다.
+          */}
+          <ResultSummary result={result} nameOf={nameOf} mySeatId={mySeatId} gained={gained} />
           <p className="ig-note">
-            <span className="k hi">붉은 값</span>무리 평균에서 크게 벗어난 기록
-            <span className="k">적응 곡선</span>시행별 오차 — 사람은 회를 거듭할수록 줄어든다
+            <span className="k">발언권</span>버틴 3초마다 하나 — 다음 대화에서 쓴다
+            <span className="k">상세 기록</span>모달이 걷히면 오른쪽 기록판에
           </p>
         </div>
         <div className="ft">
@@ -338,7 +359,7 @@ export function LobbyPanel({
     <div className="ig-lobby">
       <h2>소집 대기</h2>
       <p>
-        실제 플레이어 {GAME_MIN_HUMANS}~{GAME_MAX_HUMANS}명 + AI 1좌석. 사람이 모자라면 대역이 채운다 — 판이 열리면 좌석이 섞이고 전원 SUBJECT 번호로만 불린다.
+        실제 플레이어 {GAME_MIN_HUMANS}~{GAME_MAX_HUMANS}명 + AI 1좌석. 사람이 모자라면 대역이 채운다 — 판이 열리면 좌석이 섞이고 전원 새로 받은 이름으로만 불린다.
       </p>
       {body ? (
         <p>

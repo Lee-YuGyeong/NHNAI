@@ -15,6 +15,8 @@
 /* ─────────────────────────────── 말 ─────────────────────────────── */
 
 /** 말에서 좌석을 읽어 낼 때 필요한 최소 점수 — 맨 숫자(1)는 회차·등수·초와 못 가른다 */
+import { givenOf } from '../../../src/world/mp/koreanNames';
+
 export const MENTION_MIN_SCORE = 2;
 
 /** 되풀이 — 정규화 뒤 이 길이 미만은 안 센다. 「ㅇㅇ」·「뭐?」·「아니야」는 채팅의 정상 리듬이다 */
@@ -37,6 +39,8 @@ export const PRIOR_LINES = 6;
 export interface SeatRef {
   id: string;
   seat: number;
+  /** 좌석 이름 — 한국인 이름(mp/koreanNames). 있으면 성 없이 부른 것(「지훈」)도 이 좌석이다 */
+  name?: string;
   isolated?: boolean;
 }
 
@@ -44,9 +48,9 @@ export interface Mention {
   id: string;
   /** 좌석 번호를 문자열로 — 부른 자리를 다시 찾을 때 쓴다 */
   num: string;
-  /** 3 = 「SUBJECT 03」·「03」 · 2 = 「3번」 · 1 = 맨 숫자 */
+  /** 3 = 이름(「지훈」·「김지훈」)·「SUBJECT 03」·「03」 · 2 = 「3번」 · 1 = 맨 숫자 */
   score: number;
-  /** 말 안에서 그 번호가 나온 자리 (없으면 -1) */
+  /** 말 안에서 그 이름·번호가 나온 자리 (없으면 -1) */
   at: number;
 }
 
@@ -63,15 +67,19 @@ export function seatMentions(text: string, seats: readonly SeatRef[], exclude?: 
     const n = String(s.seat);
     const nn = n.padStart(2, '0');
     const alone = (t: string) => new RegExp(`(?<![0-9])${t}(?![0-9])`).test(text);
-    const score = new RegExp(`SUBJECT\\s*0*${n}(?![0-9])`, 'i').test(text) || alone(nn)
-      ? 3
-      : new RegExp(`(?<![0-9])${n}\\s*번`).test(text)
-        ? 2
-        : alone(n)
-          ? 1
-          : 0;
+    // 이름이 첫째 단서다 — 한 판 안에서 이름 두 글자가 겹치지 않아(mp/koreanNames) 성 없이 불러도 한 사람이다
+    const given = s.name ? givenOf(s.name) : '';
+    const nameAt = given ? text.indexOf(given) : -1;
+    const score =
+      nameAt >= 0 || new RegExp(`SUBJECT\\s*0*${n}(?![0-9])`, 'i').test(text) || alone(nn)
+        ? 3
+        : new RegExp(`(?<![0-9])${n}\\s*번`).test(text)
+          ? 2
+          : alone(n)
+            ? 1
+            : 0;
     if (score === 0) continue;
-    out.push({ id: s.id, num: n, score, at: text.search(new RegExp(`(?<![0-9])0*${n}(?![0-9])`, 'i')) });
+    out.push({ id: s.id, num: n, score, at: nameAt >= 0 ? nameAt : text.search(new RegExp(`(?<![0-9])0*${n}(?![0-9])`, 'i')) });
   }
   return out;
 }

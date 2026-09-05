@@ -3,6 +3,8 @@
  * 가장 안정적인 위치만 계속 찾아냈으니까." 그래서 센다:
  *   walked          원판 표면 기준으로 걸은 거리(m) — 실려 간 거리는 안 센다 (가만히 서 있어도 월드에서는 돈다)
  *   falls           떨어진 횟수
+ *   survivalTime    첫 낙하까지의 시간(s) — 안 떨어졌으면 라운드 길이. 낙하 생존의 같은 이름 지표와 같은 뜻이라
+ *                   발언권(game-protocol 의 talkFor)이 둘을 한 눈금으로 잰다
  *   meanRadius      평균 반지름(m) — 가운데 가까이 붙었나
  *   radiusStd       반지름의 표준편차(m) — 「같은 자리를 계속 유지」가 여기 보인다
  *   reactionMs      회전이 바뀐 사건 → 걷기 명령이 바뀌기까지(ms) 평균 — 사람은 몸이 밀리고 나서 반응한다
@@ -40,6 +42,7 @@ export class DiscStats {
   private eventAt: number | null = null;
   private lastW = { x: 0, z: 0 };
   private falls = 0;
+  private firstFallAt: number | null = null;
 
   /**
    * 틱마다 — 원판 위에 있을 때만. r 은 반지름, slide 는 |s|, walk 는 |w|(원판 기준).
@@ -85,8 +88,9 @@ export class DiscStats {
     }
   }
 
-  fell(): void {
+  fell(now?: number): void {
     this.falls += 1;
+    if (this.firstFallAt === null && typeof now === 'number') this.firstFallAt = now;
     // 떨어지면 에피소드는 거기서 끝이다 — 반지름 변화는 바깥(+)
     if (this.open) {
       this.episodes.push({ ...this.open, startR: -1 });
@@ -94,14 +98,18 @@ export class DiscStats {
     }
   }
 
-  result(id: string): TrialPlayerResult {
+  /** @param gameStart · gameEnd 라운드의 시각 — 없으면 survivalTime 은 NaN (단위 시험용) */
+  result(id: string, gameStart?: number, gameEnd?: number): TrialPlayerResult {
     const radiusStd = this.radii.length >= 2 ? stdDev(this.radii) : Number.NaN;
     const transitionError = this.transitionSlide;
+    const survivalTime =
+      typeof gameStart === 'number' && typeof gameEnd === 'number' ? ((this.firstFallAt ?? gameEnd) - gameStart) / 1000 : Number.NaN;
     return {
       id,
       metrics: {
         walked: this.walked,
         falls: this.falls,
+        survivalTime,
         meanRadius: this.radiusN ? this.radiusAcc / this.radiusN : Number.NaN,
         radiusStd,
         reactionMs: this.reactions.length ? mean(this.reactions) : Number.NaN,

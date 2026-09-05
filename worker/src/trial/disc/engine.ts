@@ -133,7 +133,8 @@ export class DiscEngine implements GameEngine {
   }
 
   results(): TrialPlayerResult[] {
-    return [...this.stats].map(([id, s]) => s.result(id));
+    const end = this.endedAt || Date.now();
+    return [...this.stats].map(([id, s]) => s.result(id, this.startedAt, end));
   }
 
   /** 시험용 — 지금 원판 상태 */
@@ -212,7 +213,7 @@ export class DiscEngine implements GameEngine {
         const w = rot(theta, { x: b.px, z: b.pz });
         b.fx = DISC_CENTER.x + w.x;
         b.fz = DISC_CENTER.z + w.z;
-        st?.fell();
+        st?.fell(now);
         ctx.broadcast({ t: 'trial_fell', id: b.id });
       } else {
         st?.tick(Math.hypot(b.px, b.pz), Math.hypot(b.sx, b.sz), Math.hypot(out.wx, out.wz), dt, now, starts);

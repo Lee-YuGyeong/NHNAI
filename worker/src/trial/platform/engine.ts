@@ -9,7 +9,7 @@
  */
 import { FALL_SNAPSHOT_MS, FALL_TICK_MS, PLATFORM_GAME_MS } from '../../../../src/world/mp/constants';
 import type { TrialPlayerResult } from '../../../../src/world/mp/protocol';
-import { PAD_START_Z, PLATFORM_ARENA, PLATFORM_PACE, PLATFORM_PHASE_SPEED, padAt } from '../../../../src/world/mp/platform';
+import { PLATFORM_ARENA, PLATFORM_PACE, PLATFORM_PHASE_SPEED, padAt, startSlot } from '../../../../src/world/mp/platform';
 import { PLATFORM_GRIP } from '../condition';
 import type { EngineContext, GameEngine, SeatTuning } from '../engine';
 import { phaseAt, phaseStarts } from '../phase';
@@ -70,11 +70,11 @@ export class PlatformEngine implements GameEngine {
         profile = makeJumpProfile(i, t?.precision);
         this.profiles.set(id, profile);
       }
-      // 출발 발판 위에 나란히 — 사람도 같은 발판에서 시작한다 (클라가 라운드 시작에 옮긴다)
-      const x = -0.6 + (i % 4) * 0.4;
+      // 출발 발판 위 2×2 자리 — 사람도 같은 발판·같은 표에서 시작한다 (클라가 라운드 시작에 옮긴다, platform.ts startSlot)
+      const slot = startSlot(i);
       const st = new JumpStats(now, this.pace, mu);
       this.stats.set(id, st);
-      const j = makeJumper(id, x, PAD_START_Z, profile, now);
+      const j = makeJumper(id, slot.x, slot.z, profile, now);
       st.sample(j.x, j.z, j.y, now);
       return j;
     });

@@ -29,6 +29,7 @@ import { prefetchPrologue, prologueClipMs, prologueLagMs, resetPrologueVoice, sp
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TestOrder } from './hud/Panels';
+import { SelfSuspicion } from './hud/SelfSuspicion';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
@@ -37,7 +38,8 @@ import type { BodyId } from '@/world/mp/bodies';
 import { fallState } from '@/features/trial/games/fall/fallState';
 import { EXECUTION_MS, executioner } from './scene/executionerStore';
 import { platformState } from './scene/platformState';
-import { PAD_START_Z } from '@/world/mp/platform';
+import { selfBubble } from './scene/selfBubble';
+import { PAD_START_Z, startSlot } from '@/world/mp/platform';
 import { runnerState } from './scene/stopline/runnerState';
 // 색 사냥의 구슬 상태·오버레이 색은 /trial 과 같은 모듈이다 — 화면은 달라도 게임은 하나다 (huntState 머리말)
 import { huntState, softLight } from '@/features/trial/games/color-hunt/huntState';
@@ -58,12 +60,6 @@ function seatSpot(seat: GameSeat, total: number): { x: number; z: number } {
  */
 const AUTO_SEATS = 4;
 
-/**
- * 대화권 — 판에서 말할 권리의 수. 머리띠(구역 통신 헤더) 오른쪽에 선다 (2026-09-05 사용자:
- * "대화권(발언권)이라는 게 추가될거야"). 아직 표시뿐이다 — 차감·회복 규칙이 정해지면 이 상수는
- * 서버가 세는 값(tamperLeft 처럼 game_role · 전용 이벤트)으로 바뀐다. 로비에서는 안 센다.
- */
-const TALK_QUOTA = 5;
 
 export function InterrogationFeature() {
   const dispatch = useAppDispatch();
@@ -90,6 +86,8 @@ export function InterrogationFeature() {
   const outcome = useAppSelector(gameSelectors.selectOutcome);
   const endedAt = useAppSelector(gameSelectors.selectEndedAt);
   const reject = useAppSelector(gameSelectors.selectReject);
+  const myTalk = useAppSelector(gameSelectors.selectMyTalk);
+  const talkGained = useAppSelector(gameSelectors.selectTalkGained);
 
   const [locked, setLocked] = useState(false);
   const [composing, setComposing] = useState(false);
@@ -135,6 +133,7 @@ export function InterrogationFeature() {
   useEffect(() => {
     dispatch(gameActions.reset());
     remotePlayers.clear();
+    selfBubble.clear();
     runnerState.clear();
     fallState.clear();
     executioner.reset();
@@ -151,10 +150,10 @@ export function InterrogationFeature() {
       switch (msg.t) {
         case 'chat': {
           dispatch(gameActions.chatReceived({ id: msg.id, name: msg.nickname, text: msg.text, ts: msg.ts, kind: 'chat' }));
-          if (msg.id !== meRef.current?.seatId) {
-            remotePlayers.bubble(msg.id, msg.text, now());
-            setBubbleTick((n) => n + 1);
-          }
+          // 말풍선 — 남의 말은 그 몸에, 내 말은 내 머리 위에 (selfBubble, 2026-09-05 사용자). 둘 다 bubbleTick 으로 다시 그린다
+          if (msg.id !== meRef.current?.seatId) remotePlayers.bubble(msg.id, msg.text, now());
+          else selfBubble.set(msg.text, now());
+          setBubbleTick((n) => n + 1);
           return;
         }
         case 'game_state': {
@@ -228,6 +227,9 @@ export function InterrogationFeature() {
         case 'game_reject':
           dispatch(gameActions.rejected(msg.why));
           return;
+        case 'game_talk':
+          dispatch(gameActions.talkReceived(msg));
+          return;
         case 'game_tamper_ok':
           dispatch(gameActions.tamperOk(msg.left));
           return;
@@ -237,12 +239,12 @@ export function InterrogationFeature() {
           fallState.clear();
           huntState.clear();
           discState.clear();
-          // 움직이는 플랫폼 — 발판 열이 서고(platformState), 전원이 출발 발판 위에서 시작한다 (좌석 번호로 나란히)
+          // 움직이는 플랫폼 — 발판 열이 서고(platformState), 전원이 출발 발판 위 2×2 자리에서 시작한다 (좌석 번호로, platform.ts startSlot)
           if (msg.game === 'platform') {
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
-            const x = seat ? -0.6 + ((seat.seat - 1) % 4) * 0.4 : 0;
-            platformState.start(msg.startAt, msg.pace, { x, z: PAD_START_Z });
-            setTeleport({ x, z: PAD_START_Z, key: `platform-${msg.startAt}` });
+            const home = seat ? startSlot(seat.seat - 1) : { x: 0, z: PAD_START_Z };
+            platformState.start(msg.startAt, msg.pace, home);
+            setTeleport({ ...home, key: `platform-${msg.startAt}` });
           } else platformState.clear();
           return;
         }
@@ -319,6 +321,9 @@ export function InterrogationFeature() {
           dispatch(gameActions.resultReceived(msg.result));
           platformState.clear();
           discState.clear();
+          // 무대가 걷혔다 — 원판(0.75m)·발판(0.5m) 위에 있던 남의 몸을 바닥에 내려놓는다. 안 그러면 다음 샘플이 올 때까지
+          // 허공에 서 있다 (remotePlayers.settle 머리말, 2026-09-05 사용자)
+          remotePlayers.settle(now());
           // 정지선 레일에서 내려온다 — 내 좌석 자리로
           {
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
@@ -439,10 +444,10 @@ export function InterrogationFeature() {
      * 자막이 먼저 뜨고 소리가 뒤늦게 붙는다 (prologueVoice 머리말).
      */
     /*
-     * 배역(몸)을 먼저 적는다 — 목소리가 얼굴(몸)을 따르기 때문이다 (prologueVoice 의 BODY_VOICE).
-     * 아래 prologueLines 와 같은 씨앗이라 얼굴과 목소리가 같은 배역을 본다.
+     * 배역(몸)을 먼저 적는다 — 목소리가 얼굴(몸)의 성별을 따르기 때문이다 (prologueVoice 의 voicesForCast).
+     * 아래 prologueLines 와 같은 씨앗이라 얼굴 · 목소리 · 여자 목소리 섞기까지 네 화면이 같은 것을 본다.
      */
-    resetPrologueVoice(castSubjects(seatsRef.current, startedAt));
+    resetPrologueVoice(castSubjects(seatsRef.current, startedAt), startedAt);
     prefetchPrologue(PROLOGUE);
     /*
      * 소리가 스피커에 닿기까지의 늦음 — 자막을 그만큼 늦게 연다 (DialogueBox 의 voiceLagMs).
@@ -726,13 +731,15 @@ export function InterrogationFeature() {
             feed={feed}
             mySeatId={mySeatId}
             markId={markId}
-            talkLeft={inGame ? TALK_QUOTA : null}
             disabled={status !== 'connected' || phase === 'result' || phase === 'ended' || (inGame && !mySeatId)}
+            talk={inGame ? myTalk : null}
             onSend={onSend}
             onComposing={setComposing}
           />
         ) : null}
 
+        {/* 내 의심도 — 발치 줄 위의 고정 계기 (hud/SelfSuspicion 머리말). 좌석이 있을 때만, 끝 화면에서는 걷는다 */}
+        {inGame && mySeatId && phase !== 'ended' ? <SelfSuspicion getValue={() => getSuspicion(mySeatId)} /> : null}
         {/* 시험 중의 발치 줄은 수치판(.stat)이다 — 안내 문장일 때보다 크고 밝게, 숫자는 자리를 안 떤다 */}
         {hud ? (
           <p className={`ig-foot${phase === 'test' ? ' stat' : ''}`}>
@@ -744,7 +751,15 @@ export function InterrogationFeature() {
         {/* 소집 대기 판은 ?lobby 로 들어왔거나 자동 시작이 거절됐을 때만 선다 — 나머지는 판이 열리는 한순간뿐이다 */}
         {wire && phase === 'lobby' && (keepLobby || reject) ? <LobbyPanel wire={wire} players={players} selfId={selfId} myBody={myBody} reject={reject} onStart={onStart} /> : null}
         {reject && phase !== 'lobby' ? <p className="ig-banner alarm">{reject}</p> : null}
-        {phase === 'result' && latestResult ? <ResultModal result={latestResult} nameOf={nameOf} mySeatId={mySeatId} endsAt={wire?.phaseEndsAt ?? null} /> : null}
+        {phase === 'result' && latestResult ? (
+          <ResultModal
+            result={latestResult}
+            nameOf={nameOf}
+            mySeatId={mySeatId}
+            endsAt={wire?.phaseEndsAt ?? null}
+            gained={talkGained?.game === latestResult.game ? talkGained.gained : undefined}
+          />
+        ) : null}
         {/*
           * 끝 화면은 **처형이 다 끝나야 선다** (2026-09-05 사용자: "로봇 총쏨 → 나 맞고 쓰러짐 → 패배 보여줌
           * 이 순서로"). 서버는 격리와 판의 끝을 같은 순간에 보내므로(worker 의 checkIsolation) 여태는

@@ -11,8 +11,8 @@
  * 놓치면 바닥에 떨어져 잠깐 넘어져 있다가 **출발 발판의 제자리로 돌아간다** — 사람과 같은 규칙(FreeRig). 도착 발판에 내리면
  * 완주: 남은 시간은 거기 서서 기다린다 (2026-09-05 사용자).
  */
-import { JUMP_SPEED, GRAVITY, WALK_SPEED } from '../../../../src/world/mp/constants';
-import { JUMP_AIR_S, PAD_FINISH, PAD_R, PAD_TOP, PLATFORM_RESPAWN_MS, padAt, padUnder } from '../../../../src/world/mp/platform';
+import { GRAVITY, WALK_SPEED } from '../../../../src/world/mp/constants';
+import { JUMP_AIR_S, PAD_FINISH, PAD_R, PAD_TOP, PLATFORM_JUMP_SPEED, PLATFORM_RESPAWN_MS, padAt, padUnder } from '../../../../src/world/mp/platform';
 
 /**
  * 봇이 공중에서 낼 수 있는 수평 속도의 상한(m/s) — **사람과 같은 몸이어야 한다**(P9).
@@ -234,7 +234,8 @@ export function stepJumper(j: Jumper, now: number, _dt: number, startedAt: numbe
       const k = Math.min(1, t / JUMP_AIR_S);
       j.x = j.from.x + j.errX * k;
       j.z = j.from.z + j.errZ * k;
-      const lift = JUMP_SPEED * t - 0.5 * GRAVITY * t * t;
+      // 사람(날씬한 몸)과 같은 이륙 속도로 뜬다 — 복도의 JUMP_SPEED 가 아니다 (platform.ts PLATFORM_JUMP_SPEED)
+      const lift = PLATFORM_JUMP_SPEED * t - 0.5 * GRAVITY * t * t;
       j.y = j.from.y + lift;
       if (t >= JUMP_AIR_S) {
         const hit = padUnder(j.x, j.z, elapsed, pace);

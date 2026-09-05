@@ -543,7 +543,7 @@ const READ_TOOL: ToolSpec = {
         items: {
           type: 'object',
           properties: {
-            name: { type: 'string', description: '대상의 좌석 이름 — 예: SUBJECT 03. 이번 장면에서 실제로 말한 사람만' },
+            name: { type: 'string', description: '대상의 이름 — 장면에 적힌 그대로 (예: 김지훈). 이번 장면에서 실제로 말한 사람만' },
             amount: {
               type: 'number',
               description: `${SUSPICION.readMin} ~ +${SUSPICION.readMax} 의 정수. +는 기계처럼 읽히거나 · 기록과 어긋나거나 · 제 앞말과 어긋나는 말, −는 사람처럼 읽히거나 기록이 뒷받침하는 말. 애매하면 0 대신 아예 담지 않는다`,

@@ -120,4 +120,20 @@ export const remotePlayers = {
     p.bubbleText = text;
     p.bubbleUntil = now + BUBBLE_MS;
   },
+  /**
+   * 전원을 바닥(y 0)에 내려놓는다 — 시험이 끝나 **무대가 사라졌을 때** (회전 원판 0.75m · 움직이는 발판 0.5m).
+   *
+   * 남의 몸 높이는 서버가 주는 것뿐이라(원판 스냅샷 · 봇 스냅샷), 무대가 걷힌 뒤 새 샘플이 안 오면 마지막 높이에
+   * 그대로 떠 있다 — 봇은 토론이 열려 움직일 때까지, 격리된 좌석은 영영 (2026-09-05 사용자: 「공중 날아다니는 건 왜」).
+   * 자리는 마지막 샘플 그대로 두고 높이만 0 인 샘플을 하나 더 넣는다 — 보간이 그 사이를 내려 준다.
+   */
+  settle(now: number): void {
+    for (const p of players.values()) {
+      const last = p.buffer.length ? p.buffer[p.buffer.length - 1] : p.pose;
+      if (last.y === 0 && p.pose.y === 0) continue;
+      pushSample(p.buffer, { t: now, x: last.x, z: last.z, y: 0, heading: last.heading });
+      p.pose.y = 0;
+      p.anim = 'idle';
+    }
+  },
 };

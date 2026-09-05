@@ -21,14 +21,19 @@
  * ★ 개체 수는 한 줄도 안 적는다 — 그림 속 칸도 셀 수 없게 멀어진다 (Intro.tsx 머리말의 규칙).
  *
  * ★ 글을 걷어냈다 (2026-09-05 사용자 지시: "아예 제거해줘"). 제목(h1) · 방송 두 줄
- *   (hero-key__lines) · 서명(bl-hero__from)이 여기 있었다. 남은 것은 영문 간판 두 줄
- *   (TAG · SUB)과 문(들어가는 길)뿐이다 — 이제 이 화면에서 말하는 것은 **영상**이고,
- *   글은 영상이 하는 말을 되풀이하지 않는다. 걷어낸 글과 그것이 왜 그렇게 적혔는지는
- *   이 커밋 이전에 있다.
+ *   (hero-key__lines) · 서명(bl-hero__from)이 여기 있었다 — 이 화면에서 말하는 것은
+ *   **영상**이고, 글은 영상이 하는 말을 되풀이하지 않는다. 걷어낸 글과 그것이 왜 그렇게
+ *   적혔는지는 a0cc65b 직전 판에 있다.
+ * ★ 제목만 되살렸다 (같은 날 사용자: "누가 인간인가? 제목 다시 살려줘"). 방송 두 줄과
+ *   서명은 그대로 없다.
+ * ★ 그 뒤 부제(SUB) · 「로그인 없이 들어가기」 · 「규칙 보기」도 뺐다 (같은 날 사용자). 남은 것은
+ *   왼쪽 위 태그, 그리고 **화면 한가운데** 제목 한 줄과 문 하나(입장하기)다. 로그인 없이 노는 길
+ *   (shared/guest.ts) 자체는 살아 있다 — /lobby 로 곧장 가면 된다. 규칙은 아래 칸을 내려가면 있다.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { WHO_IS_AI_SRC } from '@/shared/opening';
 import { EnterButton } from './console';
+import { Typed } from './live';
 import './heroes.css';
 
 export interface HeroProps {
@@ -37,59 +42,46 @@ export interface HeroProps {
   onTitled: () => void;
   /** 입장하기 — 구글을 거쳐 /lobby */
   enter: () => void;
-  /** 로그인 없이 들어가기 — 이 길은 빠지면 안 된다 (shared/guest.ts 의 약속) */
-  guest: () => void;
-  /** 규칙 보기 */
-  rules: () => void;
   /** 아래 칸(브리핑)으로 */
   next: () => void;
 }
 
 /* ── 글 ────────────────────────────────────────────────────────────────
  *
- * 두 줄뿐이고 둘 다 영문 간판이다. 한글로 하는 말은 이제 **영상이 한다** — 같은 말을
+ * 영문 태그 한 줄과 한글 제목 한 줄. 한글로 길게 하는 말은 **영상이 한다** — 같은 말을
  * 글로 한 번 더 하면 영상은 그 글의 배경으로 내려앉고, 그러면 영상을 튼 이유가 없다.
  *
- * 걷어낸 것(2026-09-05): 제목(h1) · 방송 두 줄(「여기, 전부 표식이 붙어 있다 / 붙어
- * 있어야 한다」) · 서명(「관리 AI … 상시 송출」). 그 글들의 어투를 어떻게 잡았고
- * 2026-09-04 기획 개정에서 진영이 어떻게 뒤집혔는지는 **이 커밋 직전 판의 이 자리**에
- * 길게 적혀 있다 — 글을 되살릴 일이 생기면 거기부터 읽는다.
+ * 걷어낸 것(2026-09-05): 방송 두 줄(「여기, 전부 표식이 붙어 있다 / 붙어 있어야 한다」) ·
+ * 서명(「관리 AI … 상시 송출」) · 부제(「SPECIAL AI RESPONSE CENTER · ONE OF US NEVER WAS.」,
+ * 그 전엔 「WHO IS HUMAN? …」). 방송·서명의 어투를 어떻게 잡았고 2026-09-04 기획 개정에서
+ * 진영이 어떻게 뒤집혔는지는 a0cc65b 직전 판의 이 자리에 길게 적혀 있다.
+ * 제목(「누가 인간인가?」)은 같이 걷혔다가 그날 되살렸다 — 이 화면이 무슨 화면인지
+ * 말하는 한 줄은 영상이 대신하지 못한다.
  */
 const TAG = 'SOCIAL DEDUCTION  //  EP.01';
-/*
- * 이 화면에 남은 유일한 문장. 앞은 인트로의 부제(intro-sub)와 같은 영문 간판이라 두
- * 화면이 같은 건물로 읽히고, 뒷말은 여기서 유일하게 "섞여 있다"고 말하는 자리다.
- * (「WHO IS HUMAN? …」 이었다 — 앞이 옛 제목의 영문이라 제목을 따라 바뀌었고,
- *  그 제목은 이제 아예 없다.)
- */
-const SUB = 'SPECIAL AI RESPONSE CENTER · ONE OF US NEVER WAS.';
 
-function Cta({ enter, rules, className = '' }: { enter: () => void; rules: () => void; className?: string }) {
+/**
+ * 제목.
+ *
+ * ★ 표식도 찍힌다 — 다만 **본문 제목보다 느리게** (2026-08-30 사용자 물음:
+ *   "이것도 넣으면 이상한가?"). 여덟 자뿐이라 본문 속도(42ms)로 치면 0.3초에
+ *   끝나서 찍히는 줄도 모르고 지나간다. 제목은 문장이 아니라 한 장면이라
+ *   또박또박 와야 하고, 앰버 한 점(인간)이 찍히는 순간이 이 화면의 심장이다.
+ */
+function Title({ onDone, className = '' }: { onDone: () => void; className?: string }) {
   return (
-    <div className={`bl-hero__cta ${className}`}>
-      {/* 표지의 문은 **작은 벌**이다 — 「규칙 보기」와 나란히 서는 자리라, 큰 벌을 놓으면 옆칸이 부속으로 보인다 */}
-      <EnterButton onClick={enter} />
-      <button type="button" className="bl-btn bl-edge" onClick={rules}>
-        규칙 보기
-      </button>
-    </div>
+    <h1 className={`bl-hero__title ${className}`}>
+      <Typed ms={85} parts={['누가 ', { em: '인간' }, '인가?']} onDone={onDone} />
+    </h1>
   );
 }
 
-/**
- * 로그인 없이 노는 길.
- *
- * ★ 「NO SIGN-UP」 이라고 적혀 있던 자리다. 「입장하기」가 구글로 떠나게 된
- *   순간(2026-08-31) 그 말은 사실이 아니다 — 첫 화면이 거짓말을 하면 그 뒤
- *   화면을 전부 의심하게 된다.
- * ★ 그래서 글자를 고치는 데서 그치지 않고 **문으로 만들었다.** 로그인 없이
- *   노는 길은 이 게임의 약속이라(shared/guest.ts) 어딘가에 반드시 있어야 한다.
- */
-function Guest({ guest, className = '' }: { guest: () => void; className?: string }) {
+function Cta({ enter, className = '' }: { enter: () => void; className?: string }) {
   return (
-    <button type="button" className={`bl-label hero-guest ${className}`} data-sfx="clank" onClick={guest}>
-      로그인 없이 들어가기
-    </button>
+    <div className={`bl-hero__cta ${className}`}>
+      {/* 문 하나가 제목 밑에 홀로 선다 — 「규칙 보기」가 옆에 있던 때는 작은 벌이었는데(옆칸이 부속으로 보여서), 혼자면 큰 벌이다 */}
+      <EnterButton big onClick={enter} />
+    </div>
   );
 }
 
@@ -206,26 +198,13 @@ function Cue({ next, className = '' }: { next: () => void; className?: string })
    복잡해서, 여기서 할 일의 절반은 「무엇을 더할까」가 아니라 「글이 앉을 어둠을 어디에 깔까」다.
    ════════════════════════════════════════════════════════════════════════ */
 
-export function HeroKey({ titled, onTitled, enter, guest, rules, next }: HeroProps) {
+export function HeroKey({ titled, onTitled, enter, next }: HeroProps) {
   /*
-   * 아래 것들을 올리는 신호. 예전엔 **제목이 다 찍힌 순간**이었다 — 제목이 빠진 지금은
-   * 기다릴 것이 없어 붙자마자 놓는다.
-   *
-   * 그래도 이 신호를 없애지 않은 이유는, 이게 .hero-on 을 걸어 .hero-late 의 등장
-   * (heroes.css)을 트는 **스위치**이기 때문이다. 첫 렌더에 이미 켜져 있으면 애니메이션이
-   * 아니라 그냥 처음부터 있는 것이 되고, 그러면 문(CTA)이 영상 위로 툭 튀어나온다.
-   * 없애 버리면 더 나쁘다 — titled 가 영영 false 라 .hero-late 는 opacity: 0 이고,
-   * 들어가는 문 셋이 통째로 안 보인다.
-   *
-   * ref 로 받는 것은 Intro.tsx 가 onTitled 를 인라인 화살표로 넘기기 때문이다 —
-   * 의존성에 그대로 넣으면 매 렌더 effect 가 다시 돈다 (live.tsx 의 Typed 와 같은 수법).
+   * 문을 올리는 신호는 **제목이 다 찍힌 순간**이다 — Title 의
+   * onDone 이 onTitled 다. 제목을 걷어냈던 사이(a0cc65b)에는 기다릴 것이 없어 붙자마자
+   * 놓았는데, 제목이 돌아왔으니 신호도 제자리로 간다. 이 신호는 .hero-on 을 걸어
+   * .hero-late 의 등장(heroes.css)을 트는 스위치라 없애면 문이 통째로 안 보인다.
    */
-  const wake = useRef(onTitled);
-  wake.current = onTitled;
-  useEffect(() => {
-    wake.current();
-  }, []);
-
   return (
     <>
       <span className="hero-key__art" aria-hidden>
@@ -239,11 +218,10 @@ export function HeroKey({ titled, onTitled, enter, guest, rules, next }: HeroPro
       <span className="hero-key__grain" aria-hidden />
       {/* 라벨은 화면 맨 위 모서리 — 가운데 글 뭉치에 끼워 넣으면 세 줄짜리 문단이 된다 */}
       <span className="bl-label hero-key__tag">{TAG}</span>
-      {/* 부제 한 줄과 문뿐이다 — 걷어낸 것은 파일 머리말과 「글」 절에 적어 뒀다 */}
+      {/* 제목 · 문 — 화면 한가운데 (heroes.css 의 .hero--key align-items). 부제 · 방송 두 줄 · 서명 · 로그인 없이 · 규칙 보기는 걷어냈다 (파일 머리말과 「글」 절). 칸 순서는 heroes.css 의 nth-child 와 묶여 있다 */}
       <div className={`hero-key__body bl-snap__in${titled ? ' hero-on' : ''}`}>
-        <p className="bl-hero__sub hero-key__sub">{SUB}</p>
-        <Cta className="hero-late" enter={enter} rules={rules} />
-        <Guest className="hero-late" guest={guest} />
+        <Title onDone={onTitled} className="hero-key__title" />
+        <Cta className="hero-late" enter={enter} />
       </div>
       <Cue next={next} />
     </>

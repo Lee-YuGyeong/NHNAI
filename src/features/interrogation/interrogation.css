@@ -23,8 +23,9 @@
   --ig-edge: rgba(255, 202, 142, 0.42);
   --ig-line-soft: rgba(232, 221, 205, 0.12);
   /* 로그 크기 — 색점이 첫 줄 한가운데 서는 자리도 이 값으로 잰다. 두 군데 적으면 반드시 어긋난다 */
-  --ig-feedh: 38vh;
-  --ig-feedsize: 13px;
+  --ig-feedh: 40vh;
+  /* 2026-09-05 사용자: 「내 대화 텍스트 크기 너무 작아」 — 13px 에서 한 단 키우고 판 폭도 같이 */
+  --ig-feedsize: 15px;
 }
 
 .ig-hud {
@@ -153,7 +154,7 @@
   position: absolute;
   left: 12px;
   bottom: 12px;
-  width: 360px;
+  width: 430px;
   display: grid;
   clip-path: var(--ig-chamfer);
 }
@@ -222,9 +223,48 @@
   letter-spacing: 0.2em;
   color: var(--dust);
 }
+/* 남은 발언권 — 라벨과 같은 모노. 수만 밝다. 셋 이하면 조명색, 비면 붉은색 (2026-09-05 발언권) */
+.ig-commhd .talk {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--dust);
+  white-space: nowrap;
+}
+.ig-commhd .talk b {
+  margin-left: 2px;
+  font-size: 12px;
+  color: var(--linen);
+}
+.ig-commhd .talk.low b {
+  color: var(--amber);
+  text-shadow: 0 0 8px rgba(255, 202, 142, 0.6);
+}
+.ig-commhd .talk.none b {
+  color: #ff6a5a;
+  text-shadow: 0 0 8px rgba(255, 106, 90, 0.6);
+}
+/* 결과 표의 발언권 열 — 받은 수는 밝게 */
+.ig-table td.talk {
+  color: var(--amber);
+  font-weight: 700;
+}
+/* 모달의 요약 표 — 상세 표보다 한 단 크다. 7초 안에 세 값(버틴 시간 · 등수 · 발언권)만 보면 된다 */
+.ig-table.ig-summary th,
+.ig-table.ig-summary td {
+  font-size: 14px;
+  padding: 7px 14px;
+}
+.ig-table.ig-summary td.full {
+  color: var(--linen);
+}
+.ig-table.ig-summary td.top {
+  color: var(--linen);
+  font-weight: 700;
+}
 /* 지난 말을 보는 중 (2026-09-04 사용자: 「개체 N」은 뺀다 — 좌석판이 이미 세고 있다).
    이것만이 **지금 뭔가 어긋나 있다**는 표시다: 새 말이 오는데 안 보고 있다.
-   그래서 이 화면의 조명색으로 혼자 켜진다. 대화권 표시와 같이 서면 그 왼쪽이다 */
+   그래서 이 화면의 조명색으로 혼자 켜진다. 발언권 수 옆에 선다 */
 .ig-commhd .tolatest {
   margin-left: auto;
   padding: 2px 9px;
@@ -245,24 +285,7 @@
   background: rgba(255, 202, 142, 0.24);
   box-shadow: none;
 }
-/* 남은 대화권 — 머리띠 오른쪽 끝 (2026-09-05 사용자: "대화권(발언권)"). 라벨은 라벨끼리 같은
-   얼굴(.ttl 의 모노·먼지색)이고, 수만 호박으로 켠다 — 줄어드는 것이 눈에 걸리라고 */
-.ig-commhd .quota {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  color: var(--dust);
-  white-space: nowrap;
-}
-.ig-commhd .quota b {
-  font-size: 11.5px;
-  color: var(--amber);
-}
-/* 「최신 ↓」 단추와 같이 설 때 — 빈자리는 단추가 밀고, 표시는 그 오른쪽에 붙는다 */
-.ig-commhd .tolatest ~ .quota {
-  margin-left: 10px;
-}
+/* 「남은 대화권」 자리 표시(.quota, 상수 5)는 발언권 지갑(.talk — game_talk 로 움직이는 수)에 자리를 내주고 걷었다 (2026-09-05 merge) */
 
 /* ── 로그 ── 높이는 화면의 38% 까지. 더 키우면 판을 가리고, 더 줄이면 되짚는 맛이 없다 */
 .ig-feed {
@@ -316,7 +339,7 @@
 }
 .ig-line b {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12.5px;
   letter-spacing: 0.06em;
   margin-right: 6px;
   font-weight: 700;
@@ -378,7 +401,7 @@
   flex: 1;
   min-width: 0;
   font: inherit;
-  font-size: 13px;
+  font-size: 14.5px;
   padding: 6px 10px;
   border-radius: 0;
   background: rgba(0, 0, 0, 0.42);
@@ -1262,6 +1285,41 @@
   }
 }
 
+/* 내 의심도 계기 — 발치 안내줄(.ig-foot) 위, 한가운데 (hud/SelfSuspicion).
+   구석에 뒀더니 눈에 안 들어왔다 (2026-09-05 사용자: "이동 설명 버튼 위에 보여줘 — 구석에 두면 잘 안 보여").
+   내 몸 위에 겹치는 자리라 바탕을 진하게 깔고 막대를 크게 — 겹쳐도 계기가 이긴다.
+   안내줄과의 틈: 안내줄 윗변(60 + 글자 15)에서 계기 아랫변까지 **28px** — 바짝 붙였더니(86) 한 덩어리로 읽혔다
+   (2026-09-05 사용자: "의심도 줄과 밑의 이동 텍스트가 너무 겹쳐 있어"). 안내줄이 움직이면 이 값도 같이 센다 */
+.ig-susme {
+  position: absolute;
+  left: 50%;
+  bottom: 104px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 16px;
+  background: rgba(8, 6, 4, 0.86);
+  border: 1px solid rgba(232, 221, 205, 0.22);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  clip-path: var(--ig-chamfer-sm);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.ig-susme .lbl {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--linen);
+}
+.ig-susme b {
+  min-width: 3.4ch;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--linen);
+}
 .ig-foot {
   position: absolute;
   left: 50%;

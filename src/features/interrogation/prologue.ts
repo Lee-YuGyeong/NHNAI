@@ -57,8 +57,8 @@ export const PROLOGUE: readonly PrologueLine[] = [
   { who: 'control', text: '판별을 시작합니다.' },
 ];
 
-/** 결정적 난수 (mulberry32) — 같은 씨앗이면 네 화면이 같은 순서를 뽑는다 */
-function mulberry32(seed: number): () => number {
+/** 결정적 난수 (mulberry32) — 같은 씨앗이면 네 화면이 같은 순서를 뽑는다 (목소리 섞기도 이걸 쓴다, prologueVoice) */
+export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;

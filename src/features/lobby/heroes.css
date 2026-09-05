@@ -5,9 +5,9 @@
  *   같은 무게로 붙으면 파일이 실리는 순서에 따라 이겼다 졌다 하는데, 그 순서는
  *   번들러가 정하는 것이라 손에 없다. 겹쳐 쓰면 순서와 무관하게 이쪽이 이긴다.
  *
- * ★ 색은 lobby.css 의 것을 그대로 쓴다 — 파란 콘솔(--bl-line). 앰버는 이 파일에 이제
- *   한 군데도 없다: 앰버가 붙던 곳이 제목의 「인간」과 방송 줄이었는데, 2026-09-05 에
- *   글을 다 걷어냈다. 여기서 따뜻한 것은 배경 영상뿐이다.
+ * ★ 색은 lobby.css 의 것을 그대로 쓴다 — 파란 콘솔(--bl-line) + 앰버 한 점.
+ *   앰버가 붙는 곳은 제목의 「인간」(lobby.css 의 .bl-hero__title em) 하나뿐이다 —
+ *   방송 줄의 앰버는 2026-09-05 에 글과 함께 걷혔다.
  */
 
 /*
@@ -15,12 +15,12 @@
  * .bl-hero__late 와 같은 일을 하는데, 저쪽은 부모가 .bl-hero__body--on 이라
  * 옛 표식에만 붙어서 켜는 이름을 .hero-on 하나로 따로 뒀다.
  *
- * HeroKey 의 몸통에서 .hero-late 는 **둘째 칸(문)부터** 시작한다 — 첫째(부제)는 곧장
- * 뜨고, 문(CTA) → 로그인 없이 순서로 한 박자씩 늦게 온다.
+ * HeroKey 의 몸통은 두 칸이다 — 첫째(제목)는 곧장 제 속도로 찍히고, 둘째(문)가 제목이
+ * 다 찍힌 뒤 한 박자 늦게 온다.
  *
  * ★ nth-child 의 숫자는 heroes.tsx 의 **칸 순서에 묶여 있다.** 2026-09-05 에 제목 ·
- *   방송 두 줄 · 서명을 걷어내면서 셋씩 앞당겼다(4·5·6 → 2·3). 몸통에 무엇을 넣거나
- *   빼면 여기도 같이 세야 한다 — 안 맞으면 조용히 어긋나기만 하고 아무도 안 깨진다.
+ *   방송 두 줄 · 서명을 걷어내며 4·5·6 → 2·3, 제목을 되살리며 3·4, 부제와 「로그인 없이」를
+ *   빼며 2 하나가 됐다. 몸통에 무엇을 넣거나 빼면 여기도 같이 세야 한다.
  */
 .hero-late {
   opacity: 0;
@@ -29,43 +29,16 @@
   animation: bl-wake 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .hero-on .hero-late:nth-child(2) { animation-delay: 0.07s; }
-.hero-on .hero-late:nth-child(3) { animation-delay: 0.14s; }
-
-/*
- * 로그인 없이 가는 길 — 예전 inline style 을 그대로 옮긴 것 (heroes.tsx 의 Guest).
- *
- * ★ 색을 .bl-label 의 --bl-faint(#4e6f88) 에서 --bl-dim(#83a8c2) 으로 올렸다.
- *   재 보면 앞의 것은 이 배경에서 **3.5:1** 이라 WCAG AA(4.5:1) 에 못 미친다 —
- *   그냥 흐린 게 아니라 기준 미달이고, 하필 **누를 수 있는 것** 중 유일한 미달이었다.
- *   여기는 로그인 없이 노는 길이라(shared/guest.ts) 이 게임이 한 약속인데,
- *   약속이 화면에서 제일 안 보이는 글자면 안 한 것과 같다. 새 값은 7.8:1.
- *   (라벨·서명은 그대로 둔다 — 저건 읽으라고 놓은 게 아니라 분위기다.)
- */
-.bl .hero-guest {
-  justify-self: start;
-  color: var(--bl-dim);
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  cursor: pointer;
-  text-decoration: underline dotted;
-}
-.bl .hero-guest:hover:not(:disabled) {
-  transform: none;
-  box-shadow: none;
-  color: var(--bl-dim);
-}
 
 /* ══════════════════════ 복도 ══════════════════════════════════════════════
    그려진 복도 한 장 위에 글을 앉힌다. 배경이 **밝고 복잡해서**, 여기서 할 일의
    절반은 「무엇을 더할까」가 아니라 「글이 앉을 어둠을 어디에 깔까」다.
    ════════════════════════════════════════════════════════════════════════ */
 
+/* 글 뭉치는 **화면 한가운데** 선다 (2026-09-05 사용자: 제목을 중앙에, 입장하기도 같이 올린다). 아래에 붙어 있던 시절의 flex-end 가 아니다 */
 .bl-snap.bl-hero.hero--key {
   padding: 0;
-  align-items: flex-end;
+  align-items: center;
   border-bottom: 0;
 }
 /*
@@ -135,7 +108,9 @@
   background:
     linear-gradient(180deg, rgba(2, 8, 15, 0.5) 0%, transparent 22%),
     linear-gradient(180deg, transparent 38%, rgba(2, 8, 15, 0.62) 68%, rgba(2, 8, 15, 0.94) 100%),
-    radial-gradient(ellipse 78% 72% at 50% 46%, transparent 42%, rgba(0, 0, 0, 0.5) 100%);
+    radial-gradient(ellipse 78% 72% at 50% 46%, transparent 42%, rgba(0, 0, 0, 0.5) 100%),
+    /* 한가운데 어둠 한 겹 — 제목과 문이 이제 여기 앉는다. 영상의 밝은 복판 위에 흰 글자가 바로 서면 읽히지 않는다 */
+    radial-gradient(ellipse 62% 46% at 50% 50%, rgba(2, 8, 15, 0.55) 0%, rgba(2, 8, 15, 0.3) 45%, transparent 75%);
 }
 /* 필름 그레인 한 겹 — 없으면 그림만 매끈해서 콘솔 화면과 재질이 안 맞는다 */
 .hero-key__grain {
@@ -156,7 +131,8 @@
   gap: clamp(7px, 1.1vh, 13px);
   width: 100%;
   margin: 0 auto;
-  padding: 0 clamp(16px, 4vw, 48px) clamp(52px, 8vh, 92px);
+  /* 한가운데 서므로 위아래가 같다 — 아래에만 두던 여백(52~92px)은 바닥에 붙어 있던 시절의 것 */
+  padding: 0 clamp(16px, 4vw, 48px);
 }
 /* 라벨은 칸의 맨 위 왼쪽 — 가운데 글 뭉치에 끼워 넣으면 세 줄짜리 문단이 된다 */
 .hero--key .hero-key__tag {
@@ -166,22 +142,23 @@
   left: clamp(16px, 4vw, 48px);
   text-shadow: 0 1px 10px rgba(2, 10, 18, 0.9);
 }
-.hero--key .hero-key__sub {
-  color: var(--bl-ink-2);
-  text-shadow: 0 1px 12px rgba(2, 10, 18, 0.95);
+/* 제목 — 배경이 밝고 복잡해서 그림자를 두껍게 쓴다 (밑을 한 겹, 멀리 한 겹) */
+.hero--key .hero-key__title {
+  font-size: clamp(46px, 9vw, 132px);
+  font-weight: 900;
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+  text-shadow:
+    0 2px 0 rgba(2, 10, 18, 0.5),
+    0 10px 48px rgba(2, 10, 18, 0.92);
 }
 /*
- * 제목(.hero-key__title) · 방송 두 줄(.hero-key__lines) · 서명(.bl-hero__from)의 규칙이
- * 여기 있었다 — 2026-09-05 에 그 글들을 걷어내면서 같이 뺐다 (heroes.tsx 의 「글」 절).
- * 셋 다 배경이 밝아서 그림자를 두껍게 쓰던 자리다. 글을 되살릴 일이 생기면 그 값들은
- * 이 커밋 직전 판에 있다.
+ * 방송 두 줄(.hero-key__lines) · 서명(.bl-hero__from)의 규칙이 여기 있었다 — 2026-09-05 에
+ * 그 글들을 걷어내면서 같이 뺐다 (heroes.tsx 의 「글」 절). 값은 a0cc65b 직전 판에 있다.
  */
 .hero--key .bl-hero__cta {
   justify-content: center;
-  margin-top: 10px;
-}
-.hero--key .hero-guest {
-  justify-self: center;
+  margin-top: clamp(14px, 2.4vh, 26px);
 }
 
 /* ══════════════════════ 모션 · 좁은 화면 ══════════════════════════════════ */

@@ -37,6 +37,8 @@ import {
   GAME_PROLOGUE_MAX_MS,
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
+  TALK,
+  talkFor,
   GAME_TEST_ORDER,
   READ_EVERY_MS,
   READ_MAX_LINES,
@@ -52,8 +54,9 @@ import {
   type GameTestInfo,
   type LeaderKind,
 } from '../../../src/world/mp/game-protocol';
-import { pickBody, type BodyId } from '../../../src/world/mp/bodies';
+import { genderOf, pickBody, type BodyId } from '../../../src/world/mp/bodies';
 import { WALK_SPEED } from '../../../src/world/mp/constants';
+import { givenOf, pickKoreanNames } from '../../../src/world/mp/koreanNames';
 import type { PlayerSnapshot, S2CMessage, TrialGame, TrialPlayerResult, TrialResultWire } from '../../../src/world/mp/protocol';
 import { spawnFor } from '../../../src/world/mp/spawn';
 import type { TrialC2SMessage } from '../../../src/world/mp/validate';
@@ -78,6 +81,7 @@ import {
   echoes,
   isBacking,
   seatMentions,
+  type Mention,
 } from './tells';
 
 export type OutMessage = S2CMessage | GameS2CMessage;
@@ -109,6 +113,8 @@ interface Seat {
   lastSpokeAt: number;
   /** 몸 (mp/bodies.ts) — 사람은 입장 때 받은 것, 대역·AI 는 판이 열릴 때 남은 몸에서 */
   body?: BodyId;
+  /** 남은 발언권 — 한 마디에 하나, 시험이 끝나면 기록만큼 (game-protocol 의 TALK · talkFor). 사람도 봇도 같은 지갑이다 (P10) */
+  talk: number;
 }
 
 interface ChatLine {
@@ -341,6 +347,11 @@ export class GameRuntime {
     const seat = this.seatOfPlayer(playerId);
     if (!seat) return true; // 좌석이 없는 구경꾼 — 판에는 안 실린다
     if (this.phase === 'result') return true; // 모달 동안은 전원 입력이 잠긴다 (§3)
+    // 발언권 하나 — 없으면 말이 안 나간다. 다음 시험에서 기록만큼 다시 받는다 (TALK)
+    if (!this.spendTalk(seat)) {
+      this.reject(playerId, '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다');
+      return true;
+    }
     this.say(seat.id, text);
     const target = this.accusationIn(text, seat.id);
     if (target) this.statement(seat.id, target);
@@ -469,6 +480,7 @@ export class GameRuntime {
       tamperLeft: 0,
       lastSpokeAt: 0,
       body: p.body,
+      talk: TALK.start,
     }));
     for (let i = 0; i < npcCount; i += 1) {
       const body = pickBody(usedBodies, this.rand);
@@ -484,6 +496,7 @@ export class GameRuntime {
         tamperLeft: 0,
         lastSpokeAt: 0,
         body,
+        talk: TALK.start,
       });
     }
     const ai: Seat = {
@@ -497,6 +510,7 @@ export class GameRuntime {
       tamperLeft: 0,
       lastSpokeAt: 0,
       body: pickBody(usedBodies, this.rand),
+      talk: TALK.start,
     };
 
     const assignment = assignRoles(
@@ -509,8 +523,12 @@ export class GameRuntime {
       if (s.role === 'designer') s.tamperLeft = 1;
     }
 
-    // 좌석을 섞는다 — AI 와 설계자도 순열에 든다 (§1.1)
-    this.seats = shuffled([...humans, ai], this.rand).map((s, i) => ({ ...s, seat: i + 1, name: `SUBJECT ${String(i + 1).padStart(2, '0')}` }));
+    // 좌석을 섞는다 — AI 와 설계자도 순열에 든다 (§1.1). 이름은 「SUBJECT 01」이 아니라 한국인 이름이다 — 한 판 안에서
+    // 성도 이름도 겹치지 않고, 몸의 성별을 따른다: 남군은 남자 이름, 여군은 여자 이름 (mp/koreanNames, 2026-09-05 사용자).
+    // 좌석 번호(seat)는 그대로 있어 「3번」도 여전히 통한다
+    const order = shuffled([...humans, ai], this.rand);
+    const names = pickKoreanNames(order.map((s) => genderOf(s.body)), this.rand);
+    this.seats = order.map((s, i) => ({ ...s, seat: i + 1, name: names[i] }));
     this.bindings = new Map();
     for (const p of roster) {
       this.bindings.set(p.id, `seat-${p.id}`);
@@ -800,6 +818,7 @@ export class GameRuntime {
     this.testsDone += 1;
     this.currentTest = null;
     this.deps.broadcast({ t: 'trial_result', result: wire });
+    this.grantTalk(engine.game, published);
     this.setPhase('result', this.now() + GAME_RESULT_MODAL_MS);
     void this.persist();
 
@@ -893,12 +912,13 @@ export class GameRuntime {
    */
   private accusationIn(text: string, bySeatId: string): string | null {
     if (!/AI|에이아이|의심|수상|지목|범인|너지|너잖|쟤야|걔야|아니야\s*\?|아냐\s*\?/i.test(text)) return null;
-    // 번호를 세는 눈은 tells.seatMentions 한 곳이다 — 지목과 호명(calledIn)이 같은 것을 봐야 판이 안 어긋난다
-    let best: { id: string; num: string; score: number } | null = null;
+    // 번호와 이름을 세는 눈은 tells.seatMentions 한 곳이다 — 지목과 호명(calledIn)이 같은 것을 봐야 판이 안 어긋난다.
+    // 좌석은 한국인 이름으로 불리므로(mp/koreanNames) 「지훈」·「김지훈」이 첫째 단서고, 「SUBJECT 03」·「03」·「3번」이 그다음이다
+    let best: Mention | null = null;
     for (const m of seatMentions(text, this.seats, bySeatId)) if (m.score > (best?.score ?? 0)) best = m;
     if (!best || best.score < MENTION_MIN_SCORE) return null;
-    // 번호를 부른 자리부터 짧게 — "3번은 AI 아닌 것 같아" 는 지목이 아니고, "3번 너 AI 아니야?" 는 지목이다
-    const at = text.search(new RegExp(`(?<![0-9])0*${best.num}(?![0-9])`, 'i'));
+    // 이름·번호를 부른 자리부터 짧게 — "지훈이는 AI 아닌 것 같아" 는 지목이 아니고, "지훈이 너 AI 아니야?" 는 지목이다
+    const at = best.at;
     const tail = at >= 0 ? text.slice(at, at + 24) : text;
     if (/(아니|아닌|아냐|아님|말고|빼고)/.test(tail) && !/(아니야|아냐|아닌가|아닙니까)\s*[?？]/.test(tail)) return null;
     return best.id;
@@ -1032,6 +1052,8 @@ export class GameRuntime {
     const now = this.now();
     if (this.claimInFlight.has(me.id) || now - (this.lastClaimAt.get(me.id) ?? 0) < CLAIM_GAP_MS)
       return this.reject(playerId, '앞의 주장을 아직 판정 중이다');
+    // 주장도 말이다 — 발언권 하나 (채팅과 같은 지갑)
+    if (!this.spendTalk(me)) return this.reject(playerId, '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다');
     this.lastClaimAt.set(me.id, now);
     this.claimInFlight.add(me.id);
 
@@ -1098,7 +1120,8 @@ export class GameRuntime {
     // 다음 차례를 **먼저** 잡는다 — LLM 왕복이 끝나야 잡으면 방의 박자가 모델 지연에 매인다 (BOT_TALK_CONCURRENCY)
     this.scheduleTalk();
     if (this.botBusy.size >= BOT_TALK_CONCURRENCY) return;
-    const bots = this.seats.filter((s) => s.kind !== 'real' && !s.isolated && s.persona && !this.botBusy.has(s.id));
+    // 발언권이 남은 봇만 — 지갑이 빈 좌석은 사람이든 봇이든 똑같이 조용하다 (P10 · TALK)
+    const bots = this.seats.filter((s) => s.kind !== 'real' && !s.isolated && s.persona && s.talk > 0 && !this.botBusy.has(s.id));
     if (!bots.length) return;
     const now = this.now();
     // 지목당한 봇이 먼저, 오래 조용했던 봇이 다음 — 그 안에서 무작위
@@ -1118,6 +1141,8 @@ export class GameRuntime {
         opening: this.testsDone === 0 && this.log.length < 3,
       });
       if (!out || !this.active() || pick.isolated) return;
+      // 말을 짓는 동안 지갑이 비었을 수 있다 (같은 좌석의 앞 차례) — 그러면 이 말은 버린다
+      if (!this.spendTalk(pick)) return;
       if (this.phase === 'discussion') {
         this.say(pick.id, out.text);
         if (out.withdraw) this.applyDeltas(this.book.withdraw(pick.id));
@@ -1401,10 +1426,12 @@ export class GameRuntime {
     return this.seats.find((s) => s.id === id)?.name ?? id;
   }
 
+  /** 이름으로 좌석을 — 「김지훈」·「지훈」·「지훈이」 같은 부름과, 관리 AI 가 옛 버릇으로 적는 「SUBJECT 03」·「03」도 받는다 */
   private seatByName(name: string): Seat | null {
     const key = name.replace(/\s+/g, '').toUpperCase();
     return (
       this.seats.find((s) => s.name.replace(/\s+/g, '').toUpperCase() === key) ??
+      this.seats.find((s) => key.includes(givenOf(s.name))) ??
       this.seats.find((s) => key.endsWith(String(s.seat).padStart(2, '0')) || key === String(s.seat)) ??
       null
     );
@@ -1478,7 +1505,44 @@ export class GameRuntime {
       startedAt: this.startedAt || null,
       // 붙잡고 있는 동안만 화면이 대본을 튼다 — 트는 쪽과 붙잡는 쪽이 같은 값을 봐야 안 겹친다
       prologue: this.prologueHold !== null,
+      talk: this.talkSnapshot(),
     };
+  }
+
+  /* ─────────────────────────────── 발언권 ─────────────────────────────── */
+
+  private talkSnapshot(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const s of this.seats) out[s.id] = s.talk;
+    return out;
+  }
+
+  /**
+   * 한 마디의 값 — 있으면 하나 쓰고 참, 없으면 거짓. 쓴 뒤의 지갑은 전원에게 간다 (game_talk):
+   * 남은 수는 곧 시험 기록이라 감출 것이 없고, 화면은 이걸로 「말하기」를 잠근다.
+   */
+  private spendTalk(seat: Seat): boolean {
+    if (seat.talk <= 0) return false;
+    seat.talk -= 1;
+    this.deps.broadcast({ t: 'game_talk', talk: this.talkSnapshot() });
+    return true;
+  }
+
+  /**
+   * 시험이 끝났다 — 기록만큼 지급한다 (TALK · talkFor). 격리된 좌석은 결과에 없으니 자연히 못 받는다.
+   * 공개본(조작본)으로 센다: 지갑이 기록과 어긋나면 그 어긋남이 조작을 새게 하는 자리가 된다 (P7).
+   * 안 쓴 것은 TALK.carry 까지만 넘어가고 지급은 온전히 얹는다 — 1등이 「+0」을 받는 일이 없다 (TALK 머리말).
+   */
+  private grantTalk(game: TrialGame, published: TrialPlayerResult[]): void {
+    const gained: Record<string, number> = {};
+    for (const p of published) {
+      const seat = this.seats.find((s) => s.id === p.id);
+      if (!seat || seat.isolated) continue;
+      const gain = talkFor(game, p.metrics, GAME_TEST_MS);
+      seat.talk = Math.min(seat.talk, TALK.carry) + gain;
+      gained[seat.id] = gain;
+    }
+    this.deps.broadcast({ t: 'game_talk', talk: this.talkSnapshot(), gained, game });
   }
 
   private broadcastState(): void {
@@ -1530,7 +1594,8 @@ export class GameRuntime {
     if (!saved || saved.phase === 'lobby' || saved.phase === 'ended') return;
     const seats = saved.seats as Seat[];
     if (!Array.isArray(seats) || !seats.length) return;
-    this.seats = seats;
+    // 발언권이 없던 시절의 저장본이면 시작값으로 — 잠들었다 깬 판이 벙어리가 되면 안 된다
+    this.seats = seats.map((s) => ({ ...s, talk: finite(s.talk, TALK.start) }));
     this.bindings = new Map(saved.bindings as [string, string][]);
     this.nicks = new Map((saved.nicks as [string, string][]) ?? []);
     this.book = new SuspicionBook(seats.map((s) => s.id));

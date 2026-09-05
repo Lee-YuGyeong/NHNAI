@@ -64,6 +64,8 @@ export interface GameState {
   endedAt: number | null;
   /** 서버가 거절한 마지막 사유 */
   reject: string | null;
+  /** 마지막 시험이 준 발언권 — 결과 모달의 열 하나 (game_talk 의 gained) */
+  talkGained: { game: TrialGame; gained: Record<string, number> } | null;
 }
 
 const initialState: GameState = {
@@ -93,6 +95,7 @@ const initialState: GameState = {
   outcome: null,
   endedAt: null,
   reject: null,
+  talkGained: null,
 };
 
 const FEED_KEEP = 120;
@@ -138,6 +141,7 @@ export const interrogationSlice = createSlice({
         s.endedAt = null;
         s.verdict = null;
         s.test = null;
+        s.talkGained = null;
       }
       if (a.payload.phase !== 'test') {
         s.test = null;
@@ -193,6 +197,20 @@ export const interrogationSlice = createSlice({
     },
     rejected(s, a: PayloadAction<string>) {
       s.reject = a.payload;
+    },
+    /**
+     * 발언권이 움직였다 (game_talk). 지급이면 로그에 한 줄 — 누가 얼마나 받았는지는 기록의 일부라 전원이 본다.
+     * 차감은 조용하다: 말 한 줄마다 「−1」이 찍히면 대화가 장부가 된다.
+     */
+    talkReceived(s, a: PayloadAction<{ talk: Record<string, number>; gained?: Record<string, number>; game?: TrialGame }>) {
+      if (s.wire) s.wire.talk = a.payload.talk;
+      if (!a.payload.gained || !a.payload.game) return;
+      s.talkGained = { game: a.payload.game, gained: a.payload.gained };
+      const nameOf = (id: string) => s.wire?.seats.find((x) => x.id === id)?.name ?? id;
+      const parts = Object.entries(a.payload.gained)
+        .sort((x, y) => y[1] - x[1])
+        .map(([id, n]) => `${nameOf(id)} +${n}`);
+      if (parts.length) push(s, { id: 'system', name: '', text: `발언권 지급 — ${parts.join(' · ')}`, ts: Date.now(), kind: 'system' });
     },
     clearReject(s) {
       s.reject = null;
@@ -288,4 +306,13 @@ export const gameSelectors = {
   selectOutcome: (r: Root) => r.interrogation.outcome,
   selectEndedAt: (r: Root) => r.interrogation.endedAt,
   selectReject: (r: Root) => r.interrogation.reject,
+  selectTalkGained: (r: Root) => r.interrogation.talkGained,
+  /** 내 남은 발언권 — 좌석이 없으면 null */
+  selectMyTalk: (r: Root) => {
+    const me = r.interrogation.me;
+    const talk = r.interrogation.wire?.talk;
+    if (!me || !talk) return null;
+    const n = talk[me.seatId];
+    return typeof n === 'number' ? n : null;
+  },
 };

@@ -11,7 +11,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { EndScreen, ResultModal } from '@/features/interrogation/hud/Panels';
+import { Chat, EndScreen, ResultModal } from '@/features/interrogation/hud/Panels';
 import { gameActions, interrogationSlice } from '@/features/interrogation/interrogationSlice';
 import type { GameStateWire } from '@/world/mp/game-protocol';
 import type { TrialResultWire } from '@/world/mp/protocol';
@@ -47,16 +47,76 @@ const WIRE: GameStateWire = {
   humansOnline: 1,
   outcome: null,
   startedAt: 1,
+  talk: {},
 };
 
 describe('ResultModal', () => {
-  it('무리 평균이 참가자 줄과 같이 서고 판정 낱말이 없다', () => {
+  it('요약만 — 버틴 시간 · 등수 · 발언권. 무리 평균도 상세 지표도 판정 낱말도 없다', () => {
     render(<ResultModal result={RESULT} nameOf={(id) => (id === 's1' ? 'SUBJECT 01' : 'SUBJECT 02')} mySeatId="s1" endsAt={null} />);
-    expect(screen.getByText('무리 평균')).toBeInTheDocument();
+    expect(screen.queryByText('무리 평균')).toBeNull();
+    expect(screen.queryByText('전환 직후 오차')).toBeNull();
     expect(screen.getByText('SUBJECT 01')).toBeInTheDocument();
     expect(screen.getByText('SUBJECT 02')).toBeInTheDocument();
     expect(screen.queryByText(/정상|이상치/)).toBeNull();
     expect(screen.getByText(/낙하 생존/)).toBeInTheDocument();
+    // 등수는 버틴 시간순 — s2(60 → 시험 길이로 잘려 「끝까지」)가 1등, s1(12.4초)이 2등
+    expect(screen.getByText(/끝까지/)).toBeInTheDocument();
+    expect(screen.getByText('12.4초')).toBeInTheDocument();
+    const rows = screen.getAllByRole('row').slice(1);
+    expect(rows[0].textContent).toContain('SUBJECT 02');
+    expect(rows[0].textContent).toContain('1등');
+    expect(rows[1].textContent).toContain('2등');
+  });
+});
+
+/**
+ * 발언권 (game-protocol 의 TALK) — 머리띠에 남은 수, 비면 입력이 잠긴다. 결과 표에는 받은 수가 열 하나로 선다.
+ */
+describe('Chat — 발언권', () => {
+  const noop = () => {};
+  it('남은 수를 머리띠에 적고, 비면 「말하기」를 잠근다 — 판은 서 있어서 남의 말은 계속 읽는다', () => {
+    const { rerender } = render(<Chat feed={[]} mySeatId="s1" markId={null} disabled={false} talk={4} onSend={noop} onComposing={noop} />);
+    expect(screen.getByTitle(/남은 발언권/).textContent).toContain('4');
+    expect(screen.getByPlaceholderText('Enter 로 말하기')).not.toBeDisabled();
+
+    rerender(<Chat feed={[]} mySeatId="s1" markId={null} disabled={false} talk={0} onSend={noop} onComposing={noop} />);
+    expect(screen.getByTitle(/남은 발언권/).textContent).toContain('0');
+    expect(screen.getByPlaceholderText(/발언권이 없다/)).toBeDisabled();
+    expect(screen.getByRole('button', { name: '말하기' })).toBeDisabled();
+  });
+
+  it('로비(null)에서는 세지 않는다', () => {
+    render(<Chat feed={[]} mySeatId={null} markId={null} disabled={false} talk={null} onSend={noop} onComposing={noop} />);
+    expect(screen.queryByTitle(/남은 발언권/)).toBeNull();
+  });
+
+  /*
+   * 2026-09-05 사용자: "대화창은 대화만 보이게" — 관리 AI 의 지시문(leader) · 발언권 지급(system) · 의심도의
+   * 오르내림(delta)은 저장소에는 남되 판에는 안 그린다. 지시문은 안내판과 목소리가, 의심도는 몸 위 막대가 전한다.
+   */
+  it('대화만 그린다 — 관리 AI 방송 · 판의 소식 · 의심도 줄은 저장소에 있어도 판에 없다', () => {
+    const feed = [
+      { id: 's1', name: 'SUBJECT 01', text: '난 사람이야', ts: 1, kind: 'chat' as const },
+      { id: 'LEADER', name: '관리 AI', text: '[시험 2/3] 움직이는 플랫폼 테스트 1회차를 연다. 30초.', ts: 2, kind: 'leader' as const },
+      { id: 'system', name: '', text: '발언권 지급 — SUBJECT 02 +1 · SUBJECT 01 +0', ts: 3, kind: 'system' as const },
+      { id: 'system', name: '', text: '관리 AI → SUBJECT 03 -3 (즉흥적 감탄)', ts: 4, kind: 'delta' as const },
+      { id: 's2', name: 'SUBJECT 02', text: '그건 AI 도 그렇게 말하지', ts: 5 },
+    ];
+    render(<Chat feed={feed} mySeatId="s1" markId={null} disabled={false} talk={4} onSend={noop} onComposing={noop} />);
+    expect(screen.getByText('난 사람이야')).toBeTruthy();
+    expect(screen.getByText('그건 AI 도 그렇게 말하지')).toBeTruthy();
+    expect(screen.queryByText(/시험 2\/3/)).toBeNull();
+    expect(screen.queryByText(/발언권 지급/)).toBeNull();
+    expect(screen.queryByText(/SUBJECT 03 -3/)).toBeNull();
+  });
+});
+
+describe('ResultModal — 발언권 열', () => {
+  it('gained 가 있으면 마지막 열에 +N 으로 선다', () => {
+    render(<ResultModal result={RESULT} nameOf={(id) => id} mySeatId="s1" endsAt={null} gained={{ s1: 7, s2: 1 }} />);
+    expect(screen.getByRole('columnheader', { name: '발언권' })).toBeTruthy();
+    expect(screen.getByText('+7')).toBeTruthy();
+    expect(screen.getByText('+1')).toBeTruthy();
   });
 });
 

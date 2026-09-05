@@ -5,7 +5,7 @@
  * 「대한민국 정부 특수인공지능대응센터」 간판. 양 옆벽엔 2층 메자닌 유리 관제실(중앙 통제실 · 연구구역)과
  * 1층 유리실(서버실 · AI 분석실), 형광등 천장, 광택 콘크리트 바닥에 노란 차선, 철문과 호박색 벽등.
  *
- * ★ **판은 격납고 홀 그대로다.** 발자국(x ±12 · z −20~12) · 무대 · 계단 · 옆벽 콘솔 16 · 컨테이너 6 · 등 뒤 도크 4 의 충돌 상자를
+ * ★ **판은 격납고 홀 그대로다 — 무대·계단·등 뒤 도크만 뺐다.** 발자국(x ±12 · z −20~12) · 옆벽 콘솔 16 · 컨테이너 6 의 충돌 상자를
  *   warehouse/layout.ts 에서 그대로 가져온다 — 게임(features/arena)의 ARENA · lab/objects.ts 카탈로그 · 시행 판정이 전부 그
  *   목록을 순서대로 읽기 때문이다. 여기서 바뀌는 것은 **보이는 것**뿐이다 (govcenter/layout.ts). 방(알코브)은 벽 바깥에 파고
  *   메자닌·난간은 머리 위라 새 충돌 상자가 없다. 배회 마당(x ±7 · z −12~0.5)에는 아무것도 안 놓는다.
@@ -13,7 +13,8 @@
  * 텍스처(힉스필드 2026-09-04, public/textures/govcenter/): 콘크리트 바닥·벽 2장(z_image), 상황판 3장 · 벽걸이 모니터 1장(nano_banana_pro),
  * 유리 너머 인테리어 4장(soul_location). 간판·정부 상징은 캔버스 텍스처(한글은 이미지 모델이 못 쓴다).
  * GLB(Tripo Studio, tools/govcenter-parts.json → tripo-studio-parts.sh → govcenter-glb.sh): 서버 랙 · 워크스테이션 · 철문 · 벽등 · 옆벽 콘솔.
- * 격납고 홀 부품(격벽 링 · 격납문 · 컨테이너 · 도크 · 드론)은 그대로 재사용. 알베도는 버리고 노멀맵만 쓴다 (useShapedMaterial).
+ * 격납고 홀 부품(컨테이너 · 드론)은 그대로 재사용. 알베도는 버리고 노멀맵만 쓴다 (useShapedMaterial). 격벽 링 · 격납문 · 도크는
+ * 2026-09-05 에 걷었다 (사용자: "이 앞의 문과 거치대가 좀 이상한데") — 등 뒤 벽도 이 홀의 철문과 벽등이다 (layout.ts 머리말).
  * ★ 옆벽 콘솔만 복도 부품(sci_console)에서 **이 홀 전용 gov_console 로 갈아탔다** — 자세한 까닭은 assets/manifest.ts 의 그 항목에.
  *
  * 구조: 배치 배열은 **모듈 수준 상수** — 종류당 드로우콜 하나. 실제 광원은 Lights 가 14개 쥔다. 블룸 없음.
@@ -26,29 +27,25 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import { groundHeightAt as groundHeightWith, resolveCollisions } from '../mp/collide';
-import { doors } from '../mp/doors';
 import type { QualityTier } from '../perf/quality';
 import { GlbPart, type Fit, type InstanceItem } from './corridor/part';
 import { Instanced, Parts, useTiled, type Item } from './parts';
-import { CONSOLE_FIT, WARM_MAT, hdr, useShapedMaterial } from './scifi';
+import { CONSOLE_FIT, hdr, useShapedMaterial } from './scifi';
 import {
   BAY_CENTERS,
   BAY_LIGHT,
   BOARD,
   BOARD_CENTER_W,
   BOARD_LIGHT,
+  BACK_DOOR_XS,
   BOARD_SIDE_W,
   CARGO,
   CARGOS,
   CEIL_BEAM,
   CEILING_Y,
-  COLLIDERS,
   CONSOLE_BAYS,
   CORNER_PILASTER_X,
   DESK,
-  DOCK,
-  DOCK_XS,
-  DOOR,
   DOOR_LIGHT,
   DRONE,
   EMBLEM,
@@ -57,6 +54,7 @@ import {
   FLOOR_TILE,
   FLUOR,
   FOCUS,
+  HALL_COLLIDERS,
   HALL_LEN,
   LANE,
   MEZZ,
@@ -66,18 +64,12 @@ import {
   PILASTER_ZS,
   RACK,
   RAIL,
-  RING,
   ROOMS,
   SIDE_DOOR_Z,
   SIGN,
-  STAGE,
   STAGE_CENTER_Z,
-  STAGE_FRONT_Z,
-  STAGE_MARK,
   STAGE_SPOT,
-  STAGE_STRIP,
   STEEL_DOOR,
-  STEPS,
   TITLE,
   WALL_LAMP,
   WALL_MONITOR,
@@ -111,11 +103,7 @@ useTexture.preload(TEX_LIST);
 
 /** 철골·베젤 — 격납고 홀과 같은 어두운 강철 */
 const BEZEL_MAT = new THREE.MeshStandardMaterial({ color: '#0b0d11', roughness: 0.55, metalness: 0.5 });
-/** 무대 — 콘크리트보다 조금 어두운 무광 회색 */
-const STAGE_MAT = new THREE.MeshStandardMaterial({ color: '#5f656d', roughness: 0.7, metalness: 0.15 });
-const STEP_MAT = new THREE.MeshStandardMaterial({ color: '#555b63', roughness: 0.7, metalness: 0.15 });
-const MARK_MAT = new THREE.MeshStandardMaterial({ color: '#3a4049', roughness: 0.75, metalness: 0.1 });
-/** 무대턱·계단·컨테이너 밑단의 안내 띠 — 무광 바닥에서 턱이 안 읽히면 헛디딘다 (격납고 홀과 같은 생각). 따뜻한 흰색 */
+/** 컨테이너 밑단의 안내 띠 — 무광 바닥에서 턱이 안 읽히면 헛디딘다 (격납고 홀과 같은 생각). 따뜻한 흰색. 무대턱·계단의 띠는 단상과 함께 갔다 */
 const GUIDE_MAT = new THREE.MeshBasicMaterial({ color: hdr('#e8e2cf', 0.75), toneMapped: false });
 /** 형광등 — 차가운 흰색 발광 */
 const FLUOR_MAT = new THREE.MeshBasicMaterial({ color: hdr('#e9f1ff', 1.45), toneMapped: false });
@@ -324,49 +312,11 @@ for (const x of FLUOR.xs) {
 
 const LANES: Item[] = LANE.xs.map((x): Item => ({ position: [x, 0.004, MID_Z], scale: [LANE.w, 0.006, HALL_LEN - 2] }));
 
-/* ─────────────────────────────── 무대 (격납고 홀과 같은 형상) ─────────────────────────────── */
+/* ─────────────────────────────── 끝벽 앞 — 단상은 없다 (2026-09-05 사용자: "단상 없애줘") ───────────────────────────────
+   무대턱(0.75m 8각) · 계단 셋 · 안내 띠 · 바닥 표식이 여기 있었다. 지금은 평평한 바닥이고 처형자가 그 위에 선다(Executioner).
+   천장의 스포트 기구와 빛은 남긴다 — 그 자리를 비추는 것은 단상이 아니라 거기 선 사람이다. */
 
-const STAGE_GEO = (() => {
-  const hw = STAGE.w / 2;
-  const c = STAGE.chamfer;
-  const front = -STAGE_FRONT_Z;
-  const back = -FAR_Z;
-  const sh = new THREE.Shape();
-  sh.moveTo(-hw + c, front);
-  sh.lineTo(hw - c, front);
-  sh.lineTo(hw, front + c);
-  sh.lineTo(hw, back);
-  sh.lineTo(-hw, back);
-  sh.lineTo(-hw, front + c);
-  sh.closePath();
-  const g = new THREE.ExtrudeGeometry(sh, { depth: STAGE.h, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 });
-  g.rotateX(-Math.PI / 2);
-  g.computeVertexNormals();
-  return g;
-})();
-const STEP_ITEMS: Item[] = Array.from({ length: STEPS.n }, (_, i): Item => {
-  const top = STEPS.rise * (STEPS.n - i);
-  return { position: [0, top / 2, STAGE_FRONT_Z + STEPS.run * (i + 0.5)], scale: [STEPS.w, top, STEPS.run] };
-});
-const STAGE_STRIPS: Item[] = (() => {
-  const items: Item[] = [];
-  const hw = STAGE.w / 2;
-  const c = STAGE.chamfer;
-  const z = STAGE_FRONT_Z + STAGE_STRIP.d / 2 + 0.01;
-  const inner = STEPS.w / 2 + 0.25;
-  const outer = hw - c - 0.15;
-  for (const s of [-1, 1]) {
-    items.push({ position: [s * ((inner + outer) / 2), STAGE_STRIP.y, z], scale: [outer - inner, STAGE_STRIP.h, STAGE_STRIP.d] });
-    const len = c * Math.SQRT2 - 0.3;
-    items.push({ position: [s * (hw - c / 2 + 0.02), STAGE_STRIP.y, STAGE_FRONT_Z + c / 2 + 0.02], scale: [len, STAGE_STRIP.h, STAGE_STRIP.d], rotation: [0, (s * Math.PI) / 4, 0] });
-  }
-  for (let i = 0; i < STEPS.n; i++) {
-    const top = STEPS.rise * (STEPS.n - i);
-    items.push({ position: [0, top - 0.09, STAGE_FRONT_Z + STEPS.run * (i + 1) + 0.02], scale: [STEPS.w - 0.6, 0.04, 0.03] });
-  }
-  return items;
-})();
-/** 무대 위 스포트 기구 — 천장의 검정 상자 */
+/** 끝벽 앞 스포트 기구 — 천장의 검정 상자 */
 const STAGE_FIXTURE: Item[] = [{ position: [0, CEILING_Y - 0.25, STAGE_CENTER_Z], scale: [0.5, 0.5, 0.5] }];
 
 /* ─────────────────────────────── 끝벽 — 상황판 · 간판 · 철문 · 벽등 ─────────────────────────────── */
@@ -393,15 +343,20 @@ const DOOR_FIT: Fit = { x: STEEL_DOOR.depth, y: STEEL_DOOR.h, z: STEEL_DOOR.w };
 const STEEL_DOOR_ITEMS: InstanceItem[] = [
   ...END_DOOR_XS.map((x): InstanceItem => ({ position: [x, 0, FAR_Z + STEEL_DOOR.depth / 4], rotationY: -Math.PI / 2 })),
   ...[-1, 1].map((s): InstanceItem => ({ position: [s * (WALL_X - STEEL_DOOR.depth / 4), 0, SIDE_DOOR_Z], rotationY: faceHallFromX(s as -1 | 1) })),
+  // 등 뒤 벽(+z) 의 두 짝 문 — 끝벽 문을 뒤집은 것 (+x → −z 로, +π/2). 격납문이 있던 자리다 (layout.ts 머리말)
+  ...BACK_DOOR_XS.map((x): InstanceItem => ({ position: [x, 0, NEAR_Z - STEEL_DOOR.depth / 4], rotationY: Math.PI / 2 })),
 ];
 /** 문 위 검정 상인방 — 부품이 벽에 반쯤 묻혀도 문틀이 읽힌다 */
 const DOOR_LINTELS: Item[] = [
   ...END_DOOR_XS.map((x): Item => ({ position: [x, STEEL_DOOR.h + 0.08, FAR_Z + 0.06], scale: [STEEL_DOOR.w + 0.3, 0.16, 0.12] })),
   ...[-1, 1].map((s): Item => ({ position: [s * (WALL_X - 0.06), STEEL_DOOR.h + 0.08, SIDE_DOOR_Z], scale: [0.12, 0.16, STEEL_DOOR.w + 0.3] })),
+  // 등 뒤 두 짝 문은 상인방 하나가 둘을 덮는다
+  { position: [0, STEEL_DOOR.h + 0.08, NEAR_Z - 0.06], scale: [STEEL_DOOR.w * 2 + 0.3, 0.16, 0.12] },
 ];
 /**
- * 벽등 — 문 양옆. 끝벽 넷 + 옆벽 넷. 모델은 바닥판 위에 선 채(+y 가 렌즈 쪽)라 **판이 벽을 보게 눕힌다**:
- * 끝벽(벽이 −z)은 x 축 +90°(−y → −z), 왼벽(벽이 −x)은 z 축 −90°, 오른벽은 +90°. 렌즈는 벽에서 size × 0.6 앞
+ * 벽등 — 문 양옆. 끝벽 넷 + 옆벽 넷 + 등 뒤 둘. 모델은 바닥판 위에 선 채(+y 가 렌즈 쪽)라 **판이 벽을 보게 눕힌다**:
+ * 끝벽(벽이 −z)은 x 축 +90°(−y → −z), 등 뒤 벽(벽이 +z)은 x 축 −90°, 왼벽(벽이 −x)은 z 축 −90°, 오른벽은 +90°.
+ * 렌즈는 벽에서 size × 0.6 앞
  */
 const LAMP_FIT: Fit = { y: WALL_LAMP.size };
 interface LampSpot {
@@ -413,6 +368,8 @@ interface LampSpot {
 const LAMPS: LampSpot[] = [
   ...END_DOOR_XS.flatMap((x): LampSpot[] => [-1, 1].map((k): LampSpot => ({ position: [x + k * WALL_LAMP.off, WALL_LAMP.y, FAR_Z + 0.02], rotation: [Math.PI / 2, 0, 0], lens: [x + k * WALL_LAMP.off, WALL_LAMP.y, FAR_Z + WALL_LAMP.size * 0.6] }))),
   ...[-1, 1].flatMap((s): LampSpot[] => [-1, 1].map((k): LampSpot => ({ position: [s * (WALL_X - 0.02), WALL_LAMP.y, SIDE_DOOR_Z + k * WALL_LAMP.off], rotation: [0, 0, (-s * Math.PI) / 2], lens: [s * (WALL_X - WALL_LAMP.size * 0.6), WALL_LAMP.y, SIDE_DOOR_Z + k * WALL_LAMP.off] }))),
+  // 등 뒤 두 짝 문 양옆 — 문이 두 짝이라 벽등은 문 폭(2.6)의 바깥에 선다
+  ...[-1, 1].map((k): LampSpot => ({ position: [k * (STEEL_DOOR.w + WALL_LAMP.off), WALL_LAMP.y, NEAR_Z - 0.02], rotation: [-Math.PI / 2, 0, 0], lens: [k * (STEEL_DOOR.w + WALL_LAMP.off), WALL_LAMP.y, NEAR_Z - WALL_LAMP.size * 0.6] })),
 ];
 
 /* ─────────────────────────────── 옆벽 콘솔 (충돌 상자와 같은 자리) ─────────────────────────────── */
@@ -423,40 +380,9 @@ const LAMPS: LampSpot[] = [
  */
 const CONSOLE_ITEMS: InstanceItem[] = CONSOLE_BAYS.flatMap((z) => [-1, 1].map((s): InstanceItem => ({ position: [s * (WALL_X - 0.35), 0, z], rotationY: s < 0 ? 0 : Math.PI })));
 
-/* ─────────────────────────────── 등 뒤 벽 — 격벽 링 · 격납문 · 도크 (격납고 홀 그대로) ─────────────────────────────── */
-
-const RING_MODEL = { w: 0.894, h: 1 } as const;
-const RING_FIT: Fit = { x: RING.thickness, y: RING_MODEL.h * RING.scale, z: RING_MODEL.w * RING.scale };
-const RING_ITEMS: InstanceItem[] = [{ position: [0, -RING.sink, NEAR_Z - RING.thickness / 2], rotationY: Math.PI / 2 }];
-const BLAST_FIT: Fit = { x: DOOR.depth, y: DOOR.h, z: DOOR.w };
-const BLAST_ITEMS: InstanceItem[] = [{ position: [0, 0, NEAR_Z - DOOR.depth / 2 - 0.02], rotationY: Math.PI / 2 }];
-const DOOR_OPEN_SPEED = 1.1;
-
-/** 등 뒤 격납문 — 들어온 문. 열린 채로 시작해 닫힌다 (world/mp/doors 의 hall). 격납고 홀의 HallDoor 와 같다 */
-function HallDoor({ material }: { material: THREE.Material }) {
-  const group = useRef<THREE.Group>(null);
-  useFrame((_, delta) => {
-    const g = group.current;
-    if (!g) return;
-    const targetY = doors.get().hall * (DOOR.h + 0.2);
-    if (Math.abs(g.position.y - targetY) < 1e-3) return;
-    g.position.y += Math.sign(targetY - g.position.y) * Math.min(Math.abs(targetY - g.position.y), DOOR_OPEN_SPEED * Math.min(delta, 0.1));
-  });
-  return (
-    <group ref={group} position={[0, doors.get().hall * (DOOR.h + 0.2), 0]}>
-      <Parts id="sci_blast_door" fit={BLAST_FIT} items={BLAST_ITEMS} material={material} />
-    </group>
-  );
-}
-
-const DOCK_FIT: Fit = { x: DOCK.w, y: DOCK.h, z: DOCK.depth };
-const DOCK_ITEMS: InstanceItem[] = DOCK_XS.map((x): InstanceItem => ({ position: [x, 0, NEAR_Z - DOCK.depth], rotationY: Math.PI }));
-const DOCK_FRONT_Z = NEAR_Z - DOCK.depth - 0.03;
-const DOCK_STRIPS: Item[] = DOCK_XS.flatMap((x): Item[] => [
-  ...[-1, 1].map((s): Item => ({ position: [x + s * DOCK.w * 0.3, DOCK.h * 0.56, DOCK_FRONT_Z], scale: [0.05, DOCK.h * 0.66, 0.03] })),
-  { position: [x, 0.1, DOCK_FRONT_Z + 0.06], scale: [DOCK.w * 0.8, 0.04, 0.03] },
-]);
-const DOCK_DOTS: Item[] = DOCK_XS.map((x): Item => ({ position: [x, DOCK.h * 0.94, DOCK_FRONT_Z], scale: [0.12, 0.08, 0.03] }));
+/* ─────────────────────────────── 등 뒤 벽 ───────────────────────────────
+   격벽 링 · 격납문(HallDoor, 들어온 뒤 닫히던 것) · 충전 도크 넷이 여기 있었다 — 2026-09-05 에 걷었다 (layout.ts 머리말 ★).
+   등 뒤 벽의 문은 이제 위의 STEEL_DOOR_ITEMS(BACK_DOOR_XS)·DOOR_LINTELS·LAMPS 에 다른 벽의 문과 나란히 들어 있다. */
 
 /* ─────────────────────────────── 화물 컨테이너 (격납고 홀 그대로 — 카탈로그 물건) ─────────────────────────────── */
 
@@ -578,10 +504,7 @@ export function Govcenter(_props: GovcenterProps) {
   const floorMap = useTiled(floorTex, 1, 1);
   const wallMap = useTiled(wallTex, 1, 1);
   const consoleMat = useShapedMaterial('gov_console');
-  const ringMat = useShapedMaterial('sci_bulkhead');
-  const blastMat = useShapedMaterial('sci_blast_door');
   const cargoMat = useShapedMaterial('cargo_container', CARGO_TINT);
-  const dockMat = useShapedMaterial('charge_dock');
   const droneMat = useShapedMaterial('watch_drone');
   const rackMat = useShapedMaterial('gov_server_rack');
   const deskMat = useShapedMaterial('gov_workstation');
@@ -695,19 +618,8 @@ export function Govcenter(_props: GovcenterProps) {
       {WALL_MONITOR_SCREENS.map((p, i) => picture(p, mats.monitor, `monitor${i}`))}
       <Parts id="gov_console" fit={CONSOLE_FIT} items={CONSOLE_ITEMS} material={consoleMat} />
 
-      {/* 무대 · 계단 · 안내 띠 · 표식 · 스포트 기구 */}
-      <group name="무대">
-        <mesh name="무대턱" geometry={STAGE_GEO} material={STAGE_MAT} />
-        <Instanced name="계단" items={STEP_ITEMS} material={STEP_MAT} />
-        <Instanced name="무대 안내 띠" items={STAGE_STRIPS} material={GUIDE_MAT} receiveShadow={false} />
-        <mesh name="무대 표식" rotation-x={-Math.PI / 2} position={[0, STAGE.h + 0.006, STAGE_CENTER_Z]} material={MARK_MAT}>
-          <circleGeometry args={[STAGE_MARK.r, 48]} />
-        </mesh>
-        <mesh name="무대 표식 링" rotation-x={-Math.PI / 2} position={[0, STAGE.h + 0.012, STAGE_CENTER_Z]} material={GUIDE_MAT}>
-          <ringGeometry args={[STAGE_MARK.r - STAGE_MARK.ring, STAGE_MARK.r, 64]} />
-        </mesh>
-        <Instanced name="스포트 기구" items={STAGE_FIXTURE} material={BEZEL_MAT} />
-      </group>
+      {/* 끝벽 앞 스포트 기구 — 단상은 없다 (위 절) */}
+      <Instanced name="스포트 기구" items={STAGE_FIXTURE} material={BEZEL_MAT} />
 
       {/* 철문 · 벽등 */}
       <Parts id="gov_steel_door" fit={DOOR_FIT} items={STEEL_DOOR_ITEMS} material={doorMat} />
@@ -720,13 +632,6 @@ export function Govcenter(_props: GovcenterProps) {
           </mesh>
         </group>
       ))}
-
-      {/* 등 뒤 — 격벽 링 + 격납문 + 충전 도크 (격납고 홀 그대로) */}
-      <Parts id="sci_bulkhead" fit={RING_FIT} items={RING_ITEMS} material={ringMat} />
-      <HallDoor material={blastMat} />
-      <Parts id="charge_dock" fit={DOCK_FIT} items={DOCK_ITEMS} material={dockMat} />
-      <Instanced name="도크 채널" items={DOCK_STRIPS} material={GUIDE_MAT} receiveShadow={false} />
-      <Instanced name="도크 표시등" items={DOCK_DOTS} material={WARM_MAT} receiveShadow={false} />
 
       {/* 바닥의 화물 컨테이너 — 리더가 가리킬 물건 (lab/objects.ts 카탈로그) */}
       <Parts id="cargo_container" fit={CARGO_FIT} items={CARGO_ITEMS} material={cargoMat} />
@@ -780,26 +685,27 @@ export function GovcenterLights(_props: { flicker: boolean }) {
       {[BOARD_XS.left, 0, BOARD_XS.right].map((x) => (
         <pointLight key={x} position={[x, BOARD_LIGHT.y, FAR_Z + BOARD_LIGHT.off]} intensity={BOARD_LIGHT.intensity} distance={BOARD_LIGHT.distance} decay={1.7} color="#86b4ff" />
       ))}
-      {/* 스포트 → 무대 가운데 */}
-      <object3D ref={target} position={[0, STAGE.h, STAGE_CENTER_Z]} />
+      {/* 스포트 → 끝벽 앞 바닥, 처형자가 서는 자리 */}
+      <object3D ref={target} position={[0, 0, STAGE_CENTER_Z]} />
       <spotLight ref={spot} position={[0, STAGE_SPOT.y, STAGE_CENTER_Z]} angle={STAGE_SPOT.angle} penumbra={0.6} intensity={STAGE_SPOT.intensity} distance={STAGE_SPOT.distance} decay={1.6} color="#eef3ff" />
-      {/* 끝벽 철문의 호박색 벽등 */}
+      {/* 끝벽 철문의 호박색 벽등 · 등 뒤 두 짝 문의 것 하나 */}
       {END_DOOR_XS.map((x) => (
         <pointLight key={x} position={[x, WALL_LAMP.y, FAR_Z + 0.6]} intensity={DOOR_LIGHT.intensity} distance={DOOR_LIGHT.distance} decay={1.8} color="#ffb060" />
       ))}
+      <pointLight position={[0, WALL_LAMP.y, NEAR_Z - 0.6]} intensity={DOOR_LIGHT.intensity} distance={DOOR_LIGHT.distance} decay={1.8} color="#ffb060" />
     </>
   );
 }
 
 /* ─────────────────────────────── 충돌 ─────────────────────────────── */
 
-/** 충돌 데이터는 warehouse/layout.ts 의 COLLIDERS(재수출), 판정은 mp/collide.ts. 여기는 THREE.Vector3 를 제자리에서 고쳐 주는 껍데기다 */
+/** 충돌 데이터는 govcenter/layout.ts 의 HALL_COLLIDERS(격납고 것에서 무대·계단을 뺀 것), 판정은 mp/collide.ts. 여기는 THREE.Vector3 를 제자리에서 고쳐 주는 껍데기다 */
 export function resolveGovcenterColliders(p: THREE.Vector3, feetY: number) {
-  const out = resolveCollisions(p.x, p.z, feetY, undefined, COLLIDERS);
+  const out = resolveCollisions(p.x, p.z, feetY, undefined, HALL_COLLIDERS);
   p.x = out.x;
   p.z = out.z;
 }
 
 export function govcenterGroundHeightAt(x: number, z: number, fromY: number): number {
-  return groundHeightWith(x, z, fromY, COLLIDERS);
+  return groundHeightWith(x, z, fromY, HALL_COLLIDERS);
 }
