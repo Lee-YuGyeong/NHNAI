@@ -298,6 +298,11 @@ export interface SayArgs {
    * 거짓말은 기록과 대조돼 들키면 크게 오른다 (CARD.truthLie).
    */
   compelled?: { by: string; question: string } | null;
+  /**
+   * 방금 카드를 썼다 (runtime 의 botCards) — 이번 말은 그 카드에 붙는 말이다. 답변 강제권이면 **과녁에게 던지는 질문 한 줄**
+   * (그 다음 그 사람의 말이 답으로 판정된다), 지목권이면 왜 그를 겨눴는지, 진정권이면 억울함을 푸는 해명.
+   */
+  card?: { item: CardItem; target: string | null } | null;
 }
 
 export interface SayOut {
@@ -359,10 +364,20 @@ ${COMMON_RULES}`;
 정체를 묻는 질문에 사실대로 답하면 그 자리에서 끝난다 — 그런 질문은 피하는 쪽이 낫다. 기록에 대한 질문은 사실대로 말해도 잃을 게 없다.`
     : '';
 
+  const card = a.card
+    ? a.card.item === 'truth'
+      ? `\n\n**너는 방금 ${a.card.target} 에게 답변 강제권을 썼다.** 방 전체가 「${a.card.target} 은(는) 네 다음 질문에 진실만 답해야 한다」고 안다.
+이번 발화가 **그 질문**이다 — ${a.card.target} 의 이름을 부르고 물어라. 기록에서 튄 것, 앞서 한 말과 어긋난 것, 또는 정체를 곧장 물어도 된다.
+질문 하나만, 되묻기가 안 되게 분명히.`
+      : a.card.item === 'accuse'
+        ? `\n\n**너는 방금 ${a.card.target} 에게 지목권을 썼다** — 그 사람의 의심도가 눈에 띄게 올랐고 방 전체가 그걸 봤다. 이번 발화는 왜 그를 겨눴는지 한 줄이다.`
+        : `\n\n**너는 방금 진정권을 썼다** — 네 의심도가 눈에 띄게 내렸고 방 전체가 그걸 봤다. 이번 발화는 그 억울함을 푸는 한 줄이다 — 기록이나 앞말을 들어.`
+    : '';
+
   const out = await brain.ask({
     model: self.persona.model,
     system,
-    user: `${factsText(facts)}${situation}${heat}${silence}${compelled}
+    user: `${factsText(facts)}${situation}${heat}${silence}${compelled}${card}
 
 지금 네 차례다. 한 줄만.`,
     tool: SAY_TOOL,

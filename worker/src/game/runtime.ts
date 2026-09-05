@@ -140,6 +140,12 @@ interface ChatLine {
   text: string;
 }
 
+/** 봇의 카드 문턱 (botCards) — 진정권을 꺼내는 내 의심도 · 둘 이상이 겨눌 때의 문턱 · 지목권·답변 강제권을 겨눌 상대의 의심도 · AI 가 나를 겨누는 사람에게 더하는 무게 */
+const BOT_CALM_AT = 45;
+const BOT_CALM_UNDER_FIRE = 25;
+const BOT_ACCUSE_AT = 25;
+const BOT_ACCUSE_GRUDGE = 15;
+
 const LOG_KEEP = 40;
 const STATE_KEY = 'game:state';
 /** 판에 묶인 실제 사람이 전원 나가고 이만큼(ms) 지나면 버려진 판으로 보고 접는다 — 새로고침 유예 */
@@ -1149,18 +1155,58 @@ export class GameRuntime {
     }
   }
 
+  /**
+   * 봇의 카드 — 쥔 것을 **처지에 맞게** 쓴다 (2026-09-05 사용자: "AI 가 우승했을 때 아이템을 얻으면 적절하게 사용할 수 있도록").
+   * 봇 차례마다 한 번 보고, 한 장만 쓴다. 규칙은 사람이 쓸 때와 같다(useCard) — 봇이라고 더 센 카드는 없다.
+   *
+   *   진정권   내 의심도가 BOT_CALM_AT 이상이거나, 둘 이상이 나를 겨누는데 BOT_CALM_UNDER_FIRE 이상이면 — 100 에 닿기 전에 내린다
+   *   지목권   남 가운데 의심도가 가장 높은 좌석이 BOT_ACCUSE_AT 이상이면 그 사람에게 — 방이 이미 보는 쪽으로 무게를 얹는다.
+   *           AI 참가자는 나를 겨누는 사람을 우선한다(표식 없는 AI 라는 죄목을 되씌우는 것이 그 무기다, agents.sayAs). 마지막 토론이면 문턱 없이 쓴다
+   *   답변 강제권  같은 상대에게 — 다만 걸려 있는 강제권이 없고 내가 곧 질문할 발언권이 있을 때만(질문이 없으면 그냥 풀린다)
+   * 카드는 빈손이면 아무 일도 없다. 대역(사람 역)도 같은 규칙으로 쓴다 — 어느 좌석이 봇인지는 이 걸음에서 안 보인다.
+   */
+  private botCards(): { by: string; item: CardItem; target: string | null } | null {
+    if (this.phase !== 'discussion' || !this.judging()) return null;
+    const lastTalk = this.testsDone >= this.schedule().length;
+    for (const me of this.seats) {
+      if (me.kind === 'real' || me.isolated) continue;
+      const have = this.items.get(me.id) ?? [];
+      if (!have.length) continue;
+      const mine = this.book.get(me.id);
+      const accusers = this.book.accusersOf(me.id);
+      const others = this.seats.filter((s) => s.id !== me.id && !s.isolated);
+      if (!others.length) continue;
+      const suspicionOf = (s: Seat) => this.book.get(s.id) + (me.kind === 'ai' && accusers.includes(s.id) ? BOT_ACCUSE_GRUDGE : 0);
+      const target = [...others].sort((a, b) => suspicionOf(b) - suspicionOf(a))[0];
+      const targetHeat = this.book.get(target.id);
+
+      let item: CardItem | null = null;
+      if (have.includes('calm') && (mine >= BOT_CALM_AT || (accusers.length >= 2 && mine >= BOT_CALM_UNDER_FIRE) || (lastTalk && mine >= BOT_CALM_UNDER_FIRE))) item = 'calm';
+      else if (have.includes('accuse') && (targetHeat >= BOT_ACCUSE_AT || lastTalk)) item = 'accuse';
+      else if (have.includes('truth') && !this.compelled && me.talk > 0 && (targetHeat >= BOT_ACCUSE_AT || lastTalk)) item = 'truth';
+      if (!item) continue;
+
+      const tgt = item === 'calm' ? null : target;
+      this.useCard(me, item, tgt);
+      return { by: me.id, item, target: tgt?.id ?? null };
+    }
+    return null;
+  }
+
   private async botTurn(): Promise<void> {
     if (this.phase !== 'discussion') return;
     // 다음 차례를 **먼저** 잡는다 — LLM 왕복이 끝나야 잡으면 방의 박자가 모델 지연에 매인다 (BOT_TALK_CONCURRENCY)
     this.scheduleTalk();
     if (this.botBusy.size >= BOT_TALK_CONCURRENCY) return;
+    const now = this.now();
+    // 카드를 쥔 봇이 있으면 처지를 보고 한 장 쓴다 — 쓴 봇이 이번 말의 차례를 잡는다(질문 · 이유가 그 말이다)
+    const used = this.botCards();
     // 발언권이 남은 봇만 — 지갑이 빈 좌석은 사람이든 봇이든 똑같이 조용하다 (P10 · TALK)
     const bots = this.seats.filter((s) => s.kind !== 'real' && !s.isolated && s.persona && s.talk > 0 && !this.botBusy.has(s.id));
     if (!bots.length) return;
-    const now = this.now();
     // 지목당한 봇이 먼저, 오래 조용했던 봇이 다음 — 그 안에서 무작위
     const weight = (s: Seat) => (this.book.accusersOf(s.id).length ? 3 : 1) * (now - s.lastSpokeAt > QUIET_MS ? 1.6 : 1) * (0.5 + this.rand());
-    const pick = [...bots].sort((a, b) => weight(b) - weight(a))[0];
+    const pick = (used && bots.find((s) => s.id === used.by)) ?? [...bots].sort((a, b) => weight(b) - weight(a))[0];
     if (!pick?.persona) return;
 
     this.botBusy.add(pick.id);
@@ -1178,6 +1224,7 @@ export class GameRuntime {
           this.compelled && this.compelled.target === pick.id && this.compelled.question !== null
             ? { by: this.nameOf(this.compelled.by), question: this.compelled.question }
             : null,
+        card: used && used.by === pick.id ? { item: used.item, target: used.target ? this.nameOf(used.target) : null } : null,
       });
       if (!out || !this.active() || pick.isolated) return;
       // 말을 짓는 동안 지갑이 비었을 수 있다 (같은 좌석의 앞 차례) — 그러면 이 말은 버린다
@@ -1303,11 +1350,21 @@ export class GameRuntime {
     }
     if (tied.length === 0) return;
     const best = tied[Math.min(tied.length - 1, Math.floor(this.rand() * tied.length))];
-    if (best.kind !== 'real') return;
+    if (best.kind !== 'real') {
+      // 봇이 1등 — 엎어진 셋 중 하나를 그 자리에서 쥔다. 뭔지는 봇도 모른다(섞인 첫 장). 토론에서 처지에 맞게 쓴다 (botCards)
+      const have = this.items.get(best.id) ?? [];
+      if (have.length < CARD.maxItems) this.items.set(best.id, [...have, dealOrder(this.rand)[0]]);
+      return;
+    }
     const playerId = this.playerOfSeat(best.id);
     if (!playerId) return;
     this.cardOffer.set(best.id, { options: dealOrder(this.rand), until: this.now() + CARD.offerMs });
     this.sendCards(best.id);
+  }
+
+  /** 시험용 — 좌석이 쥔 카드 */
+  itemsOf(seatId: string): readonly CardItem[] {
+    return this.items.get(seatId) ?? [];
   }
 
   private sendCards(seatId: string): void {
@@ -1340,18 +1397,24 @@ export class GameRuntime {
     const me = this.seatOfPlayer(playerId);
     if (!me || me.isolated) return;
     const have = this.items.get(me.id) ?? [];
-    const at = have.indexOf(item);
-    if (at < 0) return this.reject(playerId, '그 카드가 없다');
+    if (!have.includes(item)) return this.reject(playerId, '그 카드가 없다');
     let target: Seat | null = null;
     if (item !== 'calm') {
       target = this.seats.find((s) => s.id === targetId) ?? null;
       if (!target || target.isolated || target.id === me.id) return this.reject(playerId, '겨눌 사람을 골라라');
     }
     if (item === 'truth' && this.compelled) return this.reject(playerId, '이미 답변 강제권이 걸려 있다');
+    this.useCard(me, item, target);
+    this.sendCards(me.id);
+  }
 
+  /** 카드의 효과 — 사람(cardUse)과 봇(botCards)이 같은 문으로 쓴다. 검증은 부르는 쪽이 끝냈다 */
+  private useCard(me: Seat, item: CardItem, target: Seat | null): void {
+    const have = this.items.get(me.id) ?? [];
+    const at = have.indexOf(item);
+    if (at < 0) return;
     have.splice(at, 1);
     this.items.set(me.id, have);
-    this.sendCards(me.id);
 
     const text = LINES.cardUsed(me.name, item, target?.name ?? null);
     this.deps.broadcast({ t: 'game_card_used', by: me.id, item, ...(target ? { target: target.id } : {}), text });

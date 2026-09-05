@@ -1114,6 +1114,51 @@ describe('GameRuntime — 카드', () => {
     }
   });
 
+  /**
+   * 봇이 1등 — 카드는 서버 안에서 봇이 쥐고, 토론에서 처지에 맞게 쓴다 (runtime 의 botCards,
+   * 2026-09-05 사용자: "AI 가 우승했을 때 아이템을 얻으면 아이템을 적절하게 사용할 수 있도록").
+   */
+  it('1등이 봇이면 봇이 엎어진 셋 중 하나를 쥐고 — 사람에게는 아무것도 안 간다 — 토론에서 처지에 맞게 쓴다', async () => {
+    const engine = new HeldEngine();
+    const h = harness({ engine });
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const humans = new Set(['p1', 'p2', 'p3'].map((p) => h.roleOf(p)!.seatId));
+    const bot = h.lastState().seats.find((s) => !humans.has(s.id))!;
+    engine.heldOf = (id) => (id === bot.id ? 28 : 6);
+    await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+    await vi.advanceTimersByTimeAsync(GAME_TEST_MS + 10);
+    expect(h.lastState().phase).toBe('result');
+    for (const p of ['p1', 'p2', 'p3']) expect(cardsTo(h, p)).toBeUndefined();
+    expect(h.rt.itemsOf(bot.id)).toHaveLength(1);
+    const item = h.rt.itemsOf(bot.id)[0];
+    expect(item).toBe(DEALT[0]);
+
+    await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+    expect(h.lastState().phase).toBe('discussion');
+    // 아직 아무 처지도 아니다 — 카드를 아껴 둔다
+    await vi.advanceTimersByTimeAsync(12_000);
+    expect(h.sent.some((m) => m.t === 'game_card_used')).toBe(false);
+
+    // 처지를 만든다 — 진정권이면 둘이 봇을 겨누고, 지목권·답변 강제권이면 둘이 p2 를 겨눈다 (지목 15 × 2 ≥ 문턱 25)
+    const p2 = h.roleOf('p2')!.seatId;
+    const victim = item === 'calm' ? bot.id : p2;
+    await h.rt.handle('p1', { t: 'game_accuse', target: victim });
+    await h.rt.handle('p3', { t: 'game_accuse', target: victim });
+    expect(h.lastState().suspicion[victim]).toBeGreaterThanOrEqual(25);
+    await vi.advanceTimersByTimeAsync(12_000);
+    const used = h.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_card_used' }> => m.t === 'game_card_used');
+    expect(used).toBeDefined();
+    expect(used!.by).toBe(bot.id);
+    expect(used!.item).toBe(item);
+    if (item === 'calm') expect(used!.target).toBeUndefined();
+    else expect(used!.target).toBe(p2);
+    expect(h.rt.itemsOf(bot.id)).toHaveLength(0);
+    // 같은 카드를 또 쓰지는 않는다 — 빈손이다
+    await vi.advanceTimersByTimeAsync(12_000);
+    expect(h.sent.filter((m) => m.t === 'game_card_used')).toHaveLength(1);
+  });
+
   it('지목권은 겨눈 상대를 +20 (그 국면의 압력을 곱해), 진정권은 나를 −20 — 결과 모달 중에는 못 쓴다', async () => {
     const { h, winner } = await winFirstTest();
     await pick(h, 'p1', 'accuse');

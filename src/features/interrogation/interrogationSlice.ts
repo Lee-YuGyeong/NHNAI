@@ -66,7 +66,7 @@ export interface GameState {
   talkGained: { game: TrialGame; gained: Record<string, number> } | null;
   /**
    * 내 카드 — 시험 1등이 고르는 세 장(offer)과 골라 쥔 것(items). 서버가 본인에게만 보낸다(game_cards).
-   * 봇은 카드를 안 받고, 판이 다시 열리면 비운다 (worker/src/game/runtime.ts 의 offerCard).
+   * 봇의 카드는 서버 안에서 봇이 쥐고 쓴다(여기 안 온다), 판이 다시 열리면 비운다 (worker/src/game/runtime.ts 의 offerCard · botCards).
    */
   cards: { offer: number | null; items: CardItem[] };
   /** 방금 뒤집은 카드 — 엎어진 채 골라서 그때야 뭔지 안다. 몇 초 보이고 도크로 들어간다 */
