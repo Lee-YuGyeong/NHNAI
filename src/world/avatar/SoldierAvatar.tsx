@@ -105,25 +105,6 @@ const RUN_CLIP_SPEED = 5.2;
 const STILL_SPEED = 0.12;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/* ─────────────────────────────── 숨 ─────────────────────────────── */
-
-/**
- * idle 은 **클립이 한 프레임에 멈춘 차렷**이다(위) — 그대로 두면 서 있는 몸이 통째로 얼어붙어 인형으로 보인다.
- * 클립이 뼈를 다 쓴 뒤에 1° 남짓을 덧걸어 숨을 넣는다. 프레임마다 새로 얹으므로 쌓이지 않는다.
- * 걷기·달리기·점프 클립이 돌 때는 0 으로 잦아든다 — 그쪽은 클립 안에 이미 움직임이 있다.
- */
-const BREATH_HZ = 0.25;
-/** 뼈마다 [숨으로 앞뒤(도), 아주 느린 좌우(도)] — 척추는 폈다 굽고, 머리는 그 절반에 좌우를 얹는다 */
-const BREATH: Record<string, [number, number]> = { Spine02: [1.2, 0], Head: [-0.7, 2.2] };
-const BREATH_NAMES = Object.keys(BREATH);
-/** 숨이 들고 나는 시간 상수(초) — 클립 크로스페이드(FADE)와 비슷하게 */
-const BREATH_TAU = 0.3;
-
-const DEG = Math.PI / 180;
-const _euler = new THREE.Euler();
-const _q = new THREE.Quaternion();
-const _wrap = new THREE.Quaternion();
-
 export function SoldierAvatar({
   body,
   getAnim,
@@ -145,7 +126,7 @@ export function SoldierAvatar({
   const scene = useMemo(() => cloneSkeleton(gltf.scene), [gltf.scene]);
   const clips = useMemo(() => stripRootMotion(gltf.animations), [gltf.animations]);
 
-  const { scale, mixer, actions, skinnedMeshes, sway } = useMemo(() => {
+  const { scale, mixer, actions, skinnedMeshes } = useMemo(() => {
     scene.updateMatrixWorld(true);
     // 스킨 먹인 실제 크기로 잰다 — 뼈가 움직여도 경계구가 틀리지 않게 컬링도 끈다
     const box = new THREE.Box3();
@@ -191,26 +172,11 @@ export function SoldierAvatar({
       idle.timeScale = 0;
       actions.idle = idle;
     }
-
-    /*
-     * 숨 쉴 뼈 — 모델 좌표계의 회전을 뼈 로컬로 옮기려면 **부모의 정지 회전**으로 감싼다 (RobotAvatar 와 같은 수법):
-     * q' = Qp⁻¹ · R · Qp · q. Tripo 가 뼈 로컬축을 어떻게 잡았든 「앞으로 숙임」이 앞으로 숙임이 된다.
-     * 여기서 scene 은 아직 트리 밖이라 월드 = 모델 좌표계다 (위의 updateMatrixWorld 가 채워 뒀다)
-     */
-    const sway = BREATH_NAMES.map((name) => {
-      const bone = scene.getObjectByName(name);
-      if (!bone?.parent) return null;
-      const fromParent = bone.parent.getWorldQuaternion(new THREE.Quaternion());
-      return { bone, deg: BREATH[name], fromParent, toParent: fromParent.clone().invert() };
-    }).filter((s): s is NonNullable<typeof s> => s !== null);
-
-    return { scale, mixer, actions, skinnedMeshes, sway };
+    return { scale, mixer, actions, skinnedMeshes };
   }, [scene, clips, body]);
 
   /** 깜빡임 시계 — 다음 깜빡임까지 남은 초와, 깜빡이는 중이면 시작한 뒤 흐른 초 */
   const blink = useRef({ wait: 1 + Math.random() * 3, t: -1 });
-  /** 숨 시계 — 몸마다 위상이 다르게 태어난다(넷이 한 박자로 숨 쉬면 그게 더 인형 같다). amt 는 지금 숨이 든 만큼 */
-  const breath = useRef({ t: Math.random() * 10, amt: 1 });
 
   const state = useRef<ClipKey>('idle');
   useEffect(() => {
@@ -222,7 +188,6 @@ export function SoldierAvatar({
   }, [mixer, actions]);
 
   useFrame((_, delta) => {
-    const dt = Math.min(delta, 0.1);
     const v = getSpeed?.();
     let next: ClipKey = getAirborne() ? 'jump' : getAnim();
     if (v !== undefined && (next === 'walk' || next === 'run')) {
@@ -242,24 +207,11 @@ export function SoldierAvatar({
       }
       state.current = next;
     }
-    mixer.update(dt);
-
-    // 숨 — 차렷으로 얼어붙은 몸에만. 클립이 뼈를 다 쓴 **뒤에** 얹는다 (머리말)
-    const br = breath.current;
-    br.t += dt;
-    br.amt += ((state.current === 'idle' ? 1 : 0) - br.amt) * Math.min(1, dt / BREATH_TAU);
-    if (br.amt > 0.005) {
-      const s = Math.sin(br.t * BREATH_HZ * Math.PI * 2);
-      const turn = Math.sin(br.t * 0.31);
-      for (const w of sway) {
-        _euler.set(w.deg[0] * s * br.amt * DEG, w.deg[1] * turn * br.amt * DEG, 0, 'XYZ');
-        _q.setFromEuler(_euler);
-        w.bone.quaternion.premultiply(_wrap.copy(w.toParent).multiply(_q).multiply(w.fromParent));
-      }
-    }
+    mixer.update(Math.min(delta, 0.1));
 
     // 눈 깜빡임 — 모프 영향값만 몸마다 움직인다 (지오메트리는 공유)
     const b = blink.current;
+    const dt = Math.min(delta, 0.1);
     if (b.t < 0) {
       b.wait -= dt;
       if (b.wait <= 0) b.t = 0;

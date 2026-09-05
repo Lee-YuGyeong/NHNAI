@@ -38,16 +38,6 @@ export interface BarPlayerFrame {
 }
 
 export const barState = {
-  /**
-   * 내 몸이 누웠나(서버 f=1 — 봉에 맞았거나 무대 밖으로 떨어졌다). BarRig 가 프레임마다 적고 BarScene 의 SelfAvatar 가
-   * 눕는 데 쓴다 (towerState.selfStance 와 같은 규칙 — 내 몸의 상태는 예측이라 스냅샷 보간을 거치지 않는다)
-   */
-  selfFallen: false,
-  /**
-   * 내 몸이 **화면에서 실제로** 내는 속도(m/s) — 걷기·달리기 클립의 배속을 여기에 맞춘다. 발밑이 미끄러운 구간에는
-   * 명령보다 느리게 나가므로(BAR_GRIP) 명령 속도로 클립을 틀면 발이 바닥을 긁는다. 남의 몸은 BarAvatar 가 따로 잰다
-   */
-  selfSpeed: 0,
   push(s: Snapshot): void {
     const nowLocal = Date.now();
     if (!prev && !next) {
@@ -68,8 +58,6 @@ export const barState = {
     prev = null;
     next = null;
     thetaFix = 0;
-    barState.selfFallen = false;
-    barState.selfSpeed = 0;
   },
   has(): boolean {
     return next !== null;
