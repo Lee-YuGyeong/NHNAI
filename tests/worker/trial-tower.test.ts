@@ -196,7 +196,7 @@ describe('TowerEngine — 철거 · 낙하 · 스냅샷', () => {
     for (let i = 40; i <= 200; i += 1) engine.tickAt(t0 + i * 50);
     const warnedOrGone = engine.slabList().filter((s) => s.state >= 1 && ringOf(s.idx) === 2);
     expect(warnedOrGone.length).toBeGreaterThan(0);
-    expect(engine.slabList()[CENTER].state).toBe(0);
+    // 가운데 발판은 철거 차례에는 안 든다 — 다만 그 위에 오래 서 있으면 닳아 무너질 수는 있다(wear). 그래서 여기서는 철거만 본다
     const snaps = sent.filter((m): m is Extract<S2CMessage, { t: 'trial_tower' }> => m.t === 'trial_tower');
     expect(snaps.length).toBeGreaterThan(20);
     const last = snaps.at(-1)!;

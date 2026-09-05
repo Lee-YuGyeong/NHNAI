@@ -19,12 +19,17 @@ import {
   TOWER_FALL_KEEP_MS,
   TOWER_N,
   TOWER_PUSH_COOLDOWN_MS,
+  TOWER_QUAKE_EVERY_MS,
+  TOWER_QUAKE_FROM_MS,
+  TOWER_QUAKE_KICK,
+  TOWER_QUAKE_SHOVE,
   TOWER_RUN_SPEED,
   TOWER_SNAPSHOT_MS,
   TOWER_TICK_MS,
   TOWER_WALK_SPEED,
   TOWER_WALK_STALE_MS,
   TOWER_WARN_MS,
+  TOWER_WEAR_S,
   ringOf,
   slabCenter,
 } from '../../../../src/world/mp/tower';
@@ -53,6 +58,7 @@ export class TowerEngine implements GameEngine {
   private bots: TowerBot[] = [];
   private profiles = new Map<string, TowerProfile>();
   private nextDemolishAt = 0;
+  private nextQuakeAt = 0;
   private pushSeq = 0;
   private readonly rand: () => number;
 
@@ -76,6 +82,7 @@ export class TowerEngine implements GameEngine {
     this.bodies = new Map();
     this.stats = new Map();
     this.nextDemolishAt = now + TOWER_DEMOLISH_FROM_MS;
+    this.nextQuakeAt = now + TOWER_QUAKE_FROM_MS;
     this.pushSeq = 0;
 
     // 전원이 안쪽 고리(가운데 둘레 여덟)에 흩어져 선다 — 서로 다른 발판에, 발판 가운데
@@ -197,6 +204,11 @@ export class TowerEngine implements GameEngine {
     return this.slabs;
   }
 
+  /** 시험용 — 다음 진동 시각 */
+  quakeAt(): number {
+    return this.nextQuakeAt;
+  }
+
   /** 시험용 — 이 발판에 지금 경고를 건다 */
   warn(idx: number, now: number): void {
     const s = this.slabs[idx];
@@ -253,6 +265,25 @@ export class TowerEngine implements GameEngine {
       else if (s.state === 2 && now - s.at >= TOWER_FALL_KEEP_MS) s.state = 3;
     }
 
+    // 진동 — 전 발판에 무작위 각속도, 전원의 발에 무작위 미끄러짐. 기록에는 「사건」(반응을 잰다)
+    if (now >= this.nextQuakeAt) {
+      for (const s of this.slabs) {
+        if (s.state >= 2) continue;
+        const a = this.rand() * Math.PI * 2;
+        const k = TOWER_QUAKE_KICK * (0.6 + 0.4 * this.rand());
+        s.vx += Math.cos(a) * k;
+        s.vz += Math.sin(a) * k;
+      }
+      for (const b of this.bodies.values()) {
+        if (b.stance !== 'stand') continue;
+        const a = this.rand() * Math.PI * 2;
+        b.sx += Math.cos(a) * TOWER_QUAKE_SHOVE;
+        b.sz += Math.sin(a) * TOWER_QUAKE_SHOVE;
+        this.stats.get(b.id)?.warned(now);
+      }
+      this.nextQuakeAt = now + TOWER_QUAKE_EVERY_MS[0] + this.rand() * (TOWER_QUAKE_EVERY_MS[1] - TOWER_QUAKE_EVERY_MS[0]);
+    }
+
     // 봇의 명령
     const bodyList = [...this.bodies.values()];
     const botCmd = new Map<string, { wx: number; wz: number }>();
@@ -269,13 +300,15 @@ export class TowerEngine implements GameEngine {
       if (out.push) this.doPush(b, out.push.hx, out.push.hz, now);
     }
 
-    // 발판 — 그 위 무게로 기운다. 상한을 넘으면 부서진다
+    // 발판 — 그 위 무게로 기울고 닳는다. 기울기 상한을 넘으면 부서지고, 다 닳으면 경고가 뜬다
+    const wearPerKgSec = 1 / (TOWER_BODY_MASS * TOWER_WEAR_S);
     for (const s of this.slabs) {
       if (s.state >= 2) continue;
       const loads: SlabLoad[] = [];
       const c = slabCenter(s.idx);
       for (const b of bodyList) if (b.stance === 'stand' && b.slab === s.idx) loads.push({ dx: b.x - c.x, dz: b.z - c.z, mass: b.mass * TOWER_BODY_MASS });
-      if (stepSlab(s, loads, dt)) this.breakSlab(s, now);
+      if (stepSlab(s, loads, dt, wearPerKgSec)) this.breakSlab(s, now);
+      else if (s.state === 0 && s.wear >= 1) this.warn(s.idx, now);
     }
 
     // 몸
@@ -310,7 +343,8 @@ export class TowerEngine implements GameEngine {
       ctx.broadcast({
         t: 'trial_tower',
         at: now,
-        slabs: this.slabs.filter((s) => s.state < 3).map((s) => ({ i: s.idx, tx: r3(s.tx), tz: r3(s.tz), s: s.state, at: s.at })),
+        slabs: this.slabs.filter((s) => s.state < 3).map((s) => ({ i: s.idx, tx: r3(s.tx), tz: r3(s.tz), s: s.state, at: s.at, w: r2(s.wear) })),
+        quakeAt: this.nextQuakeAt,
         players: bodyList.map((b) => {
           const wLen = Math.hypot(b.wx, b.wz);
           const moving = b.stance === 'stand' && now - b.wAt <= TOWER_WALK_STALE_MS && wLen > 0.05;

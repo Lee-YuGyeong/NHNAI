@@ -49,10 +49,12 @@ export interface Slab {
   state: SlabState;
   /** 상태가 바뀐 시각 — 경고면 떨어질 시각을 여기서 센다 */
   at: number;
+  /** 마모(0~1) — 서 있는 무게 × 시간. 1 이면 경고 */
+  wear: number;
 }
 
 export function makeSlabs(): Slab[] {
-  return Array.from({ length: TOWER_N * TOWER_N }, (_, idx) => ({ idx, tx: 0, tz: 0, vx: 0, vz: 0, state: 0 as SlabState, at: 0 }));
+  return Array.from({ length: TOWER_N * TOWER_N }, (_, idx) => ({ idx, tx: 0, tz: 0, vx: 0, vz: 0, state: 0 as SlabState, at: 0, wear: 0 }));
 }
 
 /** 발판 위의 무게 하나 — 발판 중심에서의 자리와 질량 */
@@ -62,14 +64,18 @@ export interface SlabLoad {
   mass: number;
 }
 
-/** 한 틱 — 토크 · 감쇠 · 스프링으로 기울기를 적분한다. 부서지면 true */
-export function stepSlab(s: Slab, loads: readonly SlabLoad[], dtSec: number): boolean {
+/**
+ * 한 틱 — 토크 · 감쇠 · 스프링으로 기울기를 적분하고, 서 있는 무게만큼 닳는다. 부서지면 true.
+ * @param wearPerKgSec 질량 1kg 이 1초 서 있을 때 차는 마모 — 기준 몸이 TOWER_WEAR_S 초면 1 이 되게 엔진이 준다. 0 이면 안 닳는다
+ */
+export function stepSlab(s: Slab, loads: readonly SlabLoad[], dtSec: number, wearPerKgSec = 0): boolean {
   if (s.state >= 2) return false;
   let mx = 0;
   let mz = 0;
   for (const l of loads) {
     mx += l.mass * l.dx;
     mz += l.mass * l.dz;
+    if (s.state === 0) s.wear = Math.min(1, s.wear + l.mass * wearPerKgSec * dtSec);
   }
   const ax = (G * mx - TOWER_DAMPING * s.vx - TOWER_SPRING * s.tx) / TOWER_SLAB_INERTIA;
   const az = (G * mz - TOWER_DAMPING * s.vz - TOWER_SPRING * s.tz) / TOWER_SLAB_INERTIA;
@@ -232,7 +238,7 @@ export function stepBody(b: TowerBody, slabs: readonly Slab[], wx: number, wz: n
     return out;
   }
   b.slab = idx;
-  b.y = slabSurfaceY(idx, slabs[idx].tx, slabs[idx].tz, b.x, b.z);
+  b.y = slabSurfaceY(idx, slabs[idx].tx, slabs[idx].tz, b.x, b.z, slabs[idx].wear);
   return out;
 }
 
@@ -260,7 +266,7 @@ export function respawn(b: TowerBody, slabs: readonly Slab[], idx: number, dx = 
   b.vx = 0;
   b.vz = 0;
   b.vy = 0;
-  b.y = slabSurfaceY(idx, slabs[idx].tx, slabs[idx].tz, b.x, b.z);
+  b.y = slabSurfaceY(idx, slabs[idx].tx, slabs[idx].tz, b.x, b.z, slabs[idx].wear);
 }
 
 /** 몸끼리 겹치면 질량 반비례로 밀어낸다 — 서 있는 몸끼리만 */

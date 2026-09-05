@@ -161,10 +161,14 @@ export function TowerRig({ selfId, body = null, sendWalk, sendPush }: { selfId: 
       c.y += (y - c.y) * kc;
       c.z += (z - c.z) * kc;
     }
+    // 진동 — 카메라가 같이 흔들린다 (towerState.quakeAmp)
+    const q = towerState.quakeAmp(now);
+    const jx = q * 0.22 * Math.sin(now * 0.07);
+    const jy = q * 0.16 * Math.cos(now * 0.09);
     const back = CHASE_DIST * Math.cos(pitch.current);
     const up = CHASE_LOOK_Y + CHASE_DIST * Math.sin(pitch.current);
-    camera.position.set(c.x - f.x * back, c.y + up, c.z - f.z * back);
-    camera.lookAt(c.x + f.x * 0.6, c.y + CHASE_LOOK_Y, c.z + f.z * 0.6);
+    camera.position.set(c.x - f.x * back + jx, c.y + up + jy, c.z - f.z * back);
+    camera.lookAt(c.x + f.x * 0.6 + jx, c.y + CHASE_LOOK_Y + jy, c.z + f.z * 0.6);
 
     const ls = lastSent.current;
     const nowP = performance.now();

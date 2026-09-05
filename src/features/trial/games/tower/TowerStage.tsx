@@ -4,6 +4,7 @@
  * 세웠는데 스물다섯 개의 흰 기둥 숲이 화면을 어지럽혔다 (2026-09-05 사용자: "디자인도 이상하고").
  * 윗면 텍스처(힉스필드, slab_top.webp — 황흑 띠 · 가운데 청록 십자)는 UV 를 조금 당겨 띠를 얇게 쓴다. 경고가 뜬 발판은 갈라진 텍스처
  * (slab_warn.webp)로 바뀌어 천천히 처지며 붉게 숨 쉬고, 떨어지는 발판은 **낮은 쪽 가장자리로 기우뚱 넘어가다 떨어진다**(hinge → 자유 낙하).
+ * 고리마다 높이가 계단으로 다르고(ringBaseY), 닳은 발판은 가라앉으며 주황으로 달아오른다(wear), 진동 1초 전부터 전 발판이 떨린다(quakeAmp).
  * 마찰계수는 여기 없다 — 발판은 어느 구간에도 같아 보인다(P8).
  */
 import { Suspense, useMemo, useRef } from 'react';
@@ -12,7 +13,7 @@ import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { GlbPart } from '@/world/map/corridor/part';
 import { GRAVITY } from '@/world/mp/constants';
-import { TOWER_CENTER, TOWER_FALL_KEEP_MS, TOWER_GAP, TOWER_N, TOWER_SLAB, TOWER_SLAB_H, TOWER_TOP, slabCenter } from '@/world/mp/tower';
+import { TOWER_CENTER, TOWER_FALL_KEEP_MS, TOWER_GAP, TOWER_N, TOWER_SLAB, TOWER_SLAB_H, TOWER_STEP, TOWER_TOP, TOWER_WEAR_SINK, ringBaseY, slabCenter } from '@/world/mp/tower';
 import { towerState } from './towerState';
 
 const TOP_URL = '/textures/tower/slab_top.webp';
@@ -38,13 +39,15 @@ function zoom(t: THREE.Texture): THREE.Texture {
 function Slabs() {
   const topTex = useTexture(TOP_URL);
   const warnTex = useTexture(WARN_URL);
-  const mats = useMemo(
-    () => ({
-      top: new THREE.MeshStandardMaterial({ map: zoom(topTex), metalness: 0.55, roughness: 0.5 }),
-      warn: new THREE.MeshStandardMaterial({ map: zoom(warnTex), metalness: 0.55, roughness: 0.5, emissive: new THREE.Color('#ff3a1a'), emissiveIntensity: 0 }),
-    }),
-    [topTex, warnTex],
-  );
+  const mats = useMemo(() => {
+    const top = zoom(topTex);
+    const warn = zoom(warnTex);
+    return {
+      // 발판마다 재질 하나 — 마모(주황)가 장마다 다르다. 스물다섯이면 셰이더는 하나, 유니폼만 다르다
+      tops: Array.from({ length: TOWER_N * TOWER_N }, () => new THREE.MeshStandardMaterial({ map: top, metalness: 0.55, roughness: 0.5, emissive: new THREE.Color('#ff7a1a'), emissiveIntensity: 0 })),
+      warn: new THREE.MeshStandardMaterial({ map: warn, metalness: 0.55, roughness: 0.5, emissive: new THREE.Color('#ff3a1a'), emissiveIntensity: 0 }),
+    };
+  }, [topTex, warnTex]);
   const group = useRef<THREE.Group>(null);
   const size = TOWER_SLAB - TOWER_GAP;
   const half = TOWER_SLAB / 2;
@@ -53,6 +56,7 @@ function Slabs() {
     const g = group.current;
     if (!g) return;
     const now = Date.now();
+    const quake = towerState.quakeAmp(now);
     g.children.forEach((child, idx) => {
       const s = towerState.slabAt(idx, now);
       const c = slabCenter(idx);
@@ -64,14 +68,22 @@ function Slabs() {
       }
       child.visible = true;
       // 기울기 t(낮은 쪽, tan) → 회전: x 축 둘레 atan(tz), z 축 둘레 −atan(tx) (mp/tower.ts slabSurfaceY 와 같은 부호)
+      const base = ringBaseY(idx);
       let x = c.x;
-      let y = TOWER_TOP;
+      let y = base - s.wear * TOWER_WEAR_SINK;
       let z = c.z;
+      // 진동 — 전 발판이 잔떨림. 장마다 위상이 다르다
+      if (quake > 0) {
+        y += Math.sin(now * 0.06 + idx) * 0.02 * quake;
+        x += Math.sin(now * 0.05 + idx * 1.3) * 0.012 * quake;
+        z += Math.cos(now * 0.053 + idx * 0.7) * 0.012 * quake;
+      }
       let rx = Math.atan(s.tz);
       let rz = -Math.atan(s.tx);
       if (glow) glow.visible = s.state < 2;
       if (s.state === 2) {
         const tau = Math.max(0, now - s.atLocal) / 1000;
+        y = base;
         // 넘어가는 방향 — 기울어 있던 낮은 쪽. 수평이었으면 탑 바깥쪽
         const tl = Math.hypot(s.tx, s.tz);
         const ox = c.x - TOWER_CENTER.x;
@@ -109,7 +121,12 @@ function Slabs() {
           top.material = mats.warn;
           mats.warn.emissiveIntensity = 0.2 + 0.7 * k;
         }
-      } else if (top) top.material = mats.top;
+      } else if (top) {
+        // 닳을수록 주황으로 달아오른다 — 눈에 보이는 값이다. 봇도 이걸 보고 옮긴다
+        const m = mats.tops[idx];
+        top.material = m;
+        m.emissiveIntensity = s.wear * s.wear * 0.9;
+      }
       child.position.set(x, y, z);
       child.rotation.set(rx, 0, rz);
     });
@@ -119,14 +136,15 @@ function Slabs() {
     <group ref={group}>
       {Array.from({ length: TOWER_N * TOWER_N }, (_, idx) => (
         <group key={idx}>
-          <mesh position={[0, -TOWER_SLAB_H / 2, 0]} material={SIDE_MAT} castShadow receiveShadow>
-            <boxGeometry args={[size, TOWER_SLAB_H, size]} />
+          {/* 몸통 — 계단 한 단만큼 두껍게, 아래 고리와 옆면이 이어 보이게 */}
+          <mesh position={[0, -(TOWER_SLAB_H + TOWER_STEP) / 2, 0]} material={SIDE_MAT} castShadow receiveShadow>
+            <boxGeometry args={[size, TOWER_SLAB_H + TOWER_STEP, size]} />
           </mesh>
-          <mesh rotation-x={-Math.PI / 2} position={[0, 0.002, 0]} material={mats.top} receiveShadow>
+          <mesh rotation-x={-Math.PI / 2} position={[0, 0.002, 0]} material={mats.tops[idx]} receiveShadow>
             <planeGeometry args={[size, size]} />
           </mesh>
           {/* 부양광 — 발판 밑 청록 판. 떨어지는 순간 꺼진다 */}
-          <mesh rotation-x={-Math.PI / 2} position={[0, -TOWER_SLAB_H - 0.04, 0]} material={GLOW_MAT}>
+          <mesh rotation-x={-Math.PI / 2} position={[0, -TOWER_SLAB_H - TOWER_STEP - 0.04, 0]} material={GLOW_MAT}>
             <planeGeometry args={[size * 0.8, size * 0.8]} />
           </mesh>
         </group>
