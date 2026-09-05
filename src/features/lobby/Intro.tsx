@@ -739,6 +739,12 @@ export function RoleCard({ r, typing = false }: { r: RoleDef; typing?: boolean }
  * 그렸다(role-ai.jpg · role-designer.jpg, 2026-09-04) — 옛 role-node.jpg는 후드를 쓴 실루엣이라
  * 한눈에 로봇으로 보였는데, 새 기획의 AI는 "말투도 표정도 인간과 다르지 않다"(PLANNING
  * 서두)가 핵심이라 겉모습으로 갈리면 안 된다. 사람 카드는 role-human.jpg를 그대로 쓴다.
+ *
+ * 2026-09-05 사용자 지급으로 **설계자 카드만** 다시 갈았다(image/spy.png → role-designer.jpg,
+ * 도면 벽 앞에서 두 손을 펼친 후드 실루엣). 위 문단의 「후드는 안 된다」는 **AI 카드의 규칙**
+ * 이라 이 교체와 부딪치지 않는다 — 겉모습으로 갈리면 안 되는 쪽은 인간과 구별되지 않아야 하는
+ * AI 고, 설계자는 그 반대다: 정체를 감추는 쪽이 아니라 **감추는 일을 하는 쪽**이다.
+ * 파일 이름을 그대로 둔 덕에 두 인트로 화면이 같이 바뀐다 (features/intro 의 배역 칸).
  */
 /** 배역 한 장의 모양 — features/interrogation 의 브리핑 카드도 이 타입 그대로 쓴다 */
 export interface RoleDef {

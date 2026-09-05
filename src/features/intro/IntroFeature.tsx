@@ -254,7 +254,18 @@ export function IntroFeature() {
               </ul>
             </li>
             <li className="intro-role">
-              <img className="intro-role-img" src="/intro/role-designer.jpg" alt="AI 설계자 — 어둠 속에서 단말을 조작하는 손" />
+              {/*
+                2026-09-05 사용자 지급(image/spy.png) — 도면 벽 앞에서 두 손을 펼친 후드 실루엣.
+                파일 이름은 role-designer.jpg 그대로 둔다: 두 인트로 화면이 같은 자리를 보므로
+                (lobby/Intro.tsx 의 ROLES) 그림만 갈아 끼우면 둘이 같이 바뀐다.
+                네모로 잘리는 카드라(intro-role-img: aspect-ratio 1 · cover) 원본 아래쪽에 박힌
+                「TYPE: CONTROLLER」는 화면에 안 나온다 — 이 판의 낱말이 아니라 그림의 글자다.
+              */}
+              <img
+                className="intro-role-img"
+                src="/intro/role-designer.jpg"
+                alt="AI 설계자 — 도면 벽 앞에서 두 손을 펼친 후드 실루엣"
+              />
               <div className="intro-role-code">
                 <span>A-··</span>
                 <span>×?</span>
