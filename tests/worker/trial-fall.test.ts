@@ -228,4 +228,60 @@ describe('spawnObject', () => {
     expect(o.vy).toBe(0);
     expect(o.landedAt).toBeNull();
   });
+
+  /**
+   * 겨냥 반경(0.2m)이 **가장 작은 공**의 맞는 거리(탁구공 0.12 + 몸 0.35 = 0.47m)보다 좁아야
+   * 「서 있는 자리로 떨어진다」가 참이다 (2026-09-05 사용자: "캐릭터가 서있는 곳에 일부러 공 떨어지게").
+   * 0.65m 이던 시절엔 겨냥한 탁구공이 서 있는 사람을 그냥 지나갔다.
+   */
+  it('겨냥한 공은 서 있는 사람을 빗나가지 않는다 — 가장 작은 공으로도', () => {
+    for (let i = 0; i < 200; i += 1) {
+      const o = spawnObject(i, 0, Math.random, { x: 0, z: 0 }, undefined, PINGPONG);
+      o.prevY = 2.0;
+      o.y = 1.0; // 몸(0~1.8)을 지나는 중
+      expect(overlapsBody(o, 0, 0)).toBe(true);
+    }
+  });
+
+  it('겨냥해도 한 점에 겹쳐 박히진 않는다 — 바닥에 남는 1초 동안 서로 다른 자리다', () => {
+    const spots = Array.from({ length: 20 }, (_, i) => spawnObject(i, 0, Math.random, { x: 0, z: 0 }));
+    expect(spots.every((o) => Math.hypot(o.x, o.z) > 0)).toBe(true);
+  });
+});
+
+describe('FallEngine — 겨냥은 서 있는 자리로', () => {
+  function standing(ids: readonly string[]): { engine: FallEngine; sent: S2CMessage[] } {
+    const sent: S2CMessage[] = [];
+    const engine = new FallEngine();
+    engine.start(1, ids, [], { broadcast: (m) => sent.push(m), finish: () => undefined });
+    // 각자 제자리에서 한 번만 자리를 알린다 — 그 뒤로는 안 움직인다
+    ids.forEach((id, i) => engine.onMove(id, i * 4 - 2, i * 4 - 2, Date.now()));
+    return { engine, sent };
+  }
+
+  it('가만히 서 있으면 맞는다 — 겨냥한 공이 발밑으로 온다', () => {
+    vi.useFakeTimers();
+    try {
+      const { engine, sent } = standing(['p1']);
+      vi.advanceTimersByTime(5000); // 가장 늦게 닿는 탁구공(3.75초)까지 넉넉히
+      engine.stop();
+      expect(sent.some((m) => m.t === 'trial_hit')).toBe(true);
+      expect(engine.results()[0].metrics.hitCount).toBeGreaterThan(0);
+      expect(engine.results()[0].metrics.survivalTime).toBeLessThan(5);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('겨냥은 좌석을 차례로 돈다 — 한 자리만 두들기지 않는다', () => {
+    vi.useFakeTimers();
+    try {
+      const { engine } = standing(['p1', 'p2', 'p3']);
+      vi.advanceTimersByTime(6000);
+      engine.stop();
+      for (const r of engine.results()) expect(r.metrics.hitCount, `${r.id} 은 한 번도 안 맞았다`).toBeGreaterThan(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

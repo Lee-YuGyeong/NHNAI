@@ -38,9 +38,12 @@ import { DodgeStats } from './stats';
 /** 사람이 순간이동했다고 볼 속도 — 걷기의 2배. 그보다 빠른 move 는 버린다 (서버는 범위만 봤다, room-do.ts) */
 const MAX_SPEED = WALK_SPEED * 2;
 /**
- * 낙하물 열에 여덟 하고 반은 참가자를 겨냥한다 — sim.ts spawnObject 주석.
+ * 낙하물 열에 여덟 하고 반은 참가자를 겨냥한다 — 그 자리로 정확히(sim.ts spawnObject 주석).
  * 일곱이었다 (2026-09-05 사용자: "공 난이도도 높여줘") — 마당이 12×19m 라 안 겨냥한 공은 대개
  * 아무 일 없이 빈 바닥에 떨어진다. 겨냥 비율이 곧 **사람이 실제로 피해야 하는 공의 수**다.
+ *
+ * 나머지 열에 하나 반은 여전히 아무 데나 떨어진다 — 그 빈 시간이 있어야 「나를 향해 떨어지는 게
+ * 없는데 움직였다」가 셀 수 있다(stats.ts unnecessaryMoves). 전부 겨냥하면 그 지표가 죽는다.
  */
 const AIM_RATIO = 0.85;
 
@@ -75,6 +78,8 @@ export class FallEngine implements GameEngine {
   private profiles = new Map<string, DodgeProfile>();
   /** 몸의 높이 — 사람도 봇도 여기 하나로 적분한다 */
   private air = new Map<string, Air>();
+  /** 좌석마다 마지막으로 겨냥당한 시각 — 다음 차례를 고르는 데만 쓴다 (aimTarget) */
+  private aimedAt = new Map<string, number>();
 
   condition(): TrialCondition {
     // 상수 하나 — 구간 변화를 걷어냈다(condition.ts). 기록 모양(배열)은 다른 게임과 맞춘다
@@ -93,6 +98,7 @@ export class FallEngine implements GameEngine {
     this.objects = [];
     this.stats = new Map();
     this.air = new Map();
+    this.aimedAt = new Map();
 
     // 사람은 마당 가운데 근처에서 시작한다고 본다 — 첫 move 가 오면 바로 덮인다
     for (const id of realIds) {
@@ -206,6 +212,29 @@ export class FallEngine implements GameEngine {
     return false;
   }
 
+  /**
+   * 겨냥할 차례 — **가장 오래 안 겨냥된 자리**. 무작위로 골랐더니 한 좌석이 몇 초씩 비었다: 서 있는데도
+   * 내 자리로 안 오는 시간이 길면 겨냥한 티가 안 나고(2026-09-05 사용자: "캐릭터가 서있는 곳에 일부러 공
+   * 떨어지게"), 좌석마다 받은 위협 수가 달라 전광판의 회피 기록끼리 견줄 수가 없다. 차례로 돌면 좌석이 넷일 때 1.2초, 여섯이면
+   * 1.7초에 한 번씩 모두가 똑같이 겨냥당한다. 자리를 아직 모르는 좌석(seen=false)은 건너뛴다.
+   */
+  private aimTarget(now: number): DodgeStats | null {
+    let best: DodgeStats | null = null;
+    let bestId = '';
+    let bestAt = Number.POSITIVE_INFINITY;
+    for (const [id, s] of this.stats) {
+      if (!s.seen) continue;
+      const at = this.aimedAt.get(id) ?? 0;
+      if (at < bestAt) {
+        best = s;
+        bestId = id;
+        bestAt = at;
+      }
+    }
+    if (best) this.aimedAt.set(bestId, now);
+    return best;
+  }
+
   private tick(): void {
     const ctx = this.ctx;
     if (!ctx) return;
@@ -219,11 +248,10 @@ export class FallEngine implements GameEngine {
       ctx.finish();
       return;
     }
-    // 스폰 — 열에 일곱은 참가자 하나를 겨냥해, 나머지는 아무 데나. 새 물체가 누구 머리 위인지 그 순간 기록한다(위협)
+    // 스폰 — 열에 여덟 반은 참가자 하나가 **선 자리로**, 나머지는 아무 데나. 새 물체가 누구 머리 위인지 그 순간 기록한다(위협)
     if (now - this.lastSpawn >= FALL_SPAWN_MS) {
       this.lastSpawn = now;
-      const targets = [...this.stats.values()].filter((s) => s.seen);
-      const target = targets.length && Math.random() < AIM_RATIO ? targets[Math.floor(Math.random() * targets.length)] : null;
+      const target = Math.random() < AIM_RATIO ? this.aimTarget(now) : null;
       const o = spawnObject(this.nextObjectId++, now, Math.random, target ? { x: target.x, z: target.z } : undefined);
       this.objects.push(o);
       for (const s of this.stats.values()) s.registerThreat(o);

@@ -48,16 +48,21 @@ export interface FallObject {
 }
 
 /**
- * 새 공. at 을 주면 그 근처(반지름 aimR 안)로 — 통제실이 참가자를 **겨냥해** 떨어뜨릴 때다.
+ * 새 공. at 을 주면 **그 자리로** — 통제실이 참가자를 겨냥해 떨어뜨릴 때다.
  * 마당이 넓어 아무 데나 떨어뜨리면 한 판에 사람 머리 위로 오는 게 거의 없다 — 그러면
  * 회피 기록이 비어 판별이 안 선다. 겨냥한 것도 마당 밖으로는 안 나간다.
  *
- * 겨냥 반경 0.9m 는 맞는 거리(공 0.24 + 몸 0.35 = 0.59m)보다 넓어서, 겨냥한 공의 절반 남짓이 애초에
- * 빗나가 있었다 — 가만히 서 있어도 안 맞는 공이다. 0.65m 로 좁힌다 (2026-09-05 사용자: "공 난이도도
- * 높여줘") — 겨냥했으면 **피해야** 안 맞는다. 그래도 정확히 머리 위는 아니다: 어디로 피할지 고르는
- * 여지가 남아야 회피 방향이 기록으로 남는다 (stats.ts 의 minDistanceAvoid).
+ * 겨냥 반경은 0.9 → 0.65 → **0.2m** 로 좁혀 왔다 (2026-09-05 사용자: "캐릭터가 서있는 곳에 일부러 공
+ * 떨어지게"). 0.65m 는 가장 작은 공(탁구공)의 맞는 거리(0.12 + 몸 0.35 = 0.47m)보다 넓어서, 겨냥한
+ * 공이 서 있는 사람 옆으로 그냥 빗나가곤 했다 — 겨냥한 티가 안 났다. 0.2m 는 다섯 공 모두의 맞는 거리
+ * 안이다: **가만히 서 있으면 반드시 맞고, 피해야만 안 맞는다.**
+ *
+ * 0 이 아닌 까닭은 그림이다. 공끼리는 안 부딪히므로 정확히 같은 점으로 떨어뜨리면 바닥에 남는 1초
+ * (LINGER_MS) 동안 공들이 한 자리에 겹쳐 박힌다. 0.2m 면 발밑에 쌓이되 서로 다른 자리다.
+ * 어디로 피할지는 여전히 사람 몫이다 — 머리 위에서는 어느 쪽으로든 맞는 거리만 벗어나면 되고,
+ * 얼마나 벗어났는지가 기록으로 남는다 (stats.ts 의 minDistanceAvoid).
  */
-export function spawnObject(id: number, now: number, rand: () => number = Math.random, at?: { x: number; z: number }, aimR = 0.65, kind?: number): FallObject {
+export function spawnObject(id: number, now: number, rand: () => number = Math.random, at?: { x: number; z: number }, aimR = 0.2, kind?: number): FallObject {
   let x = FALL_ARENA.minX + rand() * (FALL_ARENA.maxX - FALL_ARENA.minX);
   let z = FALL_ARENA.minZ + rand() * (FALL_ARENA.maxZ - FALL_ARENA.minZ);
   if (at) {
