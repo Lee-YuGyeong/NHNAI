@@ -297,7 +297,7 @@ function json(body: unknown, status = 200): Response {
     headers: {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
-      'access-control-allow-origin': '*',
+      // CORS 는 여기서 정하지 않는다 — 진입점의 문지기(guard.ts)가 허용 목록으로 얹는다
     },
   });
 }

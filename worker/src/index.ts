@@ -18,7 +18,26 @@
  */
 
 import { handleConfig, handleProfile, handleWorldTicket } from './auth';
-import { handleLabAct, handleLabCast, handleLabFree, handleLabTalk, handleWorldBackstep, handleWorldDirect, handleWorldInterrogate, handleWorld2Say } from './lab';
+import {
+  bodyTooLarge,
+  corsHeaders,
+  guardJson,
+  isMetered,
+  originAllowed,
+  rateLimited,
+  withHeaders,
+  type GuardEnv,
+} from './guard';
+import {
+  handleLabAct,
+  handleLabCast,
+  handleLabFree,
+  handleLabTalk,
+  handleWorldBackstep,
+  handleWorldDirect,
+  handleWorldInterrogate,
+  handleWorld2Say,
+} from './lab';
 import { LobbyDO, handleRooms } from './lobby-do';
 import { RoomDO } from './room-do';
 import { handleTts, handleTtsLeader, handleTtsLibrary, handleTtsVoices } from './tts';
@@ -32,7 +51,7 @@ import {
 
 export { LobbyDO, RoomDO };
 
-export interface Env {
+export interface Env extends GuardEnv {
   ROOM_DO: DurableObjectNamespace;
   /**
    * 방 등록소 (worker/src/lobby-do.ts) — 열린 방 목록이 사는 곳. 인스턴스 하나다.
@@ -85,79 +104,98 @@ export interface Env {
 /** 방 번호 모양만 받는다. 아무 문자열이나 받으면 DO 가 무한히 생성된다. (src/world/mp/constants ROOM_CODE_RE 와 같다) */
 const ROOM_PATH = /^(?:\/world-ws)?\/rooms\/([0-9]{1,6})\/ws$/;
 
-const CORS = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET,POST,PUT,OPTIONS',
-  // authorization: /api/world/ticket 이 액세스 토큰을 **헤더로** 받는다 (쿼리에 두지 않는 이유는 auth.ts 머리말)
-  'access-control-allow-headers': 'content-type,authorization',
-};
+/*
+ * 문지기 (worker/src/guard.ts). CORS 는 더 이상 `*` 가 아니다 — 같은 호스트 · 로컬 개발 · ALLOWED_ORIGINS 만.
+ * 화면은 전부 같은 오리진으로 /api 를 부르므로(fetch('/api/…')) 게임 쪽에서 달라지는 것은 없다.
+ */
 
 export default {
-  // ctx 는 좌석 음성이 쓴다 — 엣지 캐시에 넣는 일(cache.put)을 응답 뒤로 미룬다 (seat-voice.ts)
+  /**
+   * 문지기를 먼저 세운다 — 라우팅(route)은 그 뒤다.
+   *   남의 Origin           → 403 (브라우저의 교차 출처 요청. curl 은 Origin 이 없어 여기 안 걸린다)
+   *   /api 본문 1MB 초과     → 413
+   *   요금 경로 IP 당 천장    → 429 (API_RATE_LIMIT 바인딩이 있을 때만)
+   * 통과한 응답에는 보안 헤더 · 허용 목록 CORS 를 얹는다. WebSocket(101)은 건드리지 않는다.
+   */
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const cors = corsHeaders(request, env);
+    if (!originAllowed(request, env)) return withHeaders(guardJson({ error: 'origin_not_allowed' }, 403), cors);
+
     const url = new URL(request.url);
+    if (request.method === 'OPTIONS') return withHeaders(new Response(null, { status: 204 }), cors);
 
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
-    if (url.pathname === '/health') return new Response('ok', { headers: CORS });
+    if (url.pathname.startsWith('/api/')) {
+      if (bodyTooLarge(request)) return withHeaders(guardJson({ error: 'body_too_large' }, 413), cors);
+      if (isMetered(url.pathname) && (await rateLimited(request, env))) {
+        return withHeaders(guardJson({ error: 'rate_limited' }, 429, { 'retry-after': '60' }), cors);
+      }
+    }
 
-    /*
-     * 방 목록 · 방 만들기 (worker/src/lobby-do.ts). 계정을 묻지 않는다 — 이 게임에서
-     * 로그인은 관문이 아니라 이름의 근거다 (src/shared/supabase.ts).
-     */
-    if (url.pathname === '/api/rooms') return handleRooms(request, env);
-
-    // 계정 — 브라우저가 Supabase 주소·anon 키를 물어보는 자리와, 방 입장권을 끊는 자리.
-    // 둘 다 로그인이 꺼져 있어도 **응답한다** (config 는 null 둘, ticket 은 503) — 화면이 그걸 보고 게스트로 간다.
-    if (url.pathname === '/api/config') return handleConfig(env);
-    if (url.pathname === '/api/profile') return handleProfile(request, env);
-    if (url.pathname === '/api/world/ticket') return handleWorldTicket(request, env);
-
-    // 에이전트 경로 — LLM 호출은 전부 여기 안에서. 개발 서버(tools/vite-lab.ts)와 짝이 맞아야
-    // 배포본에서 그 화면이 산다.
-    if (url.pathname === '/api/lab/act') return handleLabAct(request, env);
-    if (url.pathname === '/api/lab/talk') return handleLabTalk(request, env);
-    if (url.pathname === '/api/lab/cast') return handleLabCast(request, env);
-    if (url.pathname === '/api/lab/free') return handleLabFree(request, env);
-    if (url.pathname === '/api/world/interrogate') return handleWorldInterrogate(request, env);
-    if (url.pathname === '/api/world/backstep') return handleWorldBackstep(request, env);
-    if (url.pathname === '/api/world/direct') return handleWorldDirect(request, env);
-    if (url.pathname === '/api/world2/say') return handleWorld2Say(request, env);
-
-    // 리더 방송 합성 — 이 경로는 개발 서버도 워커로 넘긴다 (vite.config.ts 프록시).
-    // /api/lab/* 과 달리 구독으로 대신할 방법이 없어서, 로컬에서도 워커를 띄워야 소리가 난다.
-    if (url.pathname === '/api/tts') return handleTts(request, env);
-    if (url.pathname === '/api/tts/voices') return handleTtsVoices(request, env);
-    if (url.pathname === '/api/tts/library') return handleTtsLibrary(request, env);
-    // 갈래(announce·readout·alarm)마다 워커가 실제로 쓰는 목소리 — /tts 의 「관리 AI 세 톤」이 묻는다
-    if (url.pathname === '/api/tts/leader') return handleTtsLeader(request, env);
-
-    /*
-     * 참가자 좌석 음성 (worker/src/seat-voice.ts). 위의 /api/tts 와 **다른 관로다** —
-     * 저쪽은 리더 한 사람이 방송하는 자리라 POST 로 그때그때 합성하지만, 이쪽은 방 안
-     * 아홉 명이 같은 줄을 듣는 자리라 서명된 GET 으로 받아 엣지 캐시에 태운다.
-     * 안 그러면 한 줄에 크레딧이 아홉 번 나가고, 아홉 번의 왕복이 제각각이라 사람마다
-     * 누가 먼저 말한 것처럼 들리는지가 달라진다 (docs/VOICE.md §5).
-     */
-    if (url.pathname === '/api/tts/clip') return handleSeatClip(request, env, ctx);
-    // 시연 화면(/voice)이 토큰을 받아 가는 자리 — SEAT_VOICE_DEV=1 일 때만 산다
-    if (url.pathname === '/api/tts/clip/mint') return handleSeatClipMint(request, env);
-    /*
-     * 명부 캐스팅(/tts) — 역시 SEAT_VOICE_DEV=1 일 때만.
-     * 시청은 **게임이 실제로 낼 조리법**으로 낸다(seat-voice.ts 의 SEAT_SETTINGS). 방송용
-     * 조리법으로 들려주면 게임이 안 내는 소리를 듣고 아홉을 고르게 된다.
-     */
-    if (url.pathname === '/api/tts/seat-audition') return handleSeatAudition(request, env, ctx);
-    if (url.pathname === '/api/tts/library/add') return handleLibraryAdd(request, env);
-    // 지금 워커에 들어간 명부 — 채운 뒤 「제대로 들어갔나」를 눈으로 보는 자리.
-    // 진짜 판에서 배정표는 클라이언트로 안 내려간다(P8·§3), 그래서 이것도 개발 뒤에 둔다
-    if (url.pathname === '/api/tts/seats') return handleSeatRoster(request, env);
-
-    const match = ROOM_PATH.exec(url.pathname);
-    // 방 경로가 아니면 정적 파일로 넘긴다 (없는 경로는 assets 설정에 따라 index.html).
-    if (!match) return env.ASSETS.fetch(request);
-
-    const stub = env.ROOM_DO.get(env.ROOM_DO.idFromName(match[1]));
-    // 요청을 그대로 넘긴다. Upgrade 헤더가 붙은 Request 는 다시 만들 수 없다.
-    return stub.fetch(request);
+    return withHeaders(await route(request, env, ctx, url), cors);
   },
 } satisfies ExportedHandler<Env>;
+
+// ctx 는 좌석 음성이 쓴다 — 엣지 캐시에 넣는 일(cache.put)을 응답 뒤로 미룬다 (seat-voice.ts)
+async function route(request: Request, env: Env, ctx: ExecutionContext, url: URL): Promise<Response> {
+  if (url.pathname === '/health') return new Response('ok');
+
+  /*
+   * 방 목록 · 방 만들기 (worker/src/lobby-do.ts). 계정을 묻지 않는다 — 이 게임에서
+   * 로그인은 관문이 아니라 이름의 근거다 (src/shared/supabase.ts).
+   */
+  if (url.pathname === '/api/rooms') return handleRooms(request, env);
+
+  // 계정 — 브라우저가 Supabase 주소·anon 키를 물어보는 자리와, 방 입장권을 끊는 자리.
+  // 둘 다 로그인이 꺼져 있어도 **응답한다** (config 는 null 둘, ticket 은 503) — 화면이 그걸 보고 게스트로 간다.
+  if (url.pathname === '/api/config') return handleConfig(env);
+  if (url.pathname === '/api/profile') return handleProfile(request, env);
+  if (url.pathname === '/api/world/ticket') return handleWorldTicket(request, env);
+
+  // 에이전트 경로 — LLM 호출은 전부 여기 안에서. 개발 서버(tools/vite-lab.ts)와 짝이 맞아야
+  // 배포본에서 그 화면이 산다.
+  if (url.pathname === '/api/lab/act') return handleLabAct(request, env);
+  if (url.pathname === '/api/lab/talk') return handleLabTalk(request, env);
+  if (url.pathname === '/api/lab/cast') return handleLabCast(request, env);
+  if (url.pathname === '/api/lab/free') return handleLabFree(request, env);
+  if (url.pathname === '/api/world/interrogate') return handleWorldInterrogate(request, env);
+  if (url.pathname === '/api/world/backstep') return handleWorldBackstep(request, env);
+  if (url.pathname === '/api/world/direct') return handleWorldDirect(request, env);
+  if (url.pathname === '/api/world2/say') return handleWorld2Say(request, env);
+
+  // 리더 방송 합성 — 이 경로는 개발 서버도 워커로 넘긴다 (vite.config.ts 프록시).
+  // /api/lab/* 과 달리 구독으로 대신할 방법이 없어서, 로컬에서도 워커를 띄워야 소리가 난다.
+  if (url.pathname === '/api/tts') return handleTts(request, env);
+  if (url.pathname === '/api/tts/voices') return handleTtsVoices(request, env);
+  if (url.pathname === '/api/tts/library') return handleTtsLibrary(request, env);
+  // 갈래(announce·readout·alarm)마다 워커가 실제로 쓰는 목소리 — /tts 의 「관리 AI 세 톤」이 묻는다
+  if (url.pathname === '/api/tts/leader') return handleTtsLeader(request, env);
+
+  /*
+   * 참가자 좌석 음성 (worker/src/seat-voice.ts). 위의 /api/tts 와 **다른 관로다** —
+   * 저쪽은 리더 한 사람이 방송하는 자리라 POST 로 그때그때 합성하지만, 이쪽은 방 안
+   * 아홉 명이 같은 줄을 듣는 자리라 서명된 GET 으로 받아 엣지 캐시에 태운다.
+   * 안 그러면 한 줄에 크레딧이 아홉 번 나가고, 아홉 번의 왕복이 제각각이라 사람마다
+   * 누가 먼저 말한 것처럼 들리는지가 달라진다 (docs/VOICE.md §5).
+   */
+  if (url.pathname === '/api/tts/clip') return handleSeatClip(request, env, ctx);
+  // 시연 화면(/voice)이 토큰을 받아 가는 자리 — SEAT_VOICE_DEV=1 일 때만 산다
+  if (url.pathname === '/api/tts/clip/mint') return handleSeatClipMint(request, env);
+  /*
+   * 명부 캐스팅(/tts) — 역시 SEAT_VOICE_DEV=1 일 때만.
+   * 시청은 **게임이 실제로 낼 조리법**으로 낸다(seat-voice.ts 의 SEAT_SETTINGS). 방송용
+   * 조리법으로 들려주면 게임이 안 내는 소리를 듣고 아홉을 고르게 된다.
+   */
+  if (url.pathname === '/api/tts/seat-audition') return handleSeatAudition(request, env, ctx);
+  if (url.pathname === '/api/tts/library/add') return handleLibraryAdd(request, env);
+  // 지금 워커에 들어간 명부 — 채운 뒤 「제대로 들어갔나」를 눈으로 보는 자리.
+  // 진짜 판에서 배정표는 클라이언트로 안 내려간다(P8·§3), 그래서 이것도 개발 뒤에 둔다
+  if (url.pathname === '/api/tts/seats') return handleSeatRoster(request, env);
+
+  const match = ROOM_PATH.exec(url.pathname);
+  // 방 경로가 아니면 정적 파일로 넘긴다 (없는 경로는 assets 설정에 따라 index.html).
+  if (!match) return env.ASSETS.fetch(request);
+
+  const stub = env.ROOM_DO.get(env.ROOM_DO.idFromName(match[1]));
+  // 요청을 그대로 넘긴다. Upgrade 헤더가 붙은 Request 는 다시 만들 수 없다.
+  return stub.fetch(request);
+}

@@ -1,0 +1,11 @@
+# 정적 파일의 보안 헤더 (Workers Static Assets 의 _headers 규칙 — vite 가 public/ 을 dist/ 로 그대로 복사한다).
+#
+# 워커 코드(worker/src/guard.ts)는 /api · /health · 소켓에만 서기 때문에(wrangler.jsonc 의 run_worker_first)
+# index.html · js · 그림은 워커를 거치지 않고 나간다. 그 응답에 붙일 헤더는 여기서 적는다.
+# 게임이 쓰는 것은 막지 않는다 — 전체화면 · 마이크 · WebGL · 폰트 · Supabase · R2 영상은 그대로다.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Permissions-Policy: camera=(), geolocation=(), payment=(), usb=()
