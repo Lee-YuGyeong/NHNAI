@@ -24,3 +24,5 @@ tripo-out/
 
 # 문서 PDF 는 tools/docs-pdf.sh 로 그때그때 찍는다 (docs/*.html 이 원본)
 docs/pdf/
+docs/slides/png/
+docs/slides/preview/

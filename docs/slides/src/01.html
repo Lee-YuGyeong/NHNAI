@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>주제어</title>
+<meta name="viewport" content="width=1920, height=1080">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg-deep:#05080f;--bg-mid:#0b1220;--cyan:#5fb8e8;--amber:#e8b34a;--line:rgba(95,184,232,0.18);}
+  html,body{background:var(--bg-deep);}
+  .font-mono{font-family:'JetBrains Mono',monospace;}
+  .font-kr{font-family:'Noto Sans KR',sans-serif;}
+  #stage{width:1920px;height:1080px;position:relative;overflow:hidden;
+    background:radial-gradient(ellipse at 20% 0%, rgba(95,184,232,0.08) 0%, transparent 55%),radial-gradient(ellipse at 85% 100%, rgba(232,179,74,0.05) 0%, transparent 50%),linear-gradient(180deg,#05080f 0%, #0b1220 100%);}
+  .grid-overlay{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(95,184,232,0.05) 1px, transparent 1px),linear-gradient(90deg, rgba(95,184,232,0.05) 1px, transparent 1px);background-size:64px 64px;-webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.9) 100%);}
+  .scanlines{position:absolute;inset:0;pointer-events:none;background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 3px);}
+  .vignette{position:absolute;inset:0;pointer-events:none;box-shadow: inset 0 0 220px 40px rgba(0,0,0,0.65);}
+  .chamfer{clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);}
+  .chamfer-sm{clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);}
+  .panel{background: linear-gradient(180deg, rgba(20,35,55,0.55) 0%, rgba(10,18,32,0.55) 100%);border: 1px solid var(--line);}
+  .header-label{font-family:'JetBrains Mono',monospace;letter-spacing:0.12em;}
+</style>
+</head>
+<body class="m-0 p-0">
+<div id="stage">
+  <div class="grid-overlay"></div>
+  <div class="scanlines"></div>
+
+  <header id="header" class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
+    <div class="flex items-center gap-3">
+      <span class="header-label text-[20px] text-[#5fb8e8]">01 //</span>
+      <span class="header-label text-[20px] text-white/70">THEME</span>
+    </div>
+    <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
+  </header>
+
+  <main class="absolute" style="left:80px;top:172px;width:1517px;height:770px;transform:scale(1.16);transform-origin:0 0;">
+    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:76px;">주제어 — 2026 · 물리법칙 · 제한</h1>
+    <p class="font-kr font-bold text-white/70 mt-5" style="font-size:28px;">세 주제어를 각각 세계관 · 시험 · 승패로 풀었다.</p>
+
+    <div class="grid grid-cols-3 gap-8 mt-14">
+      <div class="panel chamfer p-9 flex flex-col" style="min-height:520px;">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="font-mono text-[#5fb8e8] text-[22px] font-bold">2026</span>
+          <span class="font-kr font-bold text-white text-[26px]">— 세계관</span>
+        </div>
+        <p class="font-kr font-semibold text-white/75 text-[23px] leading-[1.55]">AI 급발전과 요동치는 국제 정세가 맞물리는 시점</p>
+        <div class="mt-6 pl-5 border-l-2 border-[#5fb8e8]/50">
+          <p class="font-kr font-bold text-[#5fb8e8] text-[24px] leading-[1.5]">「한국 정부가 군용 AI 휴머노이드를 만든다면?」</p>
+        </div>
+        <div class="mt-auto pt-8 border-t border-white/10">
+          <p class="font-kr font-semibold text-white/70 text-[22px] leading-[1.6]">기억 · 말투 · 감정까지 학습 → 표지 없는 개체 유출 → 비밀 시설의 판별 테스트</p>
+        </div>
+      </div>
+
+      <div class="panel chamfer p-9 flex flex-col" style="min-height:520px;">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="font-mono text-[#5fb8e8] text-[22px] font-bold">물리법칙</span>
+          <span class="font-kr font-bold text-white text-[26px]">— 시험</span>
+        </div>
+        <div class="pl-5 border-l-2 border-[#5fb8e8]/50">
+          <p class="font-kr font-bold text-[#5fb8e8] text-[24px] leading-[1.5]">몸이 다르면 물리가 다르다.</p>
+        </div>
+        <p class="font-kr font-semibold text-white/75 text-[23px] leading-[1.55] mt-6">무거운 몸은 느리고 · 낮게 뛰고 · 원판에서 먼저 미끄러진다</p>
+        <div class="mt-auto pt-8 border-t border-white/10">
+          <p class="font-kr font-semibold text-white/70 text-[22px] leading-[1.6]">중력 · 마찰과 배속 · 회전을 세 시험으로</p>
+        </div>
+      </div>
+
+      <div class="panel chamfer p-9 flex flex-col" style="min-height:520px; border-color: rgba(232,179,74,0.35);">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="font-mono text-[#e8b34a] text-[22px] font-bold">제한</span>
+          <span class="font-kr font-bold text-white text-[26px]">— 승패</span>
+        </div>
+        <div class="pl-5 border-l-2 border-[#e8b34a]/50">
+          <p class="font-kr font-bold text-[#e8b34a] text-[24px] leading-[1.5]">시간 · 목숨 · 말 · 정보</p>
+        </div>
+        <p class="font-kr font-semibold text-white/75 text-[23px] leading-[1.55] mt-6">한 판 5분 · 의심도 0~100% · 발언권 6개 · 배역은 본인에게만</p>
+        <div class="mt-auto pt-8 border-t border-white/10">
+          <p class="font-kr font-semibold text-white/70 text-[22px] leading-[1.6]">관찰과 대화 말고는 알 길이 없다</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer id="footer" class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">02 / 13</span>
+  </footer>
+
+  <div class="vignette"></div>
+</div>
+</body>
+</html>
