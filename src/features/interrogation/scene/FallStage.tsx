@@ -25,6 +25,21 @@ const ARENA_D = FALL_ARENA.maxZ - FALL_ARENA.minZ;
 const ARENA_CX = (FALL_ARENA.minX + FALL_ARENA.maxX) / 2;
 const ARENA_CZ = (FALL_ARENA.minZ + FALL_ARENA.maxZ) / 2;
 
+/**
+ * 마당 위 작업등의 자리·세기 — **켜는 것은 HallScene 이다**(ArenaWorkLights). 값만 여기 둔다:
+ * 어디를 밝혀야 하는지는 이 무대가 아는 것이고, 언제 켜지는지는 판이 아는 것이다.
+ *
+ *   ① 홀 조명은 무대(연단)에 떨어져서 마당 가운데가 어둡다 — 떨어지는 것이 보여야 피한다.
+ *   ② 천장 밑 — 배출구에서 나오는 공이 보에 진 그늘에 묻히지 않게 한 번 더.
+ */
+export const ARENA_WORK_LIGHTS = [
+  { position: [ARENA_CX, 7.5, ARENA_CZ] as const, color: '#dfe9ff', intensity: 60, distance: 22 },
+  { position: [ARENA_CX, 10.4, ARENA_CZ] as const, color: '#ffe8c4', intensity: 40, distance: 14 },
+];
+
+/** 낙하 생존이 쓰는 GLB — 호루라기가 울리는 그 프레임에 받으면 늦다 (HallScene 의 미리 받기) */
+export const FALL_PARTS = ['trial_hopper', 'ball_basketball', 'ball_soccer', 'ball_baseball', 'ball_pingpong', 'ball_bowling'] as const;
+
 const EDGE_MAT = new THREE.MeshBasicMaterial({ color: '#ffca8e', transparent: true, opacity: 0.55 });
 
 /** 호퍼 한 대의 크기(m). 폭은 형광등 줄 사이에 들어갈 만큼, 깊이는 천장 보 사이에 들어갈 만큼 */
@@ -61,10 +76,7 @@ export function FallStage() {
   return (
     <group>
       <ArenaEdge />
-      {/* 마당 위 작업등 — 홀 조명은 무대에 떨어져서 가운데가 어둡다. 떨어지는 것이 보여야 피한다 */}
-      <pointLight position={[ARENA_CX, 7.5, ARENA_CZ]} color="#dfe9ff" intensity={60} distance={22} decay={2} />
-      {/* 천장 밑 — 배출구에서 나오는 공이 보에 진 그늘에 묻히지 않게 한 번 더 */}
-      <pointLight position={[ARENA_CX, 10.4, ARENA_CZ]} color="#ffe8c4" intensity={40} distance={14} decay={2} />
+      {/* 마당 위 작업등은 여기 없다 — 홀에 **상시** 켜 둔 것을 밝히기만 한다 (HallScene 의 ArenaWorkLights) */}
       {/* 공은 홀·호퍼와 따로 기다린다 — 부품이 늦게 와도 떨어지는 것부터 보여야 피한다 */}
       <Suspense fallback={null}>
         <GlbInstances id="trial_hopper" fit={HOPPER_FIT} items={HOPPERS} />

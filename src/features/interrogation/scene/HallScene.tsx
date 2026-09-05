@@ -14,7 +14,7 @@
  * 이 파일은 모른다 (game-protocol.ts 머리말). **내 머리 위에도 의심도 막대**가 붙는다 — 이름표 없이 막대만
  * (SelfAvatar.tsx 머리말).
  */
-import { Suspense, useCallback } from 'react';
+import { Suspense, useCallback, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
@@ -23,13 +23,14 @@ import { EYE_HEIGHT, FALL_ARENA, HUNT_ARENA } from '@/world/mp/constants';
 import type { BodyId } from '@/world/mp/bodies';
 import type { AnimState, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
+import { preloadAsset } from '@/world/assets/loader';
 import { AdaptiveFov, Exposure, MouseLook } from '@/world/scene/WorldScene';
 import { WorldCanvas } from '@/world/scene/WorldCanvas';
 import { SeatBodies } from './SeatAvatar';
 import { Executioner } from './Executioner';
 import { SelfAvatar } from './SelfAvatar';
 import { selfPose } from './selfPose';
-import { FallStage } from './FallStage';
+import { ARENA_WORK_LIGHTS, FALL_PARTS, FallStage } from './FallStage';
 import { PlatformCourse } from './PlatformCourse';
 import { PLATFORM_ARENA } from '@/world/mp/platform';
 // 색 사냥의 구슬 · 견본판 · E 키는 /trial 과 같은 부품이다 — 상태(huntState)가 하나라 화면도 하나로 그린다
@@ -90,6 +91,17 @@ export interface HallSceneProps {
 }
 
 export function HallScene(p: HallSceneProps) {
+  /*
+   * 낙하 생존의 GLB(배출 호퍼 · 공 다섯)를 **호루라기 전에** 받아 둔다.
+   * 안 그러면 시험이 열리는 그 프레임에 여섯 개가 한꺼번에 온다 — 받고 · 풀고 · 텍스처를 GPU 로 올리는 일이
+   * 첫 공이 떨어지는 순간과 겹쳐서, 피해야 할 바로 그때 화면이 멎는다 (2026-09-05 측정: 전환 순간 GLB 만 240~450ms).
+   * 홀 자체의 부품 열여섯 개와 다투지 않게 2초 미룬다 — 호루라기까지는 아직 40초가 넘게 남았다.
+   */
+  useEffect(() => {
+    const id = window.setTimeout(() => FALL_PARTS.forEach(preloadAsset), 2000);
+    return () => window.clearTimeout(id);
+  }, []);
+
   const stopline = p.test?.game === 'stopline';
   const fall = p.test?.game === 'fall';
   const hunt = p.test?.game === 'colorhunt';
@@ -103,6 +115,17 @@ export function HallScene(p: HallSceneProps) {
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
+        /*
+         * 셰이더 링크가 끝났는지 **묻지 않는다.** 물으면(getProgramInfoLog) 그 자리에서 GPU 를 기다리느라
+         * 자바스크립트가 멈춘다 — 시험이 열려 새 재질(공 · 호퍼 · 발판 · 원판)이 처음 그려지는 프레임마다
+         * 그 대기가 통째로 얹혔다 (2026-09-05 측정: 낙하 전환에서 링크 대기만 172ms).
+         * 안 물으면 드라이버가 뒤에서 링크하고, 화면은 그동안 계속 돈다.
+         *
+         * 대신 이 홀에서는 셰이더가 깨져도 콘솔에 three 의 친절한 오류가 안 뜬다 — 검은 물체와 WebGL 경고만
+         * 남는다. 이 홀은 three 의 기본 재질만 쓰므로(직접 쓴 셰이더는 map/gallery 하나뿐이고 여기 없다)
+         * 그 위험을 진다. 재질을 손으로 짜게 되면 이 줄을 잠깐 지우고 보면 된다.
+         */
+        gl.debug.checkShaderErrors = false;
       }}
     >
       <AdaptiveFov />
@@ -111,6 +134,8 @@ export function HallScene(p: HallSceneProps) {
       <fogExp2 attach="fog" args={[def.fog[0], def.fog[1]]} />
       <def.Lights flicker />
       <ambientLight intensity={def.ambient.intensity} color={def.ambient.color} />
+      {/* 마당 위 작업등 — 국면이 바뀌어도 **개수가 안 변한다**. 이유는 ArenaWorkLights 머리말 */}
+      <ArenaWorkLights fall={fall} hunt={hunt} />
 
       <Suspense fallback={null}>
         <def.Scene quality="high" />
@@ -135,8 +160,7 @@ export function HallScene(p: HallSceneProps) {
         <group>
           <HuntOrbs />
           <SampleBoard />
-          {/* 마당 위 작업등 — 링 조명이 무대에만 떨어져 마당이 어둡다. 구슬은 무광이지만 견본판 구조물·몸은 빛이 필요하다 */}
-          <pointLight position={[0, 7.5, -1.5]} color="#dfe9ff" intensity={60} distance={22} decay={2} />
+          {/* 마당 위 작업등은 ArenaWorkLights 가 상시로 들고 있다 — 색 사냥이면 첫 등이 켜진다 */}
         </group>
       ) : null}
 
@@ -171,6 +195,40 @@ export function HallScene(p: HallSceneProps) {
       {p.myBody ? <SelfAvatar body={p.myBody} getSuspicion={() => (p.mySeatId ? p.getSuspicion(p.mySeatId) : 0)} /> : null}
       <MouseLook />
     </WorldCanvas>
+  );
+}
+
+/**
+ * 마당 위 작업등 둘 — **판이 서기 전부터 씬에 매달려 있고, 꺼질 때는 세기만 0 이 된다.**
+ *
+ * 원래는 낙하 생존(FallStage)과 색 사냥이 제 광원을 직접 들고 왔다가 시험이 끝나면 같이 사라졌다. 그런데
+ * three 는 **광원 개수를 셰이더 프로그램의 열쇠로 쓴다** — 홀에 이미 스물한 개가 켜져 있는데 거기서 둘이
+ * 늘거나 줄면, 그 순간 홀의 **모든** 재질이 프로그램을 다시 링크한다. 호루라기가 울리는 바로 그 프레임에
+ * 열여덟 개가 다시 링크됐고(2026-09-05 측정), 링크 결과를 기다리는 동안 화면이 통째로 멎었다 —
+ * 처음 여는 판에서는 1.3초였다. 피하라고 만든 게임이 피할 수 없는 순간부터 시작한 셈이다.
+ *
+ * 그래서 개수를 고정한다. 세기 0 인 점광원은 색 × 0 이라 **화면에 아무 자국도 안 남기고**, 그 대신 프로그램
+ * 열쇠가 판이 도는 내내 한 번도 안 바뀐다. `visible={false}` 로 끄면 안 된다 — three 는 안 보이는 광원을
+ * 아예 세지 않아서, 개수가 바뀌는 원래 문제로 돌아간다.
+ *
+ * 색 사냥의 마당은 낙하 마당과 같은 자리다(HUNT_ARENA = FALL_ARENA) — 그래서 첫 등 하나를 같이 쓴다.
+ * 구슬은 무광이지만 견본판 구조물과 몸은 빛이 필요하다.
+ */
+function ArenaWorkLights({ fall, hunt }: { fall: boolean; hunt: boolean }) {
+  return (
+    <>
+      {ARENA_WORK_LIGHTS.map((l, i) => (
+        <pointLight
+          key={i}
+          position={l.position}
+          color={l.color}
+          /* 첫 등은 낙하·색 사냥 둘 다, 천장 밑 등은 떨어지는 것이 있을 때만 */
+          intensity={(i === 0 ? fall || hunt : fall) ? l.intensity : 0}
+          distance={l.distance}
+          decay={2}
+        />
+      ))}
+    </>
   );
 }
 

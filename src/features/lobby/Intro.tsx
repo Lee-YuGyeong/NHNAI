@@ -18,8 +18,8 @@
  * │ 지시에 없던 일이다. 되돌리려면 등록부 한 줄이면 된다.                     │
  * └─────────────────────────────────────────────────────────────────────────┘
  *
- * ★ 숫자를 화면에 박지 않는다. 자리 수는 constants 의 ROOM_MAX_PLAYERS 한 곳에서 오고,
- *   배역 수는 **적지 않는다** (×N · ×? — 원작 humanish 인트로가 남긴 규칙 그대로다:
+ * ★ 숫자를 화면에 박지 않는다. 인원도 차례표도 **판이 실제로 보는 상수**(world/mp/game-protocol)
+ *   한 곳에서 오고, 배역 수는 **적지 않는다** (×N · ×? — 원작 humanish 인트로가 남긴 규칙 그대로다:
  *   첫 화면에 적힌 숫자가 방에 들어가서 틀리면 그 뒤 화면을 전부 의심하게 된다).
  *   몇 대가 섞였는지는 이 게임이 감추는 값이기도 하다 (PLANNING §3 I1).
  *
@@ -51,10 +51,16 @@
  * │ 이 화면은 이제 **그 개정판**을 따른다 — 물리 시행(worker/src/trial/)이   │
  * │ 실제로 그 방향으로 지어지고 있는 것도 확인했다.                           │
  * │                                                                          │
- * │ ★ 인원은 그 뒤 **구현값으로 확정**됐다 (PLANNING §0·§1.1, 2026-09-04):    │
- * │   시행 총원 4 고정 · 사람 2~3명(ROOM_MAX_PLAYERS=3) · AI 좌석 = 4−사람.   │
- * │   한때 적혀 있던 「3~8명 · AI 1 고정 · 설계자 0~2」는 옛 값이다 — 설계자   │
- * │   는 사람 정원 3에서 상한이 0이라 아직 배정되지 않는다.                    │
+ * │ ★ 인원은 **구현값에서 온다** (2026-09-05 재확인). 한때 여기 「시행 총원 4 │
+ * │   고정 · 사람 2~3명(ROOM_MAX_PLAYERS=3)」이라 적혀 있었는데, 그 4는       │
+ * │   /trial 의 TRIAL_PARTY_SIZE 였다 — 본판(검문소)의 값이 아니다. 검문소는  │
+ * │   **사람 GAME_MIN_HUMANS~GAME_MAX_HUMANS 명 + AI 1좌석**이고, 사람이      │
+ * │   모자란 자리는 대역이 채운다 (game-protocol.ts · game/runtime.start).    │
+ * │   같은 문장이 대기 패널에도 서 있다 (interrogation/hud/Panels.tsx).       │
+ * │                                                                          │
+ * │ ★ 차례표도 마찬가지다 (2026-09-05, bde946a). 「테스트가 주기적으로        │
+ * │   열린다」는 이제 틀린 말이다 — 종류도 순서도 횟수도 GAME_TEST_ORDER      │
+ * │   한 줄이 정한다: 대화 40초 ⇄ 시험 30초가 세 번, 그리고 끝난다.          │
  * │                                                                          │
  * │ ArenaFeature · lab/personas(고정 리더 + AI5 + 사람1)는 아직 옛 구성       │
  * │ 그대로다 — 그 쪽이 따라붙기 전까지는 첫 화면과 실제 입장 사이에 틈이      │
@@ -69,8 +75,18 @@ import { AccountButton } from '@/shared/AccountButton';
 import { signInWithGoogle, useAccount, useAccountSync } from '@/shared/useAccount';
 import { SfxToggle } from '@/shared/SfxToggle';
 import { LEADER_NAME, NAMES } from '@/lab/personas';
-import { ROOM_MAX_PLAYERS, TRIAL_GAME_MS, TRIAL_PHASE_MS } from '@/world/mp/constants';
-import { ArrowIcon, Backdrop } from './console';
+import { TRIAL_PHASE_MS } from '@/world/mp/constants';
+import {
+  GAME_BRIEFING_MS,
+  GAME_DISCUSSION_MS,
+  GAME_FIRST_DISCUSSION_MS,
+  GAME_MAX_HUMANS,
+  GAME_MIN_HUMANS,
+  GAME_RESULT_MODAL_MS,
+  GAME_TEST_MS,
+  GAME_TEST_ORDER,
+} from '@/world/mp/game-protocol';
+import { Backdrop, EnterButton } from './console';
 import { Typed } from './live';
 import './lobby.css';
 /*
@@ -78,6 +94,20 @@ import './lobby.css';
  * 이 줄이 lobby.css **뒤에** 있어야 heroes.css 가 나중에 실린다.
  */
 import { HeroKey } from './heroes';
+
+/**
+ * 한 판이 실제로 걸리는 시간 — 차례표를 그대로 더한다 (game-protocol 의 상수들).
+ *
+ *   배역 통보 + 첫 대화 + (시험 + 결과 창 + 대화) × 차례표 길이
+ *
+ * ★ 분 수를 손으로 적지 않는 이유는 머리말 규칙 그대로다. 이 자리에는 「1분 한 판」이
+ *   적혀 있었는데, 그건 /trial 의 TRIAL_GAME_MS 였다 — 이 줄이 여는 판은 그 다섯 배다.
+ *   더하기로 두면 GAME_TEST_ORDER 에 한 줄이 붙는 날 이 화면도 같이 따라간다.
+ */
+const ROUND_MS =
+  GAME_BRIEFING_MS +
+  GAME_FIRST_DISCUSSION_MS +
+  GAME_TEST_ORDER.length * (GAME_TEST_MS + GAME_RESULT_MODAL_MS + GAME_DISCUSSION_MS);
 
 /** 다섯 칸. 순서가 곧 스크롤 순서다 — 내비도 오른쪽 눈금도 이 하나를 본다 */
 const SECTIONS = [
@@ -362,16 +392,30 @@ export function LobbyIntro() {
               ★ 2026-09-04 개정: 한때 여기에 「60–90초 마다 시행 —— 100% 닿으면 즉시 격리」가
               적혀 있었는데, 둘 다 **아직 안 만든 것**이었다 (의심도·격리는 PLANNING §0 에서
               미구현). 이 파일 머리말의 규칙이 정확히 그것을 금한다 — 첫 화면이 아직 오지 않은
-              설계를 약속하면, 방에 들어간 사람이 그 뒤 화면을 전부 의심한다. 그래서 실제로
-              도는 두 수치로 바꿨다 (PLANNING §1.2 의 표: TRIAL_GAME_MS · TRIAL_PHASE_MS).
+              설계를 약속하면, 방에 들어간 사람이 그 뒤 화면을 전부 의심한다.
+
+              ★ 2026-09-05: 그 자리에 /trial 의 두 수치(TRIAL_GAME_MS 1분 · TRIAL_PHASE_MS)를
+              빌려 뒀었는데, 그건 **혼자 미니게임 하나를 돌려 보는 화면**의 값이지 이 줄이
+              여는 판의 값이 아니었다. 이제 본판에 차례표가 생겼으므로(bde946a) 그 차례표를
+              그대로 적는다 — 「몇 분」과 「무엇이 몇 번」이 둘 다 상수에서 온다.
+              조건 전환(TRIAL_PHASE_MS)은 30초짜리 시험 안에 한 번 든다 — 그 말은 진행 칸이 한다.
             */}
             <p className="bl-brief-foot__era bl-mono">
-              <b>{TRIAL_GAME_MS / 60_000}분</b> 한 판<i aria-hidden>——</i>
-              <b>{TRIAL_PHASE_MS / 1000}초</b> 마다 조건이 바뀐다
+              <b>
+                {Math.floor(ROUND_MS / 60_000)}분 {Math.round((ROUND_MS % 60_000) / 1000)}초
+              </b>{' '}
+              한 판<i aria-hidden>——</i>
+              <b>
+                대화 {GAME_DISCUSSION_MS / 1000}초 ⇄ 시험 {GAME_TEST_MS / 1000}초
+              </b>{' '}
+              × {GAME_TEST_ORDER.length}
             </p>
             <p className="bl-brief-foot__facts bl-mono">
-              {/* 「정원 3」 만 적으면 대기방의 「두 명부터 시작」과 부딪친다 — 범위로 적는다 (2026-08-30 검토) */}
-              2–{ROOM_MAX_PLAYERS}명 · 관리 AI {LEADER_NAME}
+              {/*
+                「2–3명」 이었다 — /trial 의 총원 4에서 온 수라 이 줄이 여는 판과 달랐다.
+                검문소는 사람이 모자란 자리를 대역이 채우므로 아랫값이 「모여야 하는 수」다.
+              */}
+              사람 {GAME_MIN_HUMANS}–{GAME_MAX_HUMANS}명 + AI 1좌석 · 관리 AI {LEADER_NAME}
             </p>
           </div>
         </div>
@@ -435,9 +479,16 @@ export function LobbyIntro() {
               「의심은 쌓이기만 한다」였다 — 같은 화면의 계기 줄("대화로만 풀린다")과 모순이다.
               §1.2 는 상승·하강이 대칭이다(지목 철회 −8 · 해명 일치 −10). 진짜 규칙을 적는다:
               움직이는 길이 말뿐이라는 것 (2026-09-04 절충).
+
+              앞박자는 「테스트는 계속된다」였다 — 차례표가 고정되면서(bde946a) 틀린 말이 됐다.
+              시험은 끝이 있고, 그 끝까지 못 찾으면 AI 가 이긴다. 그 사실이 이 칸의 긴장이라
+              앞박자로 세운다. 수는 GAME_TEST_ORDER 에서 온다.
             */}
             <h2 className="bl-scene__h">
-              <Typed start={seen.includes('rules')} parts={['테스트는 계속된다. ', { dim: '의심은 말로만 움직인다.' }]} />
+              <Typed
+                start={seen.includes('rules')}
+                parts={[`시험은 ${GAME_TEST_ORDER.length}번뿐이다. `, { dim: '의심은 말로만 움직인다.' }]}
+              />
             </h2>
           </div>
           <ol className="bl-flow">
@@ -499,9 +550,8 @@ export function LobbyIntro() {
             */}
             <h2 className="bl-hero__title bl-hero__title--sm">가려내라.</h2>
             <p className="bl-final__sub">전원이 인간이라고 말할 것이다. 하나는 아니다.</p>
-            <button type="button" className="bl-btn bl-btn--go bl-edge" data-sfx="clank" onClick={enter}>
-              입장하기 <ArrowIcon />
-            </button>
+            {/* 마지막 칸의 문은 **큰 벌**이다 — 다섯 칸을 다 읽고 닿는 자리라, 여기서는 이것 하나만 서 있다 */}
+            <EnterButton onClick={enter} big className="bl-final__go" />
             <p className="bl-label">다음: 구글 로그인 → 방 목록 → 대기방 → 게임 시작</p>
           </div>
         </div>
@@ -739,9 +789,18 @@ export function RoleCard({ r, typing = false }: { r: RoleDef; typing?: boolean }
  * 그렸다(role-ai.jpg · role-designer.jpg, 2026-09-04) — 옛 role-node.jpg는 후드를 쓴 실루엣이라
  * 한눈에 로봇으로 보였는데, 새 기획의 AI는 "말투도 표정도 인간과 다르지 않다"(PLANNING
  * 서두)가 핵심이라 겉모습으로 갈리면 안 된다. 사람 카드는 role-human.jpg를 그대로 쓴다.
- * 2026-09-05 세 장을 다시 갈았다(사용자가 준 그림, 1254² → 1000² jpg): AI 는 목에 이음매 선이
- * 간 청년의 정면 얼굴, 설계자는 안경 쓴 연구원이 손으로 입을 가린 채 고민하는 모습, 사람은
+ *
+ * 2026-09-05 09:21 사용자 지급으로 **설계자 카드만** 갈았었다(image/spy.png → role-designer.jpg,
+ * 도면 벽 앞에서 두 손을 펼친 후드 실루엣). 위 문단의 「후드는 안 된다」는 **AI 카드의 규칙**
+ * 이라 그 교체와 부딪치지 않는다 — 겉모습으로 갈리면 안 되는 쪽은 인간과 구별되지 않아야 하는
+ * AI 고, 설계자는 그 반대다: 정체를 감추는 쪽이 아니라 **감추는 일을 하는 쪽**이다.
+ * 파일 이름을 그대로 둔 덕에 두 인트로 화면이 같이 바뀐다 (features/intro 의 배역 칸).
+ *
+ * 2026-09-05 09:25 세 장을 다시 갈았다(사용자가 준 그림, 1254² → 1000² jpg): AI 는 목에 이음매
+ * 선이 간 청년의 정면 얼굴, 설계자는 안경 쓴 연구원이 손으로 입을 가린 채 고민하는 모습, 사람은
  * 전투복 차림의 굳은 얼굴. 셋 다 얼굴이 복판이라 카드의 세로 자르기(lobby.css 50% 45%)에 맞는다.
+ * 설계자는 그래서 spy.png(09:21)가 아니라 이 연구원이다 — 뒤의 지시가 앞의 것을 덮는다. spy.png
+ * 원본은 image/ 에 그대로 있어 되돌리려면 그 파일로 다시 뽑으면 된다.
  */
 /** 배역 한 장의 모양 — features/interrogation 의 브리핑 카드도 이 타입 그대로 쓴다 */
 export interface RoleDef {
@@ -818,11 +877,28 @@ export const ROLES: RoleDef[] = [
  * 흐른다"를 다섯 칸으로 늘어놓을 때, 그걸 "1라운드·2라운드"로 끊지 않고 **하나의 순환**으로
  * 보이게 짰다: 2~4번이 사이클이고(테스트 → 기록 공개 → 의심이 쌓인다), 5번(격리)만 그
  * 순환을 끊는 유일한 사건이다(§1.2 "유일한 이벤트 경계는 격리 순간이다").
+ *
+ * 2026-09-05 (bde946a): 그 순환에 **끝이 생겼다.** 차례표가 고정이라 2~4번은 딱 세 바퀴
+ * 돌고 멈춘다 — 칸의 짜임(2~4가 사이클, 5가 그걸 끊는다)은 그대로 두고 **횟수만** 적는다.
+ * 라운드제로 돌아간 것이 아니다: 대화도 지목도 시험이 도는 중에 안 멈추므로 여전히 경계가
+ * 없고, 다만 사이클이 무한하지 않을 뿐이다. 세 바퀴가 다 돌 때까지 못 찾으면 AI 가 이긴다.
+ *
+ * ★ 수는 전부 상수에서 온다 (머리말 규칙). 옛 칸의 「60~90초마다 · 정지선 · 색 사냥」은
+ *   관리 AI 가 종목을 고르던 시절의 글이다 — 그 설계는 접혔다(PLANNING §2 머리말).
  */
 const STEPS = [
-  { title: '방에 모인다', body: '정해진 인원은 없다. 사람이 모이는 대로, 방장이 시작한다.' },
-  { title: '물리 테스트', body: '60~90초마다 낙하 생존·정지선·색 사냥 중 하나가 열린다. 조건값은 공개되지 않는다.' },
+  {
+    title: '방에 모인다',
+    body: `사람 ${GAME_MIN_HUMANS}~${GAME_MAX_HUMANS}명 + AI 1좌석. 모자란 자리는 대역이 채우고, 시작하는 순간 좌석이 다시 섞인다.`,
+  },
+  {
+    title: `시험 ${GAME_TEST_ORDER.length}번`,
+    body: `대화 ${GAME_DISCUSSION_MS / 1000}초와 시험 ${GAME_TEST_MS / 1000}초가 번갈아 ${GAME_TEST_ORDER.length}번 — 낙하 생존 → 움직이는 발판 → 회전 원판. 순서는 다 알고 들어오고, 숨는 것은 조건뿐이다: ${TRIAL_PHASE_MS / 1000}초 지점에서 말없이 한 번 바뀐다.`,
+  },
   { title: '기록이 공개된다', body: '전체 화면 결과 창이 뜬다. 무리 평균 대비 편차가 원자료 그대로 드러난다.' },
   { title: '의심이 쌓인다', body: '지목·동조·몰이가 의심도를 올린다. 시간으로는 안 풀린다 — 오직 대화뿐이다.' },
-  { title: '격리', body: '의심도 100%에 닿는 즉시 격리된다. 총원의 절반이 격리되면 그 자리에서 끝난다.' },
+  {
+    title: '격리',
+    body: '의심도 100%에 닿는 즉시 그 자리에서 격리된다 — 무대 위 처형자가 쏜다. 총원의 절반(내림)이 격리되면 차례표가 남아 있어도 끝난다.',
+  },
 ];

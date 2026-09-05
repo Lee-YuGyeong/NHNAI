@@ -4,20 +4,22 @@
  * AI 라는 것을 알면서도 그 사실이 와이어로 새지 않는다.
  *
  * 세 갈래 — 위에서부터 되는 것을 쓴다:
- *   1. ANTHROPIC_API_KEY 가 있다 → Anthropic Messages API (worker/src/lab/anthropic.ts). 배포본의 길.
+ *   1. API 키가 있다 → 그 API 로 (worker/src/lab/provider.ts). **배포본의 길.**
+ *      이 저장소의 배포에는 OPENAI_API_KEY 하나만 넣는다. ANTHROPIC_API_KEY 도 있으면 그쪽이 이긴다.
  *   2. 없다 → 개발 서버의 구독 경로 `POST {LAB_DEV_URL}/api/lab/complete` (tools/vite-lab.ts).
  *      `npm run dev` 하나로 워커도 키 없이 돈다는 이 저장소의 약속을 판에도 그대로 잇는다.
  *      한 번 실패하면 이 방에서는 다시 안 두드린다 — 배포본에서 로컬 주소를 매번 찌르지 않게.
+ *      **로컬에서 GPT 를 켜고 싶은 게 아니라면 .dev.vars 에 키를 넣지 않는다.** 넣는 순간 이 길이 막히고
+ *      구독 대신 크레딧이 나간다.
  *   3. 둘 다 없다 → null. 부르는 쪽이 제 폴백(정해진 문장 · 규칙)으로 판을 계속 굴린다 (§9 "폴백").
  *
  * 시간 상한이 있다 — 판은 사람의 시계로 돈다. 늦은 답은 버린다.
  */
 
 import type { Complete, Effort, ToolSpec } from '../../../src/lab/agent';
-import { callTool } from '../lab/anthropic';
+import { pickApi, type ApiEnv, type ApiName } from '../lab/provider';
 
-export interface BrainEnv {
-  ANTHROPIC_API_KEY?: string;
+export interface BrainEnv extends ApiEnv {
   /** 개발 서버 주소 — 기본은 vite 의 5173 */
   LAB_DEV_URL?: string;
 }
@@ -35,19 +37,17 @@ export interface Brain {
     unknown
   > | null>;
   /** 지금 어느 길로 가나 — 로그용 */
-  readonly mode: 'api' | 'dev' | 'none';
+  readonly mode: ApiName | 'dev' | 'none';
 }
 
 const DEFAULT_TIMEOUT_MS = 40_000;
 
 export function makeBrain(env: BrainEnv, fetchFn: typeof fetch = fetch): Brain {
   let devDead = false;
-  const apiKey = env.ANTHROPIC_API_KEY;
+  const api = pickApi(env);
   const candidates = env.LAB_DEV_URL ? [env.LAB_DEV_URL.replace(/\/$/, '')] : DEV_URL_CANDIDATES;
   /** 답한 적 있는 개발 서버 주소 — 처음 한 번만 후보를 돈다 */
   let devUrl: string | null = null;
-
-  const viaApi: Complete = ({ model, system, user, tool, effort }) => callTool(apiKey!, model, system, user, tool, effort);
 
   const post = async (base: string, body: string) =>
     fetchFn(`${base}/api/lab/complete`, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
@@ -77,18 +77,18 @@ export function makeBrain(env: BrainEnv, fetchFn: typeof fetch = fetch): Brain {
 
   return {
     get mode() {
-      if (apiKey) return 'api';
+      if (api) return api.name;
       return devDead ? 'none' : 'dev';
     },
     async ask({ timeoutMs = DEFAULT_TIMEOUT_MS, ...args }) {
-      const complete = apiKey ? viaApi : devDead ? null : viaDev;
+      const complete = api ? api.complete : devDead ? null : viaDev;
       if (!complete) return null;
       try {
         return await withTimeout(complete(args), timeoutMs);
       } catch (e) {
         // 개발 서버를 한 번도 못 찾았으면 이 방에서는 더 안 두드린다. 찾은 뒤의 실패(시간 초과 · CLI 오류)는 그 한 번뿐이다
-        if (!apiKey && !devUrl) devDead = true;
-        console.warn(`[game/brain] ${apiKey ? 'api' : 'dev'} 실패: ${e instanceof Error ? e.message : String(e)}`);
+        if (!api && !devUrl) devDead = true;
+        console.warn(`[game/brain] ${api?.name ?? 'dev'} 실패: ${e instanceof Error ? e.message : String(e)}`);
         return null;
       }
     },

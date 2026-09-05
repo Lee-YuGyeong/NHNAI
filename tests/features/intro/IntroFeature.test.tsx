@@ -10,6 +10,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IntroFeature } from '@/features/intro/IntroFeature';
 import { introActions, introSlice } from '@/features/intro/introSlice';
+import { GAME_DISCUSSION_MS, GAME_TEST_MS, GAME_TEST_ORDER } from '@/world/mp/game-protocol';
 import { rootReducer } from '@/store';
 
 function renderIntro() {
@@ -56,7 +57,7 @@ describe('인트로 — 특수인공지능대응센터', () => {
     renderIntro();
     expect(screen.getByRole('region', { name: /2026/ })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: /가변 인원/ })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: /시행은 계속된다/ })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /시험은 .*번뿐이다/ })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '규칙 보기' }));
     fireEvent.click(screen.getByRole('button', { name: '배역' }));
@@ -65,11 +66,15 @@ describe('인트로 — 특수인공지능대응센터', () => {
   });
 
   // PLANNING.md 개정(2026-09-04)으로 8석 고정·라운드제 연혁이 가변 인원·라운드 없음으로
-  // 바뀌었다 — 연혁 두 줄 대신 이 판을 실제로 움직이는 두 수치(시행 간격 · 격리선)를 본다.
-  it('브리핑의 계기가 시행 간격과 의심도 격리선을 세운다', () => {
+  // 바뀌었다 — 연혁 두 줄 대신 이 판을 실제로 움직이는 두 수치를 본다.
+  //
+  // 2026-09-05: 그 첫 줄이 「60–90s · 테스트 트리거」였는데, 관리 AI 가 종목과 시점을 고르던
+  // 시절의 값이다. 그 설계는 접혔고(bde946a) 차례표가 고정이라 **간격이 아니라 차례표**를
+  // 본다. 수는 game-protocol 에서 와야 한다 — 손으로 박은 수였던 것이 어긋난 원인이다.
+  it('브리핑의 계기가 고정 차례표와 의심도 격리선을 세운다', () => {
     renderIntro();
-    const trigger = screen.getByText('테스트 트리거').closest('li')!;
-    expect(trigger).toHaveTextContent('60–90s');
+    const order = screen.getByText(`고정 차례표 ×${GAME_TEST_ORDER.length}`).closest('li')!;
+    expect(order).toHaveTextContent(`${GAME_DISCUSSION_MS / 1000}s ⇄ ${GAME_TEST_MS / 1000}s`);
     const gate = screen.getByText('의심도 격리선').closest('li')!;
     expect(gate).toHaveTextContent('100%');
   });

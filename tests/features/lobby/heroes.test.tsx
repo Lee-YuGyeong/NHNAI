@@ -36,13 +36,27 @@ describe('표식 (HeroKey · 복도)', () => {
     return hit;
   }
 
-  it('제목과 방송 두 줄이 있다', () => {
+  /*
+   * 2026-09-05 사용자 지시("아예 제거해줘") — 제목(h1) · 방송 두 줄 · 서명을 걷어냈다.
+   * 그 자리를 배경 영상이 맡았으므로 **글이 다시 기어들어오는 것**을 여기서 막는다:
+   * 걷어낸 이유가 "영상이 하는 말을 글이 되풀이하지 않는다" 였는데, 그건 화면을 안 보면
+   * 눈치채기 어려운 종류의 규칙이다.
+   */
+  it('글은 영문 한 줄뿐이다 — 제목도 방송도 서명도 없다', () => {
     put();
-    const title = screen.getByRole('heading', { level: 1 }).textContent ?? '';
-    expect(title.replace(/\s+/g, '')).toContain('누가인간인가?');
-    // 2026-09-04, PLANNING.md 개정 — 방송이 "AI가 없다"에서 "표식이 붙어 있다"로 뒤집혔다 (heroes.tsx 참고)
-    expect(screen.getByText(/여기, 전부 표식이 붙어 있다/)).toBeInTheDocument();
-    expect(screen.getByText(/붙어 있어야 한다/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    expect(screen.queryByText(/표식이 붙어 있다/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/상시 송출/)).not.toBeInTheDocument();
+    expect(screen.getByText(/SPECIAL AI RESPONSE CENTER/)).toBeInTheDocument();
+  });
+
+  /*
+   * 문이 올라오는 신호. 제목이 다 찍히면 오던 것이라, 제목을 걷어낸 순간 이게 영영 안 와서
+   * **단추 셋이 통째로 안 보이게 된다**(.hero-late 는 opacity: 0). 화면은 멀쩡해 보이고
+   * 들어갈 길만 없는 종류의 사고라, 붙자마자 오는지를 못 박아 둔다.
+   */
+  it('붙자마자 문을 올리는 신호가 온다', () => {
+    expect(put()).toEqual(['titled']);
   });
 
   it('문 셋이 다 있고 각자 제 곳으로 간다', () => {
@@ -51,13 +65,13 @@ describe('표식 (HeroKey · 복도)', () => {
     fireEvent.click(screen.getByRole('button', { name: '규칙 보기' }));
     // 로그인 없이 노는 길 — 표식을 갈아 끼우다 제일 먼저 빠지는 단추다
     fireEvent.click(screen.getByRole('button', { name: '로그인 없이 들어가기' }));
-    expect(hit).toEqual(['enter', 'rules', 'guest']);
+    expect(hit).toEqual(['titled', 'enter', 'rules', 'guest']);
   });
 
   it('아래 칸으로 내려가는 길이 있다', () => {
     const hit = put();
     fireEvent.click(screen.getByRole('button', { name: /SCROLL/ }));
-    expect(hit).toEqual(['next']);
+    expect(hit).toEqual(['titled', 'next']);
   });
 
   /*

@@ -74,25 +74,42 @@ describe('승패 — §1.3', () => {
 describe('의심도 — §1.2', () => {
   const ids = ['a', 'b', 'c', 'd'];
 
-  it('발언마다 오른다: 지목 +8, 동조 +5(+몰이 2), 되풀이 +3(+몰이 2, 상한 6)', () => {
+  /*
+   * 걸음의 **크기**는 여기서 안 굳힌다 — SUSPICION 은 플레이테스트로 움직이는 값이라(2026-09-05 재조정)
+   * 숫자를 적어 두면 균형을 손볼 때마다 시험이 먼저 깨진다. 여기서 지키는 것은 **규칙**이다:
+   * 첫 지목엔 가산이 없다 · 남이 겨누는 데 얹으면 동조다 · 되풀이도 걸음이다 · 몰이 가산엔 상한이 있다.
+   */
+  it('발언마다 오른다: 첫 지목엔 가산이 없고, 동조·되풀이에는 몰이가 붙는다', () => {
     const book = new SuspicionBook(ids);
-    expect(book.accuse('a', 'd')[0].amount).toBe(SUSPICION.accuse); // 8
-    expect(book.accuse('b', 'd')[0].amount).toBe(SUSPICION.agree + SUSPICION.mobPer); // 7 — 몰이 시작
-    expect(book.accuse('a', 'd')[0].amount).toBe(REPEAT_STEP + SUSPICION.mobPer); // 5 — 되풀이 + 몰이
-    expect(book.accuse('c', 'd')[0].amount).toBe(SUSPICION.agree + SUSPICION.mobPer); // 7 — 몰이 가산 합 6, 상한
-    expect(book.accuse('b', 'd')[0].amount).toBe(REPEAT_STEP); // 3 — 가산 없음
-    expect(book.get('d')).toBe(8 + 7 + 5 + 7 + 3);
+    expect(book.accuse('a', 'd')[0].amount).toBe(SUSPICION.accuse); // 아무도 안 겨누던 대상
+    expect(book.accuse('b', 'd')[0].amount).toBe(SUSPICION.agree + SUSPICION.mobPer); // 몰이 시작
+    expect(book.accuse('a', 'd')[0].amount).toBe(REPEAT_STEP + SUSPICION.mobPer); // 같은 말도 걸음이다
+    expect(book.accuse('c', 'd')[0].amount).toBe(SUSPICION.agree + SUSPICION.mobPer);
+    expect(book.get('d')).toBe(SUSPICION.accuse + SUSPICION.agree * 2 + REPEAT_STEP + SUSPICION.mobPer * 3);
     expect(book.accusationsSnapshot()).toEqual({ a: 'd', b: 'd', c: 'd' });
+  });
+
+  it('몰이 가산은 한 번(episode)에 mobCap 까지만 얹힌다', () => {
+    const book = new SuspicionBook(ids);
+    book.accuse('a', 'd'); // 첫 지목 — 아직 몰이가 아니다
+    let bonus = 0;
+    for (let i = 0; i < 40; i += 1) {
+      const why = book.accuse(['b', 'c', 'a'][i % 3], 'd')[0].why;
+      const m = /몰이 \+(\d+)/.exec(why);
+      if (!m) break; // 상한에 닿아 가산이 끊겼다
+      bonus += Number(m[1]);
+    }
+    expect(bonus).toBe(SUSPICION.mobCap);
   });
 
   it('철회는 그동안 얹은 만큼 되돌리고, 몰이가 풀리면 가산 상한이 새로 선다', () => {
     const book = new SuspicionBook(ids);
-    book.accuse('a', 'd'); // 8
-    book.accuse('a', 'd'); // 3
-    book.accuse('b', 'd'); // 5 + 2
+    book.accuse('a', 'd'); // 지목 — 혼자라 가산 없다
+    book.accuse('a', 'd'); // 되풀이 — 아직 혼자다
+    book.accuse('b', 'd'); // 동조 + 몰이
     const back = book.withdraw('a');
-    expect(back[0].amount).toBe(-11);
-    expect(book.get('d')).toBe(7);
+    expect(back[0].amount).toBe(-(SUSPICION.accuse + REPEAT_STEP));
+    expect(book.get('d')).toBe(SUSPICION.agree + SUSPICION.mobPer);
     expect(book.accusationsSnapshot()).toEqual({ b: 'd' });
     // b 혼자 남았다 — 몰이가 풀렸으니 a 가 다시 오면 가산이 다시 붙는다
     expect(book.accuse('a', 'd')[0].amount).toBe(SUSPICION.agree + SUSPICION.mobPer);
@@ -103,11 +120,11 @@ describe('의심도 — §1.2', () => {
     book.accuse('a', 'd');
     const deltas = book.accuse('a', 'c');
     expect(deltas.map((d) => [d.target, d.amount])).toEqual([
-      ['d', -8],
-      ['c', 8],
+      ['d', -SUSPICION.accuse],
+      ['c', SUSPICION.accuse],
     ]);
     expect(book.get('d')).toBe(0);
-    expect(book.get('c')).toBe(8);
+    expect(book.get('c')).toBe(SUSPICION.accuse);
   });
 
   it('자기 자신 · 모르는 이름 · 격리된 사람은 아무 일도 없다', () => {
@@ -119,13 +136,13 @@ describe('의심도 — §1.2', () => {
     expect(book.accuse('b', 'a')).toEqual([]);
   });
 
-  it('주장 판정: 일치 −10 · 불일치 +10 · 불명 0. 0 밑으로는 안 내려간다', () => {
+  it('주장 판정: 일치는 내리고 불일치는 올린다 · 불명 0. 0 밑으로는 안 내려간다', () => {
     const book = new SuspicionBook(ids);
-    expect(book.judge('a', 'match')?.amount).toBe(-10); // 델타는 나가지만 값은 0 에 머문다
+    expect(book.judge('a', 'match')?.amount).toBe(SUSPICION.claimMatch); // 델타는 나가지만 값은 0 에 머문다
     expect(book.get('a')).toBe(0);
-    expect(book.judge('a', 'mismatch')?.amount).toBe(10);
+    expect(book.judge('a', 'mismatch')?.amount).toBe(SUSPICION.claimMismatch);
     expect(book.judge('a', 'unclear')).toBeNull();
-    expect(book.get('a')).toBe(10);
+    expect(book.get('a')).toBe(SUSPICION.claimMismatch);
   });
 
   it('관리 AI 의 말 읽기: 상한 안으로 눌리고, 겨눔도 되돌림도 안 남긴다', () => {
@@ -154,7 +171,7 @@ describe('의심도 — §1.2', () => {
     expect(book.overCut()).toEqual(['d']);
     book.accuse('d', 'a');
     const back = book.freeze('d');
-    expect(back[0]).toMatchObject({ target: 'a', amount: -8 });
+    expect(back[0]).toMatchObject({ target: 'a', amount: -SUSPICION.accuse });
     expect(book.accusationsSnapshot()).toEqual({});
     expect(book.overCut()).toEqual([]);
   });

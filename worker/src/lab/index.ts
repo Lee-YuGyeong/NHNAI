@@ -25,11 +25,9 @@ import { runInterrogate, validateInterrogate, type InterrogateRequest } from '..
 import { runCast, runTalk, type CastRequest, type TalkRequest } from '../../../src/lab/talk';
 import { runWorld2Say, validateWorld2Say, type World2SayRequest } from '../../../src/lab/world2say';
 import type { ActRequest } from '../../../src/lab/types';
-import { callTool } from './anthropic';
+import { pickApi, type ApiEnv } from './provider';
 
-export interface LabEnv {
-  ANTHROPIC_API_KEY?: string;
-}
+export type LabEnv = ApiEnv;
 
 /**
  * 경로마다 같은 껍데기 — POST 인가, 키가 있나, 본문이 JSON 인가, 그리고 오류를 삼키지 않는다.
@@ -43,7 +41,8 @@ async function handle(
   run: (body: unknown, complete: Complete) => Promise<unknown>,
 ): Promise<Response> {
   if (request.method !== 'POST') return json({ error: 'POST 만 받는다' }, 405);
-  if (!env.ANTHROPIC_API_KEY) {
+  const api = pickApi(env);
+  if (!api) {
     return json(
       { error: '키가 없다 — 로컬 테스트는 워커 말고 개발 서버(npm run dev)로 하면 구독으로 돈다' },
       503,
@@ -60,12 +59,8 @@ async function handle(
   const bad = validate(body);
   if (bad) return json({ error: bad }, 400);
 
-  const apiKey = env.ANTHROPIC_API_KEY;
-  const complete: Complete = ({ model, system, user, tool, effort }) =>
-    callTool(apiKey, model, system, user, tool, effort);
-
   try {
-    return json(await run(body, complete), 200);
+    return json(await run(body, api.complete), 200);
   } catch (e) {
     // 조용히 삼키지 않는다. 화면에 그대로 띄워야 무엇이 막혔는지 보인다.
     return json({ error: e instanceof Error ? e.message : String(e) }, 502);

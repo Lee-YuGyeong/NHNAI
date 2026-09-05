@@ -67,7 +67,7 @@ Claude Code CLI 를 자식 프로세스로 띄운다. 키가 필요 없는 대�
 
 | 읽는 쪽 | 어떻게 |
 |---|---|
-| 워커 `npm run worker:dev` | wrangler 가 `.dev.vars` 를 자동으로 읽어 `env.XXX` 로 준다 (ANTHROPIC·ELEVENLABS) |
+| 워커 `npm run worker:dev` | wrangler 가 `.dev.vars` 를 자동으로 읽어 `env.XXX` 로 준다 (OPENAI·ANTHROPIC·ELEVENLABS) |
 | node 도구 `tools/*.mjs` | 키가 필요한 도구는 첫 줄에서 `loadVars()` (`tools/load-vars.mjs`) |
 | Claude Code MCP | `.mcp.json`(커밋됨) 의 `uxpilot` 서버가 `tools/mcp-uxpilot.mjs` 를 띄우고, 그 스크립트가 `.dev.vars` 의 UXPILOT_API_KEY 로 `mcp-remote` 를 연다. 키를 `~/.claude.json` 에 넣을 필요가 없다 |
 | 아무 명령 한 번 | `node tools/load-vars.mjs -- <명령>` — 그 명령에만 변수가 들어간다 |
@@ -77,7 +77,8 @@ Claude Code CLI 를 자식 프로세스로 띄운다. 키가 필요 없는 대�
 `npx @tripo3d/cli auth login --email <Studio 계정>` 으로 로그인한 뒤 `tools/tripo-studio-parts.sh`.
 
 셸에 같은 이름의 변수가 이미 있으면 셸 값이 이긴다 (파일은 기본값). 배포된 워커의 값은
-Cloudflare 대시보드 → Worker → Settings → Variables and Secrets 에 사용자가 직접 넣는다
+`npx wrangler secret put <이름>` 또는 Cloudflare 대시보드 → Worker → Settings →
+Variables and Secrets 에 사용자가 직접 넣는다 ([배포본의 AI 키](#배포본의-ai-키--openai-하나))
 (`wrangler secret` 은 훅이 막는다).
 
 ### 새지 않게 막는 층
@@ -323,7 +324,7 @@ tools/            빌드·에셋·개발 서버 플러그인 (vite-lab.ts 가 �
 
 | feature | 맡는 것 |
 |---|---|
-| `intro` | 랜딩 「누가 인간인가?」 — 히어로 · 브리핑 · 배역 · 진행/규칙 · 입장 → 로비 |
+| `intro` | 랜딩 「특수인공지능대응센터」 — 히어로 · 브리핑 · 배역 · 진행/규칙 · 입장 → 로비 |
 | `main` | 로비 · 방 코드 입장 · 준비 |
 | `interrogation` | **본판 「인간인 척」** (`/interrogation`) — 방(RoomDO)에 붙어 도는 화면. 판의 진실(배역 · 의심도 · 테스트 · 관리 AI)은 전부 `worker/src/game` 에 있고 화면은 그리기와 입력뿐이다. 아래 「인간인 척」 절 |
 | `arena` | **옛 시행판** — 리더가 지시하고 개체가 움직이고 리더가 판정한다 (`/arena`). 2026-09-04 까지 `/interrogation` 도 이 컴포넌트였다 |
@@ -720,6 +721,45 @@ npx wrangler deploy  # 수동 배포는 사용자가 직접 — 평소에는 mai
 
 - 경로 규칙: `/world-ws/rooms/<방번호>/ws` 와 `/health` 만 워커가 받고, 나머지는 정적 파일 →
   없는 경로는 `index.html`(SPA).
+
+### 배포본의 AI 키 — OpenAI 하나
+
+**로컬과 배포는 모델 공급자가 다르다.** 로컬은 이 머신의 **Claude 구독**(Agent SDK)으로 돌지만,
+그 SDK 는 Claude Code CLI 를 자식 프로세스로 띄우기 때문에 Cloudflare 워커 안에서는 못 쓴다.
+그래서 배포본은 **OpenAI 키**로 간다. 물어보는 내용(`src/lab/agent.ts`)은 한 곳뿐이고 관로만 다르다.
+
+```bash
+npx wrangler secret put OPENAI_API_KEY   # 사용자가 직접. sk-proj- 로 시작하는 프로젝트 키
+```
+
+시크릿은 넣는 즉시 반영된다 — 재배포하지 않아도 된다.
+
+| | 키 | 무엇이 답하나 |
+|---|---|---|
+| 로컬 `npm run dev` | 없음 | Claude 구독 (`tools/vite-lab.ts`) |
+| 배포 | `OPENAI_API_KEY` | OpenAI Responses API (`worker/src/lab/openai.ts`) |
+
+> ★ **Chat Completions 가 아니라 `/v1/responses` 다.** 이 판은 답을 도구로만 받는데(모양이
+> 흔들리면 화면이 깨진다), Chat Completions 는 도구와 `reasoning_effort` 를 같이 못 받는다:
+> `"Function tools with reasoning_effort are not supported for gpt-5.6-luna in /v1/chat/completions"`.
+> effort 를 `none` 으로 죽이면 관리 AI 의 설계(effort=high)를 버리는 셈이라 Responses 로 갔다.
+> GPT-6 Astra 는 Chat Completions 에서 도구 호출이 아예 안 되기도 한다.
+
+고르는 자리는 `worker/src/lab/provider.ts` 한 곳이고, 판(`game/brain.ts`)과 `/lab` 이 같이 쓴다.
+`ANTHROPIC_API_KEY` 도 있으면 그쪽이 이긴다 (개발 중 비교용).
+
+개체 등급이 모델로 갈린다 — 나누는 기준은 **호출 횟수**다:
+
+| 개체 | 모델 | 왜 |
+|---|---|---|
+| 관리 AI (`claude-opus-5`) | `gpt-5.6-terra` | 설계는 라운드당 한 번이라 좋은 것을 써도 싸다 |
+| 노드 (`claude-sonnet-5`) | `gpt-5.6-luna` | 응답·발화·투표로 페이즈마다 다섯이 부른다 |
+
+전부 한 모델로 고정하려면 `OPENAI_MODEL` 시크릿을 하나 더 넣는다 (예: `gpt-6-astra`).
+
+> ★ **키가 없어도 배포본은 오류를 안 낸다.** 관리 AI 와 노드가 조용히 폴백(정해진 문장 · 규칙)으로
+> 떨어질 뿐이라 화면만 봐서는 「말이 좀 밋밋하네」로 보인다. 판이 도는데 대사가 판에 박혀 있으면
+> 키부터 의심한다 — 워커 로그에 `[game/brain] … 실패` 가 찍힌다.
 - Cloudflare Git 연동으로 자동 배포할 때는 빌드 `npm run build`, 배포 `npx wrangler deploy` 로
   맞춘다 (기존 Pages 방식의 "output `dist`" 설정과 다르다).
 - 이전에 따로 올렸던 워커(`virtual-heart-signal-world`)가 남아 있으면 대시보드에서 지운다.

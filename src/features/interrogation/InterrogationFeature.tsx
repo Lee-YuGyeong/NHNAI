@@ -28,7 +28,7 @@ import { PROLOGUE, prologueLineOf, prologueLines } from './prologue';
 import { prefetchPrologue, prologueClipMs, prologueLagMs, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
-import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal } from './hud/Panels';
+import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TestOrder } from './hud/Panels';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
@@ -77,7 +77,6 @@ export function InterrogationFeature() {
   const myPicks = useAppSelector(gameSelectors.selectMyPicks);
   const myLand = useAppSelector(gameSelectors.selectMyLandings, (a, b) => a.landings === b.landings && a.centers === b.centers && a.misses === b.misses && a.finished === b.finished);
   const myFalls = useAppSelector(gameSelectors.selectMyFalls);
-  const discOmega = useAppSelector(gameSelectors.selectDiscOmega);
   const hunt = useAppSelector(gameSelectors.selectHunt);
   const latestResult = useAppSelector(gameSelectors.selectLatestResult);
   const roles = useAppSelector(gameSelectors.selectRoles);
@@ -550,6 +549,11 @@ export function InterrogationFeature() {
   /** 내가 지금 겨누고 있는 좌석 — 그 몸의 이름표에 👉 가 붙는다. 단추는 없다: 말에서 읽어 낸 지목이다 (runtime 의 accusationIn) */
   const markId = mySeatId ? (wire?.accusations[mySeatId] ?? null) : null;
   const spawn = useMemo(() => (mySeat ? seatSpot(mySeat, seats.length) : { x: 0, z: 4 }), [mySeat, seats.length]);
+  /*
+   * 발치 줄 — 시험 중에는 **내 수치만** 센다 (2026-09-05 사용자: "정말 필요한 정보만 플레이어가 보기
+   * 쉽게"). 목표와 조작키는 위의 시험 안내판(TestOrder)이 이미 말했다 — 같은 문장을 아래에 또 늘어놓던
+   * 것을 걷었고, 원판의 rad/s·회전 방향처럼 눈으로 이미 보이는 값도 뺐다 (discOmega 는 이제 여기 안 선다).
+   */
   const hud =
     status === 'connecting'
       ? '연결하는 중…'
@@ -557,18 +561,16 @@ export function InterrogationFeature() {
         ? `연결 실패: ${errorText} — 워커(npm run worker:dev)가 떠 있어야 한다`
         : phase === 'test' && test
           ? test.game === 'stopline'
-            ? `W 달리기 · S 브레이크 · 붉은 선에 정확히 서라 (시행 ${myAttempts})`
+            ? `시행 ${myAttempts} / 3`
             : test.game === 'fall'
-              ? `떨어지는 것을 피하라 — WASD (피격 ${myHits})`
+              ? `피격 ${myHits}`
               : test.game === 'platform'
                 ? myLand.finished
-                  ? `완주 — 도착 발판에서 기다려라 (착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses})`
-                  : `움직이는 발판을 건너라 — W 앞으로 · Space 점프 · 떨어지면 출발로 (착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses})`
+                  ? `완주 — 도착 발판에서 대기 · 착지 ${myLand.landings} · 정중앙 ${myLand.centers}`
+                  : `착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses}`
                 : test.game === 'disc'
-                  ? `도는 원판 위에서 버텨라 — WASD 걷기 · Shift 달리기 (낙하 ${myFalls}회 · 회전 ${Math.abs(discOmega).toFixed(1)} rad/s ${discOmega > 0 ? '↻' : discOmega < 0 ? '↺' : ''})`
-                  : hunt
-                    ? `「${hunt.target}」 구슬만 E 로 주워라 (주움 ${myPicks}) — 헷갈리면 견본판과 대조하라`
-                    : '지시된 색의 구슬을 E 로 주워라'
+                  ? `낙하 ${myFalls}회`
+                  : `주움 ${myPicks}`
           : phase === 'discussion'
             ? 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
             : phase === 'lobby' && !keepLobby && !reject
@@ -623,14 +625,23 @@ export function InterrogationFeature() {
         <div className="ig-corner">
           <BackToRoot />
         </div>
-        {/* 미니 게임 30초만 큰 숫자로 — 토론은 시계 없이 간다 (사용자, BigClock 머리말) */}
-        {wire && phase === 'test' ? <BigClock endsAt={wire.phaseEndsAt} maxSeconds={(test?.durationMs ?? GAME_TEST_MS) / 1000} /> : null}
-        {phase === 'test' && wire?.currentTest ? <div className="ig-order">{wire.currentTest.instruction}</div> : null}
-        {/* 색 사냥 — 목표색. 스와치는 **기준광 원색**(조명 밖 UI): 맵 안 견본판(조명색)과의 대비가 「조명이 색을 바꿨다」를 가르친다 */}
-        {phase === 'test' && test?.game === 'colorhunt' && hunt ? (
-          <div className="ig-hunttarget" aria-live="polite">
-            <span aria-hidden className="swatch" style={{ background: hunt.targetHex }} />
-            목표 「{hunt.target}」
+        {/*
+          * 위 가운데 기둥 — 시계 · 시험 안내판 · (색 사냥의) 목표색이 **한 기둥(.ig-testcol)으로 쌓인다**.
+          * 저마다 top 값으로 서던 것을 걷었다 — 하나가 커지면 아래가 겹치던 자리다 (예전 .ig-clock 머리말의 50→104→142).
+          * 시계는 미니 게임 30초만 큰 숫자로 — 토론은 시계 없이 간다 (사용자, BigClock 머리말).
+          * 안내판은 서버 지시문 전체가 아니라 요약이다 (TestOrder 머리말). key=startAt: 시험마다 흐려짐이 처음부터 돈다.
+          */}
+        {phase === 'test' ? (
+          <div key={test?.startAt ?? 'test'} className="ig-testcol">
+            {wire ? <BigClock endsAt={wire.phaseEndsAt} maxSeconds={(test?.durationMs ?? GAME_TEST_MS) / 1000} /> : null}
+            {test ? <TestOrder game={test.game} round={test.round} fallback={wire?.currentTest?.instruction ?? ''} /> : null}
+            {/* 색 사냥 — 목표색. 스와치는 **기준광 원색**(조명 밖 UI): 맵 안 견본판(조명색)과의 대비가 「조명이 색을 바꿨다」를 가르친다 */}
+            {test?.game === 'colorhunt' && hunt ? (
+              <div className="ig-hunttarget" aria-live="polite">
+                <span aria-hidden className="swatch" style={{ background: hunt.targetHex }} />
+                목표 「{hunt.target}」
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -667,8 +678,9 @@ export function InterrogationFeature() {
           />
         ) : null}
 
+        {/* 시험 중의 발치 줄은 수치판(.stat)이다 — 안내 문장일 때보다 크고 밝게, 숫자는 자리를 안 떤다 */}
         {hud ? (
-          <p className="ig-foot">
+          <p className={`ig-foot${phase === 'test' ? ' stat' : ''}`}>
             {hud}
             {!locked && status === 'connected' && !modalUp ? ' · 화면을 클릭하면 마우스로 둘러본다' : ''}
           </p>

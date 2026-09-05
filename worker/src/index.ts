@@ -41,8 +41,16 @@ export interface Env {
   LOBBY_DO?: DurableObjectNamespace;
   /** wrangler.jsonc 의 assets 바인딩 — 빌드된 프론트(dist) */
   ASSETS: Fetcher;
-  /** 테스트 방(/lab) 의 LLM 호출용. 로컬은 .dev.vars, 배포는 wrangler secret */
+  /**
+   * LLM 호출용 — 판(RoomDO)과 테스트 방(/lab)이 같이 쓴다. 로컬은 .dev.vars, 배포는 워커 시크릿.
+   * **이 저장소의 배포에 넣는 것은 OPENAI_API_KEY 하나다** (worker/src/lab/provider.ts):
+   * 로컬은 키 없이 Claude 구독(Agent SDK)으로 돌고, 워커 안에서는 그 SDK 를 못 쓴다.
+   * 둘 다 있으면 Anthropic 이 이긴다.
+   */
   ANTHROPIC_API_KEY?: string;
+  OPENAI_API_KEY?: string;
+  /** 개체 등급을 무시하고 한 모델로 고정할 때 (예: gpt-5.6-terra). 비우면 등급대로 나뉜다 */
+  OPENAI_MODEL?: string;
   /** 리더 방송 음성 합성용 (ElevenLabs). 키가 브라우저로 나가면 안 되니 여기서만 쓴다 */
   ELEVENLABS_API_KEY?: string;
   /** 기본 목소리 ID. 대시보드 Voices 에서 고른 값 */

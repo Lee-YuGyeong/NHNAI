@@ -112,8 +112,26 @@ const STATE_KEY = 'game:state';
 /** 판에 묶인 실제 사람이 전원 나가고 이만큼(ms) 지나면 버려진 판으로 보고 접는다 — 새로고침 유예 */
 const ABANDONED_AFTER_MS = 90_000;
 /** 봇 발화 간격(ms) — 사람 채팅과 같은 지터 (P10) */
-const BOT_TALK_MIN_MS = 5_000;
-const BOT_TALK_JITTER_MS = 9_000;
+const BOT_TALK_MIN_MS = 3_500;
+const BOT_TALK_JITTER_MS = 6_500;
+/**
+ * 동시에 말을 짓고 있을 수 있는 봇의 수.
+ *
+ * 예전엔 `botBusy` 가 **방 전체에 하나**여서, 한 봇이 LLM 을 기다리는 동안 방의 누구도 말할 수 없었다.
+ * 다음 차례도 그 기다림이 끝나야 잡혔으니 한 줄에 「간격 + LLM 왕복」이 통째로 들었고, 40초짜리 토론
+ * 하나에 방 전체가 **두세 줄**이었다. 의심도의 모든 문(말 읽기의 「새 발언 ≥2」 · 지목 · 몰이)이 발화 수에
+ * 매여 있으니, 이 직렬화 하나가 눈금 세 채널을 동시에 굶기고 있었다 (2026-09-05 사용자: "의심도 올라가는거").
+ *
+ * 이제 잠금은 **좌석마다**다 (같은 봇이 겹쳐 말하지 않게) — 그리고 다음 차례는 LLM 을 기다리지 않고 먼저 잡는다.
+ */
+const BOT_TALK_CONCURRENCY = 2;
+/**
+ * 토론이 닫히기 이만큼 전에 남은 말을 **마지막으로 한 번** 읽는다.
+ * openDiscussion 이 unread 를 비우므로(시험을 건너온 말은 지난 장면이다), 이 한 번이 없으면 토론 막판에
+ * 친 말은 통째로 버려진다 — 사람이 "말했는데 아무 반응이 없다"고 느끼던 자리다.
+ * 국면이 바뀌기 전에 끝나야 관리 AI 의 방송이 시험 개시 방송을 덮지 않는다.
+ */
+const READ_FLUSH_BEFORE_MS = 8_000;
 /** 지목당한 봇이 해명하러 나오는 지연(ms) */
 const BOT_DEFEND_MIN_MS = 1_500;
 const BOT_DEFEND_JITTER_MS = 3_000;
@@ -121,6 +139,8 @@ const BOT_DEFEND_JITTER_MS = 3_000;
 const CLAIM_GAP_MS = 12_000;
 /** 같은 사람의 지목 발언 사이의 최소 간격(ms) — 단추 연타로 눈금을 미는 것은 발언이 아니다 */
 const ACCUSE_GAP_MS = 5_000;
+/** 말에서 좌석을 읽어 낼 때 필요한 최소 점수 — 맨 숫자(1)는 회차·등수·초와 못 가른다 (accusationIn) */
+const ACCUSE_MIN_SCORE = 2;
 /** 토론 중 봇 배회 — 스냅샷 간격(ms) · 제 자리에서 벗어나는 반경(m) · 걷는 속도(사람 걷기의 비율) */
 /**
  * 대역이 움직이는 박자. 1초였을 때는 클라가 1초에 한 번 자리를 받아 **순간이동한 뒤 제자리에서 걷는** 것으로 보였다
@@ -161,10 +181,13 @@ export class GameRuntime {
   private phaseTimer: ReturnType<typeof setTimeout> | null = null;
   private capTimer: ReturnType<typeof setTimeout> | null = null;
   private talkTimer: ReturnType<typeof setTimeout> | null = null;
+  /** 토론이 닫히기 전 마지막 읽기 (READ_FLUSH_BEFORE_MS) */
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private idleTimer: ReturnType<typeof setInterval> | null = null;
   /** 봇의 자리와 지금 향하는 곳 — 토론 중 배회용. 가만히 선 몸은 그 자체로 표식이라 사람처럼 조금씩 움직인다 */
   private botPos = new Map<string, { x: number; z: number; tx: number; tz: number; hx: number; hz: number; restUntil: number }>();
-  private botBusy = false;
+  /** 지금 말을 짓고 있는 좌석들 — 방 전체가 아니라 **좌석마다**의 잠금이다 (BOT_TALK_CONCURRENCY) */
+  private botBusy = new Set<string>();
   /** 토론이 아닌 국면에 도착한 봇의 한 마디 — 토론이 다시 열리면 내보낸다 */
   private heldLines: { id: string; text: string }[] = [];
   /**
@@ -526,10 +549,32 @@ export class GameRuntime {
     for (const line of this.heldLines) this.say(line.id, line.text);
     this.heldLines = [];
     this.freshResultTurns = opening ? 0 : 2;
+    /*
+     * 마지막 읽기의 시계는 **토론이 실제로 열리는 때**부터다. 첫 토론은 프롤로그 방송을 기다리므로
+     * (prologueHold) 여기서 걸면 방송 보는 동안 시간이 흘러 버린다 — 그쪽은 endPrologue 가 건다.
+     */
     // 기다릴 사람이 아무도 안 붙어 있으면 그 자리에서 걷는다 (봇만 남은 판)
     if (opening) this.releasePrologue();
-    else this.scheduleTalk(2_000);
+    else {
+      this.scheduleTalk(2_000);
+      this.armReadFlush(ms);
+    }
     void this.persist();
+  }
+
+  /**
+   * 토론이 닫히기 READ_FLUSH_BEFORE_MS 전에 남은 말을 마지막으로 한 번 읽게 잡는다.
+   * 국면이 바뀌기 전에 끝나야 관리 AI 의 방송이 시험 개시 방송을 안 덮는다.
+   */
+  private armReadFlush(ms: number): void {
+    if (this.flushTimer !== null) clearTimeout(this.flushTimer);
+    this.flushTimer = setTimeout(
+      () => {
+        this.flushTimer = null;
+        void this.readRoom(true);
+      },
+      Math.max(0, ms - READ_FLUSH_BEFORE_MS),
+    );
   }
 
   /* ─────────────────────────────── 프롤로그 방송 (화면) ─────────────────────────────── */
@@ -561,6 +606,8 @@ export class GameRuntime {
     this.prologueSeen.clear();
     this.setPhase('discussion', this.now() + ms);
     this.scheduleTalk(2_500);
+    // 마지막 읽기는 **여기서** 잡는다 — 첫 토론의 ms 는 방송이 걷힌 지금부터 흐른다 (openDiscussion 머리말)
+    this.armReadFlush(ms);
     void this.persist();
   }
 
@@ -754,27 +801,44 @@ export class GameRuntime {
 
   /**
    * 채팅에서 지목을 읽어 낸다 (§1.2 "발언에서 특정 인물을 지목") — 좌석 번호("03" · "SUBJECT 03" · "3번")와
-   * 의심의 말("AI" · "의심" · "수상" · "지목" · "너지")이 한 줄에 같이 있으면 그 좌석을 겨눈 발언으로 친다.
-   * 단추를 안 눌러도 말로 몰면 눈금이 움직인다 — 단추는 그 말을 분명히 하는 손잡이일 뿐이다.
+   * 죄목의 말("AI" · "의심" · "수상" · "지목" · "너지")이 한 줄에 같이 있으면 그 좌석을 겨눈 발언으로 친다.
+   * 단추는 없다 — 말로 몰면 눈금이 움직인다.
+   *
+   * 세 군데가 새고 있었다 (2026-09-05):
+   *   · **죄목 낱말이 일상어를 잡았다.** 「몰」은 **"몰라"** 를, 「같아」·「찍」은 채팅의 절반을 잡는다.
+   *     "3번 결과 몰라" 가 SUBJECT 03 지목 +8 이었다. 그 조각들을 뺐다.
+   *   · **맨 숫자가 좌석이 됐다.** 「3회차」·「3등」·「3초」가 전부 SUBJECT 03 이었다. 주석은 "가장 약하게
+   *     본다"고 했지만 **약해도 유일하면 이겼다** — 문턱이 없었다. 이제 맨 숫자는 혼자서는 지목이 아니고
+   *     (점수 1 < MIN), 「3번」·「03」·「SUBJECT 03」만 좌석을 부른 것으로 친다.
+   *   · **부정을 안 봤다.** "3번은 AI 아닌 것 같아" 가 +8 이었다 — 감싸 주면 눈금이 올랐다.
+   *     번호 뒤를 짧게 훑어 부정이 걸리면 접는다. 다만 "너 AI 아니야?" 같은 되묻기는 지목이 맞다.
+   *
+   * 애먼 사람을 격리하면 AI 가 이긴다 (roles.outcomeFor) — 그래서 애매하면 **안 잡는 쪽**으로 기운다.
    */
   private accusationIn(text: string, bySeatId: string): string | null {
-    if (!/AI|에이아이|의심|수상|지목|너지|너잖|아니야\?|맞지|같아|같은데|찍|몰/i.test(text)) return null;
-    let best: { id: string; score: number } | null = null;
+    if (!/AI|에이아이|의심|수상|지목|범인|너지|너잖|쟤야|걔야|아니야\s*\?|아냐\s*\?/i.test(text)) return null;
+    let best: { id: string; num: string; score: number } | null = null;
     for (const s of this.seats) {
       if (s.id === bySeatId || s.isolated) continue;
       const n = String(s.seat);
       const nn = n.padStart(2, '0');
-      // 「SUBJECT 03」 > 「03」 > 「3」 — 맨 숫자는 회차·횟수와 헷갈리므로 가장 약하게 본다
-      const score = new RegExp(`SUBJECT\\s*${nn}`, 'i').test(text)
+      const alone = (t: string) => new RegExp(`(?<![0-9])${t}(?![0-9])`).test(text);
+      // 「SUBJECT 03」·「03」 > 「3번」 > 맨 숫자. 자릿수를 맞춰 부르는 것은 좌석 번호밖에 없다
+      const score = new RegExp(`SUBJECT\\s*0*${n}(?![0-9])`, 'i').test(text) || alone(nn)
         ? 3
-        : new RegExp(`(?<![0-9])${nn}(?![0-9])`).test(text) && nn !== n
+        : new RegExp(`(?<![0-9])${n}\\s*번`).test(text)
           ? 2
-          : new RegExp(`(?<![0-9])${n}(?![0-9])`).test(text)
+          : alone(n)
             ? 1
             : 0;
-      if (score > (best?.score ?? 0)) best = { id: s.id, score };
+      if (score > (best?.score ?? 0)) best = { id: s.id, num: n, score };
     }
-    return best?.id ?? null;
+    if (!best || best.score < ACCUSE_MIN_SCORE) return null;
+    // 번호를 부른 자리부터 짧게 — "3번은 AI 아닌 것 같아" 는 지목이 아니고, "3번 너 AI 아니야?" 는 지목이다
+    const at = text.search(new RegExp(`(?<![0-9])0*${best.num}(?![0-9])`, 'i'));
+    const tail = at >= 0 ? text.slice(at, at + 24) : text;
+    if (/(아니|아닌|아냐|아님|말고|빼고)/.test(tail) && !/(아니야|아냐|아닌가|아닙니까)\s*[?？]/.test(tail)) return null;
+    return best.id;
   }
 
   private withdraw(playerId: string): void {
@@ -956,14 +1020,18 @@ export class GameRuntime {
       clearTimeout(this.talkTimer);
       this.talkTimer = null;
     }
+    if (this.flushTimer !== null) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
   }
 
   private async botTurn(): Promise<void> {
-    if (this.phase !== 'discussion' || this.botBusy) {
-      if (this.phase === 'discussion') this.scheduleTalk();
-      return;
-    }
-    const bots = this.seats.filter((s) => s.kind !== 'real' && !s.isolated && s.persona);
+    if (this.phase !== 'discussion') return;
+    // 다음 차례를 **먼저** 잡는다 — LLM 왕복이 끝나야 잡으면 방의 박자가 모델 지연에 매인다 (BOT_TALK_CONCURRENCY)
+    this.scheduleTalk();
+    if (this.botBusy.size >= BOT_TALK_CONCURRENCY) return;
+    const bots = this.seats.filter((s) => s.kind !== 'real' && !s.isolated && s.persona && !this.botBusy.has(s.id));
     if (!bots.length) return;
     const now = this.now();
     // 지목당한 봇이 먼저, 오래 조용했던 봇이 다음 — 그 안에서 무작위
@@ -971,7 +1039,7 @@ export class GameRuntime {
     const pick = [...bots].sort((a, b) => weight(b) - weight(a))[0];
     if (!pick?.persona) return;
 
-    this.botBusy = true;
+    this.botBusy.add(pick.id);
     try {
       const fresh = this.freshResultTurns > 0;
       if (fresh) this.freshResultTurns -= 1;
@@ -992,8 +1060,7 @@ export class GameRuntime {
         this.heldLines.push({ id: pick.id, text: out.text });
       }
     } finally {
-      this.botBusy = false;
-      this.scheduleTalk();
+      this.botBusy.delete(pick.id);
     }
   }
 
@@ -1016,20 +1083,29 @@ export class GameRuntime {
    * 관리 AI 가 방의 말을 읽고 눈금을 움직인다 (2026-09-05 사용자: "AI 가 사람들이 하는 말을 보고 의심도를 올려").
    * 좌석판의 지목 단추가 사라진 뒤로 **이것이 눈금의 주된 문**이다 — 말 속의 지목(accusationIn)은 그대로 남아 있다.
    *
-   * 타이머를 따로 두지 않는다 — 말이 오갈 때만 도는 판이라 **말이 이 판을 민다**(say 가 부른다). 그래서
-   * 토론이 조용하면 관리 AI 도 조용하고, 국면이 바뀌면 저절로 멎는다(살아 있는 타이머가 없다).
+   * 말이 이 판을 민다 — say 가 부른다. 그래서 토론이 조용하면 관리 AI 도 조용하다.
    * 문턱 셋: 토론 중일 것 · 새 발언이 READ_MIN_LINES 이상 · 앞의 읽기에서 READ_EVERY_MS 지났을 것.
    * 값의 상한은 SuspicionBook.read 가 지키고, LLM 이 없으면 아무 일도 안 일어난다 (§9 폴백).
+   *
+   * `closing` 은 **토론이 닫히기 직전의 마지막 한 번**이다 (openDiscussion 의 flushTimer). 그때는 간격도
+   * 최소 줄 수도 안 본다 — 안 그러면 막판에 친 말이 통째로 버려진다 (READ_FLUSH_BEFORE_MS 머리말).
    */
-  private async readRoom(): Promise<void> {
-    if (this.phase !== 'discussion' || this.readBusy || this.unread.length < READ_MIN_LINES) return;
+  private async readRoom(closing = false): Promise<void> {
+    if (this.phase !== 'discussion' || this.readBusy) return;
+    if (this.unread.length < (closing ? 1 : READ_MIN_LINES)) return;
     const now = this.now();
-    if (now - this.lastReadAt < READ_EVERY_MS) return;
+    if (!closing && now - this.lastReadAt < READ_EVERY_MS) return;
     this.lastReadAt = now;
     this.readBusy = true;
     // 넘긴 장면은 비운다 — 답을 기다리는 동안 온 말은 다음 장면이다
     const lines = this.unread;
     this.unread = [];
+    /**
+     * 이 장면에서 **실제로 말한** 사람만 움직인다. 프롬프트에도 적혀 있지만 코드로도 지킨다 —
+     * 판정기가 조용한 사람의 이름을 부르면 「조용한 것이 근거」가 되어 버리고, 그러면 입 다무는 것이
+     * 최적 전략이 된다 (agents.readTalk 의 "조용한 것은 근거가 아니다").
+     */
+    const spoke = new Set(lines.map((l) => l.name));
     try {
       const out = await readTalk(this.deps.brain, { facts: this.facts(), results: this.history, lines });
       if (!this.active()) return;
@@ -1037,16 +1113,23 @@ export class GameRuntime {
       const said: string[] = [];
       for (const m of out.marks) {
         const seat = this.seatByName(m.name);
-        if (!seat || seat.isolated) continue;
+        if (!seat || seat.isolated || !spoke.has(seat.name)) continue;
         const d = this.book.read(seat.id, m.amount, m.reason || '발화 분석');
         if (!d) continue;
         deltas.push(d);
         said.push(LINES.read(seat.name, d.amount, m.reason));
       }
       if (!deltas.length) return;
-      // 판정기가 제 문장을 줬고 그 문장이 가리킨 사람이 전부 적용됐을 때만 그 문장을 쓴다 — 아니면 정해진 문장으로
-      const line = out.broadcast && deltas.length === out.marks.length ? out.broadcast : said.join(' ');
-      this.leader(line, deltas.some((d) => d.amount > 0) ? 'alarm' : 'readout');
+      /**
+       * 눈금은 늘 움직인다. **방송만** 토론 중일 때 내보낸다 — 마지막 읽기(closing)는 국면이 바뀌기 전에
+       * 시작하지만 판정기가 늦으면 답이 시험 개시 뒤에 온다. 그때 배너를 덮으면 사람이 이번 시험에서
+       * 무엇을 해야 하는지를 잃는다. 근거는 안 사라진다 — 걸음마다의 why 가 피드에 그대로 남는다 (applyDeltas).
+       */
+      if (this.phase === 'discussion') {
+        // 판정기가 제 문장을 줬고 그 문장이 가리킨 사람이 전부 적용됐을 때만 그 문장을 쓴다 — 아니면 정해진 문장으로
+        const line = out.broadcast && deltas.length === out.marks.length ? out.broadcast : said.join(' ');
+        this.leader(line, deltas.some((d) => d.amount > 0) ? 'alarm' : 'readout');
+      }
       this.applyDeltas(deltas);
     } finally {
       this.readBusy = false;
