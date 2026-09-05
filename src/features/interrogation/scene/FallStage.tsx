@@ -13,13 +13,13 @@
  *   ② 그래서 마당을 빈틈없이 덮지 않는다 — 천장 보(z −8·−4·0·4·8)와 형광등 줄(x ±2.8) 사이에 끼워 넣는다.
  *      겹쳐 박으면 10m 위에서 쇠가 쇠를 뚫고 나온다.
  */
-import { Suspense, useEffect } from 'react';
-import { useThree } from '@react-three/fiber';
+import { Suspense } from 'react';
 import * as THREE from 'three';
 import { GlbInstances, type Fit, type InstanceItem } from '@/world/map/corridor/part';
 import { CEILING_Y } from '@/world/map/govcenter/layout';
 import { FALL_ARENA } from '@/world/mp/constants';
 import { FallingBalls } from '@/features/trial/games/fall/FallingBalls';
+import { Precompile } from './Precompile';
 
 const ARENA_W = FALL_ARENA.maxX - FALL_ARENA.minX;
 const ARENA_D = FALL_ARENA.maxZ - FALL_ARENA.minZ;
@@ -70,30 +70,7 @@ function ArenaEdge() {
   );
 }
 
-/**
- * 이 무대의 셰이더를 **미리 링크시킨다.** 부품이 다 선 뒤 한 번 — 그래서 두 Suspense 안에 하나씩 있다.
- *
- * three 는 재질마다 셰이더 프로그램을 처음 그리는 프레임에 만든다. 링크 자체는 드라이버가 뒤에서 하지만,
- * 그 프로그램의 유니폼·어트리뷰트를 세는 순간(`getProgramParameter`) **링크가 끝날 때까지 자바스크립트가 멈춘다.**
- * 호루라기가 울리는 그 프레임이 바로 그 순간이었다 — 2026-09-05 측정으로 335ms, 처음 여는 판에서는 1.3초.
- * `gl.debug.checkShaderErrors = false`(HallScene) 로도 안 없어진다: 그건 오류 로그만 안 읽을 뿐,
- * 유니폼을 세는 일은 그대로 남는다.
- *
- * `compileAsync` 는 지금 씬에 있는 재질의 프로그램을 만들어 두고(KHR_parallel_shader_compile 이 있으면
- * 링크가 끝났는지도 안 멈추고 확인한다), 이 무대는 그때 **안 보이게** 서 있다 (HallScene 의 stageReady).
- * 40초 뒤 호루라기가 울릴 때는 링크가 이미 끝나 있어서 세는 일이 안 기다린다.
- */
-function Precompile() {
-  const gl = useThree((s) => s.gl);
-  const scene = useThree((s) => s.scene);
-  const camera = useThree((s) => s.camera);
-  useEffect(() => {
-    void gl.compileAsync(scene, camera);
-  }, [gl, scene, camera]);
-  return null;
-}
-
-export function FallStage() {
+export function FallStage({ onWarm }: { onWarm?: () => void } = {}) {
   return (
     <group>
       <ArenaEdge />
@@ -105,7 +82,7 @@ export function FallStage() {
       </Suspense>
       <Suspense fallback={null}>
         <FallingBalls />
-        <Precompile />
+        <Precompile onDone={onWarm} />
       </Suspense>
     </group>
   );

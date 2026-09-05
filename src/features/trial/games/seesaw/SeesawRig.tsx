@@ -133,6 +133,11 @@ export function SeesawRig({ selfId, body = null, sendWalk }: { selfId: string | 
     selfPose.z = w.z;
     selfPose.heading = heading.current;
     selfPose.anim = anim;
+    /*
+     * 떨어져 축 옆에 다시 서는 2.5초 — 순간이동으로 보여 준다 (games/common/fallWarp.ts). 여기서 하는 일은
+     * 「지금 누워 있나 · 어디에」를 알려 주는 것뿐이다: 몸을 줄이는 것은 SelfAvatar, 빛기둥은 SeesawStage 의 WarpFx 다
+     */
+    seesawState.warpSelf(selfId, fallen.current, w.x, w.y, w.z, now);
 
     // 추격 카메라 — 자리는 평활해서 따라간다 (판이 오르내리는 것이 화면 떨림이 안 되게)
     const c = cam.current;

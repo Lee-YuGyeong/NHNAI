@@ -41,6 +41,8 @@ export interface TrialEvents {
   onSeesaw(msg: Extract<S2CMessage, { t: 'trial_seesaw' }>): void;
   /** 무너지는 타워 — 서버 물리 스냅샷(~10Hz): 발판들의 기울기·상태와 전원의 자리 */
   onTower(msg: Extract<S2CMessage, { t: 'trial_tower' }>): void;
+  /** 회전 봉 넘기 — 서버 물리 스냅샷(~10Hz): 봉 각도·각속도와 전원의 자리(점프 높이 포함) */
+  onBar(msg: Extract<S2CMessage, { t: 'trial_bar' }>): void;
   /** 움직이는 플랫폼 — 착지한 발이 밀렸다. 마찰계수가 아니라 곱셈이 끝난 미끄러짐만 온다(P8) */
   onSlip(id: string, vx: number, vz: number, ms: number): void;
   onResult(result: TrialResultWire): void;
@@ -162,6 +164,9 @@ export class TrialConnection {
           break;
         case 'trial_tower':
           events.onTower(msg);
+          break;
+        case 'trial_bar':
+          events.onBar(msg);
           break;
         case 'trial_slip':
           events.onSlip(msg.id, msg.vx, msg.vz, msg.ms);

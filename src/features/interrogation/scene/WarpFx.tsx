@@ -5,15 +5,16 @@
  * 색은 발판의 색이다 (PlatformCourse 의 RIM_MAT 청록) — 이 연출을 하는 것은 이 홀의 기계지 다른 무엇이 아니다.
  * 광원은 안 쓴다: 발광 재질뿐이다 (warp.ts 머리말 — 광원 수가 바뀌면 셰이더가 다 다시 링크된다).
  *
- * 자리는 **여섯 벌을 미리 세워 두고** 프레임마다 켜고 끈다. 사람 하나 + AI 좌석 넷이 한꺼번에 떨어져도 모자라지
- * 않고, React 가 판을 다시 그리는 일도 없다 — 켜고 끄는 것은 useFrame 안에서 visible 로만 한다.
+ * 자리는 **여덟 벌을 미리 세워 두고** 프레임마다 켜고 끈다. 한 판의 몸이 다 떨어져도 모자라지 않고
+ * (무너지는 타워는 발판이 한꺼번에 꺼져 여럿이 같이 떨어진다), React 가 판을 다시 그리는 일도 없다 —
+ * 켜고 끄는 것은 useFrame 안에서 visible 로만 한다. 꺼져 있는 자리는 드로우콜이 0 이다.
  */
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { WARP_IN_MS, WARP_OUT_MS, warp } from './warp';
 
-const SLOTS = 6;
+const SLOTS = 8;
 /** 기둥 높이(m) — 홀 천장보다 낮게, 사람 키의 한 배 반쯤 */
 const COL_H = 2.8;
 const COL_R = 0.42;
@@ -26,7 +27,7 @@ const SHELL_A = 0.26;
 const CORE_A = 0.62;
 const TINT = '#8fe6ff';
 
-/** 원기둥은 한 벌만 만들어 여섯이 나눠 쓴다 — 배율로 높이를 준다 (높이 1 로 세워 둔다) */
+/** 원기둥은 한 벌만 만들어 여덟이 나눠 쓴다 — 배율로 높이를 준다 (높이 1 로 세워 둔다) */
 const COL_GEO = new THREE.CylinderGeometry(COL_R, COL_R, 1, 18, 1, true);
 const CORE_GEO = new THREE.CylinderGeometry(0.075, 0.075, 1, 8, 1, true);
 /** 바닥 고리 — 반지름 1 로 만들어 배율로 넓힌다 */
@@ -70,7 +71,14 @@ function shapeOf(kind: 'out' | 'in', k: number) {
   };
 }
 
-export function WarpFx() {
+/**
+ * @param dim 이 무대에서 기둥을 얼마나 옅게 할까 (1 = 발판 게임의 그대로).
+ *   **밝은 무대에서는 반으로 줄인다.** 발판 게임은 어두운 복도 한가운데를 건너는 판이라 이 진하기가 맞지만,
+ *   회전 원판 · 무게 중심 다리 · 무너지는 타워는 작업등(intensity 60~70)이 위에서 때리는 강판 위다 —
+ *   같은 알파가 거기서는 두 배로 읽히고, 여럿이 한꺼번에 돌아오면(원판은 다 같이 미끄러져 떨어진다)
+ *   발광이 겹쳐 화면이 통째로 하얘진다 (2026-09-05 헤드리스로 재 봤다).
+ */
+export function WarpFx({ dim = 1 }: { dim?: number } = {}) {
   const slots = useRef<(THREE.Group | null)[]>([]);
   const cols = useRef<(THREE.Mesh | null)[]>([]);
   const cores = useRef<(THREE.Mesh | null)[]>([]);
@@ -106,9 +114,9 @@ export function WarpFx() {
         core.position.y = col ? col.position.y : s.colH / 2;
       }
       if (ring) ring.scale.set(s.ringR, s.ringR, 1);
-      mats[i].col.opacity = s.colA * SHELL_A;
-      mats[i].core.opacity = s.colA * CORE_A;
-      mats[i].ring.opacity = s.ringA;
+      mats[i].col.opacity = s.colA * SHELL_A * dim;
+      mats[i].core.opacity = s.colA * CORE_A * dim;
+      mats[i].ring.opacity = s.ringA * dim;
     }
   });
 

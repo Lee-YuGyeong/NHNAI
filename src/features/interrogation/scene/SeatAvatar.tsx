@@ -31,6 +31,7 @@ import { remotePlayers, type RemotePlayer } from '@/world/net/remote-players';
 import { ChatBubble } from './ChatBubble';
 import { Downed } from './Downed';
 import { hallGroundAt } from './ground';
+import { warp } from './warp';
 import { SuspicionBar } from './SuspicionBar';
 
 export interface SeatBodiesProps {
@@ -67,6 +68,12 @@ const SeatAvatar = memo(function SeatAvatar({
   bubbleTick: number;
 }) {
   const group = useRef<THREE.Group>(null);
+  /**
+   * 순간이동 중의 몸 — 떨어져 제자리로 돌아가는 동안 가늘어졌다 다시 선다 (scene/warp.ts).
+   * 발판에서 떨어진 봇(platformState) · 원판과 판자에서 떨어진 좌석(trial/games/common/fallWarp.ts) 둘 다 여기로 온다.
+   * 바깥 그룹(자리·방향)이 아니라 안쪽을 줄인다 — 그림자는 바닥에 남아 옅어져야 한다 (SelfAvatar 와 같다)
+   */
+  const warped = useRef<THREE.Group>(null);
   const shadow = useRef<THREE.Mesh>(null);
   const pose = useRef<Pose>({ x: player.pose.x, z: player.pose.z, y: player.pose.y, heading: player.pose.heading });
 
@@ -114,6 +121,12 @@ const SeatAvatar = memo(function SeatAvatar({
     g.position.set(player.pose.x, y, player.pose.z);
     g.rotation.y = player.pose.heading;
 
+    const w = warp.bodyAt(player.id);
+    if (warped.current) {
+      warped.current.scale.set(w.xz, w.y, w.xz);
+      warped.current.position.y = w.lift;
+    }
+
     // 실제 이동 속도 — 프레임 사이 변위 / 시간, 0.15초 시정수로 평활
     const sp = speed.current;
     if (sp.at > 0) {
@@ -128,7 +141,7 @@ const SeatAvatar = memo(function SeatAvatar({
     // 그림자는 늘 바닥에 붙어 있고 멀어질수록 작아진다 — 점프가 "위로 간 것"으로 읽히게
     if (shadow.current) {
       shadow.current.position.y = 0.02 - y;
-      const s = Math.max(0.45, 1 - y * 0.35);
+      const s = Math.max(0.45, 1 - y * 0.35) * w.xz;
       shadow.current.scale.set(s, s, 1);
     }
   });
@@ -141,9 +154,11 @@ const SeatAvatar = memo(function SeatAvatar({
        */}
       <Suspense fallback={null}>
         {/* 몸은 서버가 준 군인(mp/bodies.ts) — 옛 워커라 몸이 없으면 로봇. 처형당하면 이 안에서 넘어간다 */}
-        <Downed id={player.id} getPose={getFallPose}>
-          {player.body ? <SoldierAvatar body={player.body} getAnim={getAnim} getAirborne={getAirborne} getSpeed={getSpeed} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
-        </Downed>
+        <group ref={warped}>
+          <Downed id={player.id} getPose={getFallPose}>
+            {player.body ? <SoldierAvatar body={player.body} getAnim={getAnim} getAirborne={getAirborne} getSpeed={getSpeed} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
+          </Downed>
+        </group>
         <mesh ref={shadow} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.34, 20]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.35} />

@@ -6,8 +6,10 @@
  * 오차는 눈에 안 띄고, 다음 스냅샷이 오면 θ 의 차이를 0.15초에 걸쳐 스르르 맞춘다(딱 튀지 않게). 마찰계수는 여기 없다(P8) —
  * 미끄러진 결과(자리 · s)만 온다.
  */
-import { DISC_SNAPSHOT_MS } from '@/world/mp/constants';
+import { SELF_WARP } from '@/features/interrogation/scene/warp';
+import { DISC_RESPAWN_MS, DISC_SNAPSHOT_MS } from '@/world/mp/constants';
 import type { S2CMessage } from '@/world/mp/protocol';
+import { makeFallWarp } from '../common/fallWarp';
 
 type Snapshot = Extract<S2CMessage, { t: 'trial_disc' }>;
 export type DiscPlayerWire = Snapshot['players'][number];
@@ -25,6 +27,15 @@ let thetaShown = 0;
 let thetaShownAt = 0;
 let thetaFix = 0;
 let thetaFixAt = 0;
+/** 내 좌석 — 리그가 warpSelf 로 알려 준다. 스냅샷 쪽은 이 좌석을 건너뛴다 (push 안의 주석) */
+let selfSeat: string | null = null;
+
+/**
+ * 떨어져 다시 서는 2초를 순간이동으로 보여 준다 (common/fallWarp.ts). 남의 몸은 한 박자 늦게 그려지므로
+ * (DELAY_MS) 기둥도 그만큼 늦게 세운다 — 내 몸은 예측이라 지연이 없다
+ */
+const othersWarp = makeFallWarp(DISC_RESPAWN_MS, DELAY_MS);
+const selfWarp = makeFallWarp(DISC_RESPAWN_MS);
 
 function lerp(a: number, b: number, u: number): number {
   return a + (b - a) * u;
@@ -58,11 +69,29 @@ export const discState = {
     }
     prev = next;
     next = s;
+    /*
+     * 순간이동 — 떨어져 원판에 다시 서는 그 2초 (common/fallWarp.ts). 내 몸은 리그가 SELF_WARP 로 걸므로
+     * 여기서 건너뛴다: 두 번 걸면 같은 자리에 기둥이 둘 선다
+     */
+    for (const b of s.players) {
+      if (b.id === selfSeat) continue;
+      othersWarp.seen(b.id, b.f === 1, b.x, b.y, b.z, nowLocal);
+    }
+  },
+  /**
+   * 내 몸의 순간이동 — DiscRig 가 프레임마다 부른다. 내 좌석을 여기서 기억해 두고, 스냅샷 쪽(push)은 그 좌석을 건너뛴다.
+   * @param fallen 떨어져 누워 있나 (서버 f=1 — DiscRig 의 fallen)
+   */
+  warpSelf(id: string | null, fallen: boolean, x: number, y: number, z: number, now = Date.now()): void {
+    selfSeat = id;
+    selfWarp.seen(SELF_WARP, fallen, x, y, z, now);
   },
   clear(): void {
     prev = null;
     next = null;
     thetaFix = 0;
+    othersWarp.clear();
+    selfWarp.clear();
   },
   /** 서버 시각 → 로컬 시각 차 */
   get offset(): number {

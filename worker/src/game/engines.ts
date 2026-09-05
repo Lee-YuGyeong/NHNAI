@@ -7,6 +7,7 @@
  */
 
 import type { TrialGame } from '../../../src/world/mp/protocol';
+import { BarEngine } from '../trial/bar/engine';
 import { ColorhuntEngine } from '../trial/colorhunt/engine';
 import { DiscEngine } from '../trial/disc/engine';
 import type { GameEngine } from '../trial/engine';
@@ -27,6 +28,8 @@ export const ENGINES: Partial<Record<TrialGame, () => GameEngine>> = {
   seesaw: () => new SeesawEngine(),
   // 무너지는 타워 — 마당에 탑(TOWER_CENTER)이 서고, 자리는 서버가 적분한다 (HallScene 의 TowerStage · TowerRig, 2026-09-05)
   tower: () => new TowerEngine(),
+  // 회전 봉 넘기 — 마당에 무대(BAR_CENTER)가 서고, 자리도 점프도 서버가 적분한다. 검문소 후보(GAME_TEST_POOL)에는 아직 없다
+  bar: () => new BarEngine(),
 };
 
 export const INSTRUCTION: Record<TrialGame, string> = {
@@ -37,6 +40,7 @@ export const INSTRUCTION: Record<TrialGame, string> = {
   disc: '도는 원판 위에서 버텨라. WASD 로 걷고 Shift 로 달린다. 밖으로 밀려나면 떨어진다.',
   seesaw: '축 하나로 선 판자 위에서 무리의 무게중심을 축에 맞춰라. 상자가 떨어지면 반대쪽으로 옮겨 가라. 기울면 미끄러지고, 끝을 넘으면 떨어진다.',
   tower: '탑 위 발판에서 버텨라. 무게가 몰린 발판은 기울어 무너지고, 바깥 발판은 차례로 철거된다. Space 로 뛰고 E 로 남을 밀 수 있다. 떨어지지 마라.',
+  bar: '기둥에서 나온 봉이 바닥을 쓸며 돈다. 봉이 오면 Space 로 뛰어넘어라. 맞으면 넘어져 밀려나고, 가장자리 밖은 낙하다.',
 };
 
 export function availableGames(): TrialGame[] {

@@ -3,8 +3,10 @@
  * (disc/discState 와 같은 규칙). 발판의 기울기는 두 스냅샷 사이를 보간하고, 상태(경고 · 떨어지는 중)는 시각과 함께 그대로 든다.
  * 마찰계수는 여기 없다(P8) — 미끄러진 결과(자리 · s)만 온다.
  */
+import { SELF_WARP } from '@/features/interrogation/scene/warp';
 import type { S2CMessage } from '@/world/mp/protocol';
-import { TOWER_N, TOWER_SNAPSHOT_MS, slabSurfaceY } from '@/world/mp/tower';
+import { TOWER_N, TOWER_RESPAWN_MS, TOWER_SNAPSHOT_MS, slabSurfaceY } from '@/world/mp/tower';
+import { makeFallWarp } from '../common/fallWarp';
 
 type Snapshot = Extract<S2CMessage, { t: 'trial_tower' }>;
 export type TowerPlayerWire = Snapshot['players'][number];
@@ -24,6 +26,16 @@ function indexSlabs(s: Snapshot): (TowerSlabWire | undefined)[] {
   for (const sl of s.slabs) out[sl.i] = sl;
   return out;
 }
+
+/** 내 좌석 — 리그가 warpSelf 로 알려 준다. 스냅샷 쪽은 이 좌석을 건너뛴다 (push 안의 주석) */
+let selfSeat: string | null = null;
+
+/**
+ * 바닥에 떨어져 성한 발판에 다시 서는 3초를 순간이동으로 보여 준다 (common/fallWarp.ts).
+ * 남의 몸은 한 박자 늦게 그려지므로(DELAY_MS) 기둥도 그만큼 늦게 세운다 — 내 몸은 예측이라 지연이 없다
+ */
+const othersWarp = makeFallWarp(TOWER_RESPAWN_MS, DELAY_MS);
+const selfWarp = makeFallWarp(TOWER_RESPAWN_MS);
 
 function lerp(a: number, b: number, u: number): number {
   return a + (b - a) * u;
@@ -56,11 +68,29 @@ export const towerState = {
   /** 내 몸의 상태(서버 f) — SelfAvatar 가 눕는 데 쓴다 */
   selfStance: 0,
   push(s: Snapshot): void {
-    if (!prev && !next) clockOffset = s.at - Date.now();
+    const nowLocal = Date.now();
+    if (!prev && !next) clockOffset = s.at - nowLocal;
     prev = next;
     prevSlabs = nextSlabs;
     next = s;
     nextSlabs = indexSlabs(s);
+    /*
+     * 순간이동 — 바닥에 떨어져 발판에 다시 서는 그 3초 (common/fallWarp.ts). **떨어지는 중(f=1)은 아직 아니다** —
+     * 서버의 다시서기 시계는 바닥에 닿은 그 순간(f=2)부터 돈다 (worker/src/trial/tower/sim.ts 의 upAt).
+     * 내 몸은 리그가 SELF_WARP 로 걸므로 여기서 건너뛴다: 두 번 걸면 같은 자리에 기둥이 둘 선다
+     */
+    for (const b of s.players) {
+      if (b.id === selfSeat) continue;
+      othersWarp.seen(b.id, b.f === 2, b.x, b.y, b.z, nowLocal);
+    }
+  },
+  /**
+   * 내 몸의 순간이동 — TowerRig 가 프레임마다 부른다. 내 좌석을 여기서 기억해 두고, 스냅샷 쪽(push)은 그 좌석을 건너뛴다.
+   * @param down 바닥에 누워 있나 (서버 f=2 — 떨어지는 중 f=1 은 아직 아니다)
+   */
+  warpSelf(id: string | null, down: boolean, x: number, y: number, z: number, now = Date.now()): void {
+    selfSeat = id;
+    selfWarp.seen(SELF_WARP, down, x, y, z, now);
   },
   clear(): void {
     prev = null;
@@ -68,6 +98,8 @@ export const towerState = {
     prevSlabs = [];
     nextSlabs = [];
     towerState.selfStance = 0;
+    othersWarp.clear();
+    selfWarp.clear();
   },
   get offset(): number {
     return clockOffset;

@@ -6,8 +6,10 @@
  * 스르르 맞춘다(딱 튀지 않게). 마찰계수는 여기 없다(P8) — 미끄러진 결과(자리 · s)만 온다.
  * 자리는 전부 **판자 좌표(u · v)** 다 — 월드 자리는 worldOf 가 φ 로 푼다.
  */
-import { SEESAW_CENTER, SEESAW_SNAPSHOT_MS, SEESAW_TOP } from '@/world/mp/constants';
+import { SELF_WARP } from '@/features/interrogation/scene/warp';
+import { SEESAW_CENTER, SEESAW_RESPAWN_MS, SEESAW_SNAPSHOT_MS, SEESAW_TOP } from '@/world/mp/constants';
 import type { S2CMessage } from '@/world/mp/protocol';
+import { makeFallWarp } from '../common/fallWarp';
 
 type Snapshot = Extract<S2CMessage, { t: 'trial_seesaw' }>;
 export type SeesawPlayerWire = Snapshot['players'][number];
@@ -23,6 +25,15 @@ let clockOffset = 0;
 let phiShown = 0;
 let phiFix = 0;
 let phiFixAt = 0;
+/** 내 좌석 — 리그가 warpSelf 로 알려 준다. 스냅샷 쪽은 이 좌석을 건너뛴다 (push 안의 주석) */
+let selfSeat: string | null = null;
+
+/**
+ * 판 끝에서 떨어져 축 옆에 다시 서는 2.5초를 순간이동으로 보여 준다 (common/fallWarp.ts).
+ * 남의 몸은 한 박자 늦게 그려지므로(DELAY_MS) 기둥도 그만큼 늦게 세운다 — 내 몸은 예측이라 지연이 없다
+ */
+const othersWarp = makeFallWarp(SEESAW_RESPAWN_MS, DELAY_MS);
+const selfWarp = makeFallWarp(SEESAW_RESPAWN_MS);
 
 function lerp(a: number, b: number, u: number): number {
   return a + (b - a) * u;
@@ -59,11 +70,30 @@ export const seesawState = {
     }
     prev = next;
     next = s;
+    /*
+     * 순간이동 — 떨어져 판 위에 다시 서는 그 2.5초 (common/fallWarp.ts). 내 몸은 리그가 SELF_WARP 로 걸므로
+     * 여기서 건너뛴다: 두 번 걸면 같은 자리에 기둥이 둘 선다. 자리는 판자 좌표라 기울기로 풀어서 준다
+     */
+    for (const b of s.players) {
+      if (b.id === selfSeat) continue;
+      const w = worldOf(b.u, b.v, s.phi, b.f === 1);
+      othersWarp.seen(b.id, b.f === 1, w.x, w.y, w.z, nowLocal);
+    }
+  },
+  /**
+   * 내 몸의 순간이동 — SeesawRig 가 프레임마다 부른다. 내 좌석을 여기서 기억해 두고, 스냅샷 쪽(push)은 그 좌석을 건너뛴다.
+   * @param fallen 판에서 떨어져 누워 있나 (서버 f=1 — SeesawRig 의 fallen)
+   */
+  warpSelf(id: string | null, fallen: boolean, x: number, y: number, z: number, now = Date.now()): void {
+    selfSeat = id;
+    selfWarp.seen(SELF_WARP, fallen, x, y, z, now);
   },
   clear(): void {
     prev = null;
     next = null;
     phiFix = 0;
+    othersWarp.clear();
+    selfWarp.clear();
   },
   get offset(): number {
     return clockOffset;

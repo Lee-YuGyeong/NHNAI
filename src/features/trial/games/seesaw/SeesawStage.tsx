@@ -10,6 +10,7 @@ import { Suspense, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
+import { WarpFx } from '@/features/interrogation/scene/WarpFx';
 import { GlbInstances, GlbPart } from '@/world/map/corridor/part';
 import { SEESAW_CENTER, SEESAW_CRATE_DROP_MS, SEESAW_CRATE_SIZE, SEESAW_HALF, SEESAW_HALF_W, SEESAW_PLATE_H, SEESAW_TILT_MAX, SEESAW_TOP } from '@/world/mp/constants';
 import { seesawState } from './seesawState';
@@ -190,6 +191,11 @@ export function SeesawStage({ lights = true }: { lights?: boolean } = {}) {
           <pointLight position={[SEESAW_CENTER.x, 8.5, SEESAW_CENTER.z]} color="#dfe9ff" intensity={45} distance={26} decay={2} />
         </>
       ) : null}
+      {/*
+       * 떨어져 다시 서는 순간이동의 빛기둥 (interrogation/scene/warp.ts). 무대에 붙여 두면 /trial 과 검문소 홀이
+       * 같이 얻는다 — 홀도 이 무대를 그대로 쓴다 (HallScene). 걸린 것이 없으면 여덟 자리가 다 꺼져 있다
+       */}
+      <WarpFx dim={0.45} />
     </group>
   );
 }

@@ -10,6 +10,7 @@ import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { GlbInstances, GlbPart } from '@/world/map/corridor/part';
+import { WarpFx } from '@/features/interrogation/scene/WarpFx';
 import { DISC_CAP_R, DISC_CENTER, DISC_HUB_R, DISC_R, DISC_TOP } from '@/world/mp/constants';
 import { discState } from './discState';
 
@@ -84,33 +85,41 @@ export function DiscStage({ lights = true }: { lights?: boolean } = {}) {
     [],
   );
   return (
-    <group position={[DISC_CENTER.x, 0, DISC_CENTER.z]}>
-      {/* 받침 — 서 있다. 원판 밑의 어둠(구덩이)과 받침 링 */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.015, 0]} material={PIT_MAT}>
-        <circleGeometry args={[BASE_R + 0.6, 96]} />
-      </mesh>
-      <mesh position={[0, (DISC_TOP - PLATE_H - 0.1) / 2, 0]} material={BASE_MAT}>
-        <cylinderGeometry args={[BASE_R, BASE_R + 0.35, DISC_TOP - PLATE_H - 0.1, 96, 1, true]} />
-      </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[0, DISC_TOP - PLATE_H - 0.1, 0]} material={BASE_TOP_MAT}>
-        <ringGeometry args={[DISC_R - 0.05, BASE_R, 96]} />
-      </mesh>
-      <Suspense fallback={null}>
-        <GlbInstances id="disc_beacon" fit={{ y: 0.9 }} items={beacons} />
-      </Suspense>
-      {/* 도는 것 */}
-      <group ref={spin}>
+    <>
+      <group position={[DISC_CENTER.x, 0, DISC_CENTER.z]}>
+        {/* 받침 — 서 있다. 원판 밑의 어둠(구덩이)과 받침 링 */}
+        <mesh rotation-x={-Math.PI / 2} position={[0, 0.015, 0]} material={PIT_MAT}>
+          <circleGeometry args={[BASE_R + 0.6, 96]} />
+        </mesh>
+        <mesh position={[0, (DISC_TOP - PLATE_H - 0.1) / 2, 0]} material={BASE_MAT}>
+          <cylinderGeometry args={[BASE_R, BASE_R + 0.35, DISC_TOP - PLATE_H - 0.1, 96, 1, true]} />
+        </mesh>
+        <mesh rotation-x={-Math.PI / 2} position={[0, DISC_TOP - PLATE_H - 0.1, 0]} material={BASE_TOP_MAT}>
+          <ringGeometry args={[DISC_R - 0.05, BASE_R, 96]} />
+        </mesh>
         <Suspense fallback={null}>
-          <Plate />
+          <GlbInstances id="disc_beacon" fit={{ y: 0.9 }} items={beacons} />
         </Suspense>
+        {/* 도는 것 */}
+        <group ref={spin}>
+          <Suspense fallback={null}>
+            <Plate />
+          </Suspense>
+        </group>
+        {/* 원판 위 작업등 — 홀의 링 조명은 무대에만 떨어져 마당이 어둡다 (lights 머리말) */}
+        {lights ? (
+          <>
+            <pointLight position={[0, 7.5, 0]} color="#dfe9ff" intensity={70} distance={24} decay={2} />
+            <pointLight position={[0, 2.6, 0]} color="#5ff0ff" intensity={6} distance={7} decay={2} />
+          </>
+        ) : null}
       </group>
-      {/* 원판 위 작업등 — 홀의 링 조명은 무대에만 떨어져 마당이 어둡다 (lights 머리말) */}
-      {lights ? (
-        <>
-          <pointLight position={[0, 7.5, 0]} color="#dfe9ff" intensity={70} distance={24} decay={2} />
-          <pointLight position={[0, 2.6, 0]} color="#5ff0ff" intensity={6} distance={7} decay={2} />
-        </>
-      ) : null}
-    </group>
+      {/*
+       * 떨어져 다시 서는 순간이동의 빛기둥 (interrogation/scene/warp.ts). 자리는 월드 좌표라 **원판 그룹 밖**에 둔다 —
+       * 안에 두면 기둥이 원판 중심만큼 밀려 선다. 무대에 붙여 두면 /trial 과 검문소 홀이 같이 얻는다
+       * (홀도 이 무대를 그대로 쓴다 — HallScene). 걸린 것이 없으면 여덟 자리가 다 꺼져 있다
+       */}
+      <WarpFx dim={0.45} />
+    </>
   );
 }

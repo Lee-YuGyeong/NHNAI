@@ -163,6 +163,11 @@ export function DiscRig({ selfId, body = null, sendWalk }: { selfId: string | nu
     selfPose.z = z;
     selfPose.heading = heading.current;
     selfPose.anim = anim;
+    /*
+     * 떨어져 원판에 다시 서는 2초 — 순간이동으로 보여 준다 (games/common/fallWarp.ts). 여기서 하는 일은
+     * 「지금 누워 있나 · 어디에」를 알려 주는 것뿐이다: 몸을 줄이는 것은 SelfAvatar, 빛기둥은 DiscStage 의 WarpFx 다
+     */
+    discState.warpSelf(selfId, fallen.current, x, y, z, now);
 
     // 추격 카메라 — 발 높이(원판 위 0.75)를 더한다. 자리는 평활해서 따라간다 — 보정과 원판의 실어 나름이 화면 떨림이 안 되게
     const c = cam.current;

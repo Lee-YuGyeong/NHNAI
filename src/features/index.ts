@@ -153,6 +153,7 @@ export const FEATURES: FeatureDef[] = [
       { title: '물리 미니게임 · 회전 원판 생존 (원심력 · 마찰)', to: '/trial?code=1234&game=disc' },
       { title: '물리 미니게임 · 무게 중심 다리 (무게중심 · 토크)', to: '/trial?code=1234&game=seesaw' },
       { title: '물리 미니게임 · 무너지는 타워 생존 (질량 · 충돌 · 중심 이동)', to: '/trial?code=1234&game=tower' },
+      { title: '물리 미니게임 · 회전 봉 넘기 (타이밍 · 마찰)', to: '/trial?code=1234&game=bar' },
     ],
   },
 ];

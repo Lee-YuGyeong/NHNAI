@@ -35,6 +35,7 @@ import { SelfAvatar } from './SelfAvatar';
 import { selfPose } from './selfPose';
 import { ARENA_WORK_LIGHTS, FallStage } from './FallStage';
 import { PlatformCourse } from './PlatformCourse';
+import { Precompile } from './Precompile';
 import { WarpFx } from './WarpFx';
 import { PADS, PLATFORM_ARENA } from '@/world/mp/platform';
 import { DISC_CENTER, SEESAW_CENTER } from '@/world/mp/constants';
@@ -103,6 +104,13 @@ export interface HallSceneProps {
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
 }
 
+/** 미리 세우는 무대 — 낙하 · 발판 · 원판 · 다리 넷 (아래 순서대로 하나씩) */
+const STAGE_COUNT = 5;
+/** 홀 부품이 다 자리 잡을 때까지 기다렸다가 첫 무대 */
+const STAGE_WAIT_MS = 2000;
+/** 앞 무대가 「다 데웠다」고 안 알려 올 때(부품이 안 옴 등) 늦어도 이만큼 뒤엔 다음을 세운다 */
+const STAGE_LATE_MS = 4000;
+
 export function HallScene(p: HallSceneProps) {
   /*
    * 낙하 무대를 **판이 열리자마자 안 보이게 세워 둔다** (아래 `stageReady`).
@@ -114,12 +122,21 @@ export function HallScene(p: HallSceneProps) {
    *
    * 2초 미루는 것은 홀 자체의 부품 열여섯 개와 안 다투게 — 호루라기까지는 아직 40초가 넘게 남았다.
    * 시험이 이미 낙하면(새로고침 등) 기다리지 않고 그 자리에서 세운다.
+   *
+   * **넷을 한꺼번에 세우지 않는다** (staged, 2026-09-05 측정). 넷이 같은 Suspense 에서 같이 풀리면 React 가
+   * 한 번에 커밋하고, 그 한 프레임이 부품 파싱 · 셰이더 링크 열셋 · 텍스처 스물여섯을 다 짊어져 **915ms**
+   * 동안 멈췄다 — 미리 세우는 목적이 「멈춤을 시험 시작에서 치우는 것」인데 치운 자리에서 그대로 멈춘 셈이다.
+   * 하나씩 걸러 세우면 같은 일이 네 토막으로 나뉜다. 토론 중이고 아직 40초가 남아 있으니 서두를 이유가 없다.
    */
-  const [stageReady, setStageReady] = useState(false);
+  const [staged, setStaged] = useState(0);
+  const stageNext = useCallback(() => setStaged((n) => Math.min(STAGE_COUNT, n + 1)), []);
   useEffect(() => {
-    const id = window.setTimeout(() => setStageReady(true), 2000);
+    if (staged >= STAGE_COUNT) return;
+    // 첫 무대는 홀이 자리 잡은 뒤. 그 다음부터는 앞 무대가 데워지면 Precompile 이 부른다 —
+    // 부품이 안 오는 등으로 안 불릴 때를 위해 이 시계가 늦게라도 다음을 세운다
+    const id = window.setTimeout(stageNext, staged === 0 ? STAGE_WAIT_MS : STAGE_LATE_MS);
     return () => window.clearTimeout(id);
-  }, []);
+  }, [staged, stageNext]);
 
   const stopline = p.test?.game === 'stopline';
   const fall = p.test?.game === 'fall';
@@ -129,9 +146,13 @@ export function HallScene(p: HallSceneProps) {
   const seesaw = p.test?.game === 'seesaw';
   const tower = p.test?.game === 'tower';
 
+  /** 프레임을 보고 고른 해상도 — 캔버스에 걸린 값과 같아야 한다 (AdaptiveResolution 머리말) */
+  const [dpr, setDpr] = useState<number | null>(null);
+
   return (
     <WorldCanvas
       quality="high"
+      dpr={dpr ?? undefined}
       camera={{ position: [p.spawn.x, EYE_HEIGHT, p.spawn.z], fov: BASE_FOV, near: 0.1, far: 60 }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       onCreated={({ gl }) => {
@@ -150,7 +171,7 @@ export function HallScene(p: HallSceneProps) {
       }}
     >
       <AdaptiveFov />
-      <AdaptiveResolution />
+      <AdaptiveResolution onPick={setDpr} />
       <Exposure value={def.exposure} />
       <color attach="background" args={[def.background]} />
       <fogExp2 attach="fog" args={[def.fog[0], def.fog[1]]} />
@@ -166,17 +187,19 @@ export function HallScene(p: HallSceneProps) {
       {def.Effects ? <def.Effects /> : null}
       {/* 낙하 생존 — 공(종류별 GLB · 그림자 원반)과 천장 배출 호퍼는 /trial 과 같은 부품이다 (FallStage 머리말).
           시험 전에도 서 있고 그때는 안 보인다 — 이유는 위의 stageReady */}
-      {fall || stageReady ? (
+      {fall || staged >= 1 ? (
         <group visible={fall}>
-          <FallStage />
+          <FallStage onWarm={stageNext} />
         </group>
       ) : null}
       {/* 움직이는 플랫폼 — 발판 열은 platformState 로 프레임마다 자리를 잡는다 (PlatformCourse 머리말).
           낙하 무대와 같은 이유로 **미리 세워 두고 안 보이게** 한다 — 라운드 시작 프레임에 부품 로드와 셰이더 링크가 겹치지 않게 */}
-      {platform || stageReady ? (
+      {platform || staged >= 2 ? (
         <group visible={platform}>
           <Suspense fallback={null}>
             <PlatformCourse />
+            {/* 이 무대 몫의 셰이더 링크를 여기서 문다 — 안 그러면 넷이 나중에 한 프레임에 몰린다 (Precompile 머리말) */}
+            <Precompile onDone={stageNext} />
           </Suspense>
           {/* 떨어져 돌아가는 순간이동의 빛기둥 (scene/warp.ts). 걸린 것이 없으면 여섯 자리가 다 꺼져 있다 */}
           <WarpFx />
@@ -184,27 +207,30 @@ export function HallScene(p: HallSceneProps) {
       ) : null}
       {/* 회전 원판 — 원판은 서버가 준 각도로 돌고(discState), 그 위의 몸은 스냅샷으로 온다 (InterrogationFeature 의 trial_disc).
           작업등은 ArenaWorkLights 가 든다(광원 수 고정) — 여기서는 안 켠다 */}
-      {disc || stageReady ? (
+      {disc || staged >= 3 ? (
         <group visible={disc}>
           <Suspense fallback={null}>
             <DiscStage lights={false} />
+            <Precompile onDone={stageNext} />
           </Suspense>
         </group>
       ) : null}
       {/* 무게 중심 다리 — 판자는 서버가 준 기울기로 기울고(seesawState), 그 위의 몸은 스냅샷으로 온다 (InterrogationFeature 의 trial_seesaw).
           작업등은 ArenaWorkLights 가 든다 — 여기서는 안 켠다. 원판과 같은 이유로 미리 세워 두고 안 보이게 */}
-      {seesaw || stageReady ? (
+      {seesaw || staged >= 4 ? (
         <group visible={seesaw}>
           <Suspense fallback={null}>
             <SeesawStage lights={false} />
+            <Precompile onDone={stageNext} />
           </Suspense>
         </group>
       ) : null}
       {/* 무너지는 타워 — 발판은 서버가 준 기울기·상태로(towerState), 그 위의 몸은 스냅샷으로 온다 (InterrogationFeature 의 trial_tower). 같은 이유로 미리 세워 둔다 */}
-      {tower || stageReady ? (
+      {tower || staged >= 5 ? (
         <group visible={tower}>
           <Suspense fallback={null}>
             <TowerStage lights={false} />
+            <Precompile onDone={stageNext} />
           </Suspense>
         </group>
       ) : null}
@@ -313,10 +339,26 @@ function ArenaWorkLights({ test }: { test: TrialGame | null }) {
  * 홀은 광원 열 개를 앞으로 그리는 씬이라 픽셀 수가 곧 GPU 시간이다. 한 기계에서 창을 여럿 띄워 시험하면
  * (멀티플레이 시험) GPU 를 나눠 쓰니 특히 여기서 떨어진다 (2026-09-05 사용자: "배포 버전은 왜 끊기나").
  * 세 번 오르내리면(flipflops) 그 사이 값으로 붙잡는다 — 해상도가 매초 바뀌는 것도 끊김으로 보인다.
+ *
+ * 고른 값은 **캔버스 밖으로도 올려 보낸다**(onPick → WorldCanvas 의 dpr). 여기서만 setDpr 을 부르면
+ * 다음 렌더에 R3F 의 configure 가 캔버스에 걸린 티어 값([1, 1.5])으로 도로 돌려놓는다 — 그러면 감시자가
+ * 다시 올리고, 또 되돌려지고, 그 한 번 한 번이 setSize(그리기 버퍼를 통째로 다시 만들기)다. 2026-09-05
+ * 측정에서 CPU 의 6~21%가 setSize 였고 300~680ms 짜리 긴 프레임이 여기서 났다. 특히 **프레임이 나쁜
+ * 기계에서 나쁘다**: 레티나(devicePixelRatio 2)에서 티어 값은 1.5 로 굳으니, 감시자가 내린 1 이 매번
+ * 되돌려져 정작 도움이 필요한 쪽에서 해상도가 안 내려간다. 같은 값을 다시 거는 것도 막는다.
  */
-function AdaptiveResolution() {
+function AdaptiveResolution({ onPick }: { onPick: (dpr: number) => void }) {
   const setDpr = useThree((s) => s.setDpr);
-  return <PerformanceMonitor onIncline={() => setDpr(1.5)} onDecline={() => setDpr(1)} flipflops={3} onFallback={() => setDpr(1.1)} />;
+  const gl = useThree((s) => s.gl);
+  const to = useCallback(
+    (v: number) => {
+      if (Math.abs(gl.getPixelRatio() - v) < 0.001) return;
+      setDpr(v); // 이번 프레임부터 바로
+      onPick(v); // 캔버스에 걸린 값도 같이 — 다음 렌더가 되돌리지 못하게
+    },
+    [gl, setDpr, onPick],
+  );
+  return <PerformanceMonitor onIncline={() => to(1.5)} onDecline={() => to(1)} flipflops={3} onFallback={() => to(1.1)} />;
 }
 
 /**
