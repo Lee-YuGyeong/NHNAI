@@ -1427,8 +1427,10 @@
 .bl-hero__title--sm {
   font-size: clamp(24px, 4vw, 38px);
 }
-/* 하나뿐인 따뜻한 색 — 제목의 「인공지능」에만 붙는다. 2026-09-05 이전엔 「인간」이었다:
-   표식이 붙어야 하는 쪽이 뒤집혔다 (intro.css 의 .intro-human 과 같은 자리, 같은 이유) */
+/* 하나뿐인 따뜻한 색. 표식의 제목(heroes.tsx)에 있던 「인간」에 붙던 것인데, 2026-09-05 에
+   그 제목을 걷어내면서 **지금은 걸리는 자리가 없다** — 남은 .bl-hero__title 들(Login ·
+   Nickname · Intro 의 마지막 칸)은 em 을 안 쓴다. 제목에 앰버를 다시 놓을 때 쓸 값이고,
+   같은 일을 하는 살아 있는 규칙은 intro.css 의 .intro-human 이다 */
 .bl-hero__title em {
   font-style: normal;
   color: var(--amber, #ffca8e);

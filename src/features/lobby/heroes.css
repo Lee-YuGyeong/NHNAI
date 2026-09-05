@@ -5,8 +5,9 @@
  *   같은 무게로 붙으면 파일이 실리는 순서에 따라 이겼다 졌다 하는데, 그 순서는
  *   번들러가 정하는 것이라 손에 없다. 겹쳐 쓰면 순서와 무관하게 이쪽이 이긴다.
  *
- * ★ 색은 lobby.css 의 것을 그대로 쓴다 — 파란 콘솔(--bl-line) + 앰버 한 점.
- *   앰버가 붙는 곳은 「인간」과, 그 인간을 가리키는 것 하나뿐이다.
+ * ★ 색은 lobby.css 의 것을 그대로 쓴다 — 파란 콘솔(--bl-line). 앰버는 이 파일에 이제
+ *   한 군데도 없다: 앰버가 붙던 곳이 제목의 「인간」과 방송 줄이었는데, 2026-09-05 에
+ *   글을 다 걷어냈다. 여기서 따뜻한 것은 배경 영상뿐이다.
  */
 
 /*
@@ -14,8 +15,12 @@
  * .bl-hero__late 와 같은 일을 하는데, 저쪽은 부모가 .bl-hero__body--on 이라
  * 옛 표식에만 붙어서 켜는 이름을 .hero-on 하나로 따로 뒀다.
  *
- * HeroKey 의 몸통에서 .hero-late 는 셋째 칸(본문)부터 시작한다 — 첫째(부제)는
- * 곧장 뜨고, 본문 → 서명 → 문(CTA) → 로그인 없이 순서로 한 박자씩 늦게 온다.
+ * HeroKey 의 몸통에서 .hero-late 는 **둘째 칸(문)부터** 시작한다 — 첫째(부제)는 곧장
+ * 뜨고, 문(CTA) → 로그인 없이 순서로 한 박자씩 늦게 온다.
+ *
+ * ★ nth-child 의 숫자는 heroes.tsx 의 **칸 순서에 묶여 있다.** 2026-09-05 에 제목 ·
+ *   방송 두 줄 · 서명을 걷어내면서 셋씩 앞당겼다(4·5·6 → 2·3). 몸통에 무엇을 넣거나
+ *   빼면 여기도 같이 세야 한다 — 안 맞으면 조용히 어긋나기만 하고 아무도 안 깨진다.
  */
 .hero-late {
   opacity: 0;
@@ -23,9 +28,8 @@
 .hero-on .hero-late {
   animation: bl-wake 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.hero-on .hero-late:nth-child(4) { animation-delay: 0.07s; }
-.hero-on .hero-late:nth-child(5) { animation-delay: 0.14s; }
-.hero-on .hero-late:nth-child(6) { animation-delay: 0.21s; }
+.hero-on .hero-late:nth-child(2) { animation-delay: 0.07s; }
+.hero-on .hero-late:nth-child(3) { animation-delay: 0.14s; }
 
 /*
  * 로그인 없이 가는 길 — 예전 inline style 을 그대로 옮긴 것 (heroes.tsx 의 Guest).
@@ -154,7 +158,7 @@
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 48px) clamp(52px, 8vh, 92px);
 }
-/* 라벨은 칸의 맨 위 왼쪽 — 글 뭉치 안에 있으면 대문짝 제목의 힘을 깎는다 */
+/* 라벨은 칸의 맨 위 왼쪽 — 가운데 글 뭉치에 끼워 넣으면 세 줄짜리 문단이 된다 */
 .hero--key .hero-key__tag {
   position: absolute;
   z-index: 2;
@@ -166,33 +170,12 @@
   color: var(--bl-ink-2);
   text-shadow: 0 1px 12px rgba(2, 10, 18, 0.95);
 }
-.hero--key .hero-key__title {
-  font-size: clamp(46px, 9vw, 132px);
-  font-weight: 900;
-  line-height: 0.94;
-  letter-spacing: -0.035em;
-  text-shadow:
-    0 2px 0 rgba(2, 10, 18, 0.5),
-    0 10px 48px rgba(2, 10, 18, 0.92);
-}
-.hero-key__lines {
-  margin: 4px 0 0;
-  font-size: clamp(14px, 1.5vw, 19px);
-  color: var(--bl-ink);
-  text-shadow: 0 1px 14px rgba(2, 10, 18, 0.95);
-}
-.hero-key__lines em {
-  font-style: normal;
-  color: var(--amber, #ffca8e);
-}
 /*
- * 서명. 다른 화면에서는 --bl-faint 로 두는데 여기서는 젖은 바닥의 반사 위에 앉아
- * 거의 안 보였다. 한 단 올리고 그림자를 준다 — 배경이 밝으면 값을 더 써야 한다.
+ * 제목(.hero-key__title) · 방송 두 줄(.hero-key__lines) · 서명(.bl-hero__from)의 규칙이
+ * 여기 있었다 — 2026-09-05 에 그 글들을 걷어내면서 같이 뺐다 (heroes.tsx 의 「글」 절).
+ * 셋 다 배경이 밝아서 그림자를 두껍게 쓰던 자리다. 글을 되살릴 일이 생기면 그 값들은
+ * 이 커밋 직전 판에 있다.
  */
-.hero--key .bl-hero__from {
-  color: var(--bl-dim);
-  text-shadow: 0 1px 12px rgba(2, 10, 18, 0.95);
-}
 .hero--key .bl-hero__cta {
   justify-content: center;
   margin-top: 10px;

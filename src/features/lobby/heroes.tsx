@@ -17,15 +17,18 @@
  * ★ 사진에 lobby.css 의 .bl-hero__art 를 안 쓴다. 저쪽은 luminosity + brightness(0.82) 로
  *   사진을 파랗게 담그는데, 그러면 이 그림에서 유일하게 중요한 **주황이 통째로 죽는다.**
  *   클래스(hero-key__art)를 따로 둔 이유가 그것뿐이다.
- * ★ 소실점의 문은 한 겹 눌러 둔다(hero-key__far). 제목이 앉는 자리가 바로 그 앞이라
- *   그대로 두면 흰 글자와 빛이 서로 싸운다.
+ * ★ 소실점의 문은 한 겹 눌러 둔다(hero-key__far). 밝은 빛과 흰 글자가 서로 싸우던 자리다.
  * ★ 개체 수는 한 줄도 안 적는다 — 그림 속 칸도 셀 수 없게 멀어진다 (Intro.tsx 머리말의 규칙).
+ *
+ * ★ 글을 걷어냈다 (2026-09-05 사용자 지시: "아예 제거해줘"). 제목(h1) · 방송 두 줄
+ *   (hero-key__lines) · 서명(bl-hero__from)이 여기 있었다. 남은 것은 영문 간판 두 줄
+ *   (TAG · SUB)과 문(들어가는 길)뿐이다 — 이제 이 화면에서 말하는 것은 **영상**이고,
+ *   글은 영상이 하는 말을 되풀이하지 않는다. 걷어낸 글과 그것이 왜 그렇게 적혔는지는
+ *   이 커밋 이전에 있다.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LEADER_NAME } from '@/lab/personas';
 import { WHO_IS_AI_SRC } from '@/shared/opening';
 import { EnterButton } from './console';
-import { Typed } from './live';
 import './heroes.css';
 
 export interface HeroProps {
@@ -44,56 +47,22 @@ export interface HeroProps {
 
 /* ── 글 ────────────────────────────────────────────────────────────────
  *
- * ┌─ 어투 (2026-08-30 사용자: "AI 티 안 나고 게임같은 어투") ────────────────┐
- * │ 여기 이렇게 적혀 있었다:                                                  │
- * │   「이 구역의 대부분은 AI다 / 그 사이에 숨을 쉬는 누군가가 섞여 있다 /     │
- * │     그게 당신이다. 들키지 않으면 이긴다.」                                │
- * │ 틀린 말은 없는데 **게임의 말이 아니었다.** 이유는 넷이다:                 │
- * │   1. 설명하고 있다. 세 줄이 전부 상황 요약이다 — 세계는 요약하지 않는다.  │
- * │   2. '당신'이 나온다. 2인칭으로 부르는 건 광고 카피의 말투다.             │
- * │      이 구역은 나를 사람으로 부르지 않는다 — 개체이거나 번호다.           │
- * │   3. 세 줄 대구 + 마지막 한 방. 이 균일한 삼단 리듬이 제일 큰 티다.       │
- * │   4. 승리 조건을 카피에 적었다. 그건 규칙 자리에 적을 말이다.             │
- * │                                                                          │
- * │ 그래서 화자를 바꿨다. 여기 있는 글은 **구역이 내보내는 방송**이다 —       │
- * │ 플레이어에게 하는 말이 아니라 플레이어가 엿듣는 말. 두 줄뿐이고 둘째      │
- * │ 줄이 첫 줄을 뒤집는다. 설명이 사라진 자리에 위협이 남는다.                │
- * └──────────────────────────────────────────────────────────────────────────┘
+ * 두 줄뿐이고 둘 다 영문 간판이다. 한글로 하는 말은 이제 **영상이 한다** — 같은 말을
+ * 글로 한 번 더 하면 영상은 그 글의 배경으로 내려앉고, 그러면 영상을 튼 이유가 없다.
  *
- * ┌─ 진영이 뒤집혔다 (2026-09-04, PLANNING.md 개정) ──────────────────────────┐
- * │ 옛 기획은 "AI 구역에 숨어든 인간"을 찾았다 — 방송은 "이 구역에 인간은      │
- * │ 없다 / 없어야 한다"였다. 새 기획(§서두)은 반대다: 표식 없는 AI가 인간      │
- * │ 사회로 새어 나왔다. 찾는 것은 숨은 인간이 아니라 **숨은 AI**다.            │
- * │                                                                          │
- * │ 방송의 장치(단정 → 둘째 줄이 뒤집는다)는 그대로 두고 대상만 바꿨다 —       │
- * │ 이 게임의 중심 장치가 "표식"이므로 그 낱말을 그대로 쓴다.                  │
- * │ FROM 도 바꿨다: 옛 기획의 "리더"는 판정하고 폐기하는 존재였지만,           │
- * │ 새 기획의 관리 AI는 판정하지 않는다(PLANNING P1·P5) — 기록만 방송한다.     │
- * │ 그래서 직함을 "구역 관리자"에서 "관리 AI"로 바꾼다. 가리키는 개체(번호     │
- * │ 표 LEADER_NAME)는 그대로다 — 방 안에서 방송하는 것과 같은 목소리다.       │
- * └──────────────────────────────────────────────────────────────────────────┘
+ * 걷어낸 것(2026-09-05): 제목(h1) · 방송 두 줄(「여기, 전부 표식이 붙어 있다 / 붙어
+ * 있어야 한다」) · 서명(「관리 AI … 상시 송출」). 그 글들의 어투를 어떻게 잡았고
+ * 2026-09-04 기획 개정에서 진영이 어떻게 뒤집혔는지는 **이 커밋 직전 판의 이 자리**에
+ * 길게 적혀 있다 — 글을 되살릴 일이 생기면 거기부터 읽는다.
  */
 const TAG = 'SOCIAL DEDUCTION  //  EP.01';
-const SUB = 'WHO IS HUMAN? ONE OF US NEVER WAS.';
-const LINE_1 = '여기, 전부 표식이 붙어 있다.';
-const LINE_2 = '붙어 있어야 한다.';
-const FROM = `관리 AI ${LEADER_NAME} · 상시 송출`;
-
-/**
- * 제목.
- *
- * ★ 표식도 찍힌다 — 다만 **본문 제목보다 느리게** (2026-08-30 사용자 물음:
- *   "이것도 넣으면 이상한가?"). 여덟 자뿐이라 본문 속도(42ms)로 치면 0.3초에
- *   끝나서 찍히는 줄도 모르고 지나간다. 제목은 문장이 아니라 한 장면이라
- *   또박또박 와야 하고, 앰버 한 점(인간)이 찍히는 순간이 이 화면의 심장이다.
+/*
+ * 이 화면에 남은 유일한 문장. 앞은 인트로의 부제(intro-sub)와 같은 영문 간판이라 두
+ * 화면이 같은 건물로 읽히고, 뒷말은 여기서 유일하게 "섞여 있다"고 말하는 자리다.
+ * (「WHO IS HUMAN? …」 이었다 — 앞이 옛 제목의 영문이라 제목을 따라 바뀌었고,
+ *  그 제목은 이제 아예 없다.)
  */
-function Title({ onDone, className = '' }: { onDone: () => void; className?: string }) {
-  return (
-    <h1 className={`bl-hero__title ${className}`}>
-      <Typed ms={85} parts={['누가 ', { em: '인간' }, '인가?']} onDone={onDone} />
-    </h1>
-  );
-}
+const SUB = 'SPECIAL AI RESPONSE CENTER · ONE OF US NEVER WAS.';
 
 function Cta({ enter, rules, className = '' }: { enter: () => void; rules: () => void; className?: string }) {
   return (
@@ -238,6 +207,25 @@ function Cue({ next, className = '' }: { next: () => void; className?: string })
    ════════════════════════════════════════════════════════════════════════ */
 
 export function HeroKey({ titled, onTitled, enter, guest, rules, next }: HeroProps) {
+  /*
+   * 아래 것들을 올리는 신호. 예전엔 **제목이 다 찍힌 순간**이었다 — 제목이 빠진 지금은
+   * 기다릴 것이 없어 붙자마자 놓는다.
+   *
+   * 그래도 이 신호를 없애지 않은 이유는, 이게 .hero-on 을 걸어 .hero-late 의 등장
+   * (heroes.css)을 트는 **스위치**이기 때문이다. 첫 렌더에 이미 켜져 있으면 애니메이션이
+   * 아니라 그냥 처음부터 있는 것이 되고, 그러면 문(CTA)이 영상 위로 툭 튀어나온다.
+   * 없애 버리면 더 나쁘다 — titled 가 영영 false 라 .hero-late 는 opacity: 0 이고,
+   * 들어가는 문 셋이 통째로 안 보인다.
+   *
+   * ref 로 받는 것은 Intro.tsx 가 onTitled 를 인라인 화살표로 넘기기 때문이다 —
+   * 의존성에 그대로 넣으면 매 렌더 effect 가 다시 돈다 (live.tsx 의 Typed 와 같은 수법).
+   */
+  const wake = useRef(onTitled);
+  wake.current = onTitled;
+  useEffect(() => {
+    wake.current();
+  }, []);
+
   return (
     <>
       <span className="hero-key__art" aria-hidden>
@@ -249,15 +237,11 @@ export function HeroKey({ titled, onTitled, enter, guest, rules, next }: HeroPro
       <span className="hero-key__glow" aria-hidden />
       <span className="hero-key__scrim" aria-hidden />
       <span className="hero-key__grain" aria-hidden />
-      {/* 라벨은 화면 맨 위 — 글 뭉치 안에 있으면 대문짝 제목의 힘을 깎는다 */}
+      {/* 라벨은 화면 맨 위 모서리 — 가운데 글 뭉치에 끼워 넣으면 세 줄짜리 문단이 된다 */}
       <span className="bl-label hero-key__tag">{TAG}</span>
+      {/* 부제 한 줄과 문뿐이다 — 걷어낸 것은 파일 머리말과 「글」 절에 적어 뒀다 */}
       <div className={`hero-key__body bl-snap__in${titled ? ' hero-on' : ''}`}>
         <p className="bl-hero__sub hero-key__sub">{SUB}</p>
-        <Title onDone={onTitled} className="hero-key__title" />
-        <p className="hero-key__lines hero-late">
-          {LINE_1} <em>{LINE_2}</em>
-        </p>
-        <p className="bl-hero__from hero-late">{FROM}</p>
         <Cta className="hero-late" enter={enter} rules={rules} />
         <Guest className="hero-late" guest={guest} />
       </div>
