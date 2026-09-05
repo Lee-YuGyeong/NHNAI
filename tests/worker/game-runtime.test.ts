@@ -23,6 +23,7 @@ import type { PlayerSnapshot, S2CMessage, TrialPlayerResult } from '../../src/wo
 import type { Brain } from '../../worker/src/game/brain';
 import { GameRuntime } from '../../worker/src/game/runtime';
 import { REPEAT_STEP } from '../../worker/src/game/suspicion';
+import { STILL_MS } from '../../worker/src/game/tells';
 import type { EngineContext, GameEngine } from '../../worker/src/trial/engine';
 
 type Out = S2CMessage | GameS2CMessage;
@@ -640,5 +641,100 @@ describe('GameRuntime — 좌석의 몸 (mp/bodies)', () => {
     // 사람의 몸은 바뀌지 않는다 (좌석 id 는 seat-<playerId>)
     expect(seats.find((s) => s.id === 'seat-p1')?.body).toBe('sol_fit_f');
     expect(seats.find((s) => s.id === 'seat-p2')?.body).toBe('sol_heavy_m');
+  });
+});
+
+/**
+ * 말·몸의 표식 (docs/SUSPICION.md ⑥⑦⑧⑨) — **규칙이 잡는 문**들. LLM 없이 도는지를 여기서 잰다.
+ * (걸음이 거듭 걸릴 때 무거워지는 것과 bodyCap 은 순수 규칙이라 game-rules.test.ts 가 잠근다)
+ */
+describe('GameRuntime — 표식', () => {
+  it('같은 말을 되풀이하면 문다 — 처음 한 말은 안 문다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const p1Seat = h.roleOf('p1')!.seatId;
+
+    const line = '아까 결과 보면 내가 제일 늦게 반응했잖아';
+    h.rt.onChat('p1', line);
+    expect(h.lastState().suspicion[p1Seat]).toBe(0);
+    h.rt.onChat('p1', line);
+    expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.echo);
+  });
+
+  it('짧은 맞장구는 되풀이가 아니다 — 채팅의 정상 리듬이다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const p1Seat = h.roleOf('p1')!.seatId;
+    for (let i = 0; i < 5; i += 1) h.rt.onChat('p1', 'ㅇㅇ');
+    expect(h.lastState().suspicion[p1Seat]).toBe(0);
+  });
+
+  it('불렀는데 답하면 회피가 아니다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const p2Seat = h.roleOf('p2')!.seatId;
+    const nn = String(h.lastState().seats.find((s) => s.id === p2Seat)!.seat).padStart(2, '0');
+
+    h.rt.onChat('p1', `${nn} 너는 어땠어`); // 죄목 낱말이 없다 — 호명일 뿐 지목이 아니다
+    expect(h.lastState().accusations[h.roleOf('p1')!.seatId]).toBeUndefined();
+    h.rt.onChat('p2', '나는 그냥 서 있었는데');
+    await vi.advanceTimersByTimeAsync(21_000);
+    expect(h.lastState().suspicion[p2Seat]).toBe(0);
+  });
+
+  it('첫 회피는 안 문다 — 말수는 성격이다. 안 불렸으면 아무리 조용해도 0 이다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const p3Seat = h.roleOf('p3')!.seatId;
+    const nn = String(h.lastState().seats.find((s) => s.id === p3Seat)!.seat).padStart(2, '0');
+
+    h.rt.onChat('p1', `${nn} 너는 어땠어`);
+    await vi.advanceTimersByTimeAsync(21_000);
+    expect(h.lastState().suspicion[p3Seat]).toBe(0); // 한 번 못 들은 것과 피하는 것은 다르다
+    // p2 는 아예 불린 적이 없다 — 판 내내 조용해도 눈금은 안 움직인다
+    expect(h.lastState().suspicion[h.roleOf('p2')!.seatId]).toBe(0);
+  });
+
+  it('한자리에 오래 굳어 있으면 문다 — 몸은 bodyCap 안에서만 문다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const p1Seat = h.roleOf('p1')!.seatId;
+
+    // 한 번 자리를 알린 뒤로 move 가 안 온다 = 그 자리에 그대로 서 있다 (클라는 바뀔 때만 보낸다)
+    h.rt.onMove('p1', 3, 4, Date.now(), 0, 0);
+    await vi.advanceTimersByTimeAsync(STILL_MS + 500);
+    expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still);
+    expect(h.lastState().suspicion[p1Seat]).toBeLessThan(SUSPICION.bodyCap);
+  });
+
+  it('토론 사이에는 몸을 새로 센다 — 시험 30초를 굳어 있었다고 치지 않는다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const p1Seat = h.roleOf('p1')!.seatId;
+    h.rt.onMove('p1', 3, 4, Date.now(), 0, 0);
+
+    // 첫 토론 40초 — 굳음 문턱(25초)을 한 번 넘겼다. 다음은 50초라 이 토론에서는 여기까지다
+    await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+    expect(h.lastState().phase).toBe('test');
+    expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still);
+
+    // 시험 30초 + 결과 모달을 지나 다음 토론으로 — 그 사이의 부동은 안 센다
+    await vi.advanceTimersByTimeAsync(GAME_TEST_MS + 10);
+    await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+    expect(h.lastState().phase).toBe('discussion');
+    expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still);
+
+    // 시계가 0 부터다 — 다시 25초를 채워야 한 번 더 물고, 두 번째는 누계만큼 무겁다
+    h.rt.onMove('p1', 3, 4, Date.now(), 0, 0);
+    await vi.advanceTimersByTimeAsync(STILL_MS - 2_000);
+    expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still);
+    await vi.advanceTimersByTimeAsync(2_500);
+    expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still * 2 + SUSPICION.repeatWeight);
   });
 });
