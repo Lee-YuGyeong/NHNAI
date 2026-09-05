@@ -74,10 +74,19 @@ describe('참가자가 보는 기록 — resultWords', () => {
     const words = resultWords(RESULT, nameOf);
     const machine = words.split('\n').find((l) => l.startsWith('MACHINE'))!;
     const human = words.split('\n').find((l) => l.startsWith('A'))!;
-    expect(machine).toContain('오차가 한쪽으로만 쏠렸다');
+    expect(machine).toContain('늘 같은 쪽으로 밀렸다');
     expect(machine).toContain('처음부터 끝까지 똑같았다');
-    expect(human).toContain('오차 방향이 매번 뒤집혔다');
+    expect(human).toContain('밀리는 쪽이 매번 반대로 뒤집혔다');
     expect(human).toContain('갈수록 나아졌다');
+  });
+
+  /**
+   * 숫자를 걷어내고도 시설의 분석 용어가 남아 있었다 — 봇이 "오차도 한쪽으로만 쏠렸다" 라고 말했다
+   * (2026-09-05 사용자: "AI 는 게임 저렇게 자세히 몰라"). 참가자는 계기를 안 쥐고 있다.
+   */
+  it('계기의 말이 참가자 줄에 새지 않는다 — 「오차」·「편차」는 관리 AI 의 말이다', () => {
+    const rows = resultWords(RESULT, nameOf).split('\n').slice(1);
+    for (const row of rows) expect(row).not.toMatch(/오차|편차|표준편차|적응 곡선|전환 직후/);
   });
 
   it('전원이 같은 값이면 견줄 자리가 없다 — 그것도 「무리 안에 있다」', () => {
