@@ -1,5 +1,5 @@
 import re, json, html as H, os
-os.chdir('/Users/nowonsang/NHNAI2')
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 old = open('docs/slides/src/presentation.v1.html', encoding='utf-8').read()  # 뼈대 CSS 와 조작 스크립트는 이전 판에서 가져온다
 head = old[:old.find('<body')]
 style = re.search(r'<style>(.*?)</style>', head, re.S).group(1)
@@ -47,25 +47,26 @@ extra = '''
 notes = json.load(open('docs/slides/notes.json', encoding='utf-8'))
 
 sections = []
-for n in range(13):
+for n in range(15):
     src = open(f'docs/slides/src/{n:02d}.html', encoding='utf-8').read()
     body = re.search(r'<div id="stage">(.*?)</div>\s*</body>', src, re.S).group(1)
     body = body.replace(' id="header"', '').replace(' id="footer"', '')
     body = body.replace('class="chip ', 'class="uchip ').replace('class="bar"', 'class="cbar"').replace('class="bar amber"', 'class="cbar amber"')
     body = body.replace('class="' + 'key ', 'class="' + KB[1:] + ' ').replace('class="' + 'key"', 'class="' + KB[1:] + '"')
     body = body.replace('src="img/', 'src="slides/img/')
-    cls = 'st closing' if n == 12 else 'st'
+    cls = 'st closing' if n == 14 else 'st'
     note = H.escape(notes[n]['note'])
-    sec_cls = 'slide hero on' if n == 0 else ('slide hero' if n == 12 else 'slide')
+    sec_cls = 'slide hero on' if n == 0 else ('slide hero' if n == 14 else 'slide')
     sections.append(f'<!-- ═══ {n+1:02d} · {notes[n]["title"]} ═══ -->\n<section class="{sec_cls}">\n<div class="{cls}">{body}</div>\n<p class="note">{note}</p>\n</section>\n')
 
 script2 = script.replace('window.innerWidth / 1280, h / 720', 'window.innerWidth / 1920, h / 1080')
 assert script2 != script, 'fit() 식을 못 찾음'
-script2 = script2.replace("'세 가지 시험'", "'시험 — 후보 넷 중 셋'")  # 목차 제목
+script2 = script2.replace("'세 가지 시험'", "'게임 — 후보 여섯 중 셋 ①','게임 — 후보 여섯 중 셋 ②','카드 — 게임 1등의 몫'")  # 목차 제목 — 05·06 게임 후보 두 장 · 07 카드(2026-09-05 추가)
+script2 = script2.replace("'데모'", "'감사합니다'")  # 마지막 장 — 감사합니다만 남겼다 (2026-09-05 사용자)
 chrome_markup = '''<div id="stage">
 %s
   <div class="brand">WHO IS HUMAN · 특수인공지능대응센터</div>
-  <div class="foot"><span id="pg">01 / 13</span><span class="bar"><i id="pb"></i></span><span class="tts" id="tts"><b></b><span id="ttsl">읽는 중</span></span><span id="ttl"></span></div>
+  <div class="foot"><span id="pg">01 / 15</span><span class="bar"><i id="pb"></i></span><span class="tts" id="tts"><b></b><span id="ttsl">읽는 중</span></span><span id="ttl"></span></div>
 </div><!-- /#stage -->
 
 <div id="notes"><div class="h">발표 대본</div><div class="t" id="ntext"></div></div>
@@ -80,7 +81,7 @@ out = f'''<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>누가 인간인가 — 해커톤 발표</title>
 <!--
-  발표 슬라이드 13장을 한 파일로 묶은 것 (2026-09-05). 디자인은 UX Pilot 로 뽑았고(docs/slides/src/NN.html 이 낱장 원본),
+  발표 슬라이드 15장을 한 파일로 묶은 것 (2026-09-05). 디자인은 UX Pilot 로 뽑았고(docs/slides/src/NN.html 이 낱장 원본),
   조작(← → · N 대본 · S 읽어 주기 · A 자동 발표 · O 목차 · F 전체화면)은 이전 판(docs/slides/src/presentation.v1.html)의
   스크립트를 그대로 쓴다. 무대는 1920×1080 을 화면에 맞춰 통째로 확대·축소한다.
   Tailwind · Font Awesome · Google Fonts 는 CDN — 발표 때 인터넷이 있어야 글꼴과 유틸리티 클래스가 산다.

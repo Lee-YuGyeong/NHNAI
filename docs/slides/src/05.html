@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>발언권과 의심도</title>
+<title>게임 — 후보 여섯 중 셋 ②</title>
 <meta name="viewport" content="width=1920, height=1080">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -21,6 +21,9 @@
   .chamfer-sm{clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);}
   .panel{background: linear-gradient(180deg, rgba(20,35,55,0.55) 0%, rgba(10,18,32,0.55) 100%);border: 1px solid var(--line);}
   .header-label{font-family:'JetBrains Mono',monospace;letter-spacing:0.12em;}
+  .shot{border:1px solid rgba(95,184,232,0.35);background:#060a12;overflow:hidden;position:relative;}
+  .shot img{width:100%;height:100%;object-fit:cover;display:block;}
+  .key{font-family:'JetBrains Mono',monospace;background:rgba(95,184,232,0.1);border:1px solid rgba(95,184,232,0.35);}
 </style>
 </head>
 <body class="m-0 p-0">
@@ -31,88 +34,62 @@
   <header id="header" class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
     <div class="flex items-center gap-3">
       <span class="header-label text-[20px] text-[#5fb8e8]">05 //</span>
-      <span class="header-label text-[20px] text-white/70">SPEECH & SUSPICION</span>
+      <span class="header-label text-[20px] text-white/70">TRIALS</span>
     </div>
     <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
   </header>
 
   <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
-    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">발언권과 의심도</h1>
-    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">발언권 = 말할 수 있는 횟수 · 의심도 = 0~100% 의 생존 자원.</p>
+    <div class="flex items-end justify-between">
+      <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">게임 — 후보 여섯 중 셋 ②</h1>
+      <p class="font-kr font-bold text-white/70 pb-3" style="font-size:24px;">몸이 다르면 물리가 다르다 — 같은 조건값에서 다른 기록이 남는다.</p>
+    </div>
 
-    <div class="flex gap-8 mt-9">
-      <div class="panel chamfer p-8" style="width:520px; min-height:520px;">
-        <p class="font-kr font-black text-[#5fb8e8] text-[30px] mb-6">발언권</p>
-        <div class="space-y-5">
-          <div class="flex gap-4">
-            <i class="fa-solid fa-comment-dots text-[#5fb8e8] text-[20px] mt-1"></i>
-            <p class="font-kr font-semibold text-white/85 text-[22px] leading-[1.5]">시작 6개 · 한 마디에 하나 · 0이면 다음 게임까지 침묵</p>
+    <div class="grid grid-cols-3 gap-8 mt-7">
+      <div class="flex flex-col">
+        <div class="shot chamfer-sm mb-4" style="height:360px;"><img src="img/game-test-seesaw.jpg" alt="④ 무게 중심 다리"></div>
+        <div class="panel chamfer px-5 py-4 flex flex-col flex-1">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="font-kr font-black text-white text-[23px] whitespace-nowrap">④ 무게 중심 다리</p>
+            <div class="flex gap-1.5"><span class="key px-2.5 py-1 rounded font-mono text-[#5fb8e8] text-[15px]">WASD</span><span class="key px-2.5 py-1 rounded font-mono text-[#5fb8e8] text-[15px]">Shift</span></div>
           </div>
-          <div class="flex gap-4">
-            <i class="fa-solid fa-ranking-star text-[#5fb8e8] text-[20px] mt-1"></i>
-            <p class="font-kr font-semibold text-white/85 text-[22px] leading-[1.5]">시험 등수에 따라 차등 분배</p>
-          </div>
-          <div class="flex gap-4">
-            <i class="fa-solid fa-clock-rotate-left text-[#5fb8e8] text-[20px] mt-1"></i>
-            <p class="font-kr font-semibold text-white/85 text-[22px] leading-[1.5]">안 쓴 것은 5개까지만 이월</p>
-          </div>
-          <div class="flex gap-4">
-            <i class="fa-solid fa-equals text-[#5fb8e8] text-[20px] mt-1"></i>
-            <p class="font-kr font-semibold text-white/85 text-[22px] leading-[1.5]">대역과 AI 도 같은 규칙</p>
-          </div>
+          <p class="font-kr font-semibold text-white/85 text-[18px] leading-[1.5]">축 하나로 선 판자 위에서 무리의 무게중심을 축에 맞춘다. 상자가 떨어지면 반대쪽으로.</p>
+          <p class="font-kr font-semibold text-white/55 text-[16px] leading-[1.5] mt-auto pt-3">기록 — 첫 낙하까지 버틴 시간 · 낙하 횟수 · 반응 시간</p>
         </div>
       </div>
-
-      <div class="flex-1 flex flex-col gap-7">
-        <div class="panel chamfer p-8">
-          <div class="flex items-center justify-between mb-4">
-            <span class="font-mono text-white/70 text-[20px]">의심도 0</span>
-            <span class="font-mono font-bold text-[#e8b34a] text-[20px]">100% · 즉시 처형</span>
+      <div class="flex flex-col">
+        <div class="shot chamfer-sm mb-4" style="height:360px;"><img src="img/game-test-tower.jpg" alt="⑤ 무너지는 타워"></div>
+        <div class="panel chamfer px-5 py-4 flex flex-col flex-1">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="font-kr font-black text-white text-[23px] whitespace-nowrap">⑤ 무너지는 타워</p>
+            <div class="flex gap-1.5"><span class="key px-2.5 py-1 rounded font-mono text-[#5fb8e8] text-[15px]">Space</span><span class="key px-2.5 py-1 rounded font-mono text-[#5fb8e8] text-[15px]">E</span></div>
           </div>
-          <div class="w-full h-9 rounded-sm overflow-hidden relative" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);">
-            <div class="h-full" style="width:63%; background:linear-gradient(90deg, #5fb8e8 0%, #e8b34a 100%);"></div>
-          </div>
+          <p class="font-kr font-semibold text-white/85 text-[18px] leading-[1.5]">탑 위 발판에서 버틴다. 무게가 몰린 발판은 기울어 무너지고, 바깥부터 철거된다. E 로 남을 민다.</p>
+          <p class="font-kr font-semibold text-white/55 text-[16px] leading-[1.5] mt-auto pt-3">기록 — 가운데에서 선 거리 · 낙하 · 반응 시간 · 밀치기</p>
         </div>
-
-        <div class="panel chamfer overflow-hidden flex-1">
-          <div class="grid grid-cols-3" style="background:rgba(95,184,232,0.08);">
-            <div class="font-mono text-[#5fb8e8] text-[18px] font-bold px-6 py-3 border-r border-white/10">움직이는 것</div>
-            <div class="font-mono text-[#5fb8e8] text-[18px] font-bold px-6 py-3 border-r border-white/10">방향</div>
-            <div class="font-mono text-[#5fb8e8] text-[18px] font-bold px-6 py-3">보는 것</div>
+      </div>
+      <div class="flex flex-col">
+        <div class="shot chamfer-sm mb-4" style="height:360px;"><img src="img/game-test-bar.jpg" alt="⑥ 회전 봉 넘기"></div>
+        <div class="panel chamfer px-5 py-4 flex flex-col flex-1">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="font-kr font-black text-white text-[23px] whitespace-nowrap">⑥ 회전 봉 넘기</p>
+            <div class="flex gap-1.5"><span class="key px-2.5 py-1 rounded font-mono text-[#5fb8e8] text-[15px]">WASD</span><span class="key px-2.5 py-1 rounded font-mono text-[#5fb8e8] text-[15px]">Space</span></div>
           </div>
-          <div class="grid grid-cols-3 border-t border-white/10">
-            <div class="font-kr font-semibold text-white/85 text-[19px] px-6 py-4 border-r border-white/10 leading-[1.4]">지목 · 동조 · 몰이</div>
-            <div class="font-kr font-bold text-[#e8b34a] text-[19px] px-6 py-4 border-r border-white/10">올린다</div>
-            <div class="font-kr font-semibold text-white/75 text-[18px] px-6 py-4 leading-[1.4]">여럿이 한 사람을 몰수록 더 오른다</div>
-          </div>
-          <div class="grid grid-cols-3 border-t border-white/10">
-            <div class="font-kr font-semibold text-white/85 text-[19px] px-6 py-4 border-r border-white/10 leading-[1.4]">관리 AI 의 말 읽기</div>
-            <div class="font-kr font-bold text-white text-[19px] px-6 py-4 border-r border-white/10">올리거나 내린다</div>
-            <div class="font-kr font-semibold text-white/75 text-[18px] px-6 py-4 leading-[1.4]">7초마다 · 한 번에 최대 +20 / −10 · 마지막 대화는 두 배</div>
-          </div>
-          <div class="grid grid-cols-3 border-t border-white/10">
-            <div class="font-kr font-semibold text-white/85 text-[19px] px-6 py-4 border-r border-white/10 leading-[1.4]">해명 판정</div>
-            <div class="font-kr font-bold text-[#5fb8e8] text-[19px] px-6 py-4 border-r border-white/10">맞으면 내린다</div>
-            <div class="font-kr font-semibold text-white/75 text-[18px] px-6 py-4 leading-[1.4]">공개된 기록과 대조해 판정</div>
-          </div>
-          <div class="grid grid-cols-3 border-t border-white/10">
-            <div class="font-kr font-semibold text-white/85 text-[19px] px-6 py-4 border-r border-white/10 leading-[1.4]">몸의 표식</div>
-            <div class="font-kr font-bold text-[#e8b34a] text-[19px] px-6 py-4 border-r border-white/10">조금 올린다</div>
-            <div class="font-kr font-semibold text-white/75 text-[18px] px-6 py-4 leading-[1.4]">몸만으로는 격리되지 않는다</div>
-          </div>
+          <p class="font-kr font-semibold text-white/85 text-[18px] leading-[1.5]">바닥을 쓸며 도는 봉을 때맞춰 뛰어넘는다. 맞으면 넘어져 밀려나고, 가장자리 밖은 낙하다.</p>
+          <p class="font-kr font-semibold text-white/55 text-[16px] leading-[1.5] mt-auto pt-3">기록 — 점프 타이밍 오차 · 헛점프 · 맞은 횟수</p>
         </div>
       </div>
     </div>
 
-    <div class="mt-7 chamfer p-6 flex items-center gap-6" style="background:rgba(95,184,232,0.06); border:1px solid rgba(95,184,232,0.35);">
-      <i class="fa-solid fa-comment text-[#5fb8e8] text-[26px]"></i>
-      <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">의심도는 게임 점수로 움직이지 않는다. 기록은 화면에 뜰 뿐, 사용자가 그 수치로 상대를 의심해야 움직인다 — 말이 곧 무기다.</p>
+    <div class="mt-6 chamfer px-7 py-5 flex items-center gap-6" style="background:rgba(232,179,74,0.08); border:1px solid rgba(232,179,74,0.4);">
+      <i class="fa-solid fa-triangle-exclamation text-[#e8b34a] text-[28px]"></i>
+      <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">조건값(중력 · 마찰 · 배속 · 판자 마찰)은 미니게임 안에서 계속 바뀐다. 사람은 잠깐 틀리다가 적응하고, 그 차이가 기록에 남는다.</p>
     </div>
   </main>
 
   <footer id="footer" class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">06 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">06 / 15</span>
   </footer>
 
   <div class="vignette"></div>

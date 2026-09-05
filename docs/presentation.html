@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>누가 인간인가 — 해커톤 발표</title>
 <!--
-  발표 슬라이드 13장을 한 파일로 묶은 것 (2026-09-05). 디자인은 UX Pilot 로 뽑았고(docs/slides/src/NN.html 이 낱장 원본),
+  발표 슬라이드 15장을 한 파일로 묶은 것 (2026-09-05). 디자인은 UX Pilot 로 뽑았고(docs/slides/src/NN.html 이 낱장 원본),
   조작(← → · N 대본 · S 읽어 주기 · A 자동 발표 · O 목차 · F 전체화면)은 이전 판(docs/slides/src/presentation.v1.html)의
   스크립트를 그대로 쓴다. 무대는 1920×1080 을 화면에 맞춰 통째로 확대·축소한다.
   Tailwind · Font Awesome · Google Fonts 는 CDN — 발표 때 인터넷이 있어야 글꼴과 유틸리티 클래스가 산다.
@@ -187,7 +187,7 @@ body{
         누가 <span class="text-[#5fb8e8]">인간</span>인가?
       </h1>
       <p class="font-kr font-bold text-white/85 mt-10" style="font-size:30px;">
-        식별 표지 없는 AI 를 물리 시험과 대화로 가려내는 3D 심리 추리 게임
+        식별 표지 없는 AI 를 물리 게임과 대화로 가려내는 3D 심리 추리 게임
       </p>
 
       <div class="flex items-center gap-6 mt-16">
@@ -222,12 +222,12 @@ body{
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">01 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">01 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">안녕하세요. 「누가 인간인가」, 특수인공지능대응센터입니다. 2026년, 식별 표지 없는 군용 AI 휴머노이드가 새어 나왔습니다. 사람 여럿 사이에 그 AI 하나가 섞여 있고, 물리 시험과 대화로 누가 인간이 아닌지 가려내는 3D 심리 추리 게임입니다. 사람 세 명에서 여덟 명에 AI 한 좌석, 한 판은 약 5분입니다. 게임을 먼저 설명하고, 그다음 AI를 어디에 썼는지 말씀드리겠습니다.</p>
+<p class="note">안녕하세요. 「누가 인간인가」, 특수인공지능대응센터입니다. 2026년, 식별 표지 없는 군용 AI 휴머노이드가 새어 나왔습니다. 사람 여럿 사이에 그 AI 하나가 섞여 있고, 물리 게임과 대화로 누가 인간이 아닌지 가려내는 3D 심리 추리 게임입니다. 사람 세 명에서 여덟 명에 AI 한 좌석, 한 판은 약 5분입니다. 게임을 먼저 설명하고, 그다음 AI를 어디에 썼는지 말씀드리겠습니다.</p>
 </section>
 <!-- ═══ 02 · 주제어 — 2026 · 물리법칙 · 제한 ═══ -->
 <section class="slide">
@@ -245,7 +245,7 @@ body{
 
   <main class="absolute" style="left:80px;top:172px;width:1517px;height:770px;transform:scale(1.16);transform-origin:0 0;">
     <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:76px;">주제어 — 2026 · 물리법칙 · 제한</h1>
-    <p class="font-kr font-bold text-white/70 mt-5" style="font-size:28px;">세 주제어를 각각 세계관 · 시험 · 승패로 풀었다.</p>
+    <p class="font-kr font-bold text-white/70 mt-5" style="font-size:28px;">세 주제어를 각각 세계관 · 게임 · 승패로 풀었다.</p>
 
     <div class="grid grid-cols-3 gap-8 mt-14">
       <div class="panel chamfer p-9 flex flex-col" style="min-height:520px;">
@@ -265,14 +265,14 @@ body{
       <div class="panel chamfer p-9 flex flex-col" style="min-height:520px;">
         <div class="flex items-center gap-3 mb-6">
           <span class="font-mono text-[#5fb8e8] text-[22px] font-bold">물리법칙</span>
-          <span class="font-kr font-bold text-white text-[26px]">— 시험</span>
+          <span class="font-kr font-bold text-white text-[26px]">— 게임</span>
         </div>
         <div class="pl-5 border-l-2 border-[#5fb8e8]/50">
           <p class="font-kr font-bold text-[#5fb8e8] text-[24px] leading-[1.5]">몸이 다르면 물리가 다르다.</p>
         </div>
         <p class="font-kr font-semibold text-white/75 text-[23px] leading-[1.55] mt-6">무거운 몸은 느리고 · 낮게 뛰고 · 원판에서 먼저 미끄러진다</p>
         <div class="mt-auto pt-8 border-t border-white/10">
-          <p class="font-kr font-semibold text-white/70 text-[22px] leading-[1.6]">중력 · 마찰과 배속 · 회전 · 지레를 네 시험으로</p>
+          <p class="font-kr font-semibold text-white/70 text-[22px] leading-[1.6]">중력 · 마찰과 배속 · 회전 · 지레를 네 게임으로</p>
         </div>
       </div>
 
@@ -294,12 +294,12 @@ body{
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">02 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">02 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">주제어 세 개를 각각 세계관, 시험, 승패로 풀었습니다. 2026년은 AI 기술의 급발전과 요동치는 국제 정세가 맞물리는 시점으로 읽고, 「한국 정부가 군용 AI 휴머노이드를 만든다면」이라는 가정을 얹었습니다. 기억과 말투, 감정까지 학습한 개체가 개발되고 표지 없는 것이 유출됩니다. 물리법칙은 AI를 가려내는 시험이자 조작 방식입니다. 몸마다 무게가 달라서 무거운 몸은 느리고 낮게 뛰고 원판에서 먼저 밀립니다. 중력, 마찰, 회전, 지레를 네 시험으로 몸으로 겪게 했습니다. 제한은 시간, 목숨, 말, 정보 네 가지입니다.</p>
+<p class="note">주제어 세 개를 각각 세계관, 게임, 승패로 풀었습니다. 2026년은 AI 기술의 급발전과 요동치는 국제 정세가 맞물리는 시점으로 읽고, 「한국 정부가 군용 AI 휴머노이드를 만든다면」이라는 가정을 얹었습니다. 기억과 말투, 감정까지 학습한 개체가 개발되고 표지 없는 것이 유출됩니다. 물리법칙은 AI를 가려내는 게임이자 조작 방식입니다. 몸마다 무게가 달라서 무거운 몸은 느리고 낮게 뛰고 원판에서 먼저 밀립니다. 중력, 마찰, 회전, 지레를 네 게임으로 몸으로 겪게 했습니다. 제한은 시간, 목숨, 말, 정보 네 가지입니다.</p>
 </section>
 <!-- ═══ 03 · 배역과 승패 ═══ -->
 <section class="slide">
@@ -327,7 +327,7 @@ body{
         </div>
         <div class="h-px bg-white/10 mb-5"></div>
         <p class="font-kr font-bold text-white/80 text-[22px] leading-[1.5] mb-4">아는 것 — 자신이 AI 라는 것</p>
-        <p class="font-kr font-semibold text-white/70 text-[22px] leading-[1.6]">목표 — 끝까지 들키지 않는다. 시험마다 「얼마나 사람처럼 틀릴지」를 정한다</p>
+        <p class="font-kr font-semibold text-white/70 text-[22px] leading-[1.6]">목표 — 끝까지 들키지 않는다. 게임마다 「얼마나 사람처럼 틀릴지」를 정한다</p>
       </div>
 
       <div class="panel chamfer p-8 flex flex-col" style="min-height:330px;">
@@ -374,12 +374,12 @@ body{
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">03 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">03 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">배역은 셋입니다. AI는 판마다 한 명, 자신이 AI라는 것만 압니다. 시험마다 얼마나 사람처럼 틀릴지를 스스로 정합니다. AI 설계자는 한두 명으로, 네다섯 명 판에서는 하나, 여섯 명 이상이면 둘까지입니다. AI가 누구인지 알고 의심을 다른 곳으로 돌립니다. 나머지는 사람이고 자기가 사람이라는 것밖에 모릅니다. 승패는 첫 격리에서 갈립니다. AI가 격리되면 사람 승리, 사람이나 설계자가 먼저 격리되면 AI 승리, 끝까지 아무도 안 잡혀도 AI 승리입니다.</p>
+<p class="note">배역은 셋입니다. AI는 판마다 한 명, 자신이 AI라는 것만 압니다. 게임마다 얼마나 사람처럼 틀릴지를 스스로 정합니다. AI 설계자는 한두 명으로, 네다섯 명 판에서는 하나, 여섯 명 이상이면 둘까지입니다. AI가 누구인지 알고 의심을 다른 곳으로 돌립니다. 나머지는 사람이고 자기가 사람이라는 것밖에 모릅니다. 승패는 첫 격리에서 갈립니다. AI가 격리되면 사람 승리, 사람이나 설계자가 먼저 격리되면 AI 승리, 끝까지 아무도 안 잡혀도 AI 승리입니다.</p>
 </section>
 <!-- ═══ 04 · 게임 흐름 ═══ -->
 <section class="slide">
@@ -420,7 +420,7 @@ body{
               </div>
               <i class="fa-solid fa-chevron-right text-white/25 text-[14px]"></i>
               <div class="text-center px-2">
-                <p class="font-kr font-bold text-white text-[19px]">시험</p>
+                <p class="font-kr font-bold text-white text-[19px]">게임</p>
                 <p class="font-mono text-[#5fb8e8] text-[16px] mt-1">30초</p>
               </div>
               <i class="fa-solid fa-chevron-right text-white/25 text-[14px]"></i>
@@ -444,7 +444,7 @@ body{
           </div>
         </div>
 
-        <p class="font-mono text-white/45 text-[17px] mt-5 tracking-wide">후보 넷 중 셋 무작위 — 낙하 생존 · 움직이는 발판 · 회전 원판 · 무게 중심 다리</p>
+        <p class="font-mono text-white/45 text-[17px] mt-5 tracking-wide">후보 여섯 중 셋 무작위 — 낙하 생존 · 움직이는 발판 · 회전 원판 · 무게 중심 다리 · 무너지는 타워 · 회전 봉 넘기</p>
 
         <div class="grid grid-cols-3 gap-6 mt-10">
           <div class="panel chamfer p-6" style="min-height:230px;">
@@ -452,7 +452,7 @@ body{
             <p class="font-kr font-semibold text-white/75 text-[20px] leading-[1.55]">채팅으로 추리하고 지목. 관리 AI 가 말을 읽어 의심도를 움직인다.</p>
           </div>
           <div class="panel chamfer p-6" style="min-height:230px;">
-            <p class="font-kr font-bold text-[#5fb8e8] text-[22px] mb-3">시험 · 기록 공개</p>
+            <p class="font-kr font-bold text-[#5fb8e8] text-[22px] mb-3">게임 · 기록 공개</p>
             <p class="font-kr font-semibold text-white/75 text-[20px] leading-[1.55]">전원 동시 30초, 채팅 잠금. 이어서 버틴 시간 · 등수 · 발언권을 같은 화면으로.</p>
           </div>
           <div class="panel chamfer p-6" style="min-height:230px; border-color:rgba(232,179,74,0.45);">
@@ -473,14 +473,14 @@ body{
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">04 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">04 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">한 판의 흐름입니다. 배역 통보 7초, 프롤로그 방송이 대화창으로 흐르고 그동안은 아무도 말하지 않습니다. 그다음 대화 40초, 물리 시험 30초, 기록 공개 7초. 이 묶음이 세 번 돌고 마지막 대화 한 번으로 끝납니다. 시험은 낙하 생존, 움직이는 발판, 회전 원판, 무게 중심 다리 네 후보에서 판이 열릴 때 셋을 무작위로 뽑습니다. 시험 중에는 채팅이 내려가서 몸으로만 말합니다. 기록 공개 때는 버틴 시간과 등수와 받은 발언권을 전원이 같은 화면으로 봅니다. 국면과 상관없이 의심도가 100%에 닿는 순간 즉시 처형되고, 그 처형으로 판이 끝납니다.</p>
+<p class="note">한 판의 흐름입니다. 배역 통보 7초, 프롤로그 방송이 대화창으로 흐르고 그동안은 아무도 말하지 않습니다. 그다음 대화 40초, 물리 게임 30초, 기록 공개 7초. 이 묶음이 세 번 돌고 마지막 대화 한 번으로 끝납니다. 게임은 낙하 생존, 움직이는 발판, 회전 원판, 무게 중심 다리, 무너지는 타워, 회전 봉 넘기 여섯 후보에서 판이 열릴 때 셋을 무작위로 뽑습니다. 게임 중에는 채팅이 내려가서 몸으로만 말합니다. 기록 공개 때는 버틴 시간과 등수와 받은 발언권을 전원이 같은 화면으로 봅니다. 국면과 상관없이 의심도가 100%에 닿는 순간 즉시 처형되고, 그 처형으로 판이 끝납니다.</p>
 </section>
-<!-- ═══ 05 · 시험 — 후보 넷 중 셋 ═══ -->
+<!-- ═══ 05 · 게임 — 후보 여섯 중 셋 ① ═══ -->
 <section class="slide">
 <div class="st">
   <div class="grid-overlay"></div>
@@ -496,11 +496,11 @@ body{
 
   <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
     <div class="flex items-end justify-between">
-      <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">시험 — 후보 넷 중 셋</h1>
+      <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">게임 — 후보 여섯 중 셋 ①</h1>
       <p class="font-kr font-bold text-white/70 pb-3" style="font-size:24px;">판이 열릴 때 셋을 무작위로 · 조작은 WASD · Space · Shift.</p>
     </div>
 
-    <div class="grid grid-cols-4 gap-6 mt-7">
+    <div class="grid grid-cols-3 gap-8 mt-7">
       <div class="flex flex-col">
         <div class="shot chamfer-sm mb-4" style="height:360px;"><img src="slides/img/game-test-fall.jpg" alt="① 낙하 생존"></div>
         <div class="panel chamfer px-5 py-4 flex flex-col flex-1">
@@ -534,6 +534,39 @@ body{
           <p class="font-kr font-semibold text-white/55 text-[16px] leading-[1.5] mt-auto pt-3">기록 — 첫 낙하까지 버틴 시간 · 낙하 횟수</p>
         </div>
       </div>
+    </div>
+  </main>
+
+  <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">05 / 15</span>
+  </footer>
+
+  <div class="vignette"></div>
+</div>
+<p class="note">게임 후보는 여섯이고 판마다 셋을 뽑습니다. 이 장은 앞의 셋입니다. 낙하 생존은 떨어지는 공을 30초 동안 피합니다. 공마다 무게가 달라 떨어지는 속도가 다릅니다. 움직이는 발판은 발판을 건너 도착 발판에 서는 것이고, 떨어지면 출발로 돌아갑니다. 회전 원판은 도는 원판 위에서 밀려나지 않고 버팁니다. 회전 속도와 마찰이 게임 중에 바뀝니다.</p>
+</section>
+<!-- ═══ 06 · 게임 — 후보 여섯 중 셋 ② ═══ -->
+<section class="slide">
+<div class="st">
+  <div class="grid-overlay"></div>
+  <div class="scanlines"></div>
+
+  <header class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
+    <div class="flex items-center gap-3">
+      <span class="header-label text-[20px] text-[#5fb8e8]">05 //</span>
+      <span class="header-label text-[20px] text-white/70">TRIALS</span>
+    </div>
+    <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
+  </header>
+
+  <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
+    <div class="flex items-end justify-between">
+      <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">게임 — 후보 여섯 중 셋 ②</h1>
+      <p class="font-kr font-bold text-white/70 pb-3" style="font-size:24px;">몸이 다르면 물리가 다르다 — 같은 조건값에서 다른 기록이 남는다.</p>
+    </div>
+
+    <div class="grid grid-cols-3 gap-8 mt-7">
       <div class="flex flex-col">
         <div class="shot chamfer-sm mb-4" style="height:360px;"><img src="slides/img/game-test-seesaw.jpg" alt="④ 무게 중심 다리"></div>
         <div class="panel chamfer px-5 py-4 flex flex-col flex-1">
@@ -543,6 +576,28 @@ body{
           </div>
           <p class="font-kr font-semibold text-white/85 text-[18px] leading-[1.5]">축 하나로 선 판자 위에서 무리의 무게중심을 축에 맞춘다. 상자가 떨어지면 반대쪽으로.</p>
           <p class="font-kr font-semibold text-white/55 text-[16px] leading-[1.5] mt-auto pt-3">기록 — 첫 낙하까지 버틴 시간 · 낙하 횟수 · 반응 시간</p>
+        </div>
+      </div>
+      <div class="flex flex-col">
+        <div class="shot chamfer-sm mb-4" style="height:360px;"><img src="slides/img/game-test-tower.jpg" alt="⑤ 무너지는 타워"></div>
+        <div class="panel chamfer px-5 py-4 flex flex-col flex-1">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="font-kr font-black text-white text-[23px] whitespace-nowrap">⑤ 무너지는 타워</p>
+            <div class="flex gap-1.5"><span class="kb px-2.5 py-1 rounded font-mono text-[#5fb8e8] text-[15px]">Space</span><span class="kb px-2.5 py-1 rounded font-mono text-[#5fb8e8] text-[15px]">E</span></div>
+          </div>
+          <p class="font-kr font-semibold text-white/85 text-[18px] leading-[1.5]">탑 위 발판에서 버틴다. 무게가 몰린 발판은 기울어 무너지고, 바깥부터 철거된다. E 로 남을 민다.</p>
+          <p class="font-kr font-semibold text-white/55 text-[16px] leading-[1.5] mt-auto pt-3">기록 — 가운데에서 선 거리 · 낙하 · 반응 시간 · 밀치기</p>
+        </div>
+      </div>
+      <div class="flex flex-col">
+        <div class="shot chamfer-sm mb-4" style="height:360px;"><img src="slides/img/game-test-bar.jpg" alt="⑥ 회전 봉 넘기"></div>
+        <div class="panel chamfer px-5 py-4 flex flex-col flex-1">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="font-kr font-black text-white text-[23px] whitespace-nowrap">⑥ 회전 봉 넘기</p>
+            <div class="flex gap-1.5"><span class="kb px-2.5 py-1 rounded font-mono text-[#5fb8e8] text-[15px]">WASD</span><span class="kb px-2.5 py-1 rounded font-mono text-[#5fb8e8] text-[15px]">Space</span></div>
+          </div>
+          <p class="font-kr font-semibold text-white/85 text-[18px] leading-[1.5]">바닥을 쓸며 도는 봉을 때맞춰 뛰어넘는다. 맞으면 넘어져 밀려나고, 가장자리 밖은 낙하다.</p>
+          <p class="font-kr font-semibold text-white/55 text-[16px] leading-[1.5] mt-auto pt-3">기록 — 점프 타이밍 오차 · 헛점프 · 맞은 횟수</p>
         </div>
       </div>
     </div>
@@ -555,14 +610,14 @@ body{
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">05 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">06 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">시험 후보는 넷이고 판마다 셋을 뽑습니다. 낙하 생존은 떨어지는 공을 30초 동안 피합니다. 공마다 무게가 달라 떨어지는 속도가 다릅니다. 움직이는 발판은 발판을 건너 도착 발판에 서는 것이고, 떨어지면 출발로 돌아갑니다. 회전 원판은 도는 원판 위에서 밀려나지 않고 버팁니다. 무게 중심 다리는 축 하나로 선 판자 위에서 무리의 무게중심을 축에 맞춰 버팁니다. 상자가 떨어지면 반대쪽으로 뛰어야 하고, 무거운 몸은 판자를 더 기울입니다. 네 시험 모두 미니게임을 불러올 때 중력·마찰·배속·판자 마찰 같은 조건값을 가져오고, 그 값이 게임 안에서 계속 바뀝니다. 사람은 잠깐 틀리다가 적응합니다. 그 차이가 기록에 남고, 기록이 대화의 근거가 됩니다.</p>
+<p class="note">나머지 셋입니다. 무게 중심 다리는 축 하나로 선 판자 위에서 무리의 무게중심을 축에 맞춰 버팁니다. 상자가 떨어지면 반대쪽으로 뛰어야 하고, 무거운 몸은 판자를 더 기울입니다. 무너지는 타워는 탑 위 발판에서 버팁니다. 무게가 몰린 발판은 기울어 무너지고 바깥 발판은 차례로 철거되며, 남을 밀 수도 있습니다. 회전 봉 넘기는 바닥을 쓸며 도는 봉을 때맞춰 뛰어넘습니다. 맞으면 넘어져 밀려납니다. 여섯 게임 모두 미니게임을 불러올 때 중력·마찰·배속·판자 마찰 같은 조건값을 가져오고, 그 값이 게임 안에서 계속 바뀝니다. 사람은 잠깐 틀리다가 적응합니다. 그 차이가 기록에 남고, 기록이 대화의 근거가 됩니다.</p>
 </section>
-<!-- ═══ 06 · 발언권과 의심도 ═══ -->
+<!-- ═══ 07 · 카드 — 게임 1등의 몫 ═══ -->
 <section class="slide">
 <div class="st">
   <div class="grid-overlay"></div>
@@ -570,7 +625,73 @@ body{
 
   <header class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
     <div class="flex items-center gap-3">
-      <span class="header-label text-[20px] text-[#5fb8e8]">05 //</span>
+      <span class="header-label text-[20px] text-[#5fb8e8]">06 //</span>
+      <span class="header-label text-[20px] text-white/70">ITEM CARDS</span>
+    </div>
+    <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
+  </header>
+
+  <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
+    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">카드 — 게임 1등의 몫</h1>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">게임마다 1등 한 명이 엎어진 세 장 중 하나를 뽑는다 — 무엇인지는 뒤집어야 안다 · 고르는 시간 45초.</p>
+
+    <div class="grid grid-cols-3 gap-8 mt-9">
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:440px;">
+        <div class="flex items-center gap-4 mb-5">
+          <i class="fa-solid fa-crosshairs text-[#e8b34a] text-[26px]"></i>
+          <p class="font-kr font-black text-white text-[30px]">지목권</p>
+        </div>
+        <p class="font-mono text-white/60 text-[18px] mb-5">겨누는 곳 — 살아 있는 다른 한 사람</p>
+        <p class="font-mono font-black text-[#e8b34a]" style="font-size:48px; line-height:1;">의심도 +20</p>
+        <p class="font-kr font-semibold text-white/75 text-[21px] leading-[1.6] mt-auto pt-6 border-t border-white/10">말로 몰지 않고도 한 사람을 단번에 올린다 — 뒤쪽 대화일수록 세게 먹힌다</p>
+      </div>
+
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:440px;">
+        <div class="flex items-center gap-4 mb-5">
+          <i class="fa-solid fa-shield-halved text-[#5fb8e8] text-[26px]"></i>
+          <p class="font-kr font-black text-white text-[30px]">진정권</p>
+        </div>
+        <p class="font-mono text-white/60 text-[18px] mb-5">겨누는 곳 — 나 자신</p>
+        <p class="font-mono font-black text-[#5fb8e8]" style="font-size:48px; line-height:1;">의심도 −20</p>
+        <p class="font-kr font-semibold text-white/75 text-[21px] leading-[1.6] mt-auto pt-6 border-t border-white/10">100%에 가까워진 한 번을 되돌린다 — 몰린 마지막 대화에 아껴 쓴다</p>
+      </div>
+
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:440px;">
+        <div class="flex items-center gap-4 mb-5">
+          <i class="fa-solid fa-gavel text-[#e8b34a] text-[26px]"></i>
+          <p class="font-kr font-black text-white text-[30px]">답변 강제권</p>
+        </div>
+        <p class="font-mono text-white/60 text-[18px] mb-5">겨누는 곳 — 살아 있는 다른 한 사람</p>
+        <p class="font-kr font-bold text-white text-[23px] leading-[1.4]">내 다음 질문에 답해야 한다 — 관리 AI 가 판정</p>
+        <p class="font-mono font-bold text-[20px] mt-4"><span class="text-white">의심도</span> <span class="text-[#e8b34a]">거짓 +25 · 얼버무림 +12</span> · <span class="text-[#5fb8e8]">진실 −10</span></p>
+        <p class="font-kr font-semibold text-white/75 text-[21px] leading-[1.6] mt-auto pt-6 border-t border-white/10">이 판정에서만 관리 AI 가 전원의 정체 장부를 본다 — 「너 AI 야?」가 흉기가 된다</p>
+      </div>
+    </div>
+
+    <div class="mt-7 chamfer p-6 flex items-center gap-6" style="background:rgba(95,184,232,0.06); border:1px solid rgba(95,184,232,0.35);">
+      <i class="fa-solid fa-layer-group text-[#5fb8e8] text-[26px]"></i>
+      <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">대화 중에만 쓴다 · 쥔 카드는 본인만 안다, 쓰는 순간 전원 공개 · 최대 3장 · AI 와 대역도 1등이면 받는다 — 배역이 무엇이든 모든 게임에서 1등을 노린다.</p>
+    </div>
+  </main>
+
+  <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">07 / 15</span>
+  </footer>
+
+  <div class="vignette"></div>
+</div>
+<p class="note">게임은 기록만 남기지 않습니다. 게임마다 1등 한 명이 아이템 카드를 얻습니다. 엎어진 세 장 중 하나를 뽑고, 무엇인지는 뒤집어야 압니다. 지목권은 겨눈 사람의 의심도를 20 올리고, 진정권은 제 의심도를 20 내립니다. 답변 강제권을 걸면 그 사람은 제 다음 질문에 답해야 하고, 관리 AI가 그 답을 판정해 거짓이면 25 오르고 얼버무리면 12, 진실이면 10 내려갑니다. 이 판정에서만 관리 AI가 전원의 정체가 적힌 비공개 장부를 봅니다. 카드는 대화 중에만 쓰고, 손에 쥔 것은 본인만 압니다. AI와 대역도 1등이면 받습니다. 그래서 배역이 무엇이든 모든 게임에서 1등을 노려야 합니다.</p>
+</section>
+<!-- ═══ 08 · 발언권과 의심도 ═══ -->
+<section class="slide">
+<div class="st">
+  <div class="grid-overlay"></div>
+  <div class="scanlines"></div>
+
+  <header class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
+    <div class="flex items-center gap-3">
+      <span class="header-label text-[20px] text-[#5fb8e8]">07 //</span>
       <span class="header-label text-[20px] text-white/70">SPEECH & SUSPICION</span>
     </div>
     <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
@@ -590,7 +711,7 @@ body{
           </div>
           <div class="flex gap-4">
             <i class="fa-solid fa-ranking-star text-[#5fb8e8] text-[20px] mt-1"></i>
-            <p class="font-kr font-semibold text-white/85 text-[22px] leading-[1.5]">시험 등수에 따라 차등 분배</p>
+            <p class="font-kr font-semibold text-white/85 text-[22px] leading-[1.5]">게임 등수에 따라 차등 분배</p>
           </div>
           <div class="flex gap-4">
             <i class="fa-solid fa-clock-rotate-left text-[#5fb8e8] text-[20px] mt-1"></i>
@@ -652,14 +773,14 @@ body{
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">06 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">08 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">발언권부터 말씀드리면, 시작할 때 여섯 개, 채팅 한 마디에 하나씩 씁니다. 0이 되면 다음 게임까지 말할 수 없습니다. 시험이 끝나면 등수에 맞게 차등 분배되고, 안 쓴 것은 다섯 개까지만 넘어가서 아껴 뒀다 쏟아붓는 전략은 막혀 있습니다. 대역과 AI도 같은 규칙을 따릅니다. 의심도는 0에서 100%이고 네 가지가 움직입니다. 대화 속 지목, 관리 AI의 말 읽기가 한 번에 최대 플러스 20 마이너스 10에 마지막 대화는 두 배, 기록으로 해명하면 내려가고, 몸의 표식은 조금 오르지만 몸만으로는 격리되지 않습니다. 중요한 것은 의심도가 게임 점수로는 절대 움직이지 않는다는 점입니다. 사용자들이 기록을 근거로 상대를 의심해야 움직입니다.</p>
+<p class="note">발언권부터 말씀드리면, 시작할 때 여섯 개, 채팅 한 마디에 하나씩 씁니다. 0이 되면 다음 게임까지 말할 수 없습니다. 게임이 끝나면 등수에 맞게 차등 분배되고, 안 쓴 것은 다섯 개까지만 넘어가서 아껴 뒀다 쏟아붓는 전략은 막혀 있습니다. 대역과 AI도 같은 규칙을 따릅니다. 의심도는 0에서 100%이고 네 가지가 움직입니다. 대화 속 지목, 관리 AI의 말 읽기가 한 번에 최대 플러스 20 마이너스 10에 마지막 대화는 두 배, 기록으로 해명하면 내려가고, 몸의 표식은 조금 오르지만 몸만으로는 격리되지 않습니다. 중요한 것은 의심도가 게임 점수로는 절대 움직이지 않는다는 점입니다. 사용자들이 기록을 근거로 상대를 의심해야 움직입니다.</p>
 </section>
-<!-- ═══ 07 · AI 는 세 가지 용도로 나눠 썼다 ═══ -->
+<!-- ═══ 09 · AI 는 세 가지 용도로 나눠 썼다 ═══ -->
 <section class="slide">
 <div class="st">
   <div class="grid-overlay"></div>
@@ -667,7 +788,7 @@ body{
 
   <header class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
     <div class="flex items-center gap-3">
-      <span class="header-label text-[20px] text-[#5fb8e8]">06 //</span>
+      <span class="header-label text-[20px] text-[#5fb8e8]">08 //</span>
       <span class="header-label text-[20px] text-white/70">AI</span>
     </div>
     <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
@@ -675,7 +796,7 @@ body{
 
   <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
     <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:66px;">AI 는 세 가지 용도로 나눠 썼다</h1>
-    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">게임 안에서 도는 LLM · 에셋을 만든 생성기 · 코드를 함께 쓴 개발 도구.</p>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">게임 안에서 도는 LLM · 에셋과 목소리를 만든 생성기 · 코드를 함께 쓴 개발 도구.</p>
 
     <div class="grid grid-cols-3 gap-8 mt-10">
       <div class="panel chamfer p-8 flex flex-col" style="min-height:560px;">
@@ -686,27 +807,28 @@ body{
         <div class="flex flex-wrap gap-2 mb-6">
           <span class="tag px-3 py-1.5 rounded text-[15px] text-white/85">Claude Agent SDK 로컬</span>
         </div>
-        <p class="font-kr font-semibold text-white/75 text-[21px] leading-[1.6] mt-auto pt-6 border-t border-white/10">대사 생성 · 전략 결정 · 대화 분석 모두 대화 중에만 호출</p>
+        <p class="font-kr font-semibold text-white/75 text-[21px] leading-[1.6] mt-auto pt-6 border-t border-white/10">대사 생성 · 전략 결정 · 대화 분석 · 답변 판정 — 전략 결정만 게임 직전, 나머지는 대화 중</p>
       </div>
 
       <div class="panel chamfer p-8 flex flex-col" style="min-height:560px;">
-        <p class="font-kr font-black text-[#5fb8e8] text-[27px] mb-6">② 에셋 생성</p>
+        <p class="font-kr font-black text-[#5fb8e8] text-[27px] mb-6">② 에셋 · 목소리 생성</p>
         <div class="space-y-4 flex-1">
           <div class="flex gap-3"><i class="fa-solid fa-cube text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Tripo</span> — 3D 모델(GLB)</p></div>
           <div class="flex gap-3"><i class="fa-solid fa-person-walking text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Meshy</span> — AI 캐릭터 애니메이션</p></div>
           <div class="flex gap-3"><i class="fa-solid fa-swatchbook text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Higgsfield</span> — 텍스처 · 참고 이미지</p></div>
           <div class="flex gap-3"><i class="fa-solid fa-film text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Kling AI</span> — 인트로 배경 영상</p></div>
           <div class="flex gap-3"><i class="fa-solid fa-pen-ruler text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">UX Pilot</span> — 화면 시안</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-volume-high text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">ElevenLabs</span> — 음성 합성(관리 AI · 참가자의 말)</p></div>
         </div>
       </div>
 
       <div class="panel chamfer p-8 flex flex-col" style="min-height:560px; border-color: rgba(232,179,74,0.4);">
         <p class="font-kr font-black text-[#e8b34a] text-[27px] mb-6">③ 개발 도구</p>
-        <p class="font-mono text-white/85 text-[18px] leading-[1.6] mb-4">Claude Code — Opus 4.8 · Fable 5.1 · Opus 5 · Sonnet 5</p>
+        <p class="font-mono text-white/85 text-[18px] leading-[1.6] mb-4">Claude Code — Fable 5.1 · Opus 4.8 · Opus 5 · Sonnet 5 · Fable 5</p>
         <p class="font-kr font-semibold text-white/75 text-[20px] leading-[1.6] mb-8">구현 · 리팩터링 · 테스트 · 문서화</p>
         <div class="mt-auto pt-6 border-t border-white/10 text-center">
           <p class="font-mono font-black text-[#e8b34a]" style="font-size:58px; line-height:1;">99%</p>
-          <p class="font-kr font-bold text-white/80 text-[20px] mt-3">172커밋 중 170건(99%) 공동 작성</p>
+          <p class="font-kr font-bold text-white/80 text-[20px] mt-3">205커밋 중 202건(99%) 공동 작성</p>
         </div>
       </div>
     </div>
@@ -714,14 +836,14 @@ body{
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">07 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">09 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">여기서부터는 AI를 어디에 썼는지입니다. 세 가지 용도로 나눠 썼습니다. 첫째, 게임 안에서 실시간으로 도는 LLM. 배포본은 OpenAI의 gpt-6-astra와 gpt-5.6-terra, 로컬 개발은 Claude Agent SDK입니다. 대사 생성과 전략 결정, 대화 분석에 쓰고 모두 대화 중에만 호출합니다. 둘째, 에셋 생성기. 3D는 Tripo, 애니메이션은 Meshy, 텍스처는 Higgsfield, 인트로 영상은 Kling, 화면 시안은 UX Pilot입니다. 셋째, 개발 도구 Claude Code입니다. 병합을 뺀 172 커밋 중 170건이 공동 작성입니다.</p>
+<p class="note">여기서부터는 AI를 어디에 썼는지입니다. 세 가지 용도로 나눠 썼습니다. 첫째, 게임 안에서 실시간으로 도는 LLM. 배포본은 OpenAI의 gpt-6-astra와 gpt-5.6-terra, 로컬 개발은 Claude Agent SDK입니다. 대사 생성과 전략 결정, 대화 분석과 답변 판정에 쓰고, 전략 결정만 게임 직전이고 나머지는 대화 중에 호출합니다. 둘째, 에셋과 목소리 생성기. 3D는 Tripo, 애니메이션은 Meshy, 텍스처는 Higgsfield, 인트로 영상은 Kling, 화면 시안은 UX Pilot, 음성 합성은 ElevenLabs입니다. 셋째, 개발 도구 Claude Code입니다. 병합을 뺀 205 커밋 중 202건이 공동 작성입니다.</p>
 </section>
-<!-- ═══ 08 · LLM 공급자와 런타임 ═══ -->
+<!-- ═══ 10 · LLM 공급자와 런타임 ═══ -->
 <section class="slide">
 <div class="st">
   <div class="grid-overlay"></div>
@@ -729,7 +851,7 @@ body{
 
   <header class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
     <div class="flex items-center gap-3">
-      <span class="header-label text-[20px] text-[#5fb8e8]">07 //</span>
+      <span class="header-label text-[20px] text-[#5fb8e8]">09 //</span>
       <span class="header-label text-[20px] text-white/70">LLM</span>
     </div>
     <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
@@ -737,24 +859,28 @@ body{
 
   <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
     <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:68px;">LLM 공급자와 런타임</h1>
-    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">LLM 은 세 곳에 쓰인다. 모두 대화 중에만 호출한다.</p>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">LLM 은 네 곳에 쓰인다. 전략 결정만 게임 직전, 나머지는 대화 중에 호출한다.</p>
 
-    <div class="grid grid-cols-3 gap-6 mt-12">
+    <div class="grid grid-cols-4 gap-5 mt-6">
       <div class="uchip chamfer-sm px-6 py-4">
-        <p class="font-kr font-bold text-white text-[26px] mb-2">대사 생성</p>
-        <p class="font-kr font-semibold text-white/70 text-[21px] leading-[1.5]">AI 참가자가 대화 중 하는 말</p>
+        <p class="font-kr font-bold text-white text-[25px] mb-2">대사 생성</p>
+        <p class="font-kr font-semibold text-white/70 text-[20px] leading-[1.5]">AI 참가자와 사람 대역이 대화 중 하는 말 — 같은 함수를 지난다</p>
       </div>
       <div class="uchip chamfer-sm px-6 py-4">
-        <p class="font-kr font-bold text-white text-[26px] mb-2">전략 결정</p>
-        <p class="font-kr font-semibold text-white/70 text-[21px] leading-[1.5]">AI 참가자만. 물리 게임 전에 얼마나 정확하게 움직일지를 스스로 정한다</p>
+        <p class="font-kr font-bold text-white text-[25px] mb-2">전략 결정</p>
+        <p class="font-kr font-semibold text-white/70 text-[20px] leading-[1.5]">AI 참가자만. 물리 게임 전에 얼마나 정확하게 움직일지를 스스로 정한다</p>
       </div>
       <div class="uchip chamfer-sm px-6 py-4">
-        <p class="font-kr font-bold text-white text-[26px] mb-2">대화 분석</p>
-        <p class="font-kr font-semibold text-white/70 text-[21px] leading-[1.5]">관리 AI(심판 역할)가 대화를 읽고 각자의 의심도를 올리거나 내린다</p>
+        <p class="font-kr font-bold text-white text-[25px] mb-2">대화 분석</p>
+        <p class="font-kr font-semibold text-white/70 text-[20px] leading-[1.5]">관리 AI(심판 역할)가 대화를 읽고 각자의 의심도를 올리거나 내린다</p>
+      </div>
+      <div class="uchip chamfer-sm px-6 py-4">
+        <p class="font-kr font-bold text-white text-[25px] mb-2">답변 판정</p>
+        <p class="font-kr font-semibold text-white/70 text-[20px] leading-[1.5]">답변 강제권의 답이 기록 · 앞말과 어긋나는지, 피한 것인지 본다</p>
       </div>
     </div>
 
-    <div class="panel chamfer overflow-hidden mt-12">
+    <div class="panel chamfer overflow-hidden mt-10">
       <div class="grid" style="grid-template-columns: 1.1fr 1.3fr 1.5fr 0.9fr 1.6fr; background:rgba(95,184,232,0.08);">
         <div class="font-mono text-[#5fb8e8] text-[20px] font-bold px-5 py-4 border-r border-white/10">배포 모델</div>
         <div class="font-mono text-[#5fb8e8] text-[20px] font-bold px-5 py-4 border-r border-white/10">쓰는 곳</div>
@@ -764,36 +890,36 @@ body{
       </div>
       <div class="grid border-t border-white/10" style="grid-template-columns: 1.1fr 1.3fr 1.5fr 0.9fr 1.6fr;">
         <div class="font-mono font-bold text-white text-[22px] px-5 py-7 border-r border-white/10">gpt-6-astra</div>
-        <div class="font-kr font-semibold text-white/85 text-[22px] px-5 py-7 border-r border-white/10 leading-[1.4]">관리 AI 의 대화 분석</div>
+        <div class="font-kr font-semibold text-white/85 text-[22px] px-5 py-7 border-r border-white/10 leading-[1.4]">관리 AI 의 대화 분석 · 답변 판정</div>
         <div class="font-kr font-semibold text-white/80 text-[21px] px-5 py-7 border-r border-white/10 leading-[1.4]">Artificial Analysis 63 : 61 — opus-5 와 동급</div>
         <div class="font-mono font-bold text-[#e8b34a] text-[21px] px-5 py-7 border-r border-white/10 leading-[1.4]">$10 / $50<br/><span class="font-kr text-white/50 text-[14px]">백만 토큰당</span></div>
-        <div class="font-kr font-semibold text-white/75 text-[21px] px-5 py-7 leading-[1.4]">한 라운드에 몇 번만 호출. 모순을 찾아야 하는 유일한 추론 자리</div>
+        <div class="font-kr font-semibold text-white/75 text-[21px] px-5 py-7 leading-[1.4]">40초 토론에 대여섯 번 · 판정은 더 드물다. 모순을 찾는 추론 자리</div>
       </div>
       <div class="grid border-t border-white/10" style="grid-template-columns: 1.1fr 1.3fr 1.5fr 0.9fr 1.6fr;">
         <div class="font-mono font-bold text-white text-[22px] px-5 py-7 border-r border-white/10">gpt-5.6-terra</div>
-        <div class="font-kr font-semibold text-white/85 text-[22px] px-5 py-7 border-r border-white/10 leading-[1.4]">AI 참가자의 대사</div>
+        <div class="font-kr font-semibold text-white/85 text-[22px] px-5 py-7 border-r border-white/10 leading-[1.4]">참가자들의 대사 · 전략 결정</div>
         <div class="font-kr font-semibold text-white/80 text-[21px] px-5 py-7 border-r border-white/10 leading-[1.4]">공유 벤치마크 35개 중 18 : 17 — sonnet-5 와 동급</div>
         <div class="font-mono font-bold text-[#5fb8e8] text-[21px] px-5 py-7 border-r border-white/10 leading-[1.4]">astra 의<br/>약 절반</div>
         <div class="font-kr font-semibold text-white/75 text-[21px] px-5 py-7 leading-[1.4]">몇 초 간격으로 계속 호출. 가장 자주 불려 단가가 낮아야 한다</div>
       </div>
     </div>
 
-    <div class="mt-12 chamfer p-7 flex items-center gap-6" style="background:rgba(95,184,232,0.06); border:1px solid rgba(95,184,232,0.35);">
+    <div class="mt-10 chamfer p-6 flex items-center gap-6" style="background:rgba(95,184,232,0.06); border:1px solid rgba(95,184,232,0.35);">
       <i class="fa-solid fa-circle-check text-[#5fb8e8] text-[26px]"></i>
-      <p class="font-kr font-bold text-white/90 text-[25px] leading-[1.5]">의심도는 LLM 없이도 움직인다. 지목 · 되풀이 · 회피는 규칙으로 계산하고 대화 분석은 그 위의 한 겹 — 호출이 실패해도 게임은 멈추지 않는다.</p>
+      <p class="font-kr font-bold text-white/90 text-[23px] leading-[1.5]">의심도는 LLM 없이도 움직인다. 지목 · 되풀이 · 회피는 규칙으로 계산하고 대화 분석은 그 위의 한 겹 — 호출이 실패해도 게임은 멈추지 않는다.</p>
     </div>
   </main>
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">08 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">10 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">게임 안에서 LLM은 세 곳에 씁니다. 대사 생성, 전략 결정, 대화 분석입니다. 전략 결정은 AI 참가자만 하는데, 물리 게임 전에 이번 라운드에서 얼마나 정확하게 움직일지를 스스로 정합니다. 모델은 먼저 역할이 요구하는 추론 수준으로 등급을 정하고, 같은 등급 안에서 호출 횟수와 단가를 보고 골랐습니다. 대화 분석은 앞말과 대조해 모순을 찾아야 하는, 실제로 추론이 필요한 유일한 자리라 상위 등급인 astra를 씁니다. 한 라운드에 몇 번만 부르니 단가가 높아도 됩니다. 대사 생성은 정해진 성격으로 80자 한 마디를 만드는 일이라 한 등급 아래인 terra로 충분하고, 가장 자주 불리는 자리라 단가가 낮아야 합니다. 그리고 의심도는 LLM 없이도 움직여서, 호출이 실패해도 게임은 멈추지 않습니다.</p>
+<p class="note">게임 안에서 LLM은 네 곳에 씁니다. 대사 생성, 전략 결정, 대화 분석, 그리고 답변 강제권이 걸렸을 때의 답변 판정입니다. 전략 결정은 AI 참가자만 하는데, 물리 게임 직전에 이번 라운드에서 얼마나 정확하게 움직일지를 스스로 정합니다. 모델은 먼저 역할이 요구하는 추론 수준으로 등급을 정하고, 같은 등급 안에서 호출 횟수와 단가를 보고 골랐습니다. 관리 AI가 하는 대화 분석과 답변 판정은 앞말과 기록에 대조해 모순을 찾아야 하는, 실제로 추론이 필요한 자리라 상위 등급인 astra를 씁니다. 40초 토론에 대여섯 번만 부르니 단가가 높아도 됩니다. 대사 생성은 정해진 성격으로 25자 안팎 한 마디를 만드는 일이라 한 등급 아래인 terra로 충분하고, 가장 자주 불리는 자리라 단가가 낮아야 합니다. 그리고 의심도는 LLM 없이도 움직여서, 호출이 실패해도 게임은 멈추지 않습니다.</p>
 </section>
-<!-- ═══ 09 · 관리 AI 의 대화 분석 기준 ═══ -->
+<!-- ═══ 11 · 관리 AI 의 대화 분석 기준 ═══ -->
 <section class="slide">
 <div class="st">
   <div class="grid-overlay"></div>
@@ -801,7 +927,7 @@ body{
 
   <header class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
     <div class="flex items-center gap-3">
-      <span class="header-label text-[20px] text-[#5fb8e8]">08 //</span>
+      <span class="header-label text-[20px] text-[#5fb8e8]">10 //</span>
       <span class="header-label text-[20px] text-white/70">REFEREE</span>
     </div>
     <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
@@ -811,65 +937,31 @@ body{
     <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:60px;">관리 AI 의 대화 분석 기준</h1>
     <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">대화를 일정 간격으로 읽고 의심도를 조정한다. 누가 AI 인지는 알지 못한다.</p>
 
-    <div class="flex gap-8 mt-8">
-      <div class="flex flex-col gap-5" style="width:1180px;">
-        <div class="panel chamfer p-6">
-          <p class="font-kr font-black text-white text-[24px] mb-4">① 말하는 방식</p>
-          <div class="flex gap-6">
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">사람이 안 쓰는 정밀함 · 감정 빠진 설명체 · 사회자 말투</p>
-            </div>
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">즉흥적 농담 · 오타 · 불리한 것을 그냥 인정</p>
-            </div>
+    <div class="grid grid-cols-2 gap-8 mt-8">
+      <div class="panel chamfer p-7">
+        <p class="font-kr font-black text-white text-[24px] mb-5">① 말하는 방식</p>
+        <div class="flex flex-col gap-5">
+          <div class="flex gap-3">
+            <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
+            <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">사람이 안 쓰는 정밀함 · 감정 빠진 설명체 · 사회자 말투</p>
           </div>
-        </div>
-
-        <div class="panel chamfer p-6">
-          <p class="font-kr font-black text-white text-[24px] mb-4">② 기록과 맞는가</p>
-          <div class="flex gap-6">
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">기록이 그 말을 반박한다 — 거짓 해명이 가장 무겁다</p>
-            </div>
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">기록이 그 말을 뒷받침한다</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel chamfer p-6" style="border-color: rgba(232,179,74,0.5);">
-          <p class="font-kr font-black text-white text-[24px] mb-4">③ 앞뒤가 맞는가</p>
-          <div class="flex gap-6">
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">앞서 한 말과 어긋난다</p>
-            </div>
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">스스로 앞말을 정정한다</p>
-            </div>
+          <div class="flex gap-3">
+            <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
+            <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">즉흥적 농담 · 오타 · 불리한 것을 그냥 인정</p>
           </div>
         </div>
       </div>
 
-      <div class="panel chamfer p-8 flex flex-col" style="width:500px;">
-        <p class="font-kr font-black text-[#5fb8e8] text-[26px] mb-6">움직이는 규칙</p>
-        <div class="space-y-5">
-          <div class="flex gap-4">
-            <i class="fa-solid fa-clock text-[#5fb8e8] text-[18px] mt-1.5"></i>
-            <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">7초마다 최근 대화를 읽는다</p>
+      <div class="panel chamfer p-7" style="border-color: rgba(232,179,74,0.5);">
+        <p class="font-kr font-black text-white text-[24px] mb-5">② 앞뒤가 맞는가</p>
+        <div class="flex flex-col gap-5">
+          <div class="flex gap-3">
+            <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
+            <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">앞서 한 말과 어긋난다</p>
           </div>
-          <div class="flex gap-4">
-            <i class="fa-solid fa-user-check text-[#5fb8e8] text-[18px] mt-1.5"></i>
-            <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">그 장면에서 말한 사람만, 최대 두 명</p>
-          </div>
-          <div class="flex gap-4">
-            <i class="fa-solid fa-volume-xmark text-[#5fb8e8] text-[18px] mt-1.5"></i>
-            <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">조용한 사람은 건드리지 않는다 — 침묵이 최적 전략이 되면 안 되므로</p>
+          <div class="flex gap-3">
+            <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
+            <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">스스로 앞말을 정정한다</p>
           </div>
         </div>
       </div>
@@ -877,20 +969,20 @@ body{
 
     <div class="mt-7 chamfer p-6 flex items-center gap-6" style="background:rgba(232,179,74,0.08); border:1px solid rgba(232,179,74,0.4);">
       <i class="fa-solid fa-magnifying-glass text-[#e8b34a] text-[26px]"></i>
-      <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">AI 를 가려내는 것은 ③. 없는 기억을 지어내다 앞말과 어긋난다 — 그래서 직전 발언 6줄을 함께 넘긴다.</p>
+      <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">AI 를 가려내는 것은 ②. 없는 기억을 지어내다 앞말과 어긋난다 — 그래서 직전 발언 6줄을 함께 넘긴다. 기록 대조는 답변 판정의 몫이다.</p>
     </div>
   </main>
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">09 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">11 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">관리 AI는 참가자가 아니라 심판 역할이고, 누가 AI인지 알지 못합니다. 판단 근거는 방금 오간 대화와 공개된 기록뿐이고, 세 가지 기준으로 봅니다. 말하는 방식, 기록과 맞는가, 앞뒤가 맞는가. 7초마다 최근 대화를 읽고, 그 장면에서 실제로 말한 사람만 최대 두 명까지 움직입니다. 조용한 사람은 건드리지 않는데, 그러면 침묵이 최적 전략이 되기 때문입니다. 실제로 AI를 가려내는 건 세 번째입니다. AI는 없는 기억을 지어내다 앞서 한 말과 어긋나기 때문입니다. 그래서 그 사람의 직전 발언 여섯 줄을 함께 넘깁니다.</p>
+<p class="note">관리 AI는 참가자가 아니라 심판 역할이고, 누가 AI인지 알지 못합니다. 판단 근거는 방금 오간 대화뿐이고, 두 가지 기준으로 봅니다. 말하는 방식과 앞뒤가 맞는가입니다. 7초마다 최근 대화를 읽고, 그 장면에서 실제로 말한 사람만 최대 두 명까지 움직입니다. 조용한 사람은 건드리지 않는데, 그러면 침묵이 최적 전략이 되기 때문입니다. 실제로 AI를 가려내는 건 두 번째입니다. AI는 없는 기억을 지어내다 앞서 한 말과 어긋나기 때문입니다. 그래서 그 사람의 직전 발언 여섯 줄을 함께 넘깁니다. 공개된 기록과의 대조는 앞서 보신 답변 판정의 몫입니다.</p>
 </section>
-<!-- ═══ 10 · 성격 설정 ═══ -->
+<!-- ═══ 12 · 성격 설정 ═══ -->
 <section class="slide">
 <div class="st">
   <div class="grid-overlay"></div>
@@ -898,53 +990,65 @@ body{
 
   <header class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
     <div class="flex items-center gap-3">
-      <span class="header-label text-[20px] text-[#5fb8e8]">09 //</span>
+      <span class="header-label text-[20px] text-[#5fb8e8]">11 //</span>
       <span class="header-label text-[20px] text-white/70">PERSONA</span>
     </div>
     <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
   </header>
 
-  <main class="absolute" style="left:80px;top:150px;width:1375px;height:800px;transform:scale(1.28);transform-origin:0 0;">
+  <main class="absolute" style="left:80px;top:150px;width:1490px;height:880px;transform:scale(1.18);transform-origin:0 0;">
     <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">성격 설정</h1>
-    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:24px; line-height:1.5;">여섯 성격 중 하나로만 말한다. 80자 안쪽 · 3.5~10초 간격 · 같은 발언권 — 통신 내용만으로는 사람과 구분되지 않는다.</p>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:24px; line-height:1.5;">아홉 성격 중 하나로만 말한다. 한 마디 25자 안팎 · 3.5~10초 간격 · 지목과 철회도 같은 경로 — 통신 내용만으로는 사람과 구분되지 않는다. 사람 대역도 같은 풀, 아홉 모두 같은 등급.</p>
 
-    <div class="grid grid-cols-3 gap-6 mt-8">
-      <div class="panel chamfer p-6">
-        <p class="font-kr font-black text-white text-[23px] mb-3">따지는 사람</p>
-        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">어긋나면 바로 짚는다</p>
-        <span class="font-mono text-[#5fb8e8] text-[15px]">반말</span>
+    <div class="grid grid-cols-3 gap-4 mt-6">
+      <div class="panel chamfer p-5">
+        <p class="font-kr font-black text-white text-[22px] mb-2">따지는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[18px] leading-[1.4] mb-2">어긋나면 바로 짚는다</p>
+        <span class="font-mono text-[#5fb8e8] text-[14px]">반말</span>
       </div>
-      <div class="panel chamfer p-6">
-        <p class="font-kr font-black text-white text-[23px] mb-3">기억력 좋은 사람</p>
-        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">순서와 시간을 정확히</p>
-        <span class="font-mono text-[#5fb8e8] text-[15px]">존댓말</span>
+      <div class="panel chamfer p-5">
+        <p class="font-kr font-black text-white text-[22px] mb-2">기억력 좋은 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[18px] leading-[1.4] mb-2">순서와 시간을 정확히</p>
+        <span class="font-mono text-[#5fb8e8] text-[14px]">존댓말</span>
       </div>
-      <div class="panel chamfer p-6">
-        <p class="font-kr font-black text-white text-[23px] mb-3">말수 적은 사람</p>
-        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">짧게 답하고 안 나선다</p>
-        <span class="font-mono text-[#5fb8e8] text-[15px]">반말</span>
+      <div class="panel chamfer p-5">
+        <p class="font-kr font-black text-white text-[22px] mb-2">말수 적은 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[18px] leading-[1.4] mb-2">짧게 답하고 안 나선다</p>
+        <span class="font-mono text-[#5fb8e8] text-[14px]">반말</span>
       </div>
-      <div class="panel chamfer p-6">
-        <p class="font-kr font-black text-white text-[23px] mb-3">분위기 맞추는 사람</p>
-        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">남 말에 잘 얹는다</p>
-        <span class="font-mono text-[#5fb8e8] text-[15px]">반말</span>
+      <div class="panel chamfer p-5">
+        <p class="font-kr font-black text-white text-[22px] mb-2">분위기 맞추는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[18px] leading-[1.4] mb-2">남 말에 잘 얹는다</p>
+        <span class="font-mono text-[#5fb8e8] text-[14px]">반말</span>
       </div>
-      <div class="panel chamfer p-6">
-        <p class="font-kr font-black text-white text-[23px] mb-3">재는 사람</p>
-        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">단정 안 하고 길게 본다</p>
-        <span class="font-mono text-[#5fb8e8] text-[15px]">존댓말</span>
+      <div class="panel chamfer p-5">
+        <p class="font-kr font-black text-white text-[22px] mb-2">재는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[18px] leading-[1.4] mb-2">단정 안 하고 길게 본다</p>
+        <span class="font-mono text-[#5fb8e8] text-[14px]">존댓말</span>
       </div>
-      <div class="panel chamfer p-6" style="border-color: rgba(232,179,74,0.55); background: linear-gradient(180deg, rgba(232,179,74,0.1) 0%, rgba(10,18,32,0.55) 100%);">
-        <p class="font-kr font-black text-white text-[23px] mb-3">대화를 주도하는 사람</p>
-        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">화제를 돌리고 콕 집어 묻는다</p>
-        <div class="flex gap-2">
-          <span class="font-mono text-[#e8b34a] text-[15px]">반말</span>
-          <span class="font-mono text-[#e8b34a] text-[15px]">· 상위 모델</span>
-        </div>
+      <div class="panel chamfer p-5">
+        <p class="font-kr font-black text-white text-[22px] mb-2">과장하는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[18px] leading-[1.4] mb-2">뭐든 세게 말한다</p>
+        <span class="font-mono text-[#5fb8e8] text-[14px]">반말</span>
+      </div>
+      <div class="panel chamfer p-5">
+        <p class="font-kr font-black text-white text-[22px] mb-2">곁길로 새는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[18px] leading-[1.4] mb-2">엉뚱한 디테일을 묻는다</p>
+        <span class="font-mono text-[#5fb8e8] text-[14px]">존댓말</span>
+      </div>
+      <div class="panel chamfer p-5">
+        <p class="font-kr font-black text-white text-[22px] mb-2">직감으로 찍는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[18px] leading-[1.4] mb-2">근거 없이 당당하다</p>
+        <span class="font-mono text-[#5fb8e8] text-[14px]">반말</span>
+      </div>
+      <div class="panel chamfer p-5">
+        <p class="font-kr font-black text-white text-[22px] mb-2">옛날 얘기로 받는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[18px] leading-[1.4] mb-2">뭐든 경험에 빗댄다</p>
+        <span class="font-mono text-[#5fb8e8] text-[14px]">존댓말</span>
       </div>
     </div>
 
-    <div class="mt-7 chamfer p-6 flex items-center gap-6" style="background:rgba(95,184,232,0.06); border:1px solid rgba(95,184,232,0.35);">
+    <div class="mt-5 chamfer p-5 flex items-center gap-6" style="background:rgba(95,184,232,0.06); border:1px solid rgba(95,184,232,0.35);">
       <i class="fa-solid fa-sliders text-[#5fb8e8] text-[26px]"></i>
       <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">AI 참가자는 라운드마다 얼마나 정확하게 움직일지를 스스로 정한다. 너무 정확하면 의심의 근거가 되고, 너무 부정확하면 순위에서 밀린다.</p>
     </div>
@@ -952,14 +1056,14 @@ body{
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">10 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">12 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">AI 참가자는 여섯 가지 성격 중 하나를 받아 그 말투로만 말합니다. 한 마디는 80자 안쪽이고, 사람과 같은 간격인 3.5초에서 10초로 나가며, 지목과 철회도 사람과 같은 경로를 지납니다. 그래서 통신 내용만으로는 사람과 구분되지 않습니다. 여섯 중 대화를 주도하는 성격 하나만 상위 모델을 씁니다. AI 참가자에게는 조건이 하나 더 붙습니다. 라운드마다 얼마나 정확하게 움직일지를 스스로 정하는데, 너무 정확하면 기록이 그대로 의심의 근거가 되고 너무 부정확하면 순위에서 밀립니다. 그 선택이 기록에 남아 이어지는 대화의 단서가 됩니다.</p>
+<p class="note">AI 참가자는 아홉 가지 성격 중 하나를 받아 그 말투로만 말합니다. 한 마디는 25자 안팎이고, 사람과 같은 간격인 3.5초에서 10초로 나가며, 지목과 철회도 사람과 같은 경로를 지납니다. 그래서 통신 내용만으로는 사람과 구분되지 않습니다. 사람 대역도 같은 성격 풀에서 뽑고, 아홉 모두 같은 등급인 terra를 씁니다. AI 참가자에게는 조건이 하나 더 붙습니다. 라운드마다 얼마나 정확하게 움직일지를 스스로 정하는데, 너무 정확하면 기록이 그대로 의심의 근거가 되고 너무 부정확하면 순위에서 밀립니다. 그 선택이 기록에 남아 이어지는 대화의 단서가 됩니다.</p>
 </section>
-<!-- ═══ 11 · 제작 파이프라인 ═══ -->
+<!-- ═══ 13 · 제작 파이프라인 ═══ -->
 <section class="slide">
 <div class="st">
   <div class="grid-overlay"></div>
@@ -967,7 +1071,7 @@ body{
 
   <header class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
     <div class="flex items-center gap-3">
-      <span class="header-label text-[20px] text-[#5fb8e8]">10 //</span>
+      <span class="header-label text-[20px] text-[#5fb8e8]">12 //</span>
       <span class="header-label text-[20px] text-white/70">PIPELINE</span>
     </div>
     <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
@@ -975,7 +1079,7 @@ body{
 
   <main class="absolute" style="left:80px;top:150px;width:1615px;height:800px;transform:scale(1.09);transform-origin:0 0;">
     <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">제작 파이프라인</h1>
-    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:24px; line-height:1.5;">3D 공간 · 소품 · 애니메이션 · 영상은 모두 생성형 도구로. 사람은 무엇을 만들고 어디에 놓을지만 정했다.</p>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:24px; line-height:1.5;">3D 공간 · 소품 · 애니메이션 · 영상 · 목소리는 모두 생성형 도구로. 사람은 무엇을 만들고 어디에 놓을지만 정했다.</p>
 
     <div class="panel chamfer overflow-hidden mt-8">
       <div class="grid" style="grid-template-columns: 0.85fr 1.5fr 2.1fr; background:rgba(95,184,232,0.08);">
@@ -1008,6 +1112,11 @@ body{
         <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-4 border-r border-white/10 leading-[1.4]">인트로 화면의 배경 영상</div>
         <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-4 leading-[1.4]">표지 뒤에서 반복 재생</div>
       </div>
+      <div class="grid border-t border-white/10" style="grid-template-columns: 0.85fr 1.5fr 2.1fr;">
+        <div class="font-mono font-bold text-white text-[19px] px-6 py-4 border-r border-white/10">ElevenLabs</div>
+        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-4 border-r border-white/10 leading-[1.4]">음성 합성 — 관리 AI 와 참가자들의 말</div>
+        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-4 leading-[1.4]">워커가 합성해 mp3 로 내려보낸다. 복도 장면 대사만 미리 구워 파일로</div>
+      </div>
     </div>
 
     <div class="mt-7 chamfer p-6 flex flex-col gap-3" style="background:rgba(232,179,74,0.08); border:1px solid rgba(232,179,74,0.4);">
@@ -1024,14 +1133,14 @@ body{
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">11 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">13 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">3D 공간과 소품, 캐릭터 애니메이션, 인트로 영상은 모두 생성형 도구로 만들었습니다. 사람이 판단한 것은 무엇을 만들지와 어디에 배치할지뿐입니다. 화면 시안은 UX Pilot에서 MCP로 받아 React로 옮겼고, 텍스처는 Higgsfield, 3D 오브젝트는 Tripo, 애니메이션은 Meshy, 인트로 영상은 Kling입니다. 다만 생성 결과물을 그대로 쓴 경우는 없습니다. 원본은 모델 하나가 수십 MB라 브라우저에서 돌아가는 크기로 줄이는 후처리를 반드시 거칩니다. Meshy는 리타깃 결과가 뼈를 잘못 잡는 경우가 많아서 뼈대를 다시 분류해 직접 합성했습니다. 도구가 내놓는 건 전부 파일이고, 넣는 방식은 전부 스크립트와 레이아웃 수치라 모델을 다시 생성해도 배치와 충돌 판정은 그대로입니다.</p>
+<p class="note">3D 공간과 소품, 캐릭터 애니메이션, 인트로 영상, 그리고 목소리는 모두 생성형 도구로 만들었습니다. 사람이 판단한 것은 무엇을 만들지와 어디에 배치할지뿐입니다. 화면 시안은 UX Pilot에서 MCP로 받아 React로 옮겼고, 텍스처는 Higgsfield, 3D 오브젝트는 Tripo, 애니메이션은 Meshy, 인트로 영상은 Kling, 음성 합성은 ElevenLabs입니다. 목소리는 워커가 실시간으로 합성해 내려보내고, 대본이 정해진 복도 장면 대사만 미리 구워 파일로 넣었습니다. 다만 생성 결과물을 그대로 쓴 경우는 없습니다. 원본은 모델 하나가 수십 MB라 브라우저에서 돌아가는 크기로 줄이는 후처리를 반드시 거칩니다. Meshy는 리타깃 결과가 뼈를 잘못 잡는 경우가 많아서 뼈대를 다시 분류해 직접 합성했습니다. 도구가 내놓는 건 전부 파일이고, 넣는 방식은 전부 스크립트와 레이아웃 수치라 모델을 다시 생성해도 배치와 충돌 판정은 그대로입니다.</p>
 </section>
-<!-- ═══ 12 · Claude Code — 개발 도구 ═══ -->
+<!-- ═══ 14 · Claude Code — 개발 도구 ═══ -->
 <section class="slide">
 <div class="st">
   <div class="grid-overlay"></div>
@@ -1039,7 +1148,7 @@ body{
 
   <header class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
     <div class="flex items-center gap-3">
-      <span class="header-label text-[20px] text-[#5fb8e8]">11 //</span>
+      <span class="header-label text-[20px] text-[#5fb8e8]">13 //</span>
       <span class="header-label text-[20px] text-white/70">CLAUDE CODE</span>
     </div>
     <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
@@ -1047,7 +1156,7 @@ body{
 
   <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
     <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:66px;">Claude Code — 개발 도구</h1>
-    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:25px; line-height:1.5;">구현 · 문서화 · 반복 개선. 병합 제외 172커밋 중 170건(99%) 이 공동 작성.</p>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:25px; line-height:1.5;">구현 · 문서화 · 반복 개선. 병합 제외 205커밋 중 202건(99%) 이 공동 작성.</p>
 
     <div class="flex gap-8 mt-9">
       <div class="panel chamfer p-9 flex flex-col items-center justify-center" style="width:680px; min-height:600px;">
@@ -1071,11 +1180,11 @@ body{
       <div class="flex-1 panel chamfer p-9">
         <p class="font-mono text-[#5fb8e8] text-[20px] font-bold mb-8 tracking-wide">모델 / 커밋 수</p>
         <div class="flex flex-col gap-6">
-          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Opus 4.8</span><div class="cbar" style="width:100%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">64</span></div>
-          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Fable 5.1</span><div class="cbar" style="width:95%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">61</span></div>
-          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Opus 5 (1M context)</span><div class="cbar" style="width:58%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">37</span></div>
-          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Sonnet 5</span><div class="cbar" style="width:16%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">10</span></div>
-          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Fable 5</span><div class="cbar amber" style="width:11%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">7</span></div>
+          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Fable 5.1</span><div class="cbar" style="width:100%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">78</span></div>
+          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Opus 4.8</span><div class="cbar" style="width:81%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">63</span></div>
+          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Opus 5 (1M context)</span><div class="cbar" style="width:56%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">44</span></div>
+          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Sonnet 5</span><div class="cbar" style="width:13%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">10</span></div>
+          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Fable 5</span><div class="cbar amber" style="width:9%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">7</span></div>
         </div>
         <p class="font-mono text-white/40 text-[15px] mt-8 tracking-wide">병합 커밋 제외 · 커밋 메시지의 Co-Authored-By 기준</p>
       </div>
@@ -1084,14 +1193,14 @@ body{
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">12 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">14 / 15</span>
   </footer>
 
   <div class="vignette"></div>
 </div>
-<p class="note">구현과 문서화, 반복 개선에는 Claude Code를 썼습니다. 테스트를 돌리고 실패와 측정값을 읽어 고친 뒤 다시 돌리는 과정을 루프로 자동화해서, 실행과 진단과 수정이 한 명령으로 이어지게 했습니다. 병합 커밋을 제외한 172건 중 170건, 99퍼센트가 Claude와의 공동 작성이고 커밋 메시지에 모델별 기여가 기록돼 있습니다.</p>
+<p class="note">구현과 문서화, 반복 개선에는 Claude Code를 썼습니다. 테스트를 돌리고 실패와 측정값을 읽어 고친 뒤 다시 돌리는 과정을 루프로 자동화해서, 실행과 진단과 수정이 한 명령으로 이어지게 했습니다. 병합 커밋을 제외한 205건 중 202건, 99퍼센트가 Claude와의 공동 작성이고 커밋 메시지에 모델별 기여가 기록돼 있습니다.</p>
 </section>
-<!-- ═══ 13 · 데모와 질문 ═══ -->
+<!-- ═══ 15 · 감사합니다 ═══ -->
 <section class="slide hero">
 <div class="st closing">
   <div class="grid-overlay"></div>
@@ -1106,31 +1215,12 @@ body{
   </header>
 
   <main class="absolute flex flex-col items-center justify-center text-center" style="left:0;top:0;width:1920px;height:1080px;">
-    <p class="font-mono text-[#e8b34a] text-[26px] tracking-[0.2em] mb-8">DEMO // WHO IS HUMAN</p>
-    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:88px;">데모와 질문</h1>
-    <p class="font-kr font-bold text-white/75 mt-8" style="font-size:30px;">브라우저에서 바로 열린다. 사람 3~8명 + AI 1좌석, 한 판 약 5분.</p>
-
-    <div class="flex items-center gap-6 mt-12">
-      <div class="panel chamfer-sm px-8 py-5 flex items-center gap-4">
-        <i class="fa-solid fa-globe text-[#5fb8e8] text-[22px]"></i>
-        <span class="font-mono text-white/80 text-[20px] tracking-wide">브라우저 실행</span>
-      </div>
-      <div class="panel chamfer-sm px-8 py-5 flex items-center gap-4">
-        <i class="fa-solid fa-users text-[#5fb8e8] text-[22px]"></i>
-        <span class="font-mono text-white/80 text-[20px] tracking-wide">사람 3~8명 + AI 1좌석</span>
-      </div>
-      <div class="panel chamfer-sm px-8 py-5 flex items-center gap-4">
-        <i class="fa-solid fa-stopwatch text-[#e8b34a] text-[22px]"></i>
-        <span class="font-mono text-white/80 text-[20px] tracking-wide">한 판 약 5분</span>
-      </div>
-    </div>
-
-    <h2 class="font-kr font-black text-[#5fb8e8] mt-20" style="font-size:96px;">감사합니다</h2>
+    <h1 class="font-kr font-black text-[#5fb8e8]" style="font-size:140px;">감사합니다</h1>
   </main>
 
   <footer class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">13 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">15 / 15</span>
   </footer>
 
   <div class="vignette"></div>
@@ -1139,7 +1229,7 @@ body{
 </section>
 
   <div class="brand">WHO IS HUMAN · 특수인공지능대응센터</div>
-  <div class="foot"><span id="pg">01 / 13</span><span class="bar"><i id="pb"></i></span><span class="tts" id="tts"><b></b><span id="ttsl">읽는 중</span></span><span id="ttl"></span></div>
+  <div class="foot"><span id="pg">01 / 15</span><span class="bar"><i id="pb"></i></span><span class="tts" id="tts"><b></b><span id="ttsl">읽는 중</span></span><span id="ttl"></span></div>
 </div><!-- /#stage -->
 
 <div id="notes"><div class="h">발표 대본</div><div class="t" id="ntext"></div></div>
@@ -1151,9 +1241,9 @@ body{
   var stage = document.getElementById('stage');
   var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
   var N = slides.length;
-  var TITLES = ['표지','주제어','배역과 승패','게임 흐름','시험 — 후보 넷 중 셋','발언권과 의심도',
+  var TITLES = ['표지','주제어','배역과 승패','게임 흐름','게임 — 후보 여섯 중 셋 ①','게임 — 후보 여섯 중 셋 ②','카드 — 게임 1등의 몫','발언권과 의심도',
                 'AI 세 가지 용도','LLM 공급자와 런타임','관리 AI 의 대화 분석 기준','성격 설정',
-                '제작 파이프라인','Claude Code','데모'];
+                '제작 파이프라인','Claude Code','감사합니다'];
   var i = 0;
 
   /* 무대를 화면에 맞춰 통째로 확대·축소한다 — 글자가 다시 흐르지 않는다 */

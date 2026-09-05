@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>관리 AI 의 대화 분석 기준</title>
+<title>AI 활용</title>
 <meta name="viewport" content="width=1920, height=1080">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -21,6 +21,7 @@
   .chamfer-sm{clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);}
   .panel{background: linear-gradient(180deg, rgba(20,35,55,0.55) 0%, rgba(10,18,32,0.55) 100%);border: 1px solid var(--line);}
   .header-label{font-family:'JetBrains Mono',monospace;letter-spacing:0.12em;}
+  .tag{font-family:'JetBrains Mono',monospace; background:rgba(95,184,232,0.1); border:1px solid rgba(95,184,232,0.3);}
 </style>
 </head>
 <body class="m-0 p-0">
@@ -31,88 +32,54 @@
   <header id="header" class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
     <div class="flex items-center gap-3">
       <span class="header-label text-[20px] text-[#5fb8e8]">08 //</span>
-      <span class="header-label text-[20px] text-white/70">REFEREE</span>
+      <span class="header-label text-[20px] text-white/70">AI</span>
     </div>
     <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
   </header>
 
-  <main class="absolute" style="left:80px;top:150px;width:1492px;height:800px;transform:scale(1.18);transform-origin:0 0;">
-    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:60px;">관리 AI 의 대화 분석 기준</h1>
-    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">대화를 일정 간격으로 읽고 의심도를 조정한다. 누가 AI 인지는 알지 못한다.</p>
+  <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
+    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:66px;">AI 는 세 가지 용도로 나눠 썼다</h1>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">게임 안에서 도는 LLM · 에셋과 목소리를 만든 생성기 · 코드를 함께 쓴 개발 도구.</p>
 
-    <div class="flex gap-8 mt-8">
-      <div class="flex flex-col gap-5" style="width:1180px;">
-        <div class="panel chamfer p-6">
-          <p class="font-kr font-black text-white text-[24px] mb-4">① 말하는 방식</p>
-          <div class="flex gap-6">
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">사람이 안 쓰는 정밀함 · 감정 빠진 설명체 · 사회자 말투</p>
-            </div>
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">즉흥적 농담 · 오타 · 불리한 것을 그냥 인정</p>
-            </div>
-          </div>
+    <div class="grid grid-cols-3 gap-8 mt-10">
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:560px;">
+        <p class="font-kr font-black text-[#5fb8e8] text-[27px] mb-6">① 게임 안 실시간 LLM</p>
+        <div class="flex flex-wrap gap-2 mb-6">
+          <span class="tag px-3 py-1.5 rounded text-[15px] text-white/85">gpt-6-astra · gpt-5.6-terra 배포</span>
         </div>
-
-        <div class="panel chamfer p-6">
-          <p class="font-kr font-black text-white text-[24px] mb-4">② 기록과 맞는가</p>
-          <div class="flex gap-6">
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">기록이 그 말을 반박한다 — 거짓 해명이 가장 무겁다</p>
-            </div>
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">기록이 그 말을 뒷받침한다</p>
-            </div>
-          </div>
+        <div class="flex flex-wrap gap-2 mb-6">
+          <span class="tag px-3 py-1.5 rounded text-[15px] text-white/85">Claude Agent SDK 로컬</span>
         </div>
+        <p class="font-kr font-semibold text-white/75 text-[21px] leading-[1.6] mt-auto pt-6 border-t border-white/10">대사 생성 · 전략 결정 · 대화 분석 · 답변 판정 — 전략 결정만 게임 직전, 나머지는 대화 중</p>
+      </div>
 
-        <div class="panel chamfer p-6" style="border-color: rgba(232,179,74,0.5);">
-          <p class="font-kr font-black text-white text-[24px] mb-4">③ 앞뒤가 맞는가</p>
-          <div class="flex gap-6">
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">앞서 한 말과 어긋난다</p>
-            </div>
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">스스로 앞말을 정정한다</p>
-            </div>
-          </div>
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:560px;">
+        <p class="font-kr font-black text-[#5fb8e8] text-[27px] mb-6">② 에셋 · 목소리 생성</p>
+        <div class="space-y-4 flex-1">
+          <div class="flex gap-3"><i class="fa-solid fa-cube text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Tripo</span> — 3D 모델(GLB)</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-person-walking text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Meshy</span> — AI 캐릭터 애니메이션</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-swatchbook text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Higgsfield</span> — 텍스처 · 참고 이미지</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-film text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Kling AI</span> — 인트로 배경 영상</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-pen-ruler text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">UX Pilot</span> — 화면 시안</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-volume-high text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">ElevenLabs</span> — 음성 합성(관리 AI · 참가자의 말)</p></div>
         </div>
       </div>
 
-      <div class="panel chamfer p-8 flex flex-col" style="width:500px;">
-        <p class="font-kr font-black text-[#5fb8e8] text-[26px] mb-6">움직이는 규칙</p>
-        <div class="space-y-5">
-          <div class="flex gap-4">
-            <i class="fa-solid fa-clock text-[#5fb8e8] text-[18px] mt-1.5"></i>
-            <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">7초마다 최근 대화를 읽는다</p>
-          </div>
-          <div class="flex gap-4">
-            <i class="fa-solid fa-user-check text-[#5fb8e8] text-[18px] mt-1.5"></i>
-            <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">그 장면에서 말한 사람만, 최대 두 명</p>
-          </div>
-          <div class="flex gap-4">
-            <i class="fa-solid fa-volume-xmark text-[#5fb8e8] text-[18px] mt-1.5"></i>
-            <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">조용한 사람은 건드리지 않는다 — 침묵이 최적 전략이 되면 안 되므로</p>
-          </div>
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:560px; border-color: rgba(232,179,74,0.4);">
+        <p class="font-kr font-black text-[#e8b34a] text-[27px] mb-6">③ 개발 도구</p>
+        <p class="font-mono text-white/85 text-[18px] leading-[1.6] mb-4">Claude Code — Fable 5.1 · Opus 4.8 · Opus 5 · Sonnet 5 · Fable 5</p>
+        <p class="font-kr font-semibold text-white/75 text-[20px] leading-[1.6] mb-8">구현 · 리팩터링 · 테스트 · 문서화</p>
+        <div class="mt-auto pt-6 border-t border-white/10 text-center">
+          <p class="font-mono font-black text-[#e8b34a]" style="font-size:58px; line-height:1;">99%</p>
+          <p class="font-kr font-bold text-white/80 text-[20px] mt-3">205커밋 중 202건(99%) 공동 작성</p>
         </div>
       </div>
-    </div>
-
-    <div class="mt-7 chamfer p-6 flex items-center gap-6" style="background:rgba(232,179,74,0.08); border:1px solid rgba(232,179,74,0.4);">
-      <i class="fa-solid fa-magnifying-glass text-[#e8b34a] text-[26px]"></i>
-      <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">AI 를 가려내는 것은 ③. 없는 기억을 지어내다 앞말과 어긋난다 — 그래서 직전 발언 6줄을 함께 넘긴다.</p>
     </div>
   </main>
 
   <footer id="footer" class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">09 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">09 / 15</span>
   </footer>
 
   <div class="vignette"></div>
