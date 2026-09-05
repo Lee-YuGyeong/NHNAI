@@ -439,10 +439,10 @@ export function InterrogationFeature() {
      * 자막이 먼저 뜨고 소리가 뒤늦게 붙는다 (prologueVoice 머리말).
      */
     /*
-     * 배역(몸)을 먼저 적는다 — 목소리가 얼굴(몸)을 따르기 때문이다 (prologueVoice 의 BODY_VOICE).
-     * 아래 prologueLines 와 같은 씨앗이라 얼굴과 목소리가 같은 배역을 본다.
+     * 배역(몸)을 먼저 적는다 — 목소리가 얼굴(몸)의 성별을 따르기 때문이다 (prologueVoice 의 voicesForCast).
+     * 아래 prologueLines 와 같은 씨앗이라 얼굴 · 목소리 · 여자 목소리 섞기까지 네 화면이 같은 것을 본다.
      */
-    resetPrologueVoice(castSubjects(seatsRef.current, startedAt));
+    resetPrologueVoice(castSubjects(seatsRef.current, startedAt), startedAt);
     prefetchPrologue(PROLOGUE);
     /*
      * 소리가 스피커에 닿기까지의 늦음 — 자막을 그만큼 늦게 연다 (DialogueBox 의 voiceLagMs).
