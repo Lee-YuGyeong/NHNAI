@@ -240,7 +240,7 @@ export function IntroFeature() {
           </div>
           <ul className="intro-roles">
             <li className="intro-role">
-              <img className="intro-role-img" src="/intro/role-ai.jpg" alt="AI — 인간과 구별되지 않는 차가운 얼굴" />
+              <img className="intro-role-img" src="/intro/role-ai.jpg" alt="AI — 인간과 구별되지 않는 얼굴, 목에 가느다란 이음매 선" />
               <div className="intro-role-code">
                 <span>A-··</span>
                 <span>×1</span>
@@ -254,7 +254,7 @@ export function IntroFeature() {
               </ul>
             </li>
             <li className="intro-role">
-              <img className="intro-role-img" src="/intro/role-designer.jpg" alt="AI 설계자 — 어둠 속에서 단말을 조작하는 손" />
+              <img className="intro-role-img" src="/intro/role-designer.jpg" alt="AI 설계자 — 안경을 쓴 연구원이 손으로 입을 가린 채 고민한다" />
               <div className="intro-role-code">
                 <span>A-··</span>
                 <span>×?</span>
@@ -268,7 +268,7 @@ export function IntroFeature() {
               </ul>
             </li>
             <li className="intro-role intro-role--human">
-              <img className="intro-role-img" src="/intro/role-human.jpg" alt="사람 — 앰버 빛에 반쯤 드러난 얼굴, 조용히 하라는 손짓" />
+              <img className="intro-role-img" src="/intro/role-human.jpg" alt="사람 — 전투복 차림의 굳은 얼굴" />
               <div className="intro-role-code">
                 <span>A-··</span>
                 <span>×?</span>

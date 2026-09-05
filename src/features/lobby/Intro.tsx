@@ -428,7 +428,7 @@ export function LobbyIntro() {
         <span className="bl-scene__bleed bl-scene__bleed--left" aria-hidden>
           <img src="/intro/role-leader.jpg" alt="" />
         </span>
-        <div className="bl-scene bl-snap__in">
+        <div className="bl-scene bl-scene--rules bl-snap__in">
           <div>
             <span className="bl-label">03 // HOW TO PLAY</span>
             {/*
@@ -675,9 +675,9 @@ export function RoleCard({ r, typing = false }: { r: RoleDef; typing?: boolean }
         <img src={r.img} alt="" />
       </span>
       <div className="bl-slide__text" data-code={r.stamp}>
+        {/* 번호대만 — 마릿수(×1 · ×?)는 안 적는다 (머리말 ★ · 2026-09-05 사용자: 번호 옆 글자를 뺀다) */}
         <div className="bl-role__code">
           <span className="bl-mono">{r.code}</span>
-          <span className="bl-mono">{r.count}</span>
         </div>
         <h3>{r.title}</h3>
         {/* 줄마다 한 칸씩 띄운다 — 뭉쳐 놓으면 어디가 한 호흡인지 안 보인다 */}
@@ -739,13 +739,15 @@ export function RoleCard({ r, typing = false }: { r: RoleDef; typing?: boolean }
  * 그렸다(role-ai.jpg · role-designer.jpg, 2026-09-04) — 옛 role-node.jpg는 후드를 쓴 실루엣이라
  * 한눈에 로봇으로 보였는데, 새 기획의 AI는 "말투도 표정도 인간과 다르지 않다"(PLANNING
  * 서두)가 핵심이라 겉모습으로 갈리면 안 된다. 사람 카드는 role-human.jpg를 그대로 쓴다.
+ * 2026-09-05 세 장을 다시 갈았다(사용자가 준 그림, 1254² → 1000² jpg): AI 는 목에 이음매 선이
+ * 간 청년의 정면 얼굴, 설계자는 안경 쓴 연구원이 손으로 입을 가린 채 고민하는 모습, 사람은
+ * 전투복 차림의 굳은 얼굴. 셋 다 얼굴이 복판이라 카드의 세로 자르기(lobby.css 50% 45%)에 맞는다.
  */
 /** 배역 한 장의 모양 — features/interrogation 의 브리핑 카드도 이 타입 그대로 쓴다 */
 export interface RoleDef {
   code: string;
   /** 뒤에 크게 찍히는 짧은 코드. 긴 범위는 여기 안 들어간다 */
   stamp: string;
-  count: string;
   title: string;
   /**
    * 소개 — **한 줄에 한 문장이다** (2026-08-30 사용자: "한 줄씩 띄워서 보여주게" →
@@ -769,7 +771,6 @@ export const ROLES: RoleDef[] = [
   {
     code: NODE_RANGE,
     stamp: 'A-··',
-    count: '×1',
     title: 'AI',
     body: [
       '표식 없이 출고된 유일한 개체.',
@@ -783,7 +784,6 @@ export const ROLES: RoleDef[] = [
   {
     code: NODE_RANGE,
     stamp: 'A-··',
-    count: '×?',
     title: 'AI 설계자',
     body: [
       '표식을 붙이지 않은 걸 들켜서는 안 되는 조력자.',
@@ -797,7 +797,6 @@ export const ROLES: RoleDef[] = [
   {
     code: NODE_RANGE,
     stamp: 'A-··',
-    count: '×?',
     title: '사람',
     body: [
       '실제 플레이어 대다수.',

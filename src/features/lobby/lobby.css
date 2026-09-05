@@ -1710,12 +1710,6 @@
 .bl-slide.bl-role--human .bl-role__code {
   color: var(--bl-line);
 }
-/* 마릿수는 번호와 다른 값이다 — 금을 긋고 한 단 죽인다 */
-.bl-slide .bl-role__code span + span {
-  padding-left: 11px;
-  border-left: 1px solid rgba(111, 211, 255, 0.22);
-  color: var(--bl-faint);
-}
 .bl-slide .bl-note {
   color: var(--bl-ink-2);
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
@@ -2241,6 +2235,100 @@
   align-content: start;
   gap: clamp(28px, 4.5vh, 44px);
 }
+/* 제목·부제도 한 단 — 카드가 커진 만큼 (2026-09-05 참고 화면: 제목이 화면 폭의 3.4%) */
+.bl-scene--roles .bl-scene__h {
+  font-size: clamp(28px, min(3.4vw, 6.5vh), 62px);
+}
+.bl-scene--roles .bl-scene__lead--tight {
+  font-size: clamp(13.5px, 0.85vw, 16px);
+  max-width: 720px;
+}
+
+/*
+ * ── 배역 카드의 비율 (2026-09-05, 사용자가 준 참고 화면) ──────────────────────
+ * 사진이 카드의 **절반**을 차지하고 위아래를 꽉 채운다(정사각 칸이 아니라 세로로 선 판).
+ * 카드 높이는 화면의 58% — 제목 아래 곧장 서서 칸을 채운다. 글 칸은 위에서부터 앉고
+ * 안여백을 넉넉히 두며, 넘기는 손잡이는 글 칸 **바닥의 금 아래**로, 번호 계기는 사진
+ * 왼쪽 아래의 칩으로 간다 — 카드 밖에 손잡이 줄이 따로 있던 것을 카드 안으로 들인다.
+ * 700px 미만(사진이 위로 오는 한 줄 판)은 옛 흐름 그대로다.
+ */
+@media (min-width: 700px) {
+  .bl-scene--roles .bl-slides {
+    position: relative;
+    margin-top: 0;
+  }
+  .bl-scene--roles .bl-slides__stack {
+    min-height: clamp(380px, 58vh, 540px);
+  }
+  .bl-scene--roles .bl-slide {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  /* 사진은 칸을 채울 뿐 칸의 높이를 정하지 않는다 — 절대 배치라야 정사각 원본(900×900)이 줄을 늘리지 않는다 */
+  .bl-scene--roles .bl-slide .bl-role__art {
+    aspect-ratio: auto;
+    height: auto;
+    min-height: 0;
+    align-self: stretch;
+  }
+  .bl-scene--roles .bl-slide .bl-role__art img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 45%; /* 세 장의 구도가 다 다르다(얼굴 가운데 · 후드 위 · 손 아래) — 복판이 제일 덜 잘린다 */
+  }
+  /* 사진이 넓어졌으니 오른쪽 녹임은 가장자리만 — 반을 먹으면 사진이 아니라 안개다 */
+  .bl-scene--roles .bl-slide .bl-role__art::after {
+    background:
+      linear-gradient(90deg, transparent 78%, rgba(4, 16, 28, 0.9)),
+      linear-gradient(180deg, rgba(2, 10, 18, 0.25), transparent 30%, rgba(2, 10, 18, 0.35));
+  }
+  .bl-scene--roles .bl-slide__text {
+    align-content: start;
+    gap: 10px;
+    padding: clamp(28px, 4.2vh, 40px) clamp(24px, 3.4vw, 44px) 108px;
+  }
+  .bl-scene--roles .bl-slide__text h3 {
+    margin-top: 4px;
+  }
+  .bl-scene--roles .bl-slide__body {
+    gap: 9px;
+    margin-top: 6px;
+  }
+  .bl-scene--roles .bl-slide .bl-note {
+    font-size: 13px;
+    line-height: 1.75;
+  }
+  .bl-scene--roles .bl-slide .bl-role__tags {
+    margin-top: 12px;
+  }
+  /* 손잡이 줄을 푼다 — 계기와 손잡이가 각자 카드 위의 제자리로 간다 */
+  .bl-scene--roles .bl-slides__nav {
+    display: contents;
+  }
+  .bl-scene--roles .bl-slides__count {
+    position: absolute;
+    left: 18px;
+    bottom: 18px;
+    z-index: 3;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    background: rgba(4, 16, 28, 0.78);
+    border: 1px solid rgba(111, 211, 255, 0.28);
+    backdrop-filter: blur(4px);
+  }
+  .bl-scene--roles .bl-slides__ctrl {
+    position: absolute;
+    left: calc(50% + clamp(24px, 3.4vw, 44px));
+    right: clamp(24px, 3.4vw, 44px);
+    bottom: clamp(24px, 3.6vh, 32px);
+    z-index: 3;
+    justify-content: flex-start;
+    padding-top: 20px;
+    border-top: 1px solid rgba(111, 211, 255, 0.18);
+  }
+}
 
 /* ── 진행: 카드 다섯 장이 아니라 **한 줄의 순서** ─────────────────── */
 
@@ -2321,6 +2409,76 @@
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   margin: 0;
   gap: 8px;
+}
+
+/*
+ * ── 진행 칸의 글 비율·짜임 (2026-09-05, 사용자가 준 참고 화면) ──────────────────
+ * 제목은 배역 칸과 같은 크기(화면 폭의 3.4%). 다섯 단계의 글은 제목에 비례해 한 단
+ * 크고(단계 이름 18px · 설명 15px), 규칙 셋은 **상자를 걷는다** — 화면 폭을 가로지르는
+ * 금 하나 아래 세 단으로 앉고, 단 사이는 얇은 세로 금이 가른다. 상자·왼쪽 띠·바탕색은
+ * 없다. 사람 규칙의 앰버는 제목 글자에만 남는다(색 약속은 그대로).
+ */
+.bl-scene--rules .bl-scene__h {
+  font-size: clamp(28px, min(3.4vw, 6.5vh), 62px);
+}
+@media (min-width: 720px) {
+  .bl-scene--rules .bl-flow__step {
+    gap: 6px;
+    padding-right: clamp(16px, 2vw, 36px);
+  }
+  .bl-scene--rules .bl-flow__no {
+    font-size: 11px;
+  }
+  .bl-scene--rules .bl-flow::before {
+    top: 24px;
+  }
+  .bl-scene--rules .bl-flow__step::before {
+    top: 20px;
+  }
+  .bl-scene--rules .bl-flow__step h4 {
+    margin-top: 22px;
+    font-size: clamp(15px, 0.95vw, 18px);
+  }
+  .bl-scene--rules .bl-flow__step .bl-note {
+    font-size: clamp(13px, 0.8vw, 15px);
+    line-height: 1.7;
+  }
+}
+.bl-scene--rules .bl-rules {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  padding-top: clamp(18px, 2.8vh, 26px);
+  border-top: 1px solid rgba(111, 211, 255, 0.3);
+}
+.bl-scene--rules .bl-rule {
+  gap: 8px;
+  padding: 0 clamp(20px, 2.2vw, 40px) 0 0;
+  border-left: 0;
+  background: none;
+  font-size: clamp(13px, 0.8vw, 15px);
+  line-height: 1.7;
+}
+.bl-scene--rules .bl-rule b {
+  font-size: clamp(14px, 0.95vw, 18px);
+  line-height: 1.3;
+}
+.bl-scene--rules .bl-rule + .bl-rule {
+  padding-left: clamp(20px, 2.2vw, 40px);
+  border-left: 1px solid rgba(111, 211, 255, 0.14);
+}
+@media (max-width: 899px) {
+  .bl-scene--rules .bl-rules {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .bl-scene--rules .bl-rule {
+    padding: 0;
+  }
+  .bl-scene--rules .bl-rule + .bl-rule {
+    padding: 16px 0 0;
+    border-left: 0;
+    border-top: 1px solid rgba(111, 211, 255, 0.14);
+  }
 }
 
 /*
