@@ -189,25 +189,42 @@ export const GAME_HARD_CAP_MS = 10 * 60_000;
  */
 export const GAME_ENDED_MS = 30_000;
 
-/** 의심도 걸음 (§1.2 제안값 — 플레이테스트로 조정) */
+/**
+ * 의심도 걸음.
+ *
+ * 값은 **판 길이에 맞춰 잡혀 있다** (2026-09-05 사용자: "의심도 올라가는거 개선할부분 있을까?").
+ * 처음의 제안값(§1.2: 지목 8 · 동조 5 · 몰이 2/6 · 읽기 ±12/−8)은 이 차례표에 비해 너무 작았다 — 토론은
+ * 40초 × 4 = **160초**뿐인데(GAME_*_DISCUSSION_MS), 그 안에 100 을 채울 길이 없었다:
+ *
+ *   · 말 읽기는 READ_EVERY_MS 마다 한 장면, 한 장면에 **둘까지**(agents.readTalk) → 판 전체에 여덟 장면 남짓.
+ *     한 사람에게 전부 몰아줘도 8 × 12 = 96 으로 **이론적 최대치가 격리선에 못 미쳤다.**
+ *   · 지목은 봇 발화 수에 매여 있는데 그 발화가 방 전체에서 직렬로 돌았다 (runtime 의 BOT_TALK_CONCURRENCY 머리말).
+ *
+ * 그래서 대개 아무도 격리되지 않고 차례표가 끝나 「시간이 다 됐다」 — AI 자동 승리로 닫혔다.
+ * 지금 값은 **한 판에 1~2명이 격리되는 속도**를 겨눈다: 몰이가 한 사람에 붙으면 두세 번째 토론에서 100 에 닿고,
+ * 아무도 안 몰리면 말 읽기만으로는 못 닿는다 — 격리는 방이 합의해야 일어나는 일로 남는다.
+ */
 export const SUSPICION = {
-  accuse: 8,
-  agree: 5,
-  mobPer: 2,
-  mobCap: 6,
-  claimMatch: -10,
-  claimMismatch: 10,
+  accuse: 12,
+  agree: 8,
+  mobPer: 3,
+  mobCap: 12,
+  claimMatch: -12,
+  claimMismatch: 15,
   /** 관리 AI 가 말을 읽고 한 번에 올릴 수 있는 최대 · 내릴 수 있는 최대 (readMin 은 음수) */
-  readMax: 12,
-  readMin: -8,
+  readMax: 16,
+  readMin: -10,
   cut: 100,
 } as const;
 
 /**
  * 관리 AI 가 방의 말을 읽는 간격(ms)과, 한 번에 읽는 새 발언의 수.
  * 한 마디마다 부르면 값이 튀고 LLM 을 너무 자주 부른다 — 몇 마디 쌓아 **한 장면**으로 읽는다.
+ *
+ * 14초였을 때는 40초짜리 토론 하나에 두 장면밖에 안 들어갔다. 9초면 서너 장면이다 — 말 읽기가 이 판에서
+ * 눈금의 주된 문(runtime.readRoom)인데 그 문이 판 길이보다 느리게 열리고 있었다.
  */
-export const READ_EVERY_MS = 14_000;
+export const READ_EVERY_MS = 9_000;
 export const READ_MIN_LINES = 2;
 export const READ_MAX_LINES = 12;
 

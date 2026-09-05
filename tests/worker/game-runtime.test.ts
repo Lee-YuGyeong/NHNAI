@@ -14,12 +14,14 @@ import {
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
   GAME_TEST_ORDER,
+  SUSPICION,
   type GameS2CMessage,
   type GameStateWire,
 } from '../../src/world/mp/game-protocol';
 import type { PlayerSnapshot, S2CMessage, TrialPlayerResult } from '../../src/world/mp/protocol';
 import type { Brain } from '../../worker/src/game/brain';
 import { GameRuntime } from '../../worker/src/game/runtime';
+import { REPEAT_STEP } from '../../worker/src/game/suspicion';
 import type { EngineContext, GameEngine } from '../../worker/src/trial/engine';
 
 type Out = S2CMessage | GameS2CMessage;
@@ -153,13 +155,41 @@ describe('GameRuntime — 판 한 바퀴', () => {
     const other = seats.find((s) => s.id !== p1Seat)!;
     const nn = String(other.seat).padStart(2, '0');
     h.rt.onChat('p1', `${nn} 너 AI 아니야?`);
-    expect(h.lastState().suspicion[other.id]).toBe(8);
+    expect(h.lastState().suspicion[other.id]).toBe(SUSPICION.accuse);
     expect(h.lastState().accusations[p1Seat]).toBe(other.id);
     // 잡담은 안 움직인다
     h.rt.onChat('p1', `${nn} 오늘 날씨 좋다`);
     await vi.advanceTimersByTimeAsync(6_000);
     h.rt.onChat('p1', '아 배고파');
-    expect(h.lastState().suspicion[other.id]).toBe(8);
+    expect(h.lastState().suspicion[other.id]).toBe(SUSPICION.accuse);
+  });
+
+  /**
+   * 2026-09-05 — accusationIn 이 일상 채팅을 지목으로 오독하던 자리들. 애먼 사람을 격리하면 AI 가 이기므로
+   * (roles.outcomeFor) 애매한 줄은 **안 잡는 쪽**이 맞다.
+   */
+  it('일상 채팅은 지목이 아니다 — 맨 숫자 · 「몰라」 · 감싸 주는 말', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    const p1Seat = h.roleOf('p1')!.seatId;
+    const other = h.lastState().seats.find((s) => s.id !== p1Seat)!;
+    const n = String(other.seat);
+    const nn = n.padStart(2, '0');
+
+    // 맨 숫자는 회차·등수·초와 못 가른다 — 죄목 낱말이 같이 있어도 좌석을 부른 것이 아니다
+    h.rt.onChat('p1', `${n}회차 기록 보면 AI 티 나던데`);
+    // 「몰라」의 「몰」이 죄목으로 읽히던 자리
+    h.rt.onChat('p1', `${n}번 기록은 나도 몰라`);
+    // 감싸 주는 말이 +로 가던 자리
+    h.rt.onChat('p1', `${nn}은 AI 아닌 것 같아`);
+    expect(h.lastState().suspicion[other.id] ?? 0).toBe(0);
+    expect(h.lastState().accusations).toEqual({});
+
+    // 「3번」에 죄목이 붙으면 그건 지목이다 — 되묻기("아니야?")는 부정이 아니다
+    h.rt.onChat('p1', `${n}번 너 AI 아니야?`);
+    expect(h.lastState().suspicion[other.id]).toBe(SUSPICION.accuse);
+    expect(h.lastState().accusations[p1Seat]).toBe(other.id);
   });
 
   it('관리 AI 가 오간 말을 읽고 의심도를 움직인다 — 지목 없이', async () => {
@@ -239,17 +269,17 @@ describe('GameRuntime — 판 한 바퀴', () => {
     const aiSeat = seats.find((s) => !mine.has(s.id))!; // 사람 셋뿐이니 남는 하나가 AI 다 — 시험이라서 안다
 
     await h.rt.handle('p1', { t: 'game_accuse', target: aiSeat.id });
-    expect(h.lastState().suspicion[aiSeat.id]).toBe(8);
+    expect(h.lastState().suspicion[aiSeat.id]).toBe(SUSPICION.accuse);
     await h.rt.handle('p2', { t: 'game_accuse', target: aiSeat.id });
-    expect(h.lastState().suspicion[aiSeat.id]).toBe(15);
+    expect(h.lastState().suspicion[aiSeat.id]).toBe(SUSPICION.accuse + SUSPICION.agree + SUSPICION.mobPer);
     await h.rt.handle('p2', { t: 'game_withdraw' });
-    expect(h.lastState().suspicion[aiSeat.id]).toBe(8);
+    expect(h.lastState().suspicion[aiSeat.id]).toBe(SUSPICION.accuse);
     // 같은 사람의 연타는 서버가 5초에 한 번만 받는다
     await h.rt.handle('p1', { t: 'game_accuse', target: aiSeat.id });
-    expect(h.lastState().suspicion[aiSeat.id]).toBe(8);
+    expect(h.lastState().suspicion[aiSeat.id]).toBe(SUSPICION.accuse);
     await vi.advanceTimersByTimeAsync(5_100);
     await h.rt.handle('p1', { t: 'game_accuse', target: aiSeat.id });
-    expect(h.lastState().suspicion[aiSeat.id]).toBe(11);
+    expect(h.lastState().suspicion[aiSeat.id]).toBe(SUSPICION.accuse + REPEAT_STEP);
 
     // 100 까지 — 주장 판정으로 채운다 (가짜 두뇌가 불일치를 낸다)
     const liar: Brain = { mode: 'api', ask: async () => ({ verdict: 'mismatch', reason: '기록이 다르다' }) };
