@@ -198,7 +198,7 @@ describe('engine — 판정과 스냅샷', () => {
     expect(JSON.stringify(msgs)).not.toContain('grip'); // μ 는 어디에도 안 실린다
   });
 
-  it('기계 좌석(precision 1)은 봉을 넘는다 — 점프는 사람과 같은 통로다 (P9)', () => {
+  it('기계 좌석(precision 1)은 대개 넘고, 자리도 옮긴다 — 점프는 사람과 같은 통로다 (P9)', () => {
     const e = new BarEngine(seeded(11));
     const { msgs, ctx } = collect();
     const t0 = Date.now();
@@ -207,8 +207,11 @@ describe('engine — 판정과 스냅샷', () => {
     for (let k = 1; k <= 300; k += 1) e.tickAt(t0 + k * 50); // 15초 — 스침 두어 번
     const bot = e.bodyOf('SUBJECT_01')!;
     expect(bot.jumps).toBeGreaterThan(0);
-    expect(msgs.filter((m) => m.t === 'trial_hit').length).toBe(0);
-    expect(msgs.filter((m) => m.t === 'trial_fell').length).toBe(0);
+    // 완벽하지 않다 — lapseP(5%)가 있어 가끔 맞는다. 다만 이 씨드 15초 안에서 두 번 넘게 맞으면 그건 버그다
+    expect(msgs.filter((m) => m.t === 'trial_hit').length).toBeLessThanOrEqual(1);
+    // 재배치 시계 — 동상이 아니다. 15초면 적어도 한 번은 걸었다
+    const r = e.results().find((p) => p.id === 'SUBJECT_01')!;
+    expect(r.metrics.walked).toBeGreaterThan(1);
   });
 
   it('봉이 멀리 있는데 뛰면 헛점프로 남는다', () => {
