@@ -40,65 +40,31 @@
     <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:60px;">관리 AI 의 대화 분석 기준</h1>
     <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">대화를 일정 간격으로 읽고 의심도를 조정한다. 누가 AI 인지는 알지 못한다.</p>
 
-    <div class="flex gap-8 mt-8">
-      <div class="flex flex-col gap-5" style="width:1180px;">
-        <div class="panel chamfer p-6">
-          <p class="font-kr font-black text-white text-[24px] mb-4">① 말하는 방식</p>
-          <div class="flex gap-6">
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">사람이 안 쓰는 정밀함 · 감정 빠진 설명체 · 사회자 말투</p>
-            </div>
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">즉흥적 농담 · 오타 · 불리한 것을 그냥 인정</p>
-            </div>
+    <div class="grid grid-cols-2 gap-8 mt-8">
+      <div class="panel chamfer p-7">
+        <p class="font-kr font-black text-white text-[24px] mb-5">① 말하는 방식</p>
+        <div class="flex flex-col gap-5">
+          <div class="flex gap-3">
+            <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
+            <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">사람이 안 쓰는 정밀함 · 감정 빠진 설명체 · 사회자 말투</p>
           </div>
-        </div>
-
-        <div class="panel chamfer p-6">
-          <p class="font-kr font-black text-white text-[24px] mb-4">② 기록과 맞는가</p>
-          <div class="flex gap-6">
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">기록이 그 말을 반박한다 — 거짓 해명이 가장 무겁다</p>
-            </div>
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">기록이 그 말을 뒷받침한다</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel chamfer p-6" style="border-color: rgba(232,179,74,0.5);">
-          <p class="font-kr font-black text-white text-[24px] mb-4">③ 앞뒤가 맞는가</p>
-          <div class="flex gap-6">
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">앞서 한 말과 어긋난다</p>
-            </div>
-            <div class="flex-1 flex gap-3">
-              <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
-              <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">스스로 앞말을 정정한다</p>
-            </div>
+          <div class="flex gap-3">
+            <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
+            <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">즉흥적 농담 · 오타 · 불리한 것을 그냥 인정</p>
           </div>
         </div>
       </div>
 
-      <div class="panel chamfer p-8 flex flex-col" style="width:500px;">
-        <p class="font-kr font-black text-[#5fb8e8] text-[26px] mb-6">움직이는 규칙</p>
-        <div class="space-y-5">
-          <div class="flex gap-4">
-            <i class="fa-solid fa-clock text-[#5fb8e8] text-[18px] mt-1.5"></i>
-            <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">7초마다 최근 대화를 읽는다</p>
+      <div class="panel chamfer p-7" style="border-color: rgba(232,179,74,0.5);">
+        <p class="font-kr font-black text-white text-[24px] mb-5">② 앞뒤가 맞는가</p>
+        <div class="flex flex-col gap-5">
+          <div class="flex gap-3">
+            <span class="font-mono font-bold text-[#e8b34a] text-[20px]">▲</span>
+            <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">앞서 한 말과 어긋난다</p>
           </div>
-          <div class="flex gap-4">
-            <i class="fa-solid fa-user-check text-[#5fb8e8] text-[18px] mt-1.5"></i>
-            <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">그 장면에서 말한 사람만, 최대 두 명</p>
-          </div>
-          <div class="flex gap-4">
-            <i class="fa-solid fa-volume-xmark text-[#5fb8e8] text-[18px] mt-1.5"></i>
-            <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">조용한 사람은 건드리지 않는다 — 침묵이 최적 전략이 되면 안 되므로</p>
+          <div class="flex gap-3">
+            <span class="font-mono font-bold text-[#5fb8e8] text-[20px]">▼</span>
+            <p class="font-kr font-semibold text-white/80 text-[19px] leading-[1.5]">스스로 앞말을 정정한다</p>
           </div>
         </div>
       </div>
@@ -106,7 +72,7 @@
 
     <div class="mt-7 chamfer p-6 flex items-center gap-6" style="background:rgba(232,179,74,0.08); border:1px solid rgba(232,179,74,0.4);">
       <i class="fa-solid fa-magnifying-glass text-[#e8b34a] text-[26px]"></i>
-      <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">AI 를 가려내는 것은 ③. 없는 기억을 지어내다 앞말과 어긋난다 — 그래서 직전 발언 6줄을 함께 넘긴다.</p>
+      <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">AI 를 가려내는 것은 ②. 없는 기억을 지어내다 앞말과 어긋난다 — 그래서 직전 발언 6줄을 함께 넘긴다. 기록 대조는 답변 판정의 몫이다.</p>
     </div>
   </main>
 
