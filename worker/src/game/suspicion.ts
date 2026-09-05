@@ -13,15 +13,15 @@
  *     남이 철회해도 안 걷힌다. read · echo · duck · still · backstep 이 전부 이 층이다.
  *
  * 걸음(SUSPICION, game-protocol.ts):
- *   지목            아무도 안 겨누던 대상을 처음 지목하는 발언 +12
- *   동조            이미 남이 겨누는 대상에 얹는 발언 +8
- *   되풀이          같은 사람이 같은 대상을 다시 말하는 발언 +3 — 혼자서 같은 말로 눈금을 밀 수는 있지만 느리다
- *   몰이            2인 이상이 같은 대상을 겨누는 동안, 발언마다 +3 가산 — 몰이 한 번(episode)에 +12 까지
+ *   지목            아무도 안 겨누던 대상을 처음 지목하는 발언 +15
+ *   동조            이미 남이 겨누는 대상에 얹는 발언 +10
+ *   되풀이          같은 사람이 같은 대상을 다시 말하는 발언 +5 — 혼자서 같은 말로 눈금을 밀 수는 있지만 느리다
+ *   몰이            2인 이상이 같은 대상을 겨누는 동안, 발언마다 +4 가산 — 몰이 한 번(episode)에 +16 까지
  *   철회            겨누기를 거두면 **그동안 그 대상에 얹은 만큼** 되돌린다 ("건 만큼 되돌림")
- *   주장 판정       일치 −12 · 불일치 +15 (§4.2)
- *   말 읽기         관리 AI 가 몇 마디를 한 장면으로 읽고 −10 ~ +16 (read)
- *   되풀이 말       자기가 아까 한 말을 다시 친다 +6 (echo) — 거듭할수록 +4 씩
- *   말 회피         불렀는데 대답 없이 넘긴다, 2회째부터 +8 (duck) — 몰린 채면 +4 더
+ *   주장 판정       일치 −12 · 불일치 +18 (§4.2)
+ *   말 읽기         관리 AI 가 몇 마디를 한 장면으로 읽고 −10 ~ +20 (read)
+ *   되풀이 말       자기가 아까 한 말을 다시 친다 +8 (echo) — 거듭할수록 +5 씩
+ *   말 회피         불렀는데 대답 없이 넘긴다, 2회째부터 +10 (duck) — 몰린 채면 +5 더
  *   굳음 · 뒷걸음   +5 (still · backstep) — 둘을 합쳐 좌석당 bodyCap(30) 까지만
  *   100             격리 — 눈금이 얼어붙고, 그 사람이 건 지목은 전부 철회된다 (죽은 사람은 몰지 못한다)
  *
@@ -38,8 +38,14 @@ export interface SuspicionDelta {
   why: string;
 }
 
-/** 같은 사람이 같은 대상을 되풀이하는 발언의 걸음 — 제안값(§10) */
-export const REPEAT_STEP = 3;
+/**
+ * 같은 사람이 같은 대상을 되풀이하는 발언의 걸음 — 제안값은 3 이었다(§10).
+ *
+ * 5 로 올렸다 (2026-09-05 "의심도 좀 더 빨리 차게 해줘"). 겨눔은 토론이 바뀌어도 안 지워지므로 2차부터는
+ * 지목(15)도 동조(10)도 다시 안 열린다 — 몰이가 붙어 버티는 방에서 **후반 내내 열려 있는 문은 이것뿐**이다.
+ * 그 문이 3 이면 셋이 계속 몰아도 토론 하나에 눈금이 열 칸 남짓 오른다.
+ */
+export const REPEAT_STEP = 5;
 
 /** 표식의 종류 — 말 둘(echo · duck)과 몸 둘(still · backstep). 관리 AI 의 말 읽기(read)는 크기를 밖에서 정하므로 따로다 */
 export type TellKind = 'echo' | 'duck' | 'still' | 'backstep';
@@ -99,8 +105,8 @@ export class SuspicionBook {
    * 토론이 새로 열렸다 — **몰이 상한만** 다시 센다 (runtime.openDiscussion).
    *
    * mobGiven 은 여태 「겨누는 사람이 2명 미만이 될 때」만 풀렸다. 그런데 겨눔은 토론이 바뀌어도 안 지워지므로,
-   * 한 번 붙은 몰이는 판 전체에 걸쳐 mobCap(12) 을 딱 한 번만 냈다 — 2차 토론 안에 소진되고 나면 후반에
-   * 남는 문은 되풀이 +3 하나뿐이었다. 버티는 몰이는 토론마다 다시 값을 내야 한다.
+   * 한 번 붙은 몰이는 판 전체에 걸쳐 mobCap 을 딱 한 번만 냈다 — 2차 토론 안에 소진되고 나면 후반에
+   * 남는 문은 되풀이(REPEAT_STEP) 하나뿐이었다. 버티는 몰이는 토론마다 다시 값을 내야 한다.
    *
    * staked · tellNth · bodyGiven 은 **안 건드린다** — 되돌릴 빚과 누계는 판이 끝날 때까지 남는다.
    */
@@ -172,7 +178,7 @@ export class SuspicionBook {
         why = `${why} · 몰이 +${bonus}`;
       }
     }
-    // 기본값과 몰이 가산을 **합친 뒤 한 번** 곱한다. mobGiven 은 곱하기 전 단위로 남는다 — 그래야 상한 12 의 뜻이 안 흔들린다
+    // 기본값과 몰이 가산을 **합친 뒤 한 번** 곱한다. mobGiven 은 곱하기 전 단위로 남는다 — 그래야 mobCap 의 뜻이 안 흔들린다
     const amount = this.scale(base + bonus);
     this.staked.set(by, (this.staked.get(by) ?? 0) + amount);
     this.bump(target, amount);
@@ -202,7 +208,7 @@ export class SuspicionBook {
     if (!this.value.has(id) || this.frozen.has(id)) return null;
     /*
      * 클램프가 **먼저**고 압력은 그다음이다. 순서를 뒤집으면 압력이 readMax 에 눌려 통째로 사라진다.
-     * 이 순서 덕에 판정기의 프롬프트(agents.readTalk)는 한 자도 안 고친다 — 판정기는 계속 −10~+16 한 자로 재고,
+     * 이 순서 덕에 판정기의 프롬프트(agents.readTalk)는 한 자도 안 고친다 — 판정기는 계속 readMin~readMax 한 자로 재고,
      * 다이얼은 판이 돌린다.
      */
     const clamped = Math.round(Math.max(SUSPICION.readMin, Math.min(SUSPICION.readMax, amount)));
