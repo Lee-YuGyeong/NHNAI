@@ -439,7 +439,8 @@ function wasCopula(word: string): string {
  *
  * 머리띠의 시계와 발치의 막대는 서버가 로비로 되돌리는 순간(GAME_ENDED_MS)을 센다 — 판이 걷히면 「소집 대기」가
  * 선다. 재접속이라 game_ended 를 못 받았으면(endsAt null) 시계 없이 선다. 「다시 — 새 판」은 그 전에 먼저
- * 걷고 싶을 때 쓴다 (새로고침 — 판이 끝난 방에 들어오면 서버가 즉시 로비로 되돌린다).
+ * 걷고 싶을 때 쓴다 — **누르면 그 자리에서 새 판이 열린다** (서버는 끝 화면 중에도 방장의 시작을 받는다).
+ * 방장이 아니면 단추가 없다: 눌러도 서버가 거절할 뿐이고, 그 사유는 이 판에 가려 보이지도 않는다.
  */
 export function EndScreen({
   outcome,
@@ -448,6 +449,7 @@ export function EndScreen({
   mySeatId,
   myRole,
   endsAt,
+  canStart,
   onAgain,
 }: {
   outcome: GameOutcome;
@@ -457,6 +459,8 @@ export function EndScreen({
   myRole: GameRole | null;
   /** 서버가 로비로 되돌리는 시각(내 시계) — 없으면 시계·막대 없이 선다 */
   endsAt: number | null;
+  /** 내가 방장인가 — 새 판을 여는 것은 방장뿐이다 (worker 의 runtime.start) */
+  canStart: boolean;
   onAgain: () => void;
 }) {
   const humansWon = outcome.winner === 'humans';
@@ -467,6 +471,16 @@ export function EndScreen({
   const aiName = seats.find((s) => s.id === outcome.aiId)?.name ?? outcome.aiId;
   const mine = myRole === null ? null : iWon ? (myRole === 'designer' && !humansWon ? '개인 승리' : '승리') : '패배';
   const foiled = myRole === 'designer' && !humansWon && !iWon;
+  /*
+   * 눌렀다 — 새 판이 열리면 이 판이 통째로 사라지므로 되돌릴 일이 없다. 그래도 3초 뒤 스스로 푼다:
+   * 서버가 거절하면(방장이 바뀌었다든지) 단추가 영영 잠긴 채로 남는다.
+   */
+  const [asked, setAsked] = useState(false);
+  useEffect(() => {
+    if (!asked) return;
+    const t = setTimeout(() => setAsked(false), 3000);
+    return () => clearTimeout(t);
+  }, [asked]);
 
   return (
     <div
@@ -525,10 +539,20 @@ export function EndScreen({
         </div>
 
         <div className="ft">
-          <span className="ftx">{endsAt !== null ? '판이 걷히면 소집 대기로 돌아간다' : '방장이 새 판을 열 수 있다'}</span>
-          <button type="button" className="again" onClick={onAgain}>
-            다시 — 새 판
-          </button>
+          <span className="ftx">{canStart ? (endsAt !== null ? '판이 걷히면 소집 대기로 돌아간다' : '새 판을 열 수 있다') : '방장이 새 판을 연다'}</span>
+          {canStart ? (
+            <button
+              type="button"
+              className="again"
+              disabled={asked}
+              onClick={() => {
+                setAsked(true);
+                onAgain();
+              }}
+            >
+              {asked ? '여는 중…' : '다시 — 새 판'}
+            </button>
+          ) : null}
           {endsAt !== null ? (
             <span aria-hidden className="prog">
               <i />
