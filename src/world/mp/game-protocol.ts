@@ -86,7 +86,7 @@ export interface GameStateWire {
   currentTest: GameTestInfo | null;
   /** 마지막 결과 — 모달과 HUD 요약 패널이 그린다 (§3) */
   latestResult: TrialResultWire | null;
-  /** 격리 목표 수 = 총원 절반(내림). 여기 닿으면 끝 (§1.3) */
+  /** 격리 목표 수 = 총원 절반(내림). **판을 끝내는 문턱이 아니다** — 첫 격리로 끝난다 (§1.3, runtime.checkIsolation) */
   quota: number;
   hostId: string | null;
   /** 시작에 필요한 실제 사람 수 — 모자란 만큼은 대역이 채울 수 있다 (§9 폴백) */
