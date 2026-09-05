@@ -1,6 +1,6 @@
 /**
  * 물리 미니게임 방 — /trial. 정지선(?game=stopline, 기본) · 낙하 생존(?game=fall) · 색 사냥(?game=colorhunt) · 움직이는 플랫폼(?game=platform) ·
- * 회전 원판(?game=disc) · 무게 중심 다리(?game=seesaw).
+ * 회전 원판(?game=disc) · 무게 중심 다리(?game=seesaw) · 무너지는 타워 생존(?game=tower).
  * 방 번호는 ?code= 로 받는다(없으면 '1234' — /world 와 같은 개발 편의 기본값). 복도의 살아있는
  * WS 를 이어받지 않고 새로 연다(TrialConnection 머리말) — `idFromName(roomCode)`가 같은
  * RoomDO 로 보내주므로 로스터는 그대로 이어진다.
@@ -23,6 +23,9 @@ import { DiscScene } from './games/disc/DiscScene';
 import { discState } from './games/disc/discState';
 import { FallScene } from './games/fall/FallScene';
 import { SeesawScene } from './games/seesaw/SeesawScene';
+import { TowerScene } from './games/tower/TowerScene';
+import { towerState } from './games/tower/towerState';
+import { TOWER_N, slabIndexAt } from '@/world/mp/tower';
 import { seesawState } from './games/seesaw/seesawState';
 import { PlatformScene } from './games/platform/PlatformScene';
 import { platformState } from '@/features/interrogation/scene/platformState';
@@ -51,7 +54,9 @@ export function TrialFeature() {
             ? 'disc'
             : params.get('game') === 'seesaw'
               ? 'seesaw'
-              : 'stopline';
+              : params.get('game') === 'tower'
+                ? 'tower'
+                : 'stopline';
   const nickname = useMemo(() => loadGuestNick() || `테스터${Math.floor(100 + Math.random() * 900)}`, []);
 
   const status = useAppSelector(trialSelectors.selectStatus);
@@ -66,6 +71,7 @@ export function TrialFeature() {
   const myFalls = useAppSelector(trialSelectors.selectMyFalls);
   const discOmega = useAppSelector(trialSelectors.selectDiscOmega);
   const seesawTilt = useAppSelector(trialSelectors.selectSeesawTilt);
+  const towerHud = useAppSelector(trialSelectors.selectTowerHud);
   const myAttempts = useAppSelector(trialSelectors.selectMyAttempts);
   const myPicks = useAppSelector(trialSelectors.selectMyPicks);
   const hunt = useAppSelector(trialSelectors.selectHunt);
@@ -105,6 +111,7 @@ export function TrialFeature() {
     huntState.clear();
     discState.clear();
     seesawState.clear();
+    towerState.clear();
     remotePlayers.clear();
     setAiIds([]);
     setMyBody(null);
@@ -141,6 +148,7 @@ export function TrialFeature() {
         huntState.clear();
         discState.clear();
         seesawState.clear();
+        towerState.clear();
         // 움직이는 플랫폼 — 발판 열은 platformState 가 서버와 같은 함수로 그린다 (interrogation/scene/platformState)
         if (g === 'platform') platformState.start(startAt, pace);
         else platformState.clear();
@@ -186,6 +194,13 @@ export function TrialFeature() {
         for (const p of msg.players) if (p.id.startsWith('SUBJECT_')) seeParticipant(p.id);
         seesawState.push(msg);
         dispatch(trialActions.seesawSynced(msg.phi));
+      },
+      onTower: (msg) => {
+        // 무너지는 타워 — AI 좌석은 여기 처음 등장한다. 자리는 towerState(가변), HUD 지도(발판 상태 · 내 발판)만 슬라이스
+        for (const p of msg.players) if (p.id.startsWith('SUBJECT_')) seeParticipant(p.id);
+        towerState.push(msg);
+        const me = msg.players.find((p) => p.id === selfIdRef.current);
+        dispatch(trialActions.towerSynced({ slabs: towerState.slabStates(), mine: me && me.f === 0 ? slabIndexAt(me.x, me.z) : -1 }));
       },
       onSlip: (id, vx, vz, ms) => {
         // 움직이는 플랫폼 — 내 발이 밀린 것만 내 몸에 건다. 남의 미끄러짐은 그 사람 화면이 그린다
@@ -252,6 +267,7 @@ export function TrialFeature() {
   const others = useMemo(() => Object.keys(roster).filter((id) => id !== selfId).map((id) => ({ id })), [roster, selfId]);
   const othersNamed = useMemo(() => Object.entries(roster).filter(([id]) => id !== selfId).map(([id, nickname]) => ({ id, nickname })), [roster, selfId]);
   const sendWalk = useCallback((x: number, z: number) => connRef.current?.sendWalk(x, z), []);
+  const sendPush = useCallback((hx: number, hz: number) => connRef.current?.sendPush(hx, hz), []);
 
   const secondsLeft = roundDurationMs === null ? 0 : Math.max(0, Math.ceil((roundStartAt + roundDurationMs - clock) / 1000));
   const over = liveResult !== null || (round > 0 && roundDurationMs !== null && secondsLeft === 0);
@@ -272,6 +288,8 @@ export function TrialFeature() {
               ? `맞음 ${myHits} — WASD 로 피해라. 바닥 그림자가 진해지면 온다`
               : game === 'platform'
                 ? '움직이는 발판을 건너라 — W 앞으로 · Space 점프 · 발판 한가운데에 내려라. 떨어지면 출발로 돌아간다'
+              : game === 'tower'
+                ? `낙하 ${myFalls}회 · 밀림 ${myHits}회 — 발판 가운데에 서라. 무게가 몰리면 기울어 무너진다. WASD 걷기 · Shift 달리기 · Space 밀치기`
               : game === 'seesaw'
                 ? `낙하 ${myFalls}회 · 기울기 ${Math.abs((seesawTilt * 180) / Math.PI).toFixed(0)}° — 무리의 무게중심을 축에 맞춰라. 상자가 떨어지면 반대쪽으로. WASD 걷기 · Shift 달리기`
               : game === 'disc'
@@ -295,7 +313,9 @@ export function TrialFeature() {
             ? '회전 원판 생존'
             : shownGame === 'seesaw'
               ? '무게 중심 다리'
-              : '정지선';
+              : shownGame === 'tower'
+                ? '무너지는 타워'
+                : '정지선';
   const flashing = Date.now() - flash < 350;
 
   return (
@@ -310,6 +330,8 @@ export function TrialFeature() {
         <DiscScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} />
       ) : shownGame === 'seesaw' ? (
         <SeesawScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} />
+      ) : shownGame === 'tower' ? (
+        <TowerScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} sendPush={sendPush} />
       ) : (
         <StopLineScene
           myId={selfId}
@@ -418,6 +440,54 @@ export function TrialFeature() {
             </g>
             <polygon points="0,4 -6,14 6,14" fill="var(--dust)" />
           </svg>
+        </div>
+      ) : null}
+      {/* 무너지는 타워 — 발판 지도 (UX Pilot 시안 「TowerSurvival - GameHUD」): 5×5 칸이 상태대로 — 성함(강판) · 경고(앰버 깜박) · 떨어짐(빈 점선).
+          내가 선 칸은 흰 점. 전부 눈에 보이는 값이다 — 마찰은 없다(P8) */}
+      {round > 0 && shownGame === 'tower' && towerHud && !over ? (
+        <div aria-hidden style={{ position: 'absolute', top: 60, right: 12, padding: '8px 10px', borderRadius: 8, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(95,184,232,0.3)', pointerEvents: 'none' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--dust)', marginBottom: 6 }}>
+            타워 상태 · 남은 발판 {towerHud.slabs.filter((v) => v <= 1).length}/{towerHud.slabs.length}
+          </div>
+          <svg viewBox={`0 0 ${TOWER_N * 18} ${TOWER_N * 18}`} width={TOWER_N * 18} height={TOWER_N * 18}>
+            {towerHud.slabs.map((v, i) => {
+              const cx = (i % TOWER_N) * 18;
+              // 화면의 위가 −z(먼 쪽) — 격자의 j 가 클수록 아래
+              const cy = (TOWER_N - 1 - Math.floor(i / TOWER_N)) * 18;
+              const fill = v === 0 ? '#2b313a' : v === 1 ? '#e8b34a' : 'transparent';
+              const stroke = v === 0 ? 'rgba(95,184,232,0.6)' : v === 1 ? '#e8b34a' : 'rgba(255,255,255,0.18)';
+              return (
+                <g key={i}>
+                  <rect x={cx + 2} y={cy + 2} width={14} height={14} rx={2} fill={fill} stroke={stroke} strokeWidth={1} strokeDasharray={v >= 2 ? '2 2' : undefined} opacity={v === 1 ? 0.55 + 0.45 * Math.abs(Math.sin(clock / 120)) : 1} />
+                  {i === towerHud.mine ? <circle cx={cx + 9} cy={cy + 9} r={3} fill="#ffffff" /> : null}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      ) : null}
+      {/* 무너지는 타워 — 내가 선 발판에 경고가 떴다: 붕괴 임박 띠 (UX Pilot 시안). 옆 발판으로 옮길 시간은 TOWER_WARN_MS */}
+      {round > 0 && shownGame === 'tower' && towerHud && towerHud.mine >= 0 && towerHud.slabs[towerHud.mine] === 1 && !over ? (
+        <div
+          aria-live="assertive"
+          style={{
+            position: 'absolute',
+            top: 66,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '6px 16px',
+            borderRadius: 8,
+            background: 'rgba(255,77,58,0.18)',
+            border: '1px solid var(--signal)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 13,
+            fontWeight: 700,
+            color: 'var(--signal)',
+            pointerEvents: 'none',
+            opacity: 0.6 + 0.4 * Math.abs(Math.sin(clock / 110)),
+          }}
+        >
+          ⚠ 위험: 발판 붕괴 임박 — 옆 발판으로
         </div>
       ) : null}
       <nav style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>

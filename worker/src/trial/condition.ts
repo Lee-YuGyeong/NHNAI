@@ -54,3 +54,11 @@ export const PLATFORM_GRIP: readonly number[] = [0.85, 0.3, 1.15];
  */
 export const SEESAW_GRIP: readonly number[] = [0.3, 0.12, 0.5];
 
+/**
+ * 무너지는 타워 3구간의 **발판 윗면 마찰계수** — 강판(기준) → 젖은 강판 → 고무 깔개. 발판이 기울었을 때 발이 버티는 조건은 tan φ ≤ μ:
+ * 0.45 면 24° 까지 버틴다(부서지는 22° 전까지 안 미끄러진다 — 첫 구간의 위험은 기울기 자체다), 0.2 면 11° 만 넘어도 낮은 쪽으로 흘러
+ * 발판 끝을 넘고, 밀린 몸도 멀리 미끄러진다. 0.7 이면 밀려도 금방 선다.
+ * P8: μ 는 와이어로 안 나간다 — 스냅샷에는 미끄러진 결과(자리 · s)만 실린다 (worker/src/trial/tower/sim.ts).
+ */
+export const TOWER_GRIP: readonly number[] = [0.45, 0.2, 0.7];
+

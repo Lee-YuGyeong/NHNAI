@@ -14,6 +14,8 @@ export interface TrialCondition {
   platformGrip?: readonly number[];
   /** 무게 중심 다리 — 구간별 판자 윗면 마찰계수 (SEESAW_GRIP) */
   seesawGrip?: readonly number[];
+  /** 무너지는 타워 — 구간별 발판 윗면 마찰계수 (TOWER_GRIP) */
+  towerGrip?: readonly number[];
 }
 
 /**
