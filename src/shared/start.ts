@@ -1,13 +1,21 @@
 /**
- * 이야기의 입구 — 「게임 시작 테스트」 한 번으로 **복도 → 중앙 시설 → 재검실 → 심문소**가 끊기지 않고 이어진다.
+ * 게임의 입구 — 「게임 시작」 한 번으로 **검문소(/interrogation)** 가 곧장 열린다.
  *
- * 그 사이의 길은 이미 이야기 쪽이 쥐고 있다:
- *   복도(/world) chapter1 → 열린 격납문 → /central → chapter1 락다운 → chapter2 검문·줄 → 검증실 문 → /recheck
- *   → chapter3 재검(대본 없는 문답) → 재검실 문 → /interrogation
+ * ┌─ 2026-09-05: 앞의 세 방을 건너뛴다 ──────────────────────────────────────┐
+ * │ 사용자: "게임 시작하기 누르면 /interrogation 여기로 바로 가야해.          │
+ * │ 중간에 다 필요없어 이제".                                                 │
+ * │                                                                          │
+ * │ 그전까지 이 함수가 연 첫 문은 **복도**였고, 판까지는 걸어서 갔다:         │
+ * │   복도(/world) → 중앙 시설(/central) → 재검실(/recheck) → 검문소          │
+ * │ 그 길은 라우트도 코드도 이야기도 **그대로 살아 있다** — 루트 목록에서     │
+ * │ 여전히 하나씩 열린다. 끊은 것은 길이 아니라 **이 입구가 그리로 걸린 것**  │
+ * │ 하나뿐이다. 되돌릴 곳도 아래 한 줄이다.                                   │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
  * 여기서 하는 일은 **첫 문을 폼 없이 여는 것**뿐이다 — 방 번호는 뽑고, 닉네임은 저장된 게스트 이름을 쓴다.
  *
- * ★ 주소를 미리 만들어 <Link href> 로 거는 이유: 포인터 잠금은 클릭 제스처 안에서만 잡힌다
- *   (WorldFeature 머리말). 중간에 화면을 하나 더 거치면 그 제스처가 만료된다.
+ * ★ 주소를 미리 만들어 <Link href> 로 거는 것은 그대로 둔다 — 중간에 화면을 하나 더 거치지 않는
+ *   편이 여전히 맞다 (누른 그 순간에 판이 열린다).
  */
 import { loadGuestNick, randomRoomCode, saveGuestNick } from './guest';
 
@@ -20,7 +28,7 @@ export function storyNick(): string {
   return nick;
 }
 
-/** 복도 자동 입장 주소 (/world?code=…&nick=…) — 방마다 새 번호라 이야기는 늘 처음부터 돈다 */
+/** 검문소 자동 입장 주소 (/interrogation?code=…&nick=…) — 방마다 새 번호라 판은 늘 처음부터 돈다 */
 export function storyStartHref(): string {
-  return `/world?code=${randomRoomCode()}&nick=${encodeURIComponent(storyNick())}`;
+  return `/interrogation?code=${randomRoomCode()}&nick=${encodeURIComponent(storyNick())}`;
 }

@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FEATURES } from '@/features';
-import { warmCast } from '@/lab/cast-warm';
 import { OpeningVideo } from '@/shared/OpeningVideo';
 import { storyStartHref } from '@/shared/start';
 
@@ -14,8 +13,11 @@ import { storyStartHref } from '@/shared/start';
  * 「게임 시작 테스트」가 본판이다 — 이 케이스만 **붉은 경보등**(--signal) 아래 켜져 있다. 나머지는 꺼진 창고 재질 그대로.
  * (2026-08-29 사용자 지정. 그 전엔 호박색 다운라이트였다)
  *
- * 2026-08-30: 이 케이스는 이제 **복도부터** 연다 — 복도(/world) → 중앙 시설(/central) → 검문소(/interrogation)가
- * 한 줄로 이어진 길이다. /play 를 거치지 않고 복도 주소를 직접 거는 이유는 shared/start.ts 머리말(포인터 잠금).
+ * 2026-08-30: 이 케이스는 **복도부터** 열었다 — 복도(/world) → 중앙 시설(/central) → 검문소(/interrogation)가
+ * 한 줄로 이어진 길이었다.
+ * 2026-09-05: 이제 **검문소를 곧장 연다** (사용자: "게임 시작하기 누르면 /interrogation 여기로 바로 가야해.
+ * 중간에 다 필요없어 이제"). 앞의 세 방은 아래 목록에 문이 그대로 있다 — 끊은 것은 이 케이스의 행선지뿐이다.
+ * /play 를 거치지 않고 주소를 직접 거는 것은 그대로다 (shared/start.ts 머리말).
  */
 const PLAY_ID = 'play';
 /** 인트로는 케이스 목록에 또 서지 않는다 — 맨 위의 붉은 문이 그 자리다 (아래 IntroDoor) */
@@ -100,13 +102,12 @@ export function Launcher() {
       {/* hidden 은 흐름 중간에만 들르는 화면이라 목록에 안 세운다. doors 가 있으면 문을 여럿 세운다 (features/index.ts) */}
       {FEATURES.filter((f) => f.id !== INTRO_ID && !f.hidden)
         .flatMap((f) => (f.doors ? f.doors.map((d) => ({ key: `${f.id}:${d.to}`, id: f.id, title: d.title, to: d.to })) : [{ key: f.id, id: f.id, title: f.title, to: f.id === PLAY_ID ? startHref : f.path }]))
+        /*
+         * 붉은 케이스에 걸려 있던 성격 미리 짓기(warmCast)는 뺐다 (2026-09-05) — 그 값을 받아 가는
+         * 화면은 /arena 인데 이 문은 이제 검문소로 곧장 간다. 안 쓸 값에 크레딧을 쓰지 않는다.
+         */
         .map((d) => (
-          <Link
-            key={d.key}
-            to={d.to}
-            // 붉은 케이스는 이야기의 첫 문이다 — 누르는 순간 배역을 짓기 시작한다 (src/lab/cast-warm.ts)
-            onClick={d.id === PLAY_ID ? warmCast : undefined}
-          >
+          <Link key={d.key} to={d.to}>
             <button
               className="stencil"
               style={{
