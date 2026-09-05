@@ -197,7 +197,7 @@ export class TrialConnection {
     return this.send({ t: 'trial_walk', x, z });
   }
 
-  /** 낙하 생존 — Space. 높이는 안 보낸다, 서버가 그 구간의 숨은 중력으로 적분한다 (DodgeRig 머리말) */
+  /** 낙하 생존 — Space. 높이는 안 보낸다, 서버가 적분한다 (DodgeRig 머리말) */
   sendJump(): boolean {
     return this.send({ t: 'trial_jump' });
   }

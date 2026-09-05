@@ -565,7 +565,7 @@ export function InterrogationFeature() {
   const onBrake = useCallback(() => conn.sendBrake(), [conn]);
   const onPick = useCallback((objectId: number) => conn.sendPick(objectId), [conn]);
   const onWalk = useCallback((x: number, z: number) => conn.sendWalk(x, z), [conn]);
-  /** 낙하 생존 — Space. 몸의 높이는 서버가 그 구간의 숨은 중력으로 적분한다 (FreeRig sendJump) */
+  /** 낙하 생존 — Space. 몸의 높이는 서버가 적분한다 (FreeRig sendJump) */
   const onJump = useCallback(() => conn.sendJump(), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
   const onStart = useCallback(

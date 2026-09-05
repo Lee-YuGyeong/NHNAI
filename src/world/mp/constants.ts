@@ -136,9 +136,9 @@ export const STOPLINE_TOP_SPEED = 6;
 /** 가속도(m/s²). 탑스피드까지 STOPLINE_TOP_SPEED / STOPLINE_ACCEL 초 걸린다. */
 export const STOPLINE_ACCEL = 4;
 /**
- * 미니게임 하나 = 1분. 그 안에서 20초마다 조건(마찰 · 중력)이 몰래 바뀐다 — "라운드"는 없다
+ * 미니게임 하나 = 1분. 그 안에서 20초마다 조건(마찰 · 빛)이 몰래 바뀐다 — "라운드"는 없다
  * (2026-09-04 사용자: "1분간 게임 하게 하고 … 라운드는 하나밖에 없어"). 세 구간의 조건표는
- * worker/src/trial/condition.ts 에만 있다.
+ * worker/src/trial/condition.ts 에만 있다. 낙하 생존의 중력은 예외로 상수다(같은 파일 FALL_GRAVITY).
  */
 export const TRIAL_GAME_MS = 60_000;
 export const TRIAL_PHASE_MS = 20_000;

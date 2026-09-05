@@ -223,7 +223,7 @@ export function TrialFeature() {
   const onAccel = useCallback(() => connRef.current?.sendAccel(), []);
   const onBrake = useCallback(() => connRef.current?.sendBrake(), []);
   const onPick = useCallback((objectId: number) => connRef.current?.sendPick(objectId), []);
-  /** 낙하 생존 — Space. 몸의 높이는 서버가 그 구간의 숨은 중력으로 적분한다 (DodgeRig) */
+  /** 낙하 생존 — Space. 몸의 높이는 서버가 적분한다 (DodgeRig) */
   const onJump = useCallback(() => connRef.current?.sendJump(), []);
   const sendMove = useCallback((x: number, z: number, y: number, heading: number, anim: AnimState) => connRef.current?.sendMove(x, z, y, heading, anim), []);
 
@@ -235,7 +235,7 @@ export function TrialFeature() {
   const over = liveResult !== null || (round > 0 && roundDurationMs !== null && secondsLeft === 0);
   const summaryLeft = Math.max(0, Math.ceil((summaryUntil - clock) / 1000));
   const showSummary = liveResult !== null && summaryLeft > 0;
-  /** 20초 구간 — 바닥 결이 바뀌는 데만 쓴다. 값(마찰·중력)은 서버만 안다 */
+  /** 20초 구간 — 바닥 결이 바뀌는 데만 쓴다. 값(마찰)은 서버만 안다 */
   const phase = round === 0 ? 1 : Math.min(3, Math.floor(Math.max(0, clock - roundStartAt) / TRIAL_PHASE_MS) + 1);
   const hud =
     status === 'connecting'

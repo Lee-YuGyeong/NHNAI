@@ -45,8 +45,8 @@ export interface GameEngine {
   /** 회전 원판: 걷기 입력(월드 기준 속도, m/s). 이 게임만 구현한다 — 다른 엔진은 없어도 된다 */
   onWalk?(id: string, x: number, z: number, now: number): void;
   /**
-   * 낙하 생존: Space 를 눌렀다. 몸의 높이는 **서버가** 그 구간의 숨은 중력으로 적분한다(P8) — 클라는 눌렀다는 것만
-   * 올리고 y 는 스냅샷의 `air` 로 돌려받는다. 이 게임만 구현한다
+   * 낙하 생존: Space 를 눌렀다. 몸의 높이는 **서버가** 적분한다(높이가 판정 대상이다, fall/engine.ts 머리말) —
+   * 클라는 눌렀다는 것만 올리고 y 는 스냅샷의 `air` 로 돌려받는다. 이 게임만 구현한다
    */
   onJump?(id: string, now: number): void;
   /** 이 라운드를 닫아도 되나. waiting(id) 는 "그 사람을 아직 기다려야 하는가"(AI 이거나 방에 붙어 있다) */

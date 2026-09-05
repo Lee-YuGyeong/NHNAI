@@ -68,7 +68,7 @@ export class TrialRuntime {
         if (this.active() && this.isConnected(snap.id)) this.engine?.onWalk?.(snap.id, msg.x, msg.z, Date.now());
         return;
       case 'trial_jump':
-        // 낙하 생존 — 눌린 시각은 서버가 찍는다. 체공은 그 구간의 숨은 중력이 정한다 (fall/engine.ts onJump)
+        // 낙하 생존 — 눌린 시각은 서버가 찍는다. 포물선은 서버가 적분한다 (fall/engine.ts onJump)
         if (this.active() && this.isConnected(snap.id)) this.engine?.onJump?.(snap.id, Date.now());
         return;
       default:

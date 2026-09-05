@@ -9,7 +9,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FALL_BALLS, FALL_SPAWN_Y, FALL_TICK_MS, JUMP_MAX_Y } from '../../src/world/mp/constants';
 import type { S2CMessage } from '../../src/world/mp/protocol';
-import { BALL_DRAG, BODY_H, HIT_R, gravityForPhase, overlapsBody, spawnObject, stepObject, timeToGround } from '../../worker/src/trial/fall/sim';
+import { BALL_DRAG, BODY_H, HIT_R, overlapsBody, spawnObject, stepObject, timeToGround } from '../../worker/src/trial/fall/sim';
+import { FALL_GRAVITY } from '../../worker/src/trial/condition';
 import { METRIC_LABEL } from '../../worker/src/game/agents';
 import { FALL_JUMP_SCALE, FallEngine } from '../../worker/src/trial/fall/engine';
 import { DodgeStats } from '../../worker/src/trial/fall/stats';
@@ -28,8 +29,8 @@ function dropUntilLanded(gravity: number, kind = BOWLING): { o: ReturnType<typeo
 }
 
 describe('sim — 낙하', () => {
-  it('볼링공은 중력 100% 에서 11.5m 를 거의 자유낙하(1.5~1.7초)로 떨어지고 한 번 튄다', () => {
-    const { o, ms } = dropUntilLanded(gravityForPhase(1));
+  it('볼링공은 판의 중력(9.8)에서 11.5m 를 거의 자유낙하(1.5~1.7초)로 떨어지고 한 번 튄다', () => {
+    const { o, ms } = dropUntilLanded(FALL_GRAVITY);
     expect(o.landedAt).not.toBeNull();
     expect(ms).toBeGreaterThanOrEqual(1500);
     expect(ms).toBeLessThanOrEqual(1700);
@@ -38,24 +39,26 @@ describe('sim — 낙하', () => {
   });
 
   it('가벼운 탁구공이 무거운 볼링공보다 늦게 닿는다 — 공기저항은 무게로 나뉜다', () => {
-    const light = dropUntilLanded(gravityForPhase(1), PINGPONG).ms;
-    const heavy = dropUntilLanded(gravityForPhase(1), BOWLING).ms;
+    const light = dropUntilLanded(FALL_GRAVITY, PINGPONG).ms;
+    const heavy = dropUntilLanded(FALL_GRAVITY, BOWLING).ms;
     expect(light).toBeGreaterThan(heavy + 1500); // 탁구공 ~3.75s vs 볼링공 ~1.55s — 둥실 내려온다
     expect(BALL_DRAG[PINGPONG]).toBeGreaterThan(BALL_DRAG[BOWLING] * 10);
   });
 
-  it('중력이 클수록 빨리 닿는다 — 60% < 100% < 140%', () => {
-    const slow = dropUntilLanded(gravityForPhase(2)).ms;
-    const base = dropUntilLanded(gravityForPhase(1)).ms;
-    const fast = dropUntilLanded(gravityForPhase(3)).ms;
+  it('판의 중력은 상수 하나다 — 구간 변화를 걷어냈다 (2026-09-05 사용자: "중력은 그대로여야해")', () => {
+    expect(FALL_GRAVITY).toBe(9.8);
+    // stepObject 는 순수 함수라 중력에 단조롭다 — 상수가 유지되는 한 판 안에서 낙하 박자는 안 변한다
+    const slow = dropUntilLanded(FALL_GRAVITY * 0.6).ms;
+    const base = dropUntilLanded(FALL_GRAVITY).ms;
+    const fast = dropUntilLanded(FALL_GRAVITY * 1.4).ms;
     expect(fast).toBeLessThan(base);
     expect(base).toBeLessThan(slow);
   });
 
   it('timeToGround 는 실제 착지 시각과 0.1초 안에서 맞는다', () => {
     const o = spawnObject(1, 0, () => 0.5, undefined, 0.9, PINGPONG);
-    const predicted = timeToGround(o, gravityForPhase(1));
-    const actual = dropUntilLanded(gravityForPhase(1), PINGPONG).ms / 1000;
+    const predicted = timeToGround(o, FALL_GRAVITY);
+    const actual = dropUntilLanded(FALL_GRAVITY, PINGPONG).ms / 1000;
     expect(Math.abs(predicted - actual)).toBeLessThan(0.1);
   });
 
@@ -94,7 +97,7 @@ describe('sim — 몸의 높이가 판정에 든다 (점프가 장식이 아니�
   });
 });
 
-describe('FallEngine — 점프는 서버 것이다 (숨은 중력이 체공을 정한다)', () => {
+describe('FallEngine — 점프는 서버 것이다 (체공은 서버가 적분한다)', () => {
   function harness() {
     const sent: S2CMessage[] = [];
     const engine = new FallEngine();
@@ -113,14 +116,14 @@ describe('FallEngine — 점프는 서버 것이다 (숨은 중력이 체공을 
       const up = snaps().at(-1)!.air?.find((a) => a.id === 'p1');
       expect(up).toBeDefined();
       expect(up!.y).toBeGreaterThan(0.5);
-      // 기준 중력(9.8)의 체공은 2·(5.6·√(9.8/15))/9.8 ≈ 0.92초 — 2초면 확실히 땅이다
+      // 판의 중력(9.8)의 체공은 2·(5.6·√(9.8/15))/9.8 ≈ 0.92초 — 2초면 확실히 땅이다
       vi.advanceTimersByTime(2000);
       expect(snaps().at(-1)!.air ?? []).toHaveLength(0);
       expect(engine.results()[0].metrics.jumps).toBe(1);
-      // 체공은 그 구간의 중력이 정한다 — 클라가 쓰던 복도 중력(15, 0.75초)이 아니다
+      // 체공은 판의 중력이 정한다 — 클라가 쓰던 복도 중력(15, 0.75초)이 아니다
       expect(engine.results()[0].metrics.meanAirMs).toBeGreaterThan(850);
       expect(engine.results()[0].metrics.meanAirMs).toBeLessThan(1000);
-      // 정점은 홀과 같다 — 이륙 속도를 이 판의 눈금으로 옮겼으니(FALL_JUMP_SCALE) 기준 구간에서 2m 를 뛰지 않는다
+      // 정점은 홀과 같다 — 이륙 속도를 이 판의 눈금으로 옮겼으니(FALL_JUMP_SCALE) 2m 를 뛰지 않는다
       // (2026-09-05 사용자: "점프하면 엄청 높게 올라가는데"). 50ms 틱의 반암시적 오일러는 정점을 v·dt/2 ≈ 0.11m 낮게
       // 잡고, 스냅샷도 100ms 간격이라 정점을 살짝 놓친다 — 그래서 아래로 0.15 를 본다. 위로는 홀보다 높으면 안 된다
       const peak = Math.max(...snaps().flatMap((m) => (m.air ?? []).filter((a) => a.id === 'p1').map((a) => a.y)));

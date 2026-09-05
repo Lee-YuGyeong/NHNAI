@@ -19,8 +19,13 @@
  */
 export const STOPLINE_FRICTION: readonly number[] = [0.6, 0.15, 0.9];
 
-/** 낙하 생존 3구간의 중력(m/s²) — 100% · 60% · 140%. 1구간이 기준. 공기저항·반발은 공마다 공개 표(mp/constants FALL_BALLS)다 */
-export const FALL_GRAVITY: readonly number[] = [9.8, 5.88, 13.72];
+/**
+ * 낙하 생존의 중력(m/s²) — 판 내내 이 값 하나다. 원래 3구간 100% · 60% · 140% 로 몰래 바뀌는 숨은 조건이었는데,
+ * 60% 구간의 점프가 체공 1.5초를 넘겨 「점프가 아니라 날아가는 것 같다」가 됐다 (2026-09-05 사용자: "이거 아예
+ * 없애줘. 중력은 그대로여야해") — 구간 변화를 걷어내고 기준값으로 고정한다. 이로써 낙하 생존에는 숨은 조건이
+ * 없다: 공기저항·반발은 공마다 공개 표(mp/constants FALL_BALLS)다.
+ */
+export const FALL_GRAVITY = 9.8;
 
 /** 색 사냥 3라운드의 차단 파장. PR2(색 사냥)에서 쓴다. */
 export const COLORHUNT_BLOCK: readonly (string | null)[] = [null, 'red', 'green'];

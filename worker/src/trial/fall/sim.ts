@@ -5,13 +5,13 @@
  *
  * 공마다 무게가 다르다(mp/constants FALL_BALLS): 공기저항 가속도는 k·v² 이고 k = ρ·Cd·A / 2m —
  * 단면적이 크고 가벼운 탁구공은 k 가 커서 금방 종단속도에 닿아 둥실 내려오고, 볼링공은 거의 자유낙하다.
- * 중력만 숨겨진 조건이다(condition.ts). 공기저항은 공의 공개된 무게·크기에서 나온다.
+ * 중력은 판 내내 상수다(condition.ts FALL_GRAVITY — 구간 변화를 걷어낸 사연이 거기 있다). 공기저항은
+ * 공의 공개된 무게·크기에서 나온다.
  *
  * 클라이언트는 이 결과(스냅샷)를 그릴 뿐 스스로 떨어뜨리지 않는다 — 판정 대상(맞았나 · 얼마나 벗어났나)을
  * 계산하는 쪽이 서버여야 한다(PLANNING §5.1). 그래서 결정론이 필요 없다.
  */
 import { FALL_ARENA, FALL_BALLS, FALL_BODY_R, FALL_DRAG_GAIN, FALL_OBJECT_R, FALL_SPAWN_Y } from '../../../../src/world/mp/constants';
-import { FALL_GRAVITY } from '../condition';
 
 /** 사람 키(m) — 공 아랫면이 이 아래로 내려오면 몸에 닿을 수 있다 */
 export const BODY_H = 1.8;
@@ -45,10 +45,6 @@ export interface FallObject {
   /** 첫 바닥 접촉 시각. null 이면 아직 공중 */
   landedAt: number | null;
   bounced: boolean;
-}
-
-export function gravityForPhase(phase: number): number {
-  return FALL_GRAVITY[phase - 1] ?? FALL_GRAVITY[0];
 }
 
 /**

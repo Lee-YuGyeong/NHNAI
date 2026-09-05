@@ -72,7 +72,7 @@ export function FreeRig({
   sendMove: (x: number, z: number, y: number, heading: number, anim: AnimState) => void;
   /**
    * 낙하 생존 — 이게 오면 **높이는 서버 것**이다. Space 는 「눌렀다」만 올리고(이 함수), 발 높이는 스냅샷의 air 에서
-   * 온다(fallState.selfY). 그 구간의 중력이 숨은 값이라 클라가 스스로 포물선을 그릴 수 없기 때문이다(P8)
+   * 온다(fallState.selfY). 높이가 피격 판정 대상이라 y 를 만드는 쪽도 서버여야 하기 때문이다(fall/engine.ts 머리말)
    */
   sendJump?: () => void;
 }) {
@@ -239,7 +239,7 @@ export function FreeRig({
 
     const ground = Math.max(map.groundHeightAt(pos.current.x, pos.current.z, pos.current.y), platformState.groundAt(pos.current.x, pos.current.z, pos.current.y, nowMs));
     if (sendJump) {
-      // 낙하 생존 — 뜨는 것도 내려오는 것도 서버가 그 구간의 숨은 중력으로 적분한다. 마당은 평평해 바닥이 0 이다
+      // 낙하 생존 — 뜨는 것도 내려오는 것도 서버가 적분한다. 마당은 평평해 바닥이 0 이다
       pos.current.y = Math.max(ground, fallState.selfY(nowMs));
       vy.current = 0;
       grounded.current = pos.current.y <= ground + 0.001;

@@ -39,7 +39,7 @@ import { OpeningCast } from './OpeningCast';
  */
 const SAMPLES: Array<{ kind: BroadcastKind; text: string }> = [
   { kind: 'announce', text: '낙하 시험을 개시한다. 전원 중앙 발판으로 이동하라.' },
-  { kind: 'announce', text: '조건이 변경되었다. 이번 구간의 중력 계수는 공개하지 않는다.' },
+  { kind: 'announce', text: '조건이 변경되었다. 이번 구간의 마찰 계수는 공개하지 않는다.' },
   { kind: 'readout',  text: '기록을 공개한다. 무리 평균 1.8미터, 전환 직후 3초 구간의 편차가 가장 크다.' },
   { kind: 'readout',  text: '주장 판정. SUBJECT 03 의 해명은 기록과 일치한다.' },
   { kind: 'alarm',    text: '격리. SUBJECT 05 의 의심도가 100에 도달했다.' },

@@ -38,7 +38,7 @@ const SPEC: Record<TrialGame, Spec> = {
   fall: {
     primary: { key: 'minDistanceAvoid', label: '낙하 지점에서 벗어난 거리', unit: 'm', digits: 2 },
     rows: [
-      { key: 'transitionError', label: '중력이 바뀐 직후의 회피 거리', unit: 'm', digits: 2 },
+      { key: 'transitionError', label: '구간이 바뀐 직후의 회피 거리', unit: 'm', digits: 2 },
       { key: 'unnecessaryMoves', label: '불필요한 이동', unit: '회', digits: 0 },
       { key: 'hitCount', label: '충돌', unit: '회', digits: 0 },
       { key: 'survivalTime', label: '첫 충돌까지', unit: '초', digits: 1 },
