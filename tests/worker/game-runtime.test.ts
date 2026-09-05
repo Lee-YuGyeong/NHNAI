@@ -17,6 +17,7 @@ import {
   GAME_TEST_ORDER,
   SUSPICION,
   TALK,
+  pressureFor,
   talkFor,
   type GameS2CMessage,
   type GameStateWire,
@@ -900,6 +901,8 @@ describe('GameRuntime — 표식', () => {
     await vi.advanceTimersByTimeAsync(STILL_MS - 2_000);
     expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still);
     await vi.advanceTimersByTimeAsync(2_500);
-    expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still * 2 + SUSPICION.repeatWeight);
+    // 두 번째는 누계만큼 무겁고, 여기는 **두 번째 토론**이라 국면 압력까지 탄다 (docs/SUSPICION.md §7)
+    const second = Math.round((SUSPICION.still + SUSPICION.repeatWeight) * pressureFor(1));
+    expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still + second);
   });
 });

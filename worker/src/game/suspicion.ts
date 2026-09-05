@@ -24,6 +24,9 @@
  *   말 회피         불렀는데 대답 없이 넘긴다, 2회째부터 +8 (duck) — 몰린 채면 +4 더
  *   굳음 · 뒷걸음   +5 (still · backstep) — 둘을 합쳐 좌석당 bodyCap(30) 까지만
  *   100             격리 — 눈금이 얼어붙고, 그 사람이 건 지목은 전부 철회된다 (죽은 사람은 몰지 못한다)
+ *
+ * 위 걸음은 전부 **전반의 크기**다. 후반에는 국면 압력이 곱해진다 (scale · SUSPICION_PRESSURE):
+ * 압력은 밖에서 함수로 들어오고(now·rand 와 같은 버릇), 이 클래스는 여전히 시각도 국면도 모른다.
  */
 
 import { SUSPICION } from '../../../src/world/mp/game-protocol';
@@ -65,8 +68,44 @@ export class SuspicionBook {
   private readonly bodyGiven = new Map<string, number>();
   private readonly frozen = new Set<string>();
 
-  constructor(ids: readonly string[]) {
+  /**
+   * @param pressure 지금 국면의 압력을 돌려주는 함수 (game-protocol 의 pressureFor). 값이 아니라 함수로 받는 이유:
+   *   압력은 국면을 따라 움직이는데 이 책은 판이 열릴 때 한 번 만들어진다 — 값으로 받으면 1차 토론의 압력에 굳는다.
+   *   기본값 1 은 시험용이다 (압력을 안 넘기면 예전 그대로 돈다).
+   */
+  constructor(
+    ids: readonly string[],
+    private readonly pressure: () => number = () => 1,
+  ) {
     for (const id of ids) this.value.set(id, 0);
+  }
+
+  /**
+   * **올라가는 걸음에 국면 압력을 곱한다** (docs/SUSPICION.md §7).
+   *
+   * 내려가는 걸음은 안 부른다 — 압력은 「의심이 빨리 쌓인다」는 규칙이지 「해명이 무거워진다」가 아니다.
+   * 철회(withdraw)는 특히 안 부른다: 판정이 아니라 회계라서 **얹은 만큼**이 아니면 눈금이 영구히 떠오른다.
+   *
+   * 부르는 자리가 지키는 것 둘:
+   *   · 합친 뒤에 **한 번만** 곱한다 (기본값 + 몰이 가산 + extra) — 따로 곱하면 반올림이 두 번 붙는다.
+   *   · 얹기 전에 곱한다 — staked·bodyGiven 은 **곱해진 값**을 세야 되돌림과 상한이 안 어긋난다.
+   */
+  private scale(amount: number): number {
+    if (amount <= 0) return amount;
+    return Math.min(SUSPICION.stepCap, Math.round(amount * this.pressure()));
+  }
+
+  /**
+   * 토론이 새로 열렸다 — **몰이 상한만** 다시 센다 (runtime.openDiscussion).
+   *
+   * mobGiven 은 여태 「겨누는 사람이 2명 미만이 될 때」만 풀렸다. 그런데 겨눔은 토론이 바뀌어도 안 지워지므로,
+   * 한 번 붙은 몰이는 판 전체에 걸쳐 mobCap(12) 을 딱 한 번만 냈다 — 2차 토론 안에 소진되고 나면 후반에
+   * 남는 문은 되풀이 +3 하나뿐이었다. 버티는 몰이는 토론마다 다시 값을 내야 한다.
+   *
+   * staked · tellNth · bodyGiven 은 **안 건드린다** — 되돌릴 빚과 누계는 판이 끝날 때까지 남는다.
+   */
+  newRound(): void {
+    this.mobGiven.clear();
   }
 
   get(id: string): number {
@@ -133,7 +172,8 @@ export class SuspicionBook {
         why = `${why} · 몰이 +${bonus}`;
       }
     }
-    const amount = base + bonus;
+    // 기본값과 몰이 가산을 **합친 뒤 한 번** 곱한다. mobGiven 은 곱하기 전 단위로 남는다 — 그래야 상한 12 의 뜻이 안 흔들린다
+    const amount = this.scale(base + bonus);
     this.staked.set(by, (this.staked.get(by) ?? 0) + amount);
     this.bump(target, amount);
     out.push({ target, amount, by, why });
@@ -160,10 +200,16 @@ export class SuspicionBook {
    */
   read(id: string, amount: number, why: string): SuspicionDelta | null {
     if (!this.value.has(id) || this.frozen.has(id)) return null;
+    /*
+     * 클램프가 **먼저**고 압력은 그다음이다. 순서를 뒤집으면 압력이 readMax 에 눌려 통째로 사라진다.
+     * 이 순서 덕에 판정기의 프롬프트(agents.readTalk)는 한 자도 안 고친다 — 판정기는 계속 −10~+16 한 자로 재고,
+     * 다이얼은 판이 돌린다.
+     */
     const clamped = Math.round(Math.max(SUSPICION.readMin, Math.min(SUSPICION.readMax, amount)));
     if (clamped === 0) return null;
-    this.bump(id, clamped);
-    return { target: id, amount: clamped, by: 'LEADER', why };
+    const step = this.scale(clamped);
+    this.bump(id, step);
+    return { target: id, amount: step, by: 'LEADER', why };
   }
 
   /**
@@ -185,7 +231,9 @@ export class SuspicionBook {
     const nth = this.tellNth.get(key) ?? 0;
     this.tellNth.set(key, nth + 1);
 
-    let amount = TELL_BASE[kind] + SUSPICION.repeatWeight * nth + extra;
+    // 누계와 extra 까지 합친 뒤 압력을 한 번 — 몸의 상한(bodyCap)은 **곱해진 값**으로 센다:
+    // 후반엔 상한에 더 빨리 닿을 뿐, 몸이 물 수 있는 총량 30 은 그대로다
+    let amount = this.scale(TELL_BASE[kind] + SUSPICION.repeatWeight * nth + extra);
     if (BODY_TELLS.includes(kind)) {
       const given = this.bodyGiven.get(id) ?? 0;
       amount = Math.max(0, Math.min(amount, SUSPICION.bodyCap - given));
@@ -196,6 +244,18 @@ export class SuspicionBook {
     return { target: id, amount, by: 'LEADER', why };
   }
 
+  /**
+   * 되살린 판의 눈금을 그대로 앉힌다 (runtime.restoreIfNeeded) — **판정이 아니라 복구**다.
+   *
+   * 그래서 압력도 누계도 안 탄다. 예전엔 저장된 값만큼 judge(mismatch) 를 되풀이해 채웠는데,
+   * 그건 걸음 크기(15)와 세는 단위(10)가 어긋나 값이 부풀었고, 국면 압력이 생긴 지금은
+   * **되살리는 것만으로 눈금이 배로 뛴다**. 복구에는 복구의 문이 따로 있어야 한다.
+   */
+  restore(id: string, value: number): void {
+    if (!this.value.has(id)) return;
+    this.value.set(id, Math.max(0, Math.min(SUSPICION.cut, Math.round(value))));
+  }
+
   /** 그 좌석이 그 항목에 지금까지 몇 번 걸렸나 — 방송 문구가 「세 번째」를 부를 때 쓴다 */
   tellCount(id: string, kind: TellKind): number {
     return this.tellNth.get(`${id}:${kind}`) ?? 0;
@@ -204,7 +264,8 @@ export class SuspicionBook {
   /** 관리 AI 의 주장 판정 (§4.2) — 그 사람의 눈금이 움직인다 */
   judge(id: string, verdict: 'match' | 'mismatch' | 'unclear'): SuspicionDelta | null {
     if (!this.value.has(id) || this.frozen.has(id) || verdict === 'unclear') return null;
-    const amount = verdict === 'match' ? SUSPICION.claimMatch : SUSPICION.claimMismatch;
+    // 불일치만 곱한다 — 일치(−12)는 내려가는 걸음이라 압력 밖이다
+    const amount = verdict === 'match' ? SUSPICION.claimMatch : this.scale(SUSPICION.claimMismatch);
     this.bump(id, amount);
     return { target: id, amount, by: 'LEADER', why: verdict === 'match' ? '해명이 기록과 일치' : '해명이 기록과 불일치' };
   }

@@ -674,6 +674,14 @@ export const LINES = {
   /** 차례표의 몇 번째인지를 앞에 붙인다 — 「세 번의 시험」이라는 판의 모양이 첫 방송부터 보이게 (GAME_TEST_ORDER) */
   testOpen: (game: TrialGame, round: number, instruction: string, step?: number, total?: number) =>
     `${step && total ? `[시험 ${step}/${total}] ` : ''}${TEST_NAME[game]} 테스트 ${round}회차를 연다. ${instruction}`,
+  /**
+   * 검문 단계가 올랐다 (SUSPICION_PRESSURE) — 후반 토론이 열릴 때 한 번.
+   *
+   * 이 방송이 있어야 하는 이유: 걸음의 크기가 말없이 커지면 사람은 그걸 **버그로 읽는다.**
+   * 화면에는 새 계기를 안 붙이기로 했으므로(상단 줄과 좌석 카드를 걷어냈다 — hud/Panels 머리말)
+   * 규칙이 바뀌었다는 사실이 지나가는 길은 여기와 피드 한 줄의 「압력 ×N」뿐이다.
+   */
+  pressure: (stage: string, mult: number) => `검문 단계를 ${stage}(으)로 올린다. 지금부터 모든 관측은 ${mult}배로 기록된다.`,
   isolated: (name: string, role: 'human' | 'designer' | 'ai') =>
     `${name}, 의심도 임계. 즉시 격리한다. 조사 결과 — ${role === 'ai' ? 'AI 였다.' : '사람이었다. AI 는 아직 이 안에 있다.'}`,
   /**

@@ -44,6 +44,9 @@ import {
   READ_MAX_LINES,
   READ_MIN_LINES,
   SUSPICION,
+  SUSPICION_PRESSURE,
+  SUSPICION_STAGE,
+  pressureFor,
   type GameC2SMessage,
   type GameOutcome,
   type GamePhase,
@@ -189,11 +192,13 @@ export class GameRuntime {
   private seats: Seat[] = [];
   /** 플레이어 id → 좌석 id. 실제 사람이 새로고침으로 id 가 바뀌어도 같은 닉네임이면 같은 좌석에 다시 앉는다 */
   private bindings = new Map<string, string>();
-  private book = new SuspicionBook([]);
+  private book = new SuspicionBook([], () => this.pressure());
   private quota = 0;
   private startedAt = 0;
   private phaseEndsAt: number | null = null;
   private testsDone = 0;
+  /** 마지막으로 방송한 검문 단계의 배수 — 「올랐을 때 한 번」만 말하게 (announcePressure) */
+  private announcedPressure = 0;
   private history: TrialResultWire[] = [];
   private currentTest: GameTestInfo | null = null;
   /** 지금 테스트의 조건 강도(1~3) — 엔진의 round 인자. 와이어에는 안 실린다 (P8) */
@@ -298,6 +303,17 @@ export class GameRuntime {
    */
   private judging(): boolean {
     return this.phase === 'discussion' && this.prologueHold === null;
+  }
+
+  /**
+   * 지금 국면의 **압력** — 의심도의 올라가는 걸음이 여기에 곱해진다 (SUSPICION_PRESSURE).
+   *
+   * 자리는 testsDone 하나다. 상태를 따로 안 두는 것이 요점이다: persist 가 이미 이 수를 나르므로
+   * 되살린 판도 저절로 같은 자리에 서고, 시험 국면에 오는 지목은 testsDone 이 아직 안 오른 시점이라
+   * 직전 토론과 같은 압력을 받는다 — 국면 사이에 불연속이 없다.
+   */
+  private pressure(): number {
+    return pressureFor(this.testsDone);
   }
 
   /** 입장 직후 — 지금 상태와 (앉아 있던 자리가 있으면) 배역을 그 사람에게만 보낸다 */
@@ -541,10 +557,14 @@ export class GameRuntime {
       const spot = spawnFor(s.seat, this.seats.length);
       this.botPos.set(s.id, { x: spot.x, z: spot.z, tx: spot.x, tz: spot.z, hx: spot.x, hz: spot.z, restUntil: 0, heading: 0, back: false });
     }
-    this.book = new SuspicionBook(this.seats.map((s) => s.id));
+    this.book = new SuspicionBook(
+      this.seats.map((s) => s.id),
+      () => this.pressure(),
+    );
     this.quota = quotaFor(this.seats.length);
     this.startedAt = this.now();
     this.testsDone = 0;
+    this.announcedPressure = 0;
     this.history = [];
     this.testRuns = new Map();
     this.latestResult = null;
@@ -639,6 +659,12 @@ export class GameRuntime {
     this.bodyWatch.clear();
     this.humanPos.clear();
     this.called.clear();
+    /*
+     * 몰이 상한도 토론마다 새로 센다 (SuspicionBook.newRound). 겨눔은 안 지워지므로 2차 토론부터는
+     * 남는 문이 되풀이 +3 하나뿐인데, 몰이 상한(12)까지 판 전체에 한 번이면 버티는 몰이가 후반에
+     * 아무 값도 못 낸다 — 방이 계속 몰고 있다는 사실이 눈금에 안 실린다.
+     */
+    this.book.newRound();
     // 다른 국면에 도착해 있던 봇의 말을 먼저 내보낸다 — 사람과 같은 스트림으로 (P10)
     for (const line of this.heldLines) this.say(line.id, line.text);
     this.heldLines = [];
@@ -650,10 +676,25 @@ export class GameRuntime {
     // 기다릴 사람이 아무도 안 붙어 있으면 그 자리에서 걷는다 (봇만 남은 판)
     if (opening) this.releasePrologue();
     else {
+      this.announcePressure();
       this.scheduleTalk(2_000);
       this.armReadFlush(ms);
     }
     void this.persist();
+  }
+
+  /**
+   * 검문 단계가 올랐으면 그 사실을 방송한다 — 압력이 1.0 인 동안(1차 토론)은 아무 말도 안 한다.
+   *
+   * 「올랐을 때 한 번」을 지키는 것은 announcedPressure 하나다: 되살린 판(restoreIfNeeded 도 openDiscussion 을
+   * 지난다)에서는 0 에서 시작하므로 지금 단계를 한 번 알려 주고 만다 — 돌아온 사람도 판이 어느 단계인지는 알아야 한다.
+   */
+  private announcePressure(): void {
+    const mult = this.pressure();
+    if (mult <= 1 || mult <= this.announcedPressure) return;
+    this.announcedPressure = mult;
+    const at = Math.max(0, Math.min(SUSPICION_PRESSURE.length - 1, this.testsDone));
+    this.leader(LINES.pressure(SUSPICION_STAGE[at] ?? '마감', mult), 'alarm');
   }
 
   /**
@@ -933,12 +974,19 @@ export class GameRuntime {
 
   private applyDeltas(deltas: SuspicionDelta[]): void {
     if (!deltas.length) return;
+    /*
+     * 압력이 걸린 걸음에는 사유 뒤에 「· 압력 ×1.5」를 붙인다 — 화면에 새 계기를 안 붙이기로 했으므로
+     * (상단 줄과 좌석 카드를 걷어냈다, hud/Panels 머리말) 피드의 이 한 줄과 검문 단계 방송이
+     * 규칙이 바뀐 것을 알리는 유일한 길이다. 내려가는 걸음은 압력을 안 타므로 안 붙는다.
+     */
+    const mult = this.pressure();
     for (const d of deltas) {
+      const why = mult > 1 && d.amount > 0 ? `${d.why} · 압력 ×${mult}` : d.why;
       this.deps.broadcast({
         t: 'game_suspicion',
         suspicion: this.book.snapshot(),
         accusations: this.book.accusationsSnapshot(),
-        delta: { target: d.target, amount: d.amount, by: d.by, why: d.why },
+        delta: { target: d.target, amount: d.amount, by: d.by, why },
       });
     }
     this.checkIsolation();
@@ -1598,20 +1646,20 @@ export class GameRuntime {
     this.seats = seats.map((s) => ({ ...s, talk: finite(s.talk, TALK.start) }));
     this.bindings = new Map(saved.bindings as [string, string][]);
     this.nicks = new Map((saved.nicks as [string, string][]) ?? []);
-    this.book = new SuspicionBook(seats.map((s) => s.id));
-    const sus = (saved.suspicion as Record<string, number>) ?? {};
-    for (const s of seats) {
-      // 값만 되살린다 — SuspicionBook 은 순수 클래스라 시작값 주입 대신 판정으로 채운다
-      let v = sus[s.id] ?? 0;
-      while (v >= 10) {
-        this.book.judge(s.id, 'mismatch');
-        v -= 10;
-      }
-      if (s.isolated) this.book.freeze(s.id);
-    }
     this.quota = Number(saved.quota) || quotaFor(seats.length);
     this.startedAt = Number(saved.startedAt) || this.now();
+    // 국면 압력이 여기서 나오므로 **책을 만들기 전에** 되살린다 (pressureFor)
     this.testsDone = Number(saved.testsDone) || 0;
+    this.book = new SuspicionBook(
+      seats.map((s) => s.id),
+      () => this.pressure(),
+    );
+    const sus = (saved.suspicion as Record<string, number>) ?? {};
+    for (const s of seats) {
+      // 값만 되살린다 — 판정(judge)이 아니라 복구(restore)다: 압력도 누계도 안 탄다
+      this.book.restore(s.id, sus[s.id] ?? 0);
+      if (s.isolated) this.book.freeze(s.id);
+    }
     this.testRuns = new Map((saved.testRuns as [TrialGame, number][]) ?? []);
     this.latestResult = (saved.latestResult as TrialResultWire | null) ?? null;
     this.log = (saved.log as ChatLine[]) ?? [];
