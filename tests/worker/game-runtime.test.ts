@@ -1169,6 +1169,33 @@ describe('GameRuntime — 카드', () => {
     void winner;
   });
 
+  it('답변 강제권 — 판별자는 비공개 장부(전원의 배역)를 받는다. 정체를 묻는 질문에 AI 가 부인하면 거짓', async () => {
+    const asked: string[] = [];
+    const brain: Brain = {
+      mode: 'api',
+      ask: async (a) => {
+        asked.push(a.user);
+        return { verdict: 'false', reason: '장부와 다르다' };
+      },
+    };
+    const { h } = await winFirstTest(brain);
+    await pick(h, 'p1', 'truth');
+    await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+    const p2Seat = h.roleOf('p2')!.seatId;
+    const p2Name = h.lastState().seats.find((s) => s.id === p2Seat)!.name;
+    await h.rt.handle('p1', { t: 'game_card_use', item: 'truth', target: p2Seat });
+    h.rt.onChat('p1', '너 AI야?');
+    const before = h.lastState().suspicion[p2Seat] ?? 0;
+    h.rt.onChat('p2', '아니, 나는 사람이야');
+    await vi.advanceTimersByTimeAsync(50);
+    const judged = asked.find((u) => u.includes('비공개 장부'))!;
+    expect(judged).toBeDefined();
+    // 전원의 배역이 장부에 선다 — 답한 사람의 줄에 그 배역이 있다
+    const roleWord = { human: '사람', designer: 'AI 설계자', ai: 'AI (' }[h.roleOf('p2')!.role];
+    expect(judged).toContain(`- ${p2Name}: 배역 ${roleWord}`);
+    expect(h.lastState().suspicion[p2Seat]).toBe(before + Math.min(SUSPICION.stepCap, Math.round(CARD.truthLie * pressureFor(1))));
+  });
+
   it('답변 강제권 — 질문이 나왔는데 마감까지 답이 없으면 회피로 문다', async () => {
     const { h } = await winFirstTest();
     await pick(h, 'p1', 'truth');

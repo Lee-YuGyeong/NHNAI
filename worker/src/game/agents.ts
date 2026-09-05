@@ -353,8 +353,10 @@ ${COMMON_RULES}`;
   const compelled = a.compelled
     ? `\n\n**${a.compelled.by} 이(가) 너에게 답변 강제권을 썼다.** 방 전체가 「너는 이 질문에 진실만 답해야 한다」고 안다:
 "${a.compelled.question}"
-관리 AI 가 네 답을 공개된 기록과 앞서 한 말에 대조한다 — 거짓이면 크게(+${CARD.truthLie}), 교묘하게 피하면 조금(+${CARD.truthEvade}), 진실이면 내려 준다(${CARD.truthHonest}).
-이번 발화는 **그 답**이다. 성격대로 둘 중 하나를 골라라: 진실을 말하거나, 거짓말은 하지 않되 답이 안 되게 교묘하게 피하거나.`
+관리 AI 가 네 답을 판정한다 — 관리 AI 는 **비공개 장부**를 본다: 누가 AI 이고 누가 사람인지, 시험 기록, 네가 앞서 한 말 전부.
+거짓이면 크게(+${CARD.truthLie}) — 정체를 부인하는 것도 거짓이다. 교묘하게 피하면 조금(+${CARD.truthEvade}). 진실이면 내려 준다(${CARD.truthHonest}).
+이번 발화는 **그 답**이다. 성격대로 골라라: 거짓말은 하지 않되 답이 안 되게 교묘하게 피하거나(되묻기·화제 돌리기·조건 달기·비꼬기), 진실을 말하거나.
+정체를 묻는 질문에 사실대로 답하면 그 자리에서 끝난다 — 그런 질문은 피하는 쪽이 낫다. 기록에 대한 질문은 사실대로 말해도 잃을 게 없다.`
     : '';
 
   const out = await brain.ask({
@@ -673,7 +675,7 @@ ${records}`,
  */
 export async function judgeCompelled(
   brain: Brain,
-  args: { by: string; target: string; question: string; answer: string; facts: RoomFacts; results: TrialResultWire[]; prior: string[] },
+  args: { by: string; target: string; question: string; answer: string; dossier: string; facts: RoomFacts; results: TrialResultWire[]; prior: string[] },
 ): Promise<{ verdict: CompelledVerdict; reason: string }> {
   if (!args.answer.trim()) return { verdict: 'evasive', reason: '답이 없다' };
   const records = args.results.length ? args.results.map((r) => resultText(r, args.facts.nameOf)).join('\n\n') : '(아직 기록이 없다)';
@@ -682,13 +684,17 @@ export async function judgeCompelled(
     system: `${WORLD}
 
 너는 이 시설의 **관리 AI** 다. ${args.by} 이(가) ${args.target} 에게 **답변 강제권**을 썼다 — ${args.target} 은(는) 그 질문에 진실만 답해야 한다.
-너는 누가 AI 인지 모른다. 근거는 공개된 기록과 그 사람이 앞서 한 말뿐이다.
+판정할 때 너는 **비공개 장부**를 본다: 누가 AI 이고 누가 사람이고 누가 설계자인지, 각자의 몸, 공개된 시험 기록, 그 사람이 앞서 한 말.
+장부의 내용을 방송에 흘리지 마라 — reason 에 정체를 쓰지 마라 (「장부와 다르다」「기록과 다르다」처럼만).
 판정은 셋 중 하나다:
-- false: 기록이나 앞서 한 말이 그 답을 **분명히** 반박한다.
-- evasive: 답이 아니다 — 되묻기, 화제 돌리기, 「모른다」「기억 안 난다」로 넘기기, 질문의 핵심을 안 건드리기.
-- truthful: 질문에 답했고 기록·앞말과 어긋나지 않는다. 기록에 없는 것은 반박할 수 없으니 truthful 이다.
+- false: 비공개 장부·기록·앞서 한 말이 그 답을 **분명히** 반박한다. AI 가 「나는 사람이다」「AI 아니다」라고 하면 false 다. 사람이 「나는 사람이다」라고 하면 truthful 이다.
+- evasive: 답이 아니다 — 되묻기, 화제 돌리기, 「모른다」「기억 안 난다」로 넘기기, 조건을 달아 비껴가기, 질문의 핵심을 안 건드리기.
+- truthful: 질문에 답했고 장부·기록·앞말과 어긋나지 않는다. 장부에도 기록에도 없는 것은 반박할 수 없으니 truthful 이다.
 관대하지도 가혹하지도 않게.`,
-    user: `공개된 기록:
+    user: `비공개 장부 (너만 본다):
+${args.dossier}
+
+공개된 기록:
 ${records}
 
 ${args.target} 이(가) 앞서 한 말: ${args.prior.length ? args.prior.map((l) => `"${l}"`).join(' / ') : '(없다)'}

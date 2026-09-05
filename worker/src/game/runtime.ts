@@ -1388,6 +1388,7 @@ export class GameRuntime {
         target: this.nameOf(c.target),
         question: c.question,
         answer,
+        dossier: this.dossier(),
         facts: this.facts(),
         results: this.history,
         prior,
@@ -1721,6 +1722,17 @@ export class GameRuntime {
 
   private publicSeat(s: Seat): GameSeat {
     return { id: s.id, name: s.name, seat: s.seat, isolated: s.isolated, ...(s.isolated ? { revealed: s.role } : {}), ...(s.body ? { body: s.body } : {}) };
+  }
+
+  /**
+   * 비공개 장부 — 답변 강제권의 판정에만 쓴다 (2026-09-05 사용자: "판별자 AI 가 모든 상대방의 정보를 알고 있어야").
+   * 배역(사람 · AI 설계자 · AI) · 몸(사람 · 대역 · AI) · 격리 여부. 관리 AI 는 이걸 보고 「너 AI 야?」에 「아니」라 한 AI 를 문다.
+   * 방송에는 안 나간다 — judgeCompelled 의 system 이 reason 에 정체를 못 쓰게 한다.
+   */
+  private dossier(): string {
+    const role = (r: GameRole) => (r === 'ai' ? 'AI (표식 없는 AI — 찾아야 할 그것)' : r === 'designer' ? 'AI 설계자 (사람이지만 AI 편)' : '사람');
+    const kind = (k: Seat['kind']) => (k === 'real' ? '실제 참가자' : k === 'npc' ? '대역(NPC)' : 'AI 봇');
+    return this.seats.map((s) => `- ${s.name}: 배역 ${role(s.role)} · ${kind(s.kind)}${s.isolated ? ' · 격리됨' : ''}`).join('\n');
   }
 
   private rolesMap(): Record<string, GameRole> {
