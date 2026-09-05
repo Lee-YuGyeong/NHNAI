@@ -73,6 +73,7 @@ export function Chat({
   mySeatId,
   markId,
   disabled,
+  talk,
   onSend,
   onComposing,
 }: {
@@ -81,6 +82,8 @@ export function Chat({
   /** 내가 겨누고 있는 좌석 — 그 좌석의 말에는 색점이 호박으로 켜진다 (몸 위 이름표와 같은 규칙) */
   markId: string | null;
   disabled: boolean;
+  /** 내 남은 발언권 — 판이 도는 동안만 수. 0 이면 「말하기」가 잠기고, null 이면 세지 않는다(로비) */
+  talk: number | null;
   onSend: (text: string) => void;
   onComposing: (v: boolean) => void;
 }) {
@@ -116,10 +119,14 @@ export function Chat({
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // 지갑이 비었다 — 판은 서 있되 입력만 잠긴다. 남의 말은 계속 읽어야 다음 시험에서 무엇을 되찾을지 안다
+  const broke = talk !== null && talk <= 0;
+  const locked = disabled || broke;
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const t = text.trim();
-    if (!t || disabled) return;
+    if (!t || locked) return;
     onSend(t);
     setText('');
   };
@@ -130,6 +137,15 @@ export function Chat({
         {/* 켜져 있다는 표시 하나 — 이 방이 살아서 떠들고 있다 */}
         <i aria-hidden className="live" />
         <span className="ttl">구역 통신</span>
+        {/*
+          남은 발언권 — 한 마디에 하나 (game-protocol 의 TALK). 셋 아래로 내려오면 조명색으로 켜지고,
+          비면 붉게 선다: 다음 시험이 이 수를 되돌려 준다는 것을 머리띠가 말해 준다.
+        */}
+        {talk !== null ? (
+          <span className={`talk${talk <= 0 ? ' none' : talk <= 2 ? ' low' : ''}`} title="남은 발언권 — 한 마디에 하나, 시험에서 버틴 3초마다 하나">
+            발언권 <b>{talk}</b>
+          </span>
+        ) : null}
         {/* 올려 둔 것을 잊으면 **대화가 멎은 것처럼 보인다** — 새 말은 오는데 화면이 안 움직이니까 */}
         {stick ? null : (
           <button
@@ -189,11 +205,11 @@ export function Chat({
           onKeyDown={(e) => {
             if (e.key === 'Escape') (e.target as HTMLInputElement).blur();
           }}
-          placeholder={disabled ? '기록 공개 중 — 입력이 잠긴다' : 'Enter 로 말하기'}
-          disabled={disabled}
+          placeholder={disabled ? '기록 공개 중 — 입력이 잠긴다' : broke ? '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다' : 'Enter 로 말하기'}
+          disabled={locked}
           maxLength={200}
         />
-        <button type="submit" disabled={disabled || !text.trim()}>
+        <button type="submit" disabled={locked || !text.trim()}>
           말하기
         </button>
       </form>
@@ -267,7 +283,20 @@ export function RecordPanel({ result, nameOf, mySeatId }: { result: TrialResultW
  * 석 줄 설명(전환 직후 오차 · 오차 방향 · 적응 곡선의 정의)은 7초 안에 표를 읽어야 할 눈을 뺏었다.
  * 판정 낱말이 없는 것은 그대로다 (ResultTable 머리말 — 시스템은 판정하지 않는다).
  */
-export function ResultModal({ result, nameOf, mySeatId, endsAt }: { result: TrialResultWire; nameOf: (id: string) => string; mySeatId: string | null; endsAt: number | null }) {
+export function ResultModal({
+  result,
+  nameOf,
+  mySeatId,
+  endsAt,
+  gained,
+}: {
+  result: TrialResultWire;
+  nameOf: (id: string) => string;
+  mySeatId: string | null;
+  endsAt: number | null;
+  /** 이 시험이 준 발언권 (game_talk 의 gained) — 표의 마지막 열 */
+  gained?: Record<string, number>;
+}) {
   const left = useCountdown(endsAt);
   // 발치의 막대는 켜지는 순간 남은 시간만큼 한 번에 빠진다 — 머리띠의 숫자와 같은 endsAt (EndScreen 과 같은 버릇)
   const [showMs] = useState(() => (endsAt === null ? 0 : Math.max(0, endsAt - Date.now())));
@@ -283,10 +312,15 @@ export function ResultModal({ result, nameOf, mySeatId, endsAt }: { result: Tria
           <p className="ig-title">
             {TEST_TITLE[result.game]} <span>{result.round}회차</span>
           </p>
-          <ResultTable result={result} nameOf={nameOf} mySeatId={mySeatId} />
+          <ResultTable result={result} nameOf={nameOf} mySeatId={mySeatId} gained={gained} />
           <p className="ig-note">
             <span className="k hi">붉은 값</span>무리 평균에서 크게 벗어난 기록
             <span className="k">적응 곡선</span>시행별 오차 — 사람은 회를 거듭할수록 줄어든다
+            {gained ? (
+              <>
+                <span className="k">발언권</span>버틴 3초마다 하나 — 다음 대화에서 쓴다
+              </>
+            ) : null}
           </p>
         </div>
         <div className="ft">

@@ -222,6 +222,32 @@
   letter-spacing: 0.2em;
   color: var(--dust);
 }
+/* 남은 발언권 — 라벨과 같은 모노. 수만 밝다. 셋 이하면 조명색, 비면 붉은색 (2026-09-05 발언권) */
+.ig-commhd .talk {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--dust);
+  white-space: nowrap;
+}
+.ig-commhd .talk b {
+  margin-left: 2px;
+  font-size: 12px;
+  color: var(--linen);
+}
+.ig-commhd .talk.low b {
+  color: var(--amber);
+  text-shadow: 0 0 8px rgba(255, 202, 142, 0.6);
+}
+.ig-commhd .talk.none b {
+  color: #ff6a5a;
+  text-shadow: 0 0 8px rgba(255, 106, 90, 0.6);
+}
+/* 결과 표의 발언권 열 — 받은 수는 밝게 */
+.ig-table td.talk {
+  color: var(--amber);
+  font-weight: 700;
+}
 /* 지난 말을 보는 중 — 머리띠 오른쪽 끝에 이것만 선다 (2026-09-04 사용자: 「개체 N」은 뺀다 —
    좌석판이 이미 세고 있다). 이것만이 **지금 뭔가 어긋나 있다**는 표시다: 새 말이 오는데 안 보고
    있다. 그래서 이 화면의 조명색으로 혼자 켜진다 */

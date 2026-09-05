@@ -37,6 +37,8 @@ import {
   GAME_PROLOGUE_MAX_MS,
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
+  TALK,
+  talkFor,
   GAME_TEST_ORDER,
   READ_EVERY_MS,
   READ_MAX_LINES,
@@ -95,6 +97,8 @@ interface Seat {
   lastSpokeAt: number;
   /** 몸 (mp/bodies.ts) — 사람은 입장 때 받은 것, 대역·AI 는 판이 열릴 때 남은 몸에서 */
   body?: BodyId;
+  /** 남은 발언권 — 한 마디에 하나, 시험이 끝나면 기록만큼 (game-protocol 의 TALK · talkFor). 사람도 봇도 같은 지갑이다 (P10) */
+  talk: number;
 }
 
 interface ChatLine {
@@ -273,6 +277,11 @@ export class GameRuntime {
     const seat = this.seatOfPlayer(playerId);
     if (!seat) return true; // 좌석이 없는 구경꾼 — 판에는 안 실린다
     if (this.phase === 'result') return true; // 모달 동안은 전원 입력이 잠긴다 (§3)
+    // 발언권 하나 — 없으면 말이 안 나간다. 다음 시험에서 기록만큼 다시 받는다 (TALK)
+    if (!this.spendTalk(seat)) {
+      this.reject(playerId, '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다');
+      return true;
+    }
     this.say(seat.id, text);
     const target = this.accusationIn(text, seat.id);
     if (target) this.statement(seat.id, target);
@@ -401,6 +410,7 @@ export class GameRuntime {
       tamperLeft: 0,
       lastSpokeAt: 0,
       body: p.body,
+      talk: TALK.start,
     }));
     for (let i = 0; i < npcCount; i += 1) {
       const body = pickBody(usedBodies, this.rand);
@@ -416,6 +426,7 @@ export class GameRuntime {
         tamperLeft: 0,
         lastSpokeAt: 0,
         body,
+        talk: TALK.start,
       });
     }
     const ai: Seat = {
@@ -429,6 +440,7 @@ export class GameRuntime {
       tamperLeft: 0,
       lastSpokeAt: 0,
       body: pickBody(usedBodies, this.rand),
+      talk: TALK.start,
     };
 
     const assignment = assignRoles(
@@ -724,6 +736,7 @@ export class GameRuntime {
     this.testsDone += 1;
     this.currentTest = null;
     this.deps.broadcast({ t: 'trial_result', result: wire });
+    this.grantTalk(engine.game, published);
     this.setPhase('result', this.now() + GAME_RESULT_MODAL_MS);
     void this.persist();
 
@@ -965,6 +978,8 @@ export class GameRuntime {
     const now = this.now();
     if (this.claimInFlight.has(me.id) || now - (this.lastClaimAt.get(me.id) ?? 0) < CLAIM_GAP_MS)
       return this.reject(playerId, '앞의 주장을 아직 판정 중이다');
+    // 주장도 말이다 — 발언권 하나 (채팅과 같은 지갑)
+    if (!this.spendTalk(me)) return this.reject(playerId, '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다');
     this.lastClaimAt.set(me.id, now);
     this.claimInFlight.add(me.id);
 
@@ -1031,7 +1046,8 @@ export class GameRuntime {
     // 다음 차례를 **먼저** 잡는다 — LLM 왕복이 끝나야 잡으면 방의 박자가 모델 지연에 매인다 (BOT_TALK_CONCURRENCY)
     this.scheduleTalk();
     if (this.botBusy.size >= BOT_TALK_CONCURRENCY) return;
-    const bots = this.seats.filter((s) => s.kind !== 'real' && !s.isolated && s.persona && !this.botBusy.has(s.id));
+    // 발언권이 남은 봇만 — 지갑이 빈 좌석은 사람이든 봇이든 똑같이 조용하다 (P10 · TALK)
+    const bots = this.seats.filter((s) => s.kind !== 'real' && !s.isolated && s.persona && s.talk > 0 && !this.botBusy.has(s.id));
     if (!bots.length) return;
     const now = this.now();
     // 지목당한 봇이 먼저, 오래 조용했던 봇이 다음 — 그 안에서 무작위
@@ -1051,6 +1067,8 @@ export class GameRuntime {
         opening: this.testsDone === 0 && this.log.length < 3,
       });
       if (!out || !this.active() || pick.isolated) return;
+      // 말을 짓는 동안 지갑이 비었을 수 있다 (같은 좌석의 앞 차례) — 그러면 이 말은 버린다
+      if (!this.spendTalk(pick)) return;
       if (this.phase === 'discussion') {
         this.say(pick.id, out.text);
         if (out.withdraw) this.applyDeltas(this.book.withdraw(pick.id));
@@ -1293,7 +1311,44 @@ export class GameRuntime {
       humansOnline: roster.length,
       outcome: this.outcome,
       startedAt: this.startedAt || null,
+      talk: this.talkSnapshot(),
     };
+  }
+
+  /* ─────────────────────────────── 발언권 ─────────────────────────────── */
+
+  private talkSnapshot(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const s of this.seats) out[s.id] = s.talk;
+    return out;
+  }
+
+  /**
+   * 한 마디의 값 — 있으면 하나 쓰고 참, 없으면 거짓. 쓴 뒤의 지갑은 전원에게 간다 (game_talk):
+   * 남은 수는 곧 시험 기록이라 감출 것이 없고, 화면은 이걸로 「말하기」를 잠근다.
+   */
+  private spendTalk(seat: Seat): boolean {
+    if (seat.talk <= 0) return false;
+    seat.talk -= 1;
+    this.deps.broadcast({ t: 'game_talk', talk: this.talkSnapshot() });
+    return true;
+  }
+
+  /**
+   * 시험이 끝났다 — 기록만큼 지급한다 (TALK · talkFor). 격리된 좌석은 결과에 없으니 자연히 못 받는다.
+   * 공개본(조작본)으로 센다: 지갑이 기록과 어긋나면 그 어긋남이 조작을 새게 하는 자리가 된다 (P7).
+   */
+  private grantTalk(game: TrialGame, published: TrialPlayerResult[]): void {
+    const gained: Record<string, number> = {};
+    for (const p of published) {
+      const seat = this.seats.find((s) => s.id === p.id);
+      if (!seat || seat.isolated) continue;
+      const gain = talkFor(game, p.metrics, GAME_TEST_MS);
+      const next = Math.min(TALK.cap, seat.talk + gain);
+      gained[seat.id] = next - seat.talk;
+      seat.talk = next;
+    }
+    this.deps.broadcast({ t: 'game_talk', talk: this.talkSnapshot(), gained, game });
   }
 
   private broadcastState(): void {
@@ -1345,7 +1400,8 @@ export class GameRuntime {
     if (!saved || saved.phase === 'lobby' || saved.phase === 'ended') return;
     const seats = saved.seats as Seat[];
     if (!Array.isArray(seats) || !seats.length) return;
-    this.seats = seats;
+    // 발언권이 없던 시절의 저장본이면 시작값으로 — 잠들었다 깬 판이 벙어리가 되면 안 된다
+    this.seats = seats.map((s) => ({ ...s, talk: finite(s.talk, TALK.start) }));
     this.bindings = new Map(saved.bindings as [string, string][]);
     this.nicks = new Map((saved.nicks as [string, string][]) ?? []);
     this.book = new SuspicionBook(seats.map((s) => s.id));

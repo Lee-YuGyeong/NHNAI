@@ -94,6 +94,11 @@ export interface GameStateWire {
   outcome: GameOutcome | null;
   /** 판이 열린 서버 시각 — 하드캡 표시용 */
   startedAt: number | null;
+  /**
+   * 좌석 id → 남은 **발언권**. 한 마디에 하나씩 줄고, 시험이 끝날 때마다 기록만큼 는다 (TALK · talkFor).
+   * 공개다 — 남은 수는 곧 시험 기록이고, 기록은 어차피 전원이 본다 (§3).
+   */
+  talk: Record<string, number>;
 }
 
 /** 관리 AI 방송의 결 — 화면 배너·TTS 가 같은 값을 본다 (shared/broadcast-kind 의 부분집합) */
@@ -151,6 +156,11 @@ export type GameS2CMessage =
   | { t: 'game_tamper_ok'; left: number }
   /** 판이 끝났다 — 정체표 전부 공개 */
   | { t: 'game_ended'; outcome: GameOutcome; roles: Record<string, GameRole> }
+  /**
+   * 발언권이 움직였다 — 한 마디에 하나 줄었거나(gained 없음), 시험이 끝나 기록만큼 늘었다(gained · game).
+   * talk 는 전원의 지금 값이다 (game_state 의 talk 와 같은 것) — 화면은 이걸 그대로 덮어쓴다.
+   */
+  | { t: 'game_talk'; talk: Record<string, number>; gained?: Record<string, number>; game?: TrialGame }
   /** 거절 사유 한 줄 — 그 소켓에만 (시작 조건 미달 · 권한 없음 · 국면 불일치) */
   | { t: 'game_reject'; why: string };
 
@@ -245,6 +255,60 @@ export const READ_MAX_LINES = 12;
 
 /** 주장 한 줄의 길이 상한 — 서버가 자른다 */
 export const CLAIM_MAX_LEN = 140;
+
+/**
+ * 발언권 (2026-09-05 사용자: "처음에 각자 대화 발언권 갯수가 주어지고, 미니게임에서 이겼을 때 게임마다 추가").
+ *
+ * 한 마디(채팅 · 주장)에 하나씩 쓴다. 지목(game_accuse)은 말이 아니라 공짜다. 대역과 AI 참가자도 **같은 지갑**을
+ * 쓴다 — 사람만 세면 끝없이 떠드는 좌석이 곧 AI 다 (P10).
+ *
+ * 값은 차례표에 맞춰 잡았다. 토론은 40초 × 4 인데 사람이 40초에 실제로 치는 말은 넉넉잡아 5~8마디고, 봇은
+ * 7초에 하나꼴(runtime 의 BOT_TALK_*)이라 한 토론에 5~6마디다. 그래서:
+ *
+ *   start        6   입장 때. 첫 토론 한 번을 아끼지 않고 말할 만큼 — 여기서 모자라면 첫 시험 전에 판이 조용해진다.
+ *   secondsPer   3   시험에서 **버틴(남긴) 3초마다 1**. 30초를 다 버티면 10 — 다음 토론을 넉넉히 채우고 조금 남는다.
+ *                    1초에 1이면(사용자의 예시) 30초 시험에서 30이 쌓여 지갑이 뜻을 잃는다 — 8초 버틴 사람(3)과
+ *                    30초 버틴 사람(10)의 차이가 다음 토론에서 실제로 느껴지는 눈금이 이쯤이다.
+ *   min          1   시험마다 최소. 0이면 한 번 못한 사람이 다음 토론에서 변명조차 못 한다 — 그 침묵은 의심도가
+ *                    말로만 움직이는 이 판(P1)에서 곧 격리다. 한 마디는 남긴다.
+ *   cap         15   지갑 상한. 아껴 둔 사람이 마지막 토론에서 스무 마디를 쏟으면 지갑이 없는 것과 같다.
+ *
+ * 시험마다 무엇을 재는지는 talkFor 에 있다 — 낙하 생존은 첫 피격까지의 초, 발판은 도착하고 **남긴** 초,
+ * 원판은 첫 낙하까지의 초. 셋 다 「30초 안에서 얼마를 지켰나」라 한 눈금(secondsPer)으로 잰다.
+ */
+export const TALK = {
+  start: 6,
+  secondsPer: 3,
+  min: 1,
+  cap: 15,
+} as const;
+
+/**
+ * 시험 기록 → 그 시험이 주는 발언권. 서버가 부르고(runtime.finishTest), 화면은 받은 값을 보여 줄 뿐이다.
+ * @param metrics 결과의 metrics (공개본 — 조작이 있었으면 조작본. 지갑이 기록과 어긋나면 조작이 새는 자리가 된다)
+ * @param testMs  시험 길이 — 발판의 「남긴 초」를 셀 기준
+ */
+export function talkFor(game: TrialGame, metrics: Record<string, number>, testMs: number): number {
+  const num = (v: number | undefined) => (typeof v === 'number' && Number.isFinite(v) ? v : Number.NaN);
+  let seconds: number;
+  switch (game) {
+    case 'fall':
+      seconds = num(metrics.survivalTime); // 첫 피격까지(s) — 안 맞았으면 시험 길이
+      break;
+    case 'platform': {
+      const finish = num(metrics.finishMs); // 도착 발판에 처음 내리기까지(ms) — 못 갔으면 NaN
+      seconds = Number.isFinite(finish) ? Math.max(0, testMs - finish) / 1000 : Number.NaN;
+      break;
+    }
+    case 'disc':
+      seconds = num(metrics.survivalTime); // 첫 낙하까지(s) — 안 떨어졌으면 시험 길이
+      break;
+    default:
+      seconds = Number.NaN; // 정지선 · 색 사냥은 시간을 재는 시험이 아니다 — 최소만
+  }
+  if (!Number.isFinite(seconds) || seconds <= 0) return TALK.min;
+  return Math.max(TALK.min, Math.ceil(seconds / TALK.secondsPer));
+}
 
 /*
  * 색 사냥의 와이어는 여기 없다 — 다른 두 테스트처럼 `protocol.ts` 의 `trial_*`

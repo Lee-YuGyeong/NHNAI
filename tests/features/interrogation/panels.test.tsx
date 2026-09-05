@@ -11,7 +11,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { EndScreen, ResultModal } from '@/features/interrogation/hud/Panels';
+import { Chat, EndScreen, ResultModal } from '@/features/interrogation/hud/Panels';
 import { gameActions, interrogationSlice } from '@/features/interrogation/interrogationSlice';
 import type { GameStateWire } from '@/world/mp/game-protocol';
 import type { TrialResultWire } from '@/world/mp/protocol';
@@ -47,6 +47,7 @@ const WIRE: GameStateWire = {
   humansOnline: 1,
   outcome: null,
   startedAt: 1,
+  talk: {},
 };
 
 describe('ResultModal', () => {
@@ -57,6 +58,37 @@ describe('ResultModal', () => {
     expect(screen.getByText('SUBJECT 02')).toBeInTheDocument();
     expect(screen.queryByText(/정상|이상치/)).toBeNull();
     expect(screen.getByText(/낙하 생존/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * 발언권 (game-protocol 의 TALK) — 머리띠에 남은 수, 비면 입력이 잠긴다. 결과 표에는 받은 수가 열 하나로 선다.
+ */
+describe('Chat — 발언권', () => {
+  const noop = () => {};
+  it('남은 수를 머리띠에 적고, 비면 「말하기」를 잠근다 — 판은 서 있어서 남의 말은 계속 읽는다', () => {
+    const { rerender } = render(<Chat feed={[]} mySeatId="s1" markId={null} disabled={false} talk={4} onSend={noop} onComposing={noop} />);
+    expect(screen.getByTitle(/남은 발언권/).textContent).toContain('4');
+    expect(screen.getByPlaceholderText('Enter 로 말하기')).not.toBeDisabled();
+
+    rerender(<Chat feed={[]} mySeatId="s1" markId={null} disabled={false} talk={0} onSend={noop} onComposing={noop} />);
+    expect(screen.getByTitle(/남은 발언권/).textContent).toContain('0');
+    expect(screen.getByPlaceholderText(/발언권이 없다/)).toBeDisabled();
+    expect(screen.getByRole('button', { name: '말하기' })).toBeDisabled();
+  });
+
+  it('로비(null)에서는 세지 않는다', () => {
+    render(<Chat feed={[]} mySeatId={null} markId={null} disabled={false} talk={null} onSend={noop} onComposing={noop} />);
+    expect(screen.queryByTitle(/남은 발언권/)).toBeNull();
+  });
+});
+
+describe('ResultModal — 발언권 열', () => {
+  it('gained 가 있으면 마지막 열에 +N 으로 선다', () => {
+    render(<ResultModal result={RESULT} nameOf={(id) => id} mySeatId="s1" endsAt={null} gained={{ s1: 7, s2: 1 }} />);
+    expect(screen.getByRole('columnheader', { name: '발언권' })).toBeTruthy();
+    expect(screen.getByText('+7')).toBeTruthy();
+    expect(screen.getByText('+1')).toBeTruthy();
   });
 });
 

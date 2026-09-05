@@ -37,7 +37,7 @@ import type { BodyId } from '@/world/mp/bodies';
 import { fallState } from '@/features/trial/games/fall/fallState';
 import { EXECUTION_MS, executioner } from './scene/executionerStore';
 import { platformState } from './scene/platformState';
-import { PAD_START_Z } from '@/world/mp/platform';
+import { PAD_START_Z, startSlot } from '@/world/mp/platform';
 import { runnerState } from './scene/stopline/runnerState';
 // 색 사냥의 구슬 상태·오버레이 색은 /trial 과 같은 모듈이다 — 화면은 달라도 게임은 하나다 (huntState 머리말)
 import { huntState, softLight } from '@/features/trial/games/color-hunt/huntState';
@@ -83,6 +83,8 @@ export function InterrogationFeature() {
   const outcome = useAppSelector(gameSelectors.selectOutcome);
   const endedAt = useAppSelector(gameSelectors.selectEndedAt);
   const reject = useAppSelector(gameSelectors.selectReject);
+  const myTalk = useAppSelector(gameSelectors.selectMyTalk);
+  const talkGained = useAppSelector(gameSelectors.selectTalkGained);
 
   const [locked, setLocked] = useState(false);
   const [composing, setComposing] = useState(false);
@@ -221,6 +223,9 @@ export function InterrogationFeature() {
         case 'game_reject':
           dispatch(gameActions.rejected(msg.why));
           return;
+        case 'game_talk':
+          dispatch(gameActions.talkReceived(msg));
+          return;
         case 'game_tamper_ok':
           dispatch(gameActions.tamperOk(msg.left));
           return;
@@ -230,12 +235,12 @@ export function InterrogationFeature() {
           fallState.clear();
           huntState.clear();
           discState.clear();
-          // 움직이는 플랫폼 — 발판 열이 서고(platformState), 전원이 출발 발판 위에서 시작한다 (좌석 번호로 나란히)
+          // 움직이는 플랫폼 — 발판 열이 서고(platformState), 전원이 출발 발판 위 2×2 자리에서 시작한다 (좌석 번호로, platform.ts startSlot)
           if (msg.game === 'platform') {
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
-            const x = seat ? -0.6 + ((seat.seat - 1) % 4) * 0.4 : 0;
-            platformState.start(msg.startAt, msg.pace, { x, z: PAD_START_Z });
-            setTeleport({ x, z: PAD_START_Z, key: `platform-${msg.startAt}` });
+            const home = seat ? startSlot(seat.seat - 1) : { x: 0, z: PAD_START_Z };
+            platformState.start(msg.startAt, msg.pace, home);
+            setTeleport({ ...home, key: `platform-${msg.startAt}` });
           } else platformState.clear();
           return;
         }
@@ -310,6 +315,9 @@ export function InterrogationFeature() {
           dispatch(gameActions.resultReceived(msg.result));
           platformState.clear();
           discState.clear();
+          // 무대가 걷혔다 — 원판(0.75m)·발판(0.5m) 위에 있던 남의 몸을 바닥에 내려놓는다. 안 그러면 다음 샘플이 올 때까지
+          // 허공에 서 있다 (remotePlayers.settle 머리말, 2026-09-05 사용자)
+          remotePlayers.settle(now());
           // 정지선 레일에서 내려온다 — 내 좌석 자리로
           {
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
@@ -673,6 +681,7 @@ export function InterrogationFeature() {
             mySeatId={mySeatId}
             markId={markId}
             disabled={status !== 'connected' || phase === 'result' || phase === 'ended' || (inGame && !mySeatId)}
+            talk={inGame ? myTalk : null}
             onSend={onSend}
             onComposing={setComposing}
           />
@@ -689,7 +698,15 @@ export function InterrogationFeature() {
         {/* 소집 대기 판은 ?lobby 로 들어왔거나 자동 시작이 거절됐을 때만 선다 — 나머지는 판이 열리는 한순간뿐이다 */}
         {wire && phase === 'lobby' && (keepLobby || reject) ? <LobbyPanel wire={wire} players={players} selfId={selfId} myBody={myBody} reject={reject} onStart={onStart} /> : null}
         {reject && phase !== 'lobby' ? <p className="ig-banner alarm">{reject}</p> : null}
-        {phase === 'result' && latestResult ? <ResultModal result={latestResult} nameOf={nameOf} mySeatId={mySeatId} endsAt={wire?.phaseEndsAt ?? null} /> : null}
+        {phase === 'result' && latestResult ? (
+          <ResultModal
+            result={latestResult}
+            nameOf={nameOf}
+            mySeatId={mySeatId}
+            endsAt={wire?.phaseEndsAt ?? null}
+            gained={talkGained?.game === latestResult.game ? talkGained.gained : undefined}
+          />
+        ) : null}
         {phase === 'ended' && outcome ? (
           <EndScreen
             outcome={outcome}
