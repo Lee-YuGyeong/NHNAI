@@ -1030,7 +1030,7 @@
   letter-spacing: 0.14em;
   color: var(--grime);
 }
-.ig-endpanel .again {
+.ig-endpanel .leave {
   margin-left: auto;
   padding: 4px 12px;
   font: inherit;
@@ -1045,20 +1045,19 @@
   cursor: pointer;
   white-space: nowrap;
 }
-/* 눌렀다 — 서버가 새 판을 여는 사이. 한 번 더 눌러도 거절뿐이라 손을 막는다 */
-.ig-endpanel .again:disabled {
+.ig-endpanel .leave:disabled {
   cursor: default;
   border-color: color-mix(in srgb, var(--rc) 26%, transparent);
   color: color-mix(in srgb, var(--rc) 62%, transparent);
   background: transparent;
 }
-.ig-endpanel .again:hover:not(:disabled) {
+.ig-endpanel .leave:hover:not(:disabled) {
   transform: none;
   border-color: color-mix(in srgb, var(--rc) 75%, transparent);
   background: color-mix(in srgb, var(--rc) 24%, transparent);
   box-shadow: none;
 }
-/* 로비 복귀까지 — 판 바닥에 붙은 한 줄. --show 를 그대로 쓰므로 머리띠의 숫자와 어긋날 수 없다 */
+/* 방을 나갈 때까지 — 판 바닥에 붙은 한 줄. --show 를 그대로 쓰므로 머리띠의 숫자와 어긋날 수 없다 */
 .ig-endpanel .prog {
   position: absolute;
   left: 0;

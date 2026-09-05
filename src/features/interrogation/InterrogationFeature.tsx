@@ -15,12 +15,12 @@
  * 이름을 같이 들고 온다 (2026-09-05, shared/start.ts · lobby/Waitroom 의 startHref).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BackToRoot } from '@/shared/BackToRoot';
 import { broadcastAnnounce } from '@/shared/broadcast';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { GAME_DISCUSSION_MS, GAME_ENDED_MS, GAME_MAX_HUMANS, GAME_TEST_MS, GAME_TEST_COUNT, type GameSeat } from '@/world/mp/game-protocol';
+import { GAME_DISCUSSION_MS, GAME_MAX_HUMANS, GAME_TEST_MS, GAME_TEST_COUNT, type GameSeat } from '@/world/mp/game-protocol';
 import type { AnimState, PlayerSnapshot } from '@/world/mp/protocol';
 import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
@@ -68,6 +68,8 @@ function seatSpot(seat: GameSeat, total: number): { x: number; z: number } {
  *   (아래 party · PARTY_WAIT_MS). 혼자 들어온 길은 예전 그대로 곧장 열린다.
  */
 const AUTO_SEATS = 4;
+/** 끝 화면이 서 있는 시간 — 다 가면 스스로 방을 나간다 (onLeave). 정체표를 읽을 만큼만 */
+const END_LEAVE_MS = 15_000;
 
 /**
  * 일행을 여기까지만 기다린다 (ms). 대기방의 「게임 시작」은 전원을 같은 순간에 보내므로 소켓은 몇 초 안에
@@ -80,6 +82,7 @@ const PARTY_WAIT_MS = 10_000;
 export function InterrogationFeature() {
   const dispatch = useAppDispatch();
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const roomCode = params.get('code') ?? '1234';
   // 주소에 실려 온 이름이 먼저다 — 대기방에서 앉아 있던 그 이름이라야 옆자리가 같은 사람으로 본다.
   // 한 번 정하면 안 바꾼다(deps []): 판이 도는 중에 이름이 갈리면 서버가 다른 사람으로 받는다
@@ -636,7 +639,7 @@ export function InterrogationFeature() {
    * 있는 사람끼리 연다 (그 빈자리는 대역이 앉는다, §9). 기다리는 동안 화면은 몇 명이 왔는지 말해 준다(hud).
    *
    * 로비에 들어설 때마다 **한 번**이다: 거절되면(reject) 소집 대기 판이 그대로 서고, 판이 끝나 로비로
-   * 돌아오면(GAME_ENDED_MS 뒤) 다시 한 번 연다 — 끝 화면의 「다시 — 새 판」도 결국 여기로 온다.
+   * 돌아오면(GAME_ENDED_MS 뒤) 다시 한 번 연다 — 다만 판이 끝나면 다들 방을 나가므로(onLeave) 보통은 그 전에 떠나 있다.
    */
   const keepLobby = params.get('lobby') !== null;
   const hostId = wire?.hostId ?? null;
@@ -665,19 +668,23 @@ export function InterrogationFeature() {
     return () => clearTimeout(t);
   }, [phase, status, selfId, hostId, keepLobby, party, humansOnline, onStart]);
   /*
-   * 끝 화면의 「다시 — 새 판」 — 서버에 **곧바로** 시작을 청한다. 예전엔 새로고침이었는데, 다시 붙어도 서버는
-   * 아직 끝난 판(ended)이라 같은 끝 화면이 시계도 없이 한 번 더 섰다: GAME_ENDED_MS 가 다 지나 서버가 스스로
-   * 로비로 되돌릴 때까지 기다려야 새 판이 열렸다 (2026-09-05 사용자: "새 판 누르면 새판으로 바로 안넘어가").
-   * 서버는 끝 화면 중에도 방장의 시작을 받는다 — 그 시작이 곧 「다시 하기」다 (runtime.start 의 ended 갈래).
-   *
-   * autoSent 를 미리 세워 둔다: 서버가 판을 접으며 로비를 한 번 스쳐 방송하므로(resetToLobby 의
-   * broadcastState) 그 찰나에 위의 자동 시작이 또 나가면 「이미 판이 열려 있다」로 거절된다. 판이 briefing 으로
-   * 바뀌는 순간 위 효과가 다시 돌며 스스로 내린다.
+   * 판이 끝나면 **방을 나간다** (2026-09-05 사용자: "게임 승리하거나 패배하면 방 나가게 해줘"). 끝 화면이
+   * END_LEAVE_MS 서고 나면 스스로 나가고, 「방 나가기」 단추는 그걸 앞당긴다. 예전의 「다시 — 새 판」(방장이 그
+   * 자리에서 새 판을 청하던 것)은 걷었다 — 판이 끝난 방에 남아 다음 판을 기다리는 길은 이제 없다. 돌아가는 곳은
+   * 대기방에서 왔으면 방 목록(/lobby), 이야기(/interrogation?from=central)로 왔으면 메인(/main)이다.
+   * 서버는 GAME_ENDED_MS 뒤 스스로 로비로 접는다 (runtime 의 resetToLobby) — 나간 뒤의 일이라 여기선 안 본다.
    */
-  const onAgain = useCallback(() => {
-    autoSent.current = true;
-    onStart(Math.max(AUTO_SEATS - 1, party));
-  }, [onStart, party]);
+  const onLeave = useCallback(() => {
+    conn.close();
+    navigate(params.get('from') === 'central' ? '/main' : '/lobby');
+  }, [conn, navigate, params]);
+  const endScreenUp = phase === 'ended' && !!outcome && dying.size === 0;
+  const leaveAt = endScreenUp && endedAt !== null ? endedAt + END_LEAVE_MS : null;
+  useEffect(() => {
+    if (leaveAt === null) return;
+    const t = window.setTimeout(onLeave, Math.max(0, leaveAt - Date.now()));
+    return () => window.clearTimeout(t);
+  }, [leaveAt, onLeave]);
 
   /* ─────────────────────────────── 피격 번쩍임 ─────────────────────────────── */
   const [flashKey, setFlashKey] = useState(0);
@@ -911,17 +918,8 @@ export function InterrogationFeature() {
           * 총성 위로 이 판이 그대로 덮였다 — 관리 AI 가 겨누는 것도, 내가 넘어가는 것도 아무도 못 봤다.
           * dying 은 격리된 몸이 홀에 남아 있는 동안만 차 있다 (EXECUTION_MS — 조준 · 세 발 · 넘어짐 · 한 박자).
           */}
-        {phase === 'ended' && outcome && dying.size === 0 ? (
-          <EndScreen
-            outcome={outcome}
-            roles={roles}
-            seats={seats}
-            mySeatId={mySeatId}
-            myRole={me?.role ?? null}
-            endsAt={endedAt === null ? null : endedAt + GAME_ENDED_MS}
-            canStart={!!selfId && hostId === selfId}
-            onAgain={onAgain}
-          />
+        {endScreenUp && outcome ? (
+          <EndScreen outcome={outcome} roles={roles} seats={seats} mySeatId={mySeatId} myRole={me?.role ?? null} endsAt={leaveAt} onLeave={onLeave} />
         ) : null}
       </div>
 

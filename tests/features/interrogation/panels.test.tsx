@@ -2,7 +2,7 @@
 /**
  * 「인간인 척」의 판들 — 서버 상태를 그대로 그리는지, 그리고 그리면 안 되는 것을 안 그리는지.
  *   ① 결과 모달: 무리 평균이 참가자 줄과 같이 서고 「의심」·「정상」 같은 판정 낱말이 없다
- *   ② 끝 화면: 정체표 전부와 승패 한 줄 · 「다시 — 새 판」이 그 자리에서 새 판을 청한다
+ *   ② 끝 화면: 정체표 전부와 승패 한 줄 · 「방 나가기」가 방을 나간다 (시계가 다 가도 나간다 — InterrogationFeature)
  *   ③ 저장소(interrogationSlice): 새 판이 열리면 지난 판의 흔적이 지워진다
  *
  * 좌석판(Board)은 이제 없다 — 의심도는 몸 위의 막대로만 읽고, 눈금을 움직이는 것은 관리 AI 의 말 읽기다
@@ -131,8 +131,7 @@ describe('EndScreen', () => {
         mySeatId="s1"
         myRole="human"
         endsAt={null}
-        canStart
-        onAgain={() => {}}
+        onLeave={() => {}}
       />,
     );
     expect(screen.getByText('사람 진영 승리')).toBeInTheDocument();
@@ -144,12 +143,9 @@ describe('EndScreen', () => {
     expect(screen.getByText(/나는/)).toHaveTextContent('사람이었다');
   });
 
-  /*
-   * 「다시 — 새 판」은 그 자리에서 새 판을 청한다 (2026-09-05 사용자: "새 판 누르면 새판으로 바로 안넘어가").
-   * 예전엔 새로고침이라 다시 붙어도 서버는 아직 끝난 판이었고, 같은 끝 화면이 한 번 더 섰다.
-   */
-  it('「다시 — 새 판」은 한 번만 청하고, 청한 뒤에는 눌리지 않는다', () => {
-    const onAgain = vi.fn();
+  /* 판이 끝나면 방을 나간다 (2026-09-05 사용자: "게임 승리하거나 패배하면 방 나가게 해줘") — 단추는 누구에게나 있다 */
+  it('「방 나가기」를 누르면 나간다 — 방장이 아니어도', () => {
+    const onLeave = vi.fn();
     render(
       <EndScreen
         outcome={{ winner: 'ai', reason: '사람이 다 격리됐다.', aiId: 's2', designersWon: [], designersLost: [] }}
@@ -157,35 +153,14 @@ describe('EndScreen', () => {
         seats={WIRE.seats}
         mySeatId="s1"
         myRole="human"
-        endsAt={null}
-        canStart
-        onAgain={onAgain}
+        endsAt={Date.now() + 15_000}
+        onLeave={onLeave}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: '다시 — 새 판' }));
-    expect(onAgain).toHaveBeenCalledTimes(1);
-    // 서버가 새 판을 여는 사이 — 한 번 더 눌러도 거절뿐이라 손을 막는다
-    const busy = screen.getByRole('button', { name: '여는 중…' });
-    expect(busy).toBeDisabled();
-    fireEvent.click(busy);
-    expect(onAgain).toHaveBeenCalledTimes(1);
-  });
-
-  it('방장이 아니면 단추가 없다 — 눌러도 서버가 거절할 뿐이다', () => {
-    render(
-      <EndScreen
-        outcome={{ winner: 'humans', reason: 'AI 가 격리됐다.', aiId: 's2', designersWon: [], designersLost: [] }}
-        roles={{ s1: 'human', s2: 'ai', s3: 'human' }}
-        seats={WIRE.seats}
-        mySeatId="s1"
-        myRole="human"
-        endsAt={null}
-        canStart={false}
-        onAgain={() => {}}
-      />,
-    );
+    expect(screen.getByText('시간이 다 되면 방을 나간다')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /새 판/ })).toBeNull();
-    expect(screen.getByText('방장이 새 판을 연다')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '방 나가기' }));
+    expect(onLeave).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -453,19 +453,17 @@ export function EndScreen({
   mySeatId,
   myRole,
   endsAt,
-  canStart,
-  onAgain,
+  onLeave,
 }: {
   outcome: GameOutcome;
   roles: Record<string, GameRole> | null;
   seats: GameSeat[];
   mySeatId: string | null;
   myRole: GameRole | null;
-  /** 서버가 로비로 되돌리는 시각(내 시계) — 없으면 시계·막대 없이 선다 */
+  /** 스스로 방을 나가는 시각(내 시계) — 없으면 시계·막대 없이 선다 */
   endsAt: number | null;
-  /** 내가 방장인가 — 새 판을 여는 것은 방장뿐이다 (worker 의 runtime.start) */
-  canStart: boolean;
-  onAgain: () => void;
+  /** 방을 나간다 — 단추로도, 시계가 다 가서도 (InterrogationFeature 의 onLeave) */
+  onLeave: () => void;
 }) {
   const humansWon = outcome.winner === 'humans';
   const iWon = myRole === 'designer' ? mySeatId !== null && outcome.designersWon.includes(mySeatId) : myRole === 'ai' ? !humansWon : humansWon;
@@ -475,17 +473,6 @@ export function EndScreen({
   const aiName = seats.find((s) => s.id === outcome.aiId)?.name ?? outcome.aiId;
   const mine = myRole === null ? null : iWon ? (myRole === 'designer' && !humansWon ? '개인 승리' : '승리') : '패배';
   const foiled = myRole === 'designer' && !humansWon && !iWon;
-  /*
-   * 눌렀다 — 새 판이 열리면 이 판이 통째로 사라지므로 되돌릴 일이 없다. 그래도 3초 뒤 스스로 푼다:
-   * 서버가 거절하면(방장이 바뀌었다든지) 단추가 영영 잠긴 채로 남는다.
-   */
-  const [asked, setAsked] = useState(false);
-  useEffect(() => {
-    if (!asked) return;
-    const t = setTimeout(() => setAsked(false), 3000);
-    return () => clearTimeout(t);
-  }, [asked]);
-
   return (
     <div
       className="ig-end"
@@ -543,20 +530,10 @@ export function EndScreen({
         </div>
 
         <div className="ft">
-          <span className="ftx">{canStart ? (endsAt !== null ? '판이 걷히면 소집 대기로 돌아간다' : '새 판을 열 수 있다') : '방장이 새 판을 연다'}</span>
-          {canStart ? (
-            <button
-              type="button"
-              className="again"
-              disabled={asked}
-              onClick={() => {
-                setAsked(true);
-                onAgain();
-              }}
-            >
-              {asked ? '여는 중…' : '다시 — 새 판'}
-            </button>
-          ) : null}
+          <span className="ftx">{endsAt !== null ? '시간이 다 되면 방을 나간다' : '판이 끝났다'}</span>
+          <button type="button" className="leave" onClick={onLeave}>
+            방 나가기
+          </button>
           {endsAt !== null ? (
             <span aria-hidden className="prog">
               <i />
