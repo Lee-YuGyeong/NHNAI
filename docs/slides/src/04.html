@@ -40,59 +40,50 @@
   </header>
 
   <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
-    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">세 가지 시험</h1>
-    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">조작은 WASD · Space · Shift.</p>
+    <div class="flex items-end justify-between">
+      <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">세 가지 시험</h1>
+      <p class="font-kr font-bold text-white/70 pb-3" style="font-size:24px;">조작은 WASD · Space · Shift.</p>
+    </div>
 
-    <div class="grid grid-cols-3 gap-8 mt-9">
+    <div class="grid grid-cols-3 gap-8 mt-7">
       <div class="flex flex-col">
-        <div class="shot chamfer-sm mb-5" style="height:240px;"><img src="img/game-test-fall.jpg" alt="① 낙하 생존"></div>
-        <div class="panel chamfer p-7 flex flex-col flex-1">
-          <p class="font-kr font-black text-white text-[28px] mb-3">① 낙하 생존</p>
-          <div class="flex gap-2 mb-5">
-            <span class="key px-3 py-1.5 rounded font-mono text-[#5fb8e8] text-[16px]">WASD</span>
-            <span class="key px-3 py-1.5 rounded font-mono text-[#5fb8e8] text-[16px]">Space</span>
+        <div class="shot chamfer-sm mb-4" style="height:400px;"><img src="img/game-test-fall.jpg" alt="① 낙하 생존"></div>
+        <div class="panel chamfer px-6 py-5 flex flex-col flex-1">
+          <div class="flex items-center justify-between mb-3">
+            <p class="font-kr font-black text-white text-[26px]">① 낙하 생존</p>
+            <div class="flex gap-2"><span class="key px-3 py-1 rounded font-mono text-[#5fb8e8] text-[16px]">WASD</span><span class="key px-3 py-1 rounded font-mono text-[#5fb8e8] text-[16px]">Space</span></div>
           </div>
-          <p class="font-kr font-semibold text-white/80 text-[21px] leading-[1.55] mb-5">떨어지는 공을 30초 피한다. 무게마다 낙하 속도가 다르다.</p>
-          <div class="mt-auto pt-5 border-t border-white/10">
-            <p class="font-kr font-semibold text-white/60 text-[19px] leading-[1.5]">기록 — 첫 피격까지 버틴 시간 · 피격 횟수</p>
-          </div>
+          <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">떨어지는 공을 30초 피한다. 무게마다 낙하 속도가 다르다.</p>
+          <p class="font-kr font-semibold text-white/55 text-[17px] leading-[1.5] mt-auto pt-3">기록 — 첫 피격까지 버틴 시간 · 피격 횟수</p>
         </div>
       </div>
-
       <div class="flex flex-col">
-        <div class="shot chamfer-sm mb-5" style="height:240px;"><img src="img/game-test-platform.jpg" alt="② 움직이는 발판"></div>
-        <div class="panel chamfer p-7 flex flex-col flex-1">
-          <p class="font-kr font-black text-white text-[28px] mb-3">② 움직이는 발판</p>
-          <div class="flex gap-2 mb-5">
-            <span class="key px-3 py-1.5 rounded font-mono text-[#5fb8e8] text-[16px]">W</span>
-            <span class="key px-3 py-1.5 rounded font-mono text-[#5fb8e8] text-[16px]">Space</span>
+        <div class="shot chamfer-sm mb-4" style="height:400px;"><img src="img/game-test-platform.jpg" alt="② 움직이는 발판"></div>
+        <div class="panel chamfer px-6 py-5 flex flex-col flex-1">
+          <div class="flex items-center justify-between mb-3">
+            <p class="font-kr font-black text-white text-[26px]">② 움직이는 발판</p>
+            <div class="flex gap-2"><span class="key px-3 py-1 rounded font-mono text-[#5fb8e8] text-[16px]">W</span><span class="key px-3 py-1 rounded font-mono text-[#5fb8e8] text-[16px]">Space</span></div>
           </div>
-          <p class="font-kr font-semibold text-white/80 text-[21px] leading-[1.55] mb-5">발판을 건너 도착 발판에 선다. 바닥 마찰이 바뀐다.</p>
-          <div class="mt-auto pt-5 border-t border-white/10">
-            <p class="font-kr font-semibold text-white/60 text-[19px] leading-[1.5]">기록 — 도착하고 남긴 시간 · 착지 정확도</p>
-          </div>
+          <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">발판을 건너 도착 발판에 선다. 바닥 마찰이 바뀐다.</p>
+          <p class="font-kr font-semibold text-white/55 text-[17px] leading-[1.5] mt-auto pt-3">기록 — 도착하고 남긴 시간 · 착지 정확도</p>
         </div>
       </div>
-
       <div class="flex flex-col">
-        <div class="shot chamfer-sm mb-5" style="height:240px;"><img src="img/game-test-disc.jpg" alt="③ 회전 원판"></div>
-        <div class="panel chamfer p-7 flex flex-col flex-1">
-          <p class="font-kr font-black text-white text-[28px] mb-3">③ 회전 원판</p>
-          <div class="flex gap-2 mb-5">
-            <span class="key px-3 py-1.5 rounded font-mono text-[#5fb8e8] text-[16px]">WASD</span>
-            <span class="key px-3 py-1.5 rounded font-mono text-[#5fb8e8] text-[16px]">Shift</span>
+        <div class="shot chamfer-sm mb-4" style="height:400px;"><img src="img/game-test-disc.jpg" alt="③ 회전 원판"></div>
+        <div class="panel chamfer px-6 py-5 flex flex-col flex-1">
+          <div class="flex items-center justify-between mb-3">
+            <p class="font-kr font-black text-white text-[26px]">③ 회전 원판</p>
+            <div class="flex gap-2"><span class="key px-3 py-1 rounded font-mono text-[#5fb8e8] text-[16px]">WASD</span><span class="key px-3 py-1 rounded font-mono text-[#5fb8e8] text-[16px]">Shift</span></div>
           </div>
-          <p class="font-kr font-semibold text-white/80 text-[21px] leading-[1.55] mb-5">도는 원판에서 밀려나지 않고 버틴다. 회전 속도 · 마찰이 바뀐다.</p>
-          <div class="mt-auto pt-5 border-t border-white/10">
-            <p class="font-kr font-semibold text-white/60 text-[19px] leading-[1.5]">기록 — 첫 낙하까지 버틴 시간 · 낙하 횟수</p>
-          </div>
+          <p class="font-kr font-semibold text-white/85 text-[20px] leading-[1.5]">도는 원판에서 밀려나지 않고 버틴다. 회전 속도 · 마찰이 바뀐다.</p>
+          <p class="font-kr font-semibold text-white/55 text-[17px] leading-[1.5] mt-auto pt-3">기록 — 첫 낙하까지 버틴 시간 · 낙하 횟수</p>
         </div>
       </div>
     </div>
 
-    <div class="mt-8 chamfer p-7 flex items-center gap-6" style="background:rgba(232,179,74,0.08); border:1px solid rgba(232,179,74,0.4);">
-      <i class="fa-solid fa-triangle-exclamation text-[#e8b34a] text-[30px]"></i>
-      <p class="font-kr font-bold text-white/90 text-[23px] leading-[1.55]">조건값(중력 · 마찰 · 배속)은 미니게임 안에서 계속 바뀐다. 사람은 잠깐 틀리다가 적응하고, 그 차이가 기록에 남는다.</p>
+    <div class="mt-6 chamfer px-7 py-5 flex items-center gap-6" style="background:rgba(232,179,74,0.08); border:1px solid rgba(232,179,74,0.4);">
+      <i class="fa-solid fa-triangle-exclamation text-[#e8b34a] text-[28px]"></i>
+      <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">조건값(중력 · 마찰 · 배속)은 미니게임 안에서 계속 바뀐다. 사람은 잠깐 틀리다가 적응하고, 그 차이가 기록에 남는다.</p>
     </div>
   </main>
 
