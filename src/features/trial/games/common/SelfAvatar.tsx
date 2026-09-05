@@ -23,11 +23,20 @@ export function SelfAvatar({
   body,
   groundY = 0,
   pose,
+  getSpeed,
 }: {
   body?: BodyId | null;
   groundY?: number | (() => number);
-  /** 프레임마다 묻는 덧자세 — 쓰러짐(눕는다) · 세로 배율. 무너지는 타워가 바닥에 떨어진 몸을 눕히는 데 쓴다. 없으면 서 있는 몸 */
-  pose?: () => { lie: boolean; scaleY: number };
+  /**
+   * 프레임마다 묻는 덧자세 — 쓰러짐(눕는다) · 세로 배율. 무너지는 타워가 바닥에 떨어진 몸을 눕히는 데 쓴다. 없으면 서 있는 몸.
+   * tilt(rad)를 주면 lie 대신 그 각으로 기운다 — 회전 봉 넘기가 넘어지는 순간을 이걸로 그린다 (bar/tipOver.ts)
+   */
+  pose?: () => { lie: boolean; scaleY: number; tilt?: number };
+  /**
+   * 화면에서 실제로 움직이는 속도(m/s). 주면 걷기·달리기 클립의 배속이 여기에 맞고, 멈춰 있으면 걷기 클립을 안 튼다 —
+   * 발밑이 미끄러워 명령대로 안 나가는 판(회전 봉 넘기)에서 발이 바닥을 긁지 않게 한다. 없으면 anim 만 믿는다
+   */
+  getSpeed?: () => number;
 }) {
   const group = useRef<Group>(null);
   /**
@@ -46,7 +55,7 @@ export function SelfAvatar({
     g.position.set(selfPose.x, selfPose.y, selfPose.z);
     const x = pose?.();
     if (posed.current) {
-      posed.current.rotation.set(x?.lie ? -Math.PI / 2 : 0, selfPose.heading, 0);
+      posed.current.rotation.set(x?.tilt ?? (x?.lie ? -Math.PI / 2 : 0), selfPose.heading, 0);
       posed.current.scale.y = x?.scaleY ?? 1;
     }
     const w = warp.bodyAt(SELF_WARP);
@@ -69,7 +78,7 @@ export function SelfAvatar({
         <group ref={warped}>
           <group ref={posed}>
             {body ? (
-              <SoldierAvatar body={body} getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > ground() + 0.02} />
+              <SoldierAvatar body={body} getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > ground() + 0.02} getSpeed={getSpeed} />
             ) : (
               <RobotAvatar getAnim={() => selfPose.anim} getAirborne={() => selfPose.y > ground() + 0.02} />
             )}

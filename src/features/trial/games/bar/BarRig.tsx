@@ -37,6 +37,8 @@ export function BarRig({ selfId, body = null, sendWalk, sendJump }: { selfId: st
   /** 서버 자리와의 남은 차이 — 프레임마다 CORRECT_TAU 로 녹인다 */
   const corr = useRef({ x: 0, z: 0 });
   const cam = useRef({ x: Number.NaN, y: 0, z: 0 });
+  /** 지난 프레임에 **그린** 자리 — 걷기 클립의 배속을 여기서 잰 속도에 맞춘다 (barState.selfSpeed) */
+  const drawn = useRef({ x: Number.NaN, z: 0 });
   /** 로컬 점프 — 렌더 전용 포물선 (머리말) */
   const air = useRef({ y: 0, vy: 0 });
   const jumpHeld = useRef(false);
@@ -53,6 +55,9 @@ export function BarRig({ selfId, body = null, sendWalk, sendJump }: { selfId: st
     pitch.current = PITCH_DEFAULT;
     heading.current = Math.PI;
     seenSnapshotAt.current = 0;
+    drawn.current = { x: Number.NaN, z: 0 };
+    barState.selfFallen = false;
+    barState.selfSpeed = 0;
     selfPose.x = BAR_CENTER.x;
     selfPose.y = BAR_TOP;
     selfPose.z = BAR_CENTER.z + BAR_STAND_R;
@@ -162,6 +167,18 @@ export function BarRig({ selfId, body = null, sendWalk, sendJump }: { selfId: st
     selfPose.z = z;
     selfPose.heading = heading.current;
     selfPose.anim = anim;
+    barState.selfFallen = fallen.current;
+
+    /*
+     * 몸이 화면에서 실제로 낸 속도 — **명령이 아니라 그린 자리로** 잰다. 미끄러운 구간에는 명령보다 느리게 나가는데
+     * (BAR_GRIP) 그때 클립을 1배속으로 틀면 발이 바닥을 긁는다. 다시 설 때의 순간이동은 상한으로 잘라 한 프레임짜리
+     * 헛스퍼트를 막고, 남은 떨림은 0.08초로 눅인다
+     */
+    const d = drawn.current;
+    const v = Number.isNaN(d.x) || dt <= 0 ? 0 : Math.min(Math.hypot(x - d.x, z - d.z) / dt, runSpeed * 1.5);
+    barState.selfSpeed += (v - barState.selfSpeed) * Math.min(1, dt / 0.08);
+    d.x = x;
+    d.z = z;
 
     // 추격 카메라 — 자리는 평활해서 따라간다 (점프의 오르내림은 그대로 — 뛴 것이 몸으로 보여야 한다)
     const c = cam.current;

@@ -3,7 +3,7 @@
  * (맵 · 조명 · 후처리) 위에 다리(BarRig)와 무대만 바꿔 끼운다. 남의 몸은 BarAvatar 다 — 이 게임은 사람의 자리도
  * 점프도 서버 스냅샷으로 온다. 마찰계수는 이 화면 어디에도 없다.
  */
-import { Suspense } from 'react';
+import { Suspense, useRef } from 'react';
 import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
 import { MAPS } from '@/world/map';
@@ -13,9 +13,12 @@ import { remotePlayers } from '@/world/net/remote-players';
 import { AdaptiveFov, Exposure, MouseLook } from '@/world/scene/WorldScene';
 import { WorldCanvas } from '@/world/scene/WorldCanvas';
 import { SelfAvatar } from '../common/SelfAvatar';
+import { selfPose } from '../common/selfPose';
 import { BarAvatar } from './BarAvatar';
 import { BarRig } from './BarRig';
 import { BarStage } from './BarStage';
+import { barState } from './barState';
+import { makeTip, tiltOf } from './tipOver';
 
 const def = MAPS.interrogation;
 
@@ -31,6 +34,8 @@ export interface BarSceneProps {
 }
 
 export function BarScene({ selfId, myBody, roster, aiIds, sendWalk, sendJump }: BarSceneProps) {
+  /** 내 몸이 넘어지는 각 — 남의 몸(BarAvatar)과 같은 셈을 내 몸에도 건다 (tipOver.ts) */
+  const tip = useRef(makeTip());
   return (
     <WorldCanvas
       quality="high"
@@ -65,7 +70,16 @@ export function BarScene({ selfId, myBody, roster, aiIds, sendWalk, sendJump }: 
       ))}
 
       <BarRig selfId={selfId} body={myBody} sendWalk={sendWalk} sendJump={sendJump} />
-      <SelfAvatar body={myBody} groundY={BAR_TOP} />
+      {/*
+       * 내 몸도 남처럼 넘어진다 — 예전엔 봉에 맞아도 선 채로 얼었다 미끄러졌다(pose 를 안 줬다). 발밑은 무대 윗면이지만
+       * 무대 밖으로 떨어진 동안은 홀 바닥이 발밑이다 — 안 그러면 그림자만 무대 높이에 남아 몸 위에 뜬다
+       */}
+      <SelfAvatar
+        body={myBody}
+        groundY={() => (selfPose.y < BAR_TOP - 0.1 ? selfPose.y : BAR_TOP)}
+        pose={() => ({ lie: false, scaleY: 1, tilt: tiltOf(tip.current, barState.selfFallen, Date.now()) })}
+        getSpeed={() => barState.selfSpeed}
+      />
       <MouseLook />
     </WorldCanvas>
   );
