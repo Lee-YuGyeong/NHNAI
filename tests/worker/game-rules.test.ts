@@ -216,6 +216,17 @@ describe('표식 — docs/SUSPICION.md', () => {
     expect(book.tellCount('a', 'echo')).toBe(3);
   });
 
+  it('거론(⑩)은 평평하고 상한이 있다 — 거듭해도 안 자라고, 좌석당 mentionCap 에서 멈춘다', () => {
+    const book = new SuspicionBook(ids);
+    expect(book.tell('a', 'mention', '거론')?.amount).toBe(SUSPICION.mention);
+    expect(book.tell('a', 'mention', '거론')?.amount).toBe(SUSPICION.mention); // repeatWeight 를 안 탄다
+    expect(book.tell('a', 'mention', '거론')?.amount).toBe(SUSPICION.mention);
+    expect(book.get('a')).toBe(SUSPICION.mentionCap);
+    expect(book.tell('a', 'mention', '거론')).toBeNull(); // 이름만으로는 격리되지 않는다
+    // 다른 좌석은 제 상한을 따로 센다
+    expect(book.tell('b', 'mention', '거론')?.amount).toBe(SUSPICION.mention);
+  });
+
   it('회피는 그때 몰려 있었으면 더 문다 (extra)', () => {
     const book = new SuspicionBook(ids);
     expect(book.tell('a', 'duck', '회피', SUSPICION.duckAccused)?.amount).toBe(SUSPICION.duck + SUSPICION.duckAccused);

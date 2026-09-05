@@ -28,10 +28,15 @@ export const ECHO_SIM = 0.75;
 /** 같은 좌석의 되풀이 판정 사이의 최소 간격(ms) — 한 화제로 이어 말하는 것을 연타로 안 센다 */
 export const ECHO_GAP_MS = 30_000;
 
-/** 불린 뒤 이 안에 한 마디도 안 하면 **회피**다 */
-export const DUCK_WINDOW_MS = 20_000;
-/** 이 횟수까지는 안 문다 — 말수는 성격이다 (docs/SUSPICION.md ⑦) */
-export const DUCK_FREE = 1;
+/** 불린 뒤 이 안에 한 마디도 안 하면 **회피**다 — 40초 토론이라 20초는 한 번도 못 잰다, 15초 (2026-09-05) */
+export const DUCK_WINDOW_MS = 15_000;
+/** 이 횟수까지는 안 문다. 0 — 첫 번부터 문다 (2026-09-05 사용자: "대답을 회피하는 상대 위주로"). 안 불린 침묵은 여전히 0 이다 */
+export const DUCK_FREE = 0;
+/** 거듭 거론(⑩) — 같은 사람이 같은 이름을 이 안에 또 불러도 한 번으로 센다 */
+export const MENTION_GAP_MS = 10_000;
+/** 몇 번째 거론부터 무나, 그 뒤로 몇 번마다 무나 */
+export const MENTION_AFTER = 3;
+export const MENTION_EVERY = 2;
 
 /** readTalk 에 같이 넘기는 「그 사람의 앞선 발언」 줄 수 — 앞뒤 모순을 보는 눈의 입력 */
 export const PRIOR_LINES = 6;
