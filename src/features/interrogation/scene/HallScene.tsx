@@ -15,7 +15,8 @@
  * (SelfAvatar.tsx 머리말).
  */
 import { Suspense, useCallback, useEffect, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
+import { PerformanceMonitor } from '@react-three/drei';
 import * as THREE from 'three';
 import { BASE_FOV } from '@/world/input/input';
 import { MAPS, type MapDef } from '@/world/map';
@@ -136,6 +137,7 @@ export function HallScene(p: HallSceneProps) {
       }}
     >
       <AdaptiveFov />
+      <AdaptiveResolution />
       <Exposure value={def.exposure} />
       <color attach="background" args={[def.background]} />
       <fogExp2 attach="fog" args={[def.fog[0], def.fog[1]]} />
@@ -244,7 +246,7 @@ export function HallScene(p: HallSceneProps) {
 const STAGE_WORK_LIGHTS = [
   { on: 'platform' as const, position: [0, 7.5, (PADS[0].z + PADS[PADS.length - 1].z) / 2] as const, color: '#dfe9ff', intensity: 55, distance: 24 },
   { on: 'disc' as const, position: [DISC_CENTER.x, 7.5, DISC_CENTER.z] as const, color: '#dfe9ff', intensity: 70, distance: 24 },
-  { on: 'disc' as const, position: [DISC_CENTER.x, 2.6, DISC_CENTER.z] as const, color: '#5ff0ff', intensity: 6, distance: 7 },
+  // 원판 위의 작은 청록 등(2.6m)은 뺐다 — 광원은 세기가 0 이어도 셰이더의 광원 루프에 남는다. 홀에 이미 열여덟 개다
 ];
 
 function ArenaWorkLights({ fall, hunt, platform, disc }: { fall: boolean; hunt: boolean; platform: boolean; disc: boolean }) {
@@ -266,6 +268,17 @@ function ArenaWorkLights({ fall, hunt, platform, disc }: { fall: boolean; hunt: 
       ))}
     </>
   );
+}
+
+/**
+ * 해상도를 프레임에 맞춘다 — 프레임이 처지면 dpr 을 1 로(레티나 픽셀의 절반 이하), 여유가 돌아오면 1.5 로.
+ * 홀은 광원 열여덟 개를 앞으로 그리는 씬이라 픽셀 수가 곧 GPU 시간이다. 한 기계에서 창을 여럿 띄워 시험하면
+ * (멀티플레이 시험) GPU 를 나눠 쓰니 특히 여기서 떨어진다 (2026-09-05 사용자: "배포 버전은 왜 끊기나").
+ * 세 번 오르내리면(flipflops) 그 사이 값으로 붙잡는다 — 해상도가 매초 바뀌는 것도 끊김으로 보인다.
+ */
+function AdaptiveResolution() {
+  const setDpr = useThree((s) => s.setDpr);
+  return <PerformanceMonitor onIncline={() => setDpr(1.5)} onDecline={() => setDpr(1)} flipflops={3} onFallback={() => setDpr(1.1)} />;
 }
 
 /**
