@@ -29,6 +29,8 @@ import { gameActions, gameSelectors } from './interrogationSlice';
 import { PROLOGUE, castSubjects, prologueLineOf, prologueLines } from './prologue';
 import { prefetchPrologue, prologueClipMs, prologueLagMs, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { DialogueBox } from '@/features/world/DialogueBox';
+import { Bgm } from '@/features/world/Bgm';
+import { CHECKPOINT_BGM, pickTestBgm } from './testBgm';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, EndScreen, LobbyPanel, ResultModal, TestOrder, withRo } from './hud/Panels';
 import { SelfSuspicion } from './hud/SelfSuspicion';
@@ -752,6 +754,24 @@ export function InterrogationFeature() {
     });
   }, []);
 
+  /*
+   * 미니 게임 곡 — 시험이 열릴 때마다 아직 안 튼 곡을 하나 뽑는다 (testBgm.ts). 시험이 끝나면 null 로 돌아가
+   * Bgm 이 검문소 본곡을 도로 잇는다 (src 가 바뀌면 Bgm 이 0.9초 크로스페이드로 갈아 낀다).
+   * startAt 으로 시험을 구별한다 — 같은 시험 안에서 렌더가 몇 번 돌아도 곡은 한 번만 뽑는다.
+   */
+  const [testBgm, setTestBgm] = useState<string | null>(null);
+  const playedBgm = useRef(new Set<string>());
+  const bgmPickedFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (phase !== 'test' || !test) {
+      setTestBgm(null);
+      return;
+    }
+    if (bgmPickedFor.current === test.startAt) return;
+    bgmPickedFor.current = test.startAt;
+    setTestBgm(pickTestBgm(playedBgm.current));
+  }, [phase, test]);
+
   /* ─────────────────────────────── 그리기 ─────────────────────────────── */
 
   const inGame = phase !== 'lobby';
@@ -854,6 +874,15 @@ export function InterrogationFeature() {
       <div className="ig-hud" onClick={(e) => e.stopPropagation()}>
         <div className="ig-corner">
           <BackToRoot />
+          {/*
+            검문소 배경음악 — 들어서는 순간부터 돈다 (2026-09-05 사용자: "검문소에 들어갔을 때 … 브금 나오게").
+            곡은 사용자가 준 「Silent Clearance」(public/audio/checkpoint-bgm.m4a). **작게** 굽었다: 복도 곡(-13.8 LUFS)보다
+            4dB 낮은 -18 LUFS — "소리 너무 크게 하지 말고". 손잡이(볼륨)는 다른 무대와 같은 값을 잡는다 (Bgm 의 bgmVolume).
+            첫 재생은 브라우저 정책상 손길 뒤다 — 인트로를 지나온 사람은 이미 눌렀으니 대개 바로 난다.
+            판이 끝나 결과 화면이 서면 곡을 재운다 (fade) — 로비로 돌아가는 길에 뚝 끊기지 않게.
+            미니 게임(시험) 동안은 시험 곡 셋 중 하나로 갈아 끼우고, 끝나면 본곡으로 돌아온다 (testBgm.ts · 위 testBgm).
+          */}
+          <Bgm src={testBgm ?? CHECKPOINT_BGM} fade={endScreenUp} />
         </div>
         {/*
           * 위 가운데 기둥 — 시계 · 시험 안내판 · (색 사냥의) 목표색이 **한 기둥(.ig-testcol)으로 쌓인다**.
