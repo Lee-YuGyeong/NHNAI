@@ -17,6 +17,7 @@ import {
   GAME_TEST_ORDER,
   SUSPICION,
   TALK,
+  talkFor,
   type GameS2CMessage,
   type GameStateWire,
 } from '../../src/world/mp/game-protocol';
@@ -700,7 +701,8 @@ describe('GameRuntime — 발언권', () => {
   });
 
   it('낙하 생존 — 첫 피격까지 버틴 3초마다 하나, 최소 하나, 지갑 상한까지', async () => {
-    const survival: Record<number, number> = { 0: 30, 1: 8, 2: 0.4 }; // 셋째는 곧바로 맞았다
+    // 첫째는 끝까지 버텼다 — 엔진이 마감을 틱 하나 넘겨 닫으므로 30.08초로 온다 (실제 판에서 +11 이 찍히던 자리). 셋째는 곧바로 맞았다
+    const survival: Record<number, number> = { 0: 30.08, 1: 8, 2: 0.4 };
     const engine = new TimedEngine('fall', (_id, i) => ({ survivalTime: survival[i] ?? 30, hitCount: 1, transitionError: 0.1 }));
     const h = harness({ engine });
     await h.rt.handle('p1', { t: 'game_start' });
@@ -713,8 +715,11 @@ describe('GameRuntime — 발언권', () => {
     const grant = talks(h).find((m) => m.gained)!;
     expect(grant.game).toBe('fall');
     const [full, eight, instant] = engine.ids;
-    // 30초 → 10 이지만 시작 지갑 6 에 얹으면 상한(15)에 걸린다 — 실제로 받은 것은 9
+    // 30.08초 → 30초로 잘라 10. 시작 지갑 6 에 얹으면 상한(15)에 걸린다 — 실제로 받은 것은 9
     expect(grant.gained[full]).toBe(TALK.cap - TALK.start);
+    // 잘라내기 자체 — 지갑이 비어 있었다면 딱 10 이다
+    expect(talkFor('fall', { survivalTime: 30.08 }, GAME_TEST_MS)).toBe(10);
+    expect(talkFor('disc', { survivalTime: 31 }, GAME_TEST_MS)).toBe(10);
     expect(grant.gained[eight]).toBe(3); // 8초 → ceil(8/3)
     expect(grant.gained[instant]).toBe(TALK.min); // 0.4초 → 최소
     expect(h.lastState().talk[full]).toBe(TALK.cap);

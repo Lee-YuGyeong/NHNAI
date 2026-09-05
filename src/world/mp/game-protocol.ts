@@ -322,7 +322,9 @@ export function talkFor(game: TrialGame, metrics: Record<string, number>, testMs
       seconds = Number.NaN; // 정지선 · 색 사냥은 시간을 재는 시험이 아니다 — 최소만
   }
   if (!Number.isFinite(seconds) || seconds <= 0) return TALK.min;
-  return Math.max(TALK.min, Math.ceil(seconds / TALK.secondsPer));
+  // 엔진은 마감을 몇십 ms 넘겨 닫으므로(틱 간격) 30초를 다 버틴 기록이 30.1초로 온다 — 시험 길이에서 자른다. 그래야 최대가 10이다
+  const clamped = Math.min(seconds, testMs / 1000);
+  return Math.max(TALK.min, Math.ceil(clamped / TALK.secondsPer));
 }
 
 /*
