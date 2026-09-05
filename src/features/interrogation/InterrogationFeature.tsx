@@ -32,7 +32,7 @@ import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, EndScreen, LobbyPanel, ResultModal, TestOrder, withRo } from './hud/Panels';
 import { SelfSuspicion } from './hud/SelfSuspicion';
-import { CardDock, CardOffer, CardReveal, CompelBar } from './hud/Cards';
+import { CardDock, CardOffer, CardReveal, CompelBar, REVEAL_MS } from './hud/Cards';
 import type { CardItem } from '@/world/mp/game-protocol';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
@@ -605,10 +605,10 @@ export function InterrogationFeature() {
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
   const onCardPick = useCallback((index: number) => conn.sendCardPick(index), [conn]);
   const onCardUse = useCallback((item: CardItem, target?: string) => conn.sendCardUse(item, target), [conn]);
-  /* 뒤집은 카드는 3.5초 보여 주고 도크로 들어간다 */
+  /* 뒤집은 카드는 REVEAL_MS 동안 보여 주고 도크로 들어간다 — 판 발치의 막대도 같은 값으로 줄어든다 */
   useEffect(() => {
     if (!cardReveal) return;
-    const t = window.setTimeout(() => dispatch(gameActions.clearCardReveal()), 3_500);
+    const t = window.setTimeout(() => dispatch(gameActions.clearCardReveal()), REVEAL_MS);
     return () => window.clearTimeout(t);
   }, [cardReveal, dispatch]);
   /* 카드 알림은 6초 뒤 스스로 진다 — 로그에는 남아 있다 */
