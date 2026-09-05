@@ -24,7 +24,8 @@ const SIDE_MAT = new THREE.MeshStandardMaterial({ color: '#4a525c', metalness: 0
 const GLOW_MAT = new THREE.MeshBasicMaterial({ color: '#5ff0ff', transparent: true, opacity: 0.16, side: THREE.BackSide, depthWrite: false });
 const PIT_MAT = new THREE.MeshStandardMaterial({ color: '#0b0f14', metalness: 0.4, roughness: 0.9 });
 const BEAM_MAT = new THREE.MeshStandardMaterial({ color: '#2a2f37', metalness: 0.75, roughness: 0.45 });
-const BEAM_STRIPE = new THREE.MeshStandardMaterial({ color: '#c9a227', metalness: 0.5, roughness: 0.5 });
+/** 맨 위 띠도 같은 강재 — 황색으로 두었더니 가운데 발판 둘레에 노란 틀로 보였다 */
+const BEAM_STRIPE = BEAM_MAT;
 /** 기우뚱 — 낮은 쪽 가장자리를 축으로 넘어가는 시간(s)과 그때 도는 각(rad). 그 뒤는 자유 낙하 + 회전 */
 const TIP_S = 0.45;
 const TIP_RAD = 1.1;
@@ -34,9 +35,9 @@ function zoom(t: THREE.Texture): THREE.Texture {
   t.anisotropy = 8;
   t.wrapS = THREE.ClampToEdgeWrapping;
   t.wrapT = THREE.ClampToEdgeWrapping;
-  // 띠가 굵어 스물다섯 장이 노란 격자로 읽혔다 — 가운데를 당겨 띠를 절반으로
-  t.repeat.set(0.86, 0.86);
-  t.offset.set(0.07, 0.07);
+  // 황흑 띠는 아예 자른다 — 가운데(강판 + 청록 십자)만 쓴다 (2026-09-05 사용자: "노란색 줄무늬 없애줘")
+  t.repeat.set(0.7, 0.7);
+  t.offset.set(0.15, 0.15);
   return t;
 }
 
@@ -159,11 +160,11 @@ function Slabs() {
 
 /**
  * 격자 기둥 — 네 모서리 빔, 층마다 가로 띠, 면마다 X 가새. 가운데 발판 밑면까지 서고 위에 얇은 갓판 하나.
- * 폭은 발판 1.6장 — 밑에서 보면 가운데 아홉 장의 안쪽을 받치는 것으로 읽힌다
+ * 폭은 가운데 발판 폭 안(0.88장) — 발판 밖으로 나오면 그 둘레에 틀이 생긴다
  */
 function Pylon() {
   const parts = useMemo(() => {
-    const w = TOWER_SLAB * 1.6;
+    const w = TOWER_SLAB * 0.88; // 가운데 발판 폭 안 — 밖으로 튀어나오면 발판 둘레에 틀이 생긴다
     const h = TOWER_TOP - TOWER_SLAB_H - 0.06; // 가운데 발판 밑면까지
     const beam = 0.14;
     const levels = 4;
