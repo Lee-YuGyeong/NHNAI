@@ -44,8 +44,6 @@ import {
   READ_MAX_LINES,
   READ_MIN_LINES,
   SUSPICION,
-  SUSPICION_PRESSURE,
-  SUSPICION_STAGE,
   pressureFor,
   type GameC2SMessage,
   type GameOutcome,
@@ -197,8 +195,6 @@ export class GameRuntime {
   private startedAt = 0;
   private phaseEndsAt: number | null = null;
   private testsDone = 0;
-  /** 마지막으로 방송한 검문 단계의 배수 — 「올랐을 때 한 번」만 말하게 (announcePressure) */
-  private announcedPressure = 0;
   private history: TrialResultWire[] = [];
   private currentTest: GameTestInfo | null = null;
   /** 지금 테스트의 조건 강도(1~3) — 엔진의 round 인자. 와이어에는 안 실린다 (P8) */
@@ -564,7 +560,6 @@ export class GameRuntime {
     this.quota = quotaFor(this.seats.length);
     this.startedAt = this.now();
     this.testsDone = 0;
-    this.announcedPressure = 0;
     this.history = [];
     this.testRuns = new Map();
     this.latestResult = null;
@@ -676,25 +671,11 @@ export class GameRuntime {
     // 기다릴 사람이 아무도 안 붙어 있으면 그 자리에서 걷는다 (봇만 남은 판)
     if (opening) this.releasePrologue();
     else {
-      this.announcePressure();
+      // 검문 단계 방송(announcePressure)이 여기 있었다 — 걷었다. 자막 없는 목소리였다 (readRoom 의 「방송은 없다」)
       this.scheduleTalk(2_000);
       this.armReadFlush(ms);
     }
     void this.persist();
-  }
-
-  /**
-   * 검문 단계가 올랐으면 그 사실을 방송한다 — 압력이 1.0 인 동안(1차 토론)은 아무 말도 안 한다.
-   *
-   * 「올랐을 때 한 번」을 지키는 것은 announcedPressure 하나다: 되살린 판(restoreIfNeeded 도 openDiscussion 을
-   * 지난다)에서는 0 에서 시작하므로 지금 단계를 한 번 알려 주고 만다 — 돌아온 사람도 판이 어느 단계인지는 알아야 한다.
-   */
-  private announcePressure(): void {
-    const mult = this.pressure();
-    if (mult <= 1 || mult <= this.announcedPressure) return;
-    this.announcedPressure = mult;
-    const at = Math.max(0, Math.min(SUSPICION_PRESSURE.length - 1, this.testsDone));
-    this.leader(LINES.pressure(SUSPICION_STAGE[at] ?? '마감', mult), 'alarm');
   }
 
   /**
@@ -975,9 +956,9 @@ export class GameRuntime {
   private applyDeltas(deltas: SuspicionDelta[]): void {
     if (!deltas.length) return;
     /*
-     * 압력이 걸린 걸음에는 사유 뒤에 「· 압력 ×1.5」를 붙인다 — 화면에 새 계기를 안 붙이기로 했으므로
-     * (상단 줄과 좌석 카드를 걷어냈다, hud/Panels 머리말) 피드의 이 한 줄과 검문 단계 방송이
-     * 규칙이 바뀐 것을 알리는 유일한 길이다. 내려가는 걸음은 압력을 안 타므로 안 붙는다.
+     * 압력이 걸린 걸음에는 사유 뒤에 「· 압력 ×1.5」를 붙인다 — 화면에 새 계기를 안 붙이기로 했고
+     * (상단 줄과 좌석 카드를 걷어냈다, hud/Panels 머리말) 검문 단계 방송도 걷었으므로(자막 없는 목소리였다)
+     * 피드의 이 한 줄이 규칙이 바뀐 것을 알리는 유일한 길이다. 내려가는 걸음은 압력을 안 타므로 안 붙는다.
      */
     const mult = this.pressure();
     for (const d of deltas) {
@@ -1248,10 +1229,9 @@ export class GameRuntime {
       .map((l) => l.text);
     if (!echoes(text, mine)) return;
     this.lastEchoAt.set(seat.id, now);
-    const nth = this.book.tellCount(seat.id, 'echo') + 1;
     const d = this.book.tell(seat.id, 'echo', '같은 말을 되풀이함');
     if (!d) return;
-    this.leader(LINES.tell(seat.name, d.amount, `앞서 한 말을 그대로 되풀이했다 (${nth}회)`), 'readout');
+    // 방송은 없다 — 관측은 소리로 안 나간다 (readRoom 의 「방송은 없다」)
     this.applyDeltas([d]);
   }
 
@@ -1274,7 +1254,7 @@ export class GameRuntime {
       const extra = this.book.accusersOf(id).length ? SUSPICION.duckAccused : 0;
       const d = this.book.tell(id, 'duck', '호명에 응답 없음', extra);
       if (!d) continue;
-      this.leader(LINES.tell(seat.name, d.amount, `${n}번째 호명에 응답이 없다`), 'alarm');
+      // 방송은 없다 — 관측은 소리로 안 나간다 (readRoom 의 「방송은 없다」)
       this.applyDeltas([d]);
     }
   }
@@ -1288,12 +1268,11 @@ export class GameRuntime {
     for (const p of poses) {
       const seat = this.seats.find((s) => s.id === p.id);
       if (!seat || seat.isolated) continue;
+      // 방송은 없다 — 관측은 소리로 안 나간다 (readRoom 의 「방송은 없다」)
       for (const kind of this.bodyWatch.sample(p.id, p.x, p.z, now, p.backing)) {
-        const why = kind === 'still' ? '한자리에서 미동이 없다' : '몸을 돌리지 않고 물러섰다';
         const d = this.book.tell(seat.id, kind, kind === 'still' ? '장시간 부동' : '역방향 이동');
         if (!d) continue;
         deltas.push(d);
-        this.leader(LINES.tell(seat.name, d.amount, why), 'readout');
       }
     }
     if (deltas.length) this.applyDeltas(deltas);
@@ -1345,26 +1324,21 @@ export class GameRuntime {
       const out = await readTalk(this.deps.brain, { facts: this.facts(), results: this.history, lines, prior });
       if (!this.active()) return;
       const deltas: SuspicionDelta[] = [];
-      const said: string[] = [];
       for (const m of out.marks) {
         const seat = this.seatByName(m.name);
         if (!seat || seat.isolated || !spoke.has(seat.name)) continue;
         const d = this.book.read(seat.id, m.amount, m.reason || '발화 분석');
         if (!d) continue;
         deltas.push(d);
-        said.push(LINES.read(seat.name, d.amount, m.reason));
       }
       if (!deltas.length) return;
-      /**
-       * 눈금은 늘 움직인다. **방송만** 토론 중일 때 내보낸다 — 마지막 읽기(closing)는 국면이 바뀌기 전에
-       * 시작하지만 판정기가 늦으면 답이 시험 개시 뒤에 온다. 그때 배너를 덮으면 사람이 이번 시험에서
-       * 무엇을 해야 하는지를 잃는다. 근거는 안 사라진다 — 걸음마다의 why 가 피드에 그대로 남는다 (applyDeltas).
+      /*
+       * **방송은 없다** (2026-09-05 사용자: 「감독 tts 가 자꾸 얘기해. 자막이 없는데도」). 채팅 판이
+       * 대화만 그리게 된 뒤로(hud/Panels — kind 'chat' 만) 이 판정의 문장은 화면 어디에도 안 뜨는데
+       * 목소리만 남아, 관리 AI 가 **속마음을 소리 내어 읽는** 꼴이었다. 되풀이·회피·몸의 관측
+       * (checkEcho · watchDucks · readBodies)도 같은 이유로 조용하다. 근거는 안 사라진다 —
+       * 걸음마다의 why 가 delta 로 피드에 그대로 남고(applyDeltas), 눈금은 몸 위 막대가 전한다.
        */
-      if (this.phase === 'discussion') {
-        // 판정기가 제 문장을 줬고 그 문장이 가리킨 사람이 전부 적용됐을 때만 그 문장을 쓴다 — 아니면 정해진 문장으로
-        const line = out.broadcast && deltas.length === out.marks.length ? out.broadcast : said.join(' ');
-        this.leader(line, deltas.some((d) => d.amount > 0) ? 'alarm' : 'readout');
-      }
       this.applyDeltas(deltas);
     } finally {
       this.readBusy = false;

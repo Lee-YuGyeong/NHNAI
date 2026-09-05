@@ -239,7 +239,7 @@ describe('GameRuntime — 판 한 바퀴', () => {
       ask: async ({ tool }) => {
         if (tool.name !== 'read_room') return null;
         asked += 1;
-        return { marks: [{ name: target, amount: 9, reason: '소수점까지 읽었다' }], broadcast: '' };
+        return { marks: [{ name: target, amount: 9, reason: '소수점까지 읽었다' }] };
       },
     };
     const h = harness({ brain });
@@ -257,8 +257,8 @@ describe('GameRuntime — 판 한 바퀴', () => {
     await vi.advanceTimersByTimeAsync(20);
     expect(asked).toBe(1);
     expect(h.lastState().suspicion[p1Seat]).toBe(9);
-    const leader = [...h.sent].reverse().find((m): m is Extract<GameS2CMessage, { t: 'game_leader' }> => m.t === 'game_leader')!;
-    expect(leader.text).toContain('발화 분석');
+    // 방송은 없다 — 관측은 소리로 안 나간다 (runtime.readRoom 의 「방송은 없다」). 근거는 delta 의 why 로 피드에 남는다
+    expect(h.sent.some((m) => m.t === 'game_leader')).toBe(false);
     // 겨눔은 안 생긴다 — 말에 붙은 값이라 철회로 걷히지 않는다
     expect(h.lastState().accusations).toEqual({});
 

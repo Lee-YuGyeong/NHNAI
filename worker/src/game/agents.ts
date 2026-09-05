@@ -567,7 +567,6 @@ const READ_TOOL: ToolSpec = {
           required: ['name', 'amount', 'reason'],
         },
       },
-      broadcast: { type: 'string', description: '방에 읽어 줄 관리 AI 의 한 줄. 움직인 것이 없으면 빈 문자열' },
     },
     required: ['marks'],
   },
@@ -607,8 +606,8 @@ export async function readTalk(
     /** 이번 장면에서 말한 사람들이 **그 전에** 한 말 (runtime 이 로그에서 뽑아 넘긴다, PRIOR_LINES 줄) */
     prior?: { name: string; lines: string[] }[];
   },
-): Promise<{ marks: ReadMark[]; broadcast: string }> {
-  if (!args.lines.length) return { marks: [], broadcast: '' };
+): Promise<{ marks: ReadMark[] }> {
+  if (!args.lines.length) return { marks: [] };
   const records = args.results.length ? args.results.map((r) => resultText(r, args.facts.nameOf)).join('\n\n') : '(아직 기록이 없다)';
   const priorText = (args.prior ?? [])
     .filter((p) => p.lines.length)
@@ -673,7 +672,7 @@ ${records}`,
     marks.push({ name, amount, reason: String(r.reason ?? '').trim().slice(0, 60) });
     if (marks.length >= 2) break; // 한 장면에 둘까지 — 프롬프트의 약속을 코드로도 지킨다
   }
-  return { marks, broadcast: String(out?.broadcast ?? '').trim().slice(0, 160) };
+  return { marks };
 }
 
 /** 관리 AI 의 정해진 문장들 — LLM 없이 나가는 방송 */
@@ -685,28 +684,12 @@ export const LINES = {
   /** 차례표의 몇 번째인지를 앞에 붙인다 — 「세 번의 시험」이라는 판의 모양이 첫 방송부터 보이게 (GAME_TEST_ORDER) */
   testOpen: (game: TrialGame, round: number, instruction: string, step?: number, total?: number) =>
     `${step && total ? `[시험 ${step}/${total}] ` : ''}${TEST_NAME[game]} 테스트 ${round}회차를 연다. ${instruction}`,
-  /**
-   * 검문 단계가 올랐다 (SUSPICION_PRESSURE) — 후반 토론이 열릴 때 한 번.
-   *
-   * 이 방송이 있어야 하는 이유: 걸음의 크기가 말없이 커지면 사람은 그걸 **버그로 읽는다.**
-   * 화면에는 새 계기를 안 붙이기로 했으므로(상단 줄과 좌석 카드를 걷어냈다 — hud/Panels 머리말)
-   * 규칙이 바뀌었다는 사실이 지나가는 길은 여기와 피드 한 줄의 「압력 ×N」뿐이다.
-   */
-  pressure: (stage: string, mult: number) => `검문 단계를 ${stage}(으)로 올린다. 지금부터 모든 관측은 ${mult}배로 기록된다.`,
   isolated: (name: string, role: 'human' | 'designer' | 'ai') =>
     `${name}, 의심도 임계. 즉시 격리한다. 조사 결과 — ${role === 'ai' ? 'AI 였다.' : '사람이었다. AI 는 아직 이 안에 있다.'}`,
-  /**
-   * 말 읽기의 방송 — 판정기가 제 문장을 안 주면 이걸로 나간다 (readTalk).
-   * 「기계적 특징 / 인간적 특징」이라고만 하던 것을 방향으로 바꿨다 — 이제 이 판정에는 말투만이 아니라
-   * **기록 대조**도 들어 있어서(거짓 해명 · 확인된 해명), 말투 이름표 하나로는 근거를 못 덮는다.
+  /*
+   * read(발화 분석)·tell(패턴 관측)·pressure(검문 단계)의 방송 문장이 여기 있었다 — 걷었다 (2026-09-05 사용자:
+   * 「감독 tts 가 자꾸 얘기해. 자막이 없는데도」). 관측은 이제 delta 의 why 로만 남는다 (runtime.readRoom 의 「방송은 없다」).
    */
-  read: (name: string, amount: number, reason: string) =>
-    `발화 분석 — ${name}, 의심도 ${amount > 0 ? '상승' : '하락'}. ${reason || '근거는 방금의 말이다.'}`,
-  /**
-   * 규칙이 잡은 표식의 방송 (docs/SUSPICION.md ⑥⑦⑧⑨) — LLM 을 안 부르고 나간다.
-   * 말 읽기(read)와 문장 모양을 나눈 이유: 이쪽은 **관측**이라 사유가 늘 같은 말이고, 근거를 지어낼 여지가 없다.
-   */
-  tell: (name: string, amount: number, why: string) => `패턴 관측 — ${name}, ${why}. 의심도 +${amount}.`,
   verdict: (name: string, v: ClaimVerdict, reason: string) =>
     v === 'match'
       ? `${name}의 해명은 기록과 일치한다. ${reason}`
