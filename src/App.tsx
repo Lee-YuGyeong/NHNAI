@@ -6,7 +6,19 @@ import { UiSfx } from '@/shared/UiSfx';
 import { BroadcastBanner } from '@/features/tts/BroadcastBanner';
 import { TtsPlayer } from '@/features/tts/TtsPlayer';
 
-/** / = 서비스 선택, /<service> = 각 서비스 화면. 라우트는 features/index.ts 등록부에서 자동 생성 */
+/**
+ * / = **인트로로 보낸다**, /<service> = 각 서비스 화면. 라우트는 features/index.ts 등록부에서 자동 생성.
+ *
+ * ┌─ 첫 문이 바뀌었다 (2026-09-05 사용자: "/ 가면 무조건 인트로로") ─────────┐
+ * │ 여태 루트는 **서비스 선택 목록**(Launcher)이었다 — 화면 스무 개가 케이스 │
+ * │ 로 늘어선 개발용 문패다. 이제 이 줄을 게임처럼 연다: 주소창에 아무것도    │
+ * │ 안 적고 들어오면 곧장 /intro (표식 → 브리핑 → 배역 → 진행 → 입장).       │
+ * │                                                                         │
+ * │ 목록은 **지우지 않았다.** 주소만 /menu 로 옮겼다 — 개발 중에 /world ·    │
+ * │ /trial · /voice 같은 화면으로 바로 뛰려면 그 목록이 있어야 한다.         │
+ * │ 되돌리려면 아래 두 줄의 element 를 맞바꾼다.                             │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ */
 export function App() {
   return (
     <BrowserRouter>
@@ -35,11 +47,15 @@ export function App() {
         }
       >
         <Routes>
-          <Route path="/" element={<Launcher />} />
+          {/* 첫 문 — 루트로 들어오면 무조건 인트로다. replace 라 뒤로가기가 여기로 도로 걸리지 않는다 */}
+          <Route path="/" element={<Navigate to="/intro" replace />} />
+          {/* 개발용 화면 목록 — 옛 루트 화면이 여기로 옮겨 왔다 */}
+          <Route path="/menu" element={<Launcher />} />
           {FEATURES.map((f) => (
             <Route key={f.id} path={f.path} element={<f.Component />} />
           ))}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 없는 주소도 인트로로 — 루트를 한 번 더 거치지 않고 곧장 보낸다 */}
+          <Route path="*" element={<Navigate to="/intro" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

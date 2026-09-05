@@ -7,6 +7,7 @@
  * 서버가 NaN → 와이어에서 null 로 온다 — '—' 로 비워 둔다. 0 으로 채우면 「완벽」으로 읽힌다.
  */
 import type { TrialGame, TrialResultWire } from '@/world/mp/protocol';
+import { TRIAL_LABEL } from '@/features/game/catalog';
 import './scoreboard.css';
 
 interface Row {
@@ -131,7 +132,12 @@ function fmt(v: unknown, unit: string, digits: number): string {
   return typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(digits)}${unit}` : '—';
 }
 
-const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리', tower: '무너지는 타워', bar: '회전 봉 넘기' };
+/*
+ * 짧은 이름은 **게임 목록(/game)의 표에서 온다** — 같은 글자가 두 곳에 손으로 적혀 있으면
+ * 언젠가 한쪽만 고쳐진다. 목록에서 「회전 원판」을 눌러 들어온 사람이 결과판에서 딴 이름을
+ * 보면 그게 같은 판인지 알 수 없다 (features/game/catalog.ts 의 TRIAL_LABEL).
+ */
+const GAME_LABEL: Record<TrialGame, string> = TRIAL_LABEL;
 
 export function Scoreboard({ result, roster }: { result: TrialResultWire; roster: Record<string, string> }) {
   const spec = SPEC[result.game] ?? SPEC.stopline;

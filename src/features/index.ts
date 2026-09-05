@@ -21,6 +21,12 @@ const LoginFeature = lazy(() => import('./lobby/Login').then((m) => ({ default: 
 /** 이름 짓기 — 로그인 → **이름** → 로비 한 흐름의 가운데 칸 (humanish 의 /account/nickname) */
 const NicknameFeature = lazy(() => import('./lobby/Nickname').then((m) => ({ default: m.NicknameFeature })));
 const MainFeature = lazy(() => import('./main/MainFeature').then((m) => ({ default: m.MainFeature })));
+/**
+ * 게임 목록 — 주소 /game 은 **이제 이 화면이다** (2026-09-05 사용자: "게임 목록 따로 만들고싶은데
+ * /game 만들어서 거기서 각자 들어가서 할수있게"). 판만 세운다: 검문소 · 물리 시험 여덟 · 곁가지.
+ * 여기 있던 옛 「라운드 진행」 스켈레톤은 지우지 않고 /game/rounds 로 내려보냈다 (아래 줄).
+ */
+const GameListFeature = lazy(() => import('./game/GameList').then((m) => ({ default: m.GameList })));
 const GameFeature = lazy(() => import('./game/GameFeature').then((m) => ({ default: m.GameFeature })));
 const WorldFeature = lazy(() => import('./world/WorldFeature').then((m) => ({ default: m.WorldFeature })));
 const WarehouseFeature = lazy(() => import('./warehouse/WarehouseFeature').then((m) => ({ default: m.WarehouseFeature })));
@@ -128,7 +134,15 @@ export const FEATURES: FeatureDef[] = [
     owner: 'TBD',
     Component: InterrogationFeature,
   },
-  { id: 'game',    title: '라운드 진행',    path: '/game',    owner: 'TBD', hidden: true, Component: GameFeature },
+  /*
+   * 게임 목록 — 인트로 다음으로 사람이 실제로 서는 화면이라 루트 목록에도 세운다.
+   * ★ 이 줄이 옛 「라운드 진행」에게서 /game 을 넘겨받았다. 저쪽은 아무 데서도 링크되지 않는
+   *   스켈레톤이었고(PLANNING §6, 담당자 미정), 사람이 「게임」이라는 주소에서 기대하는 것은
+   *   페이즈 미리보기가 아니라 **할 수 있는 게임 목록**이다.
+   */
+  { id: 'games', title: '게임 목록', path: '/game', owner: 'TBD', Component: GameListFeature },
+  // 옛 /game — 라운드 페이즈 미리보기. 주소만 한 칸 안으로 들어갔다 (위 줄 참고)
+  { id: 'game',    title: '라운드 진행',    path: '/game/rounds', owner: 'TBD', hidden: true, Component: GameFeature },
   { id: 'profile', title: '프로필',        path: '/profile', owner: 'TBD', hidden: true, Component: ProfileFeature },
   { id: 'llm',     title: 'LLM 테스트',    path: '/llm',     owner: 'TBD', hidden: true, Component: LlmFeature },
   // 「리더 방송」은 옛 판 이름이다 — 이 기획의 방송자는 관리 AI 고, 이 화면은 좌석 아홉을 고르는 자리이기도 하다
