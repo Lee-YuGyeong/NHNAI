@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { PROLOGUE, prologueLines } from '@/features/interrogation/prologue';
 import { leadingSilenceSec, resetPrologueVoice, voiceOf, type ClipSamples } from '@/features/interrogation/prologueVoice';
-import { OPENING_CAST } from '@/features/tts/openingSpeakers';
+import { FIT_MALE_VOICE, OPENING_CAST } from '@/features/tts/openingSpeakers';
 import type { GameSeat } from '@/world/mp/game-protocol';
 
 /** 2026-09-05 사용자가 지정한 셋 */
@@ -33,8 +33,9 @@ describe('프롤로그 목소리 — 피실험자 셋', () => {
 
 /**
  * 몸 → 목소리 (2026-09-05 사용자: 「비만 남군은 셋 중 남자 목소리로」「다른 두 명은 랜덤으로
- * 그 두 여자 목소리」). 초상이 좌석의 몸이라(prologue.ts 의 faceOf), 번호로만 주면 남자
- * 얼굴에서 여자 목소리가 난다.
+ * 그 두 여자 목소리」, 같은 날 추가: 「일반 남군은 남자 음성 아무거나, 비만 남군이랑 겹치지
+ * 않게」). 초상이 좌석의 몸이라(prologue.ts 의 faceOf), 번호로만 주면 남자 얼굴에서 여자
+ * 목소리가 난다.
  */
 describe('프롤로그 목소리 — 몸을 따라간다 (얼굴과 성별을 맞춘다)', () => {
   const seat = (body?: string) => ({ id: 'x', seat: 1, name: '이름', isolated: false, body }) as unknown as GameSeat;
@@ -48,8 +49,9 @@ describe('프롤로그 목소리 — 몸을 따라간다 (얼굴과 성별을 �
   it('남자 몸이면 남자 목소리다 — 번호(여자 목소리)가 아니라 얼굴을 따른다', () => {
     resetPrologueVoice([seat('sol_fit_f'), seat('sol_heavy_m'), seat('sol_fit_m')], 7);
     expect(heard(2)).toBe(MALE);
-    // 남자 목소리가 하나뿐이라 남자 몸 둘이면 같은 목소리다 — 여자 목소리를 얹는 것보다 낫다
-    expect(heard(3)).toBe(MALE);
+    // 비만과 일반은 딴 남자 목소리다 — 같은 판에 남자 몸이 둘이어도 안 겹친다 (2026-09-05 사용자)
+    expect(heard(3)).toBe(FIT_MALE_VOICE.voiceId);
+    expect(heard(3)).not.toBe(heard(2));
   });
 
   it('여자 몸 둘은 여자 목소리 둘을 나눠 갖는다 — 같은 목소리로 겹치지 않는다', () => {
@@ -70,9 +72,9 @@ describe('프롤로그 목소리 — 몸을 따라간다 (얼굴과 성별을 �
     expect(new Set([0, 1, 2, 3, 4, 5, 6, 7].map(firstOf)).size).toBe(2);
   });
 
-  it('몸을 모르는 좌석은 남자 목소리다 — 얼굴도 같은 폴백으로 남군이다 (FALLBACK_FACE)', () => {
+  it('몸을 모르는 좌석은 일반 남군 목소리다 — 얼굴도 같은 폴백으로 일반 남군이다 (FALLBACK_FACE)', () => {
     resetPrologueVoice([seat(undefined), seat('sol_fit_f'), seat('sol_fit_f')], 7);
-    expect(heard(1)).toBe(MALE);
+    expect(heard(1)).toBe(FIT_MALE_VOICE.voiceId);
   });
 
   it('배역을 모르는 화면(판 도중 합류)도 번호 배정으로 소리는 난다', () => {
