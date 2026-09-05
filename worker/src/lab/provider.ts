@@ -17,7 +17,7 @@ import { callTool as openaiCallTool } from './openai';
 export interface ApiEnv {
   /** Anthropic Messages API. 없어도 된다 — 이 저장소의 배포는 아래 OpenAI 로 간다 */
   ANTHROPIC_API_KEY?: string;
-  /** OpenAI Chat Completions. 배포본의 길 */
+  /** OpenAI Responses API. 배포본의 길 */
   OPENAI_API_KEY?: string;
   /** 개체 등급을 무시하고 한 모델로 고정할 때 (예: gpt-5.6-terra). 비우면 등급대로 나뉜다 */
   OPENAI_MODEL?: string;

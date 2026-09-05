@@ -737,7 +737,13 @@ npx wrangler secret put OPENAI_API_KEY   # 사용자가 직접. sk-proj- 로 시
 | | 키 | 무엇이 답하나 |
 |---|---|---|
 | 로컬 `npm run dev` | 없음 | Claude 구독 (`tools/vite-lab.ts`) |
-| 배포 | `OPENAI_API_KEY` | OpenAI Chat Completions (`worker/src/lab/openai.ts`) |
+| 배포 | `OPENAI_API_KEY` | OpenAI Responses API (`worker/src/lab/openai.ts`) |
+
+> ★ **Chat Completions 가 아니라 `/v1/responses` 다.** 이 판은 답을 도구로만 받는데(모양이
+> 흔들리면 화면이 깨진다), Chat Completions 는 도구와 `reasoning_effort` 를 같이 못 받는다:
+> `"Function tools with reasoning_effort are not supported for gpt-5.6-luna in /v1/chat/completions"`.
+> effort 를 `none` 으로 죽이면 관리 AI 의 설계(effort=high)를 버리는 셈이라 Responses 로 갔다.
+> GPT-6 Astra 는 Chat Completions 에서 도구 호출이 아예 안 되기도 한다.
 
 고르는 자리는 `worker/src/lab/provider.ts` 한 곳이고, 판(`game/brain.ts`)과 `/lab` 이 같이 쓴다.
 `ANTHROPIC_API_KEY` 도 있으면 그쪽이 이긴다 (개발 중 비교용).
