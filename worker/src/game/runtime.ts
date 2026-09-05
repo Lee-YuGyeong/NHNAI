@@ -1432,7 +1432,8 @@ export class GameRuntime {
 
     const text = LINES.cardUsed(me.name, item, target?.name ?? null);
     this.deps.broadcast({ t: 'game_card_used', by: me.id, item, ...(target ? { target: target.id } : {}), text });
-    this.leader(text, 'announce');
+    // 카드 방송(leader)도 걷었다 (2026-09-06 사용자: 「의심도 하향」 낭독을 빼 달라고) — 같은 문장이 game_card_used 로 채팅 줄에 선다.
+    // 봇이 진정권을 자주 꺼내서(botCards 의 BOT_CALM_AT) 토론마다 들리던 소리다
     this.pushLog(me.id, `(${item === 'truth' ? '답변 강제권' : item === 'accuse' ? '지목권' : '진정권'}) ${text}`);
 
     if (item === 'accuse' && target) {
@@ -1752,9 +1753,9 @@ export class GameRuntime {
    * game_isolated · game_suspicion 같은 자료 방송은 leader 가 아니라서 안 걸린다. 판이 끝나는 방송은
    * 나간다 — end() 가 phase 를 먼저 'ended' 로 바꾼 뒤에 부른다.
    *
-   * 부르는 곳은 이제 셋뿐이다: 격리(checkIsolation) · 카드 사용(useCard) · 선고(end). 주장 판정과
-   * 강제 답변 판정은 자료 방송(game_verdict · game_compelled)만 남기고 걷었다 (2026-09-06 사용자:
-   * 「주장 판정이랑 강제 답변 판정도 tts 하지마」).
+   * 부르는 곳은 이제 둘뿐이다: 격리(checkIsolation) · 선고(end). 주장 판정 · 강제 답변 판정 · 카드
+   * 사용은 자료 방송(game_verdict · game_compelled · game_card_used)만 남기고 걷었다 (2026-09-06
+   * 사용자 — 남는 TTS 는 프롤로그 · 격리 · 선고뿐이다).
    */
   private leader(text: string, kind: LeaderKind): void {
     if (this.phase === 'test') return;
