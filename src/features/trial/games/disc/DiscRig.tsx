@@ -20,7 +20,13 @@ import { selfPose } from '../common/selfPose';
 import { discState } from './discState';
 
 /** 스냅샷이 올 때 예측 자리를 서버 자리로 당기는 비율 */
-const CORRECT = 0.25;
+/**
+ * 서버 자리로 당기는 시정수(초). 예전엔 스냅샷마다(10Hz) 차이의 25% 를 **한 번에** 당겼다 — 그 계단이 몸과 카메라에 10Hz 로
+ * 찍혀 화면이 떨렸다 (2026-09-05 사용자: "회전 원판 화면 흔들리는 거"). 이제 남은 차이(corr)를 프레임마다 조금씩 녹인다
+ */
+const CORRECT_TAU = 0.2;
+/** 카메라가 몸을 따라붙는 시정수(초) — 자리만 평활, 마우스는 그대로 */
+const CAM_TAU = 0.08;
 
 function rot(theta: number, x: number, z: number): { x: number; z: number } {
   const c = Math.cos(theta);
@@ -36,6 +42,10 @@ export function DiscRig({ selfId, body = null, sendWalk }: { selfId: string | nu
   const p = useRef({ x: DISC_RESPAWN_R, z: 0 });
   /** 원판 좌표의 미끄러짐(서버가 준 것) */
   const slide = useRef({ x: 0, z: 0 });
+  /** 서버 자리와의 남은 차이(원판 좌표) — 프레임마다 CORRECT_TAU 로 녹인다 */
+  const corr = useRef({ x: 0, z: 0 });
+  /** 카메라가 따라가는 평활한 몸 자리 — NaN 이면 다음 프레임에 그 자리로 붙는다 */
+  const cam = useRef({ x: Number.NaN, y: 0, z: 0 });
   const fallen = useRef(false);
   const fallAt = useRef({ x: 0, z: 0 });
   const seenSnapshotAt = useRef(0);
@@ -93,8 +103,10 @@ export function DiscRig({ selfId, body = null, sendWalk }: { selfId: string | nu
         const s = rot(-thetaSnap, srv.sx, srv.sz);
         if (fallen.current || Math.hypot(d.x - p.current.x, d.z - p.current.z) > 2.5) {
           p.current = d; // 다시 섰거나 너무 멀다 — 그냥 서버 자리
+          corr.current = { x: 0, z: 0 };
+          cam.current.x = Number.NaN;
         } else {
-          p.current = { x: p.current.x + (d.x - p.current.x) * CORRECT, z: p.current.z + (d.z - p.current.z) * CORRECT };
+          corr.current = { x: d.x - p.current.x, z: d.z - p.current.z }; // 한 번에 안 당기고 아래서 녹인다 (CORRECT_TAU)
         }
         slide.current = s;
         fallen.current = false;
@@ -123,11 +135,14 @@ export function DiscRig({ selfId, body = null, sendWalk }: { selfId: string | nu
       anim = input.run ? 'run' : 'walk';
     }
 
-    // 예측 — 원판 좌표에서 걷기 + 미끄러짐. 실려 가는 것은 theta 가 맡는다
+    // 예측 — 원판 좌표에서 걷기 + 미끄러짐. 실려 가는 것은 theta 가 맡는다. 서버와의 남은 차이는 조금씩 녹인다
     if (!fallen.current) {
       const wd = rot(-theta, wx, wz);
-      p.current.x += (wd.x + slide.current.x) * dt;
-      p.current.z += (wd.z + slide.current.z) * dt;
+      const k = 1 - Math.exp(-dt / CORRECT_TAU);
+      p.current.x += (wd.x + slide.current.x) * dt + corr.current.x * k;
+      p.current.z += (wd.z + slide.current.z) * dt + corr.current.z * k;
+      corr.current.x *= 1 - k;
+      corr.current.z *= 1 - k;
     }
 
     let x: number;
@@ -149,11 +164,22 @@ export function DiscRig({ selfId, body = null, sendWalk }: { selfId: string | nu
     selfPose.heading = heading.current;
     selfPose.anim = anim;
 
-    // 추격 카메라 — 발 높이(원판 위 0.75)를 더한다
+    // 추격 카메라 — 발 높이(원판 위 0.75)를 더한다. 자리는 평활해서 따라간다 — 보정과 원판의 실어 나름이 화면 떨림이 안 되게
+    const c = cam.current;
+    if (Number.isNaN(c.x) || Math.hypot(x - c.x, z - c.z) > 3) {
+      c.x = x;
+      c.y = y;
+      c.z = z;
+    } else {
+      const kc = 1 - Math.exp(-dt / CAM_TAU);
+      c.x += (x - c.x) * kc;
+      c.y += (y - c.y) * kc;
+      c.z += (z - c.z) * kc;
+    }
     const back = CHASE_DIST * Math.cos(pitch.current);
     const up = CHASE_LOOK_Y + CHASE_DIST * Math.sin(pitch.current);
-    camera.position.set(x - f.x * back, y + up, z - f.z * back);
-    camera.lookAt(x + f.x * 0.6, y + CHASE_LOOK_Y, z + f.z * 0.6);
+    camera.position.set(c.x - f.x * back, c.y + up, c.z - f.z * back);
+    camera.lookAt(c.x + f.x * 0.6, c.y + CHASE_LOOK_Y, c.z + f.z * 0.6);
 
     // 걷기 명령 송신 — 바뀌었을 때만 10Hz. 손을 떼는 것(0,0)도 한 번 보낸다
     const s = lastSent.current;

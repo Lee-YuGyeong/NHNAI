@@ -656,7 +656,7 @@ export class GameRuntime {
     this.called.clear();
     /*
      * 몰이 상한도 토론마다 새로 센다 (SuspicionBook.newRound). 겨눔은 안 지워지므로 2차 토론부터는
-     * 남는 문이 되풀이 +3 하나뿐인데, 몰이 상한(12)까지 판 전체에 한 번이면 버티는 몰이가 후반에
+     * 남는 문이 되풀이(REPEAT_STEP) 하나뿐인데, 몰이 상한(SUSPICION.mobCap)까지 판 전체에 한 번이면 버티는 몰이가 후반에
      * 아무 값도 못 낸다 — 방이 계속 몰고 있다는 사실이 눈금에 안 실린다.
      */
     this.book.newRound();
@@ -1217,7 +1217,7 @@ export class GameRuntime {
   /**
    * 같은 말 되풀이 (docs/SUSPICION.md ⑥) — **자기가 아까 한 말**을 다시 치는가. LLM 을 안 부른다.
    *
-   * 말 읽기(readTalk)로는 이걸 못 잡는다: 그쪽은 한 장면(2~12줄)만 보고 9초에 한 번 도는데,
+   * 말 읽기(readTalk)로는 이걸 못 잡는다: 그쪽은 한 장면(2~12줄)만 보고 READ_EVERY_MS 에 한 번 도는데,
    * 되풀이는 판 전체에 걸쳐 있다. 로그를 쥔 것은 여기뿐이다.
    * pushLog 보다 **먼저** 불러야 이번 말이 제 비교 대상에 안 들어간다.
    */

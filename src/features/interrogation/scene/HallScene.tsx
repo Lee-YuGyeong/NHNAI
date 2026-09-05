@@ -32,7 +32,8 @@ import { SelfAvatar } from './SelfAvatar';
 import { selfPose } from './selfPose';
 import { ARENA_WORK_LIGHTS, FallStage } from './FallStage';
 import { PlatformCourse } from './PlatformCourse';
-import { PLATFORM_ARENA } from '@/world/mp/platform';
+import { PADS, PLATFORM_ARENA } from '@/world/mp/platform';
+import { DISC_CENTER } from '@/world/mp/constants';
 // 색 사냥의 구슬 · 견본판 · E 키는 /trial 과 같은 부품이다 — 상태(huntState)가 하나라 화면도 하나로 그린다
 import { HuntOrbs, SampleBoard } from '@/features/trial/games/color-hunt/HuntObjects';
 import { PickKey } from '@/features/trial/games/color-hunt/PickKey';
@@ -141,7 +142,7 @@ export function HallScene(p: HallSceneProps) {
       <def.Lights flicker />
       <ambientLight intensity={def.ambient.intensity} color={def.ambient.color} />
       {/* 마당 위 작업등 — 국면이 바뀌어도 **개수가 안 변한다**. 이유는 ArenaWorkLights 머리말 */}
-      <ArenaWorkLights fall={fall} hunt={hunt} />
+      <ArenaWorkLights fall={fall} hunt={hunt} platform={platform} disc={disc} />
 
       <Suspense fallback={null}>
         <def.Scene quality="high" />
@@ -155,17 +156,23 @@ export function HallScene(p: HallSceneProps) {
           <FallStage />
         </group>
       ) : null}
-      {/* 움직이는 플랫폼 — 발판 열은 platformState 로 프레임마다 자리를 잡는다 (PlatformCourse 머리말) */}
-      {platform ? (
-        <Suspense fallback={null}>
-          <PlatformCourse />
-        </Suspense>
+      {/* 움직이는 플랫폼 — 발판 열은 platformState 로 프레임마다 자리를 잡는다 (PlatformCourse 머리말).
+          낙하 무대와 같은 이유로 **미리 세워 두고 안 보이게** 한다 — 라운드 시작 프레임에 부품 로드와 셰이더 링크가 겹치지 않게 */}
+      {platform || stageReady ? (
+        <group visible={platform}>
+          <Suspense fallback={null}>
+            <PlatformCourse />
+          </Suspense>
+        </group>
       ) : null}
-      {/* 회전 원판 — 원판은 서버가 준 각도로 돌고(discState), 그 위의 몸은 스냅샷으로 온다 (InterrogationFeature 의 trial_disc) */}
-      {disc ? (
-        <Suspense fallback={null}>
-          <DiscStage />
-        </Suspense>
+      {/* 회전 원판 — 원판은 서버가 준 각도로 돌고(discState), 그 위의 몸은 스냅샷으로 온다 (InterrogationFeature 의 trial_disc).
+          작업등은 ArenaWorkLights 가 든다(광원 수 고정) — 여기서는 안 켠다 */}
+      {disc || stageReady ? (
+        <group visible={disc}>
+          <Suspense fallback={null}>
+            <DiscStage lights={false} />
+          </Suspense>
+        </group>
       ) : null}
       {hunt ? (
         <group>
@@ -229,7 +236,18 @@ export function HallScene(p: HallSceneProps) {
  * 색 사냥의 마당은 낙하 마당과 같은 자리다(HUNT_ARENA = FALL_ARENA) — 그래서 첫 등 하나를 같이 쓴다.
  * 구슬은 무광이지만 견본판 구조물과 몸은 빛이 필요하다.
  */
-function ArenaWorkLights({ fall, hunt }: { fall: boolean; hunt: boolean }) {
+/**
+ * 시험 무대의 작업등 — 발판 열 위 하나, 원판 위 둘. 값은 무대 부품(PlatformCourse · DiscStage)이 제 안에 들고 있던 것을
+ * 여기로 옮겼다: 무대가 라운드 시작에 서면서 등을 같이 켜면 **씬의 광원 수가 바뀌어** three 가 재질 셰이더를 전부 다시
+ * 링크한다 — 그 프레임이 통째로 멈췄다 (2026-09-05 사용자: "화면 끊기는 거"). 등의 개수는 늘 같고 세기만 0 ↔ 값으로 오간다.
+ */
+const STAGE_WORK_LIGHTS = [
+  { on: 'platform' as const, position: [0, 7.5, (PADS[0].z + PADS[PADS.length - 1].z) / 2] as const, color: '#dfe9ff', intensity: 55, distance: 24 },
+  { on: 'disc' as const, position: [DISC_CENTER.x, 7.5, DISC_CENTER.z] as const, color: '#dfe9ff', intensity: 70, distance: 24 },
+  { on: 'disc' as const, position: [DISC_CENTER.x, 2.6, DISC_CENTER.z] as const, color: '#5ff0ff', intensity: 6, distance: 7 },
+];
+
+function ArenaWorkLights({ fall, hunt, platform, disc }: { fall: boolean; hunt: boolean; platform: boolean; disc: boolean }) {
   return (
     <>
       {ARENA_WORK_LIGHTS.map((l, i) => (
@@ -242,6 +260,9 @@ function ArenaWorkLights({ fall, hunt }: { fall: boolean; hunt: boolean }) {
           distance={l.distance}
           decay={2}
         />
+      ))}
+      {STAGE_WORK_LIGHTS.map((l, i) => (
+        <pointLight key={`stage-${i}`} position={l.position} color={l.color} intensity={(l.on === 'platform' ? platform : disc) ? l.intensity : 0} distance={l.distance} decay={2} />
       ))}
     </>
   );

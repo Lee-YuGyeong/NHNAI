@@ -36,3 +36,40 @@ export function placeChaseCamera(camera: THREE.Camera, x: number, y: number, z: 
   camera.position.set(x - f.x * back, up, z - f.z * back);
   camera.lookAt(x + f.x * 0.6, y + CHASE_LOOK_Y, z + f.z * 0.6);
 }
+
+/** 따라가기의 시정수(초) — 몸이 튀어도 카메라는 이 시간에 걸쳐 따라붙는다. 짧으면 떨림이 남고 길면 몸이 화면에서 밀린다 */
+export const CHASE_TAU = 0.08;
+/** 이보다 멀리 옮겨졌으면 따라가지 않고 그 자리로 붙는다 — 순간이동 · 돌아가기 */
+export const CHASE_SNAP_M = 3;
+
+/**
+ * 부드러운 추격 — placeChaseCamera 를 **몸의 자리를 평활한 뒤** 부른다.
+ *
+ * 몸의 자리는 프레임마다 조금씩 튄다: 발판이 실어 나르는 x, 착지의 y 스냅, 서버 자리로 당기는 보정(회전 원판).
+ * 카메라가 그 자리를 그대로 베끼면 그 튐이 화면 전체의 흔들림이 된다 (2026-09-05 사용자: "화면 흔들리는 거").
+ * 자리만 지수 평활한다 — 마우스(yaw · pitch)는 그대로다, 시선까지 늦으면 조작이 미끄러진다.
+ */
+export function createChaseFollow() {
+  let sx = Number.NaN;
+  let sy = 0;
+  let sz = 0;
+  return {
+    /** 다음 프레임은 따라가지 않고 그 자리로 붙는다 */
+    snap(): void {
+      sx = Number.NaN;
+    },
+    update(camera: THREE.Camera, x: number, y: number, z: number, yaw: number, pitch: number, dt: number): void {
+      if (Number.isNaN(sx) || Math.hypot(x - sx, y - sy, z - sz) > CHASE_SNAP_M) {
+        sx = x;
+        sy = y;
+        sz = z;
+      } else {
+        const k = 1 - Math.exp(-Math.min(dt, 0.1) / CHASE_TAU);
+        sx += (x - sx) * k;
+        sy += (y - sy) * k;
+        sz += (z - sz) * k;
+      }
+      placeChaseCamera(camera, sx, sy, sz, yaw, pitch);
+    },
+  };
+}

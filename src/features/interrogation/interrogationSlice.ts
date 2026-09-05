@@ -46,8 +46,6 @@ export interface GameState {
   myFinished: boolean;
   /** 회전 원판 — 이번 테스트에 내가 원판 밖으로 떨어진 횟수 (trial_fell) */
   myFalls: number;
-  /** 회전 원판 — 지금 각속도(rad/s). 부호가 방향이다. HUD 한 줄에만 쓴다 — 마찰계수는 어디에도 없다 (P8) */
-  discOmega: number;
   /** 색 사냥 — 지금 조명과 목표색 (trial_colorhunt). HUD 스와치(원색)와 조명 오버레이가 그린다 */
   hunt: { light: string; target: string; targetHex: string } | null;
   /** 결과 모달이 그릴 것 — 서버 trial_result. 모달이 닫힌 뒤에도 HUD 요약으로 남는다 */
@@ -85,7 +83,6 @@ const initialState: GameState = {
   myMisses: 0,
   myFinished: false,
   myFalls: 0,
-  discOmega: 0,
   hunt: null,
   latestResult: null,
   history: [],
@@ -228,12 +225,7 @@ export const interrogationSlice = createSlice({
       s.myMisses = 0;
       s.myFinished = false;
       s.myFalls = 0;
-      s.discOmega = 0;
       s.hunt = null;
-    },
-    /** 회전 원판 — 스냅샷마다 오는 각속도. 자리는 여기 안 온다 (discState, 가변) */
-    discSynced(s, a: PayloadAction<number>) {
-      s.discOmega = a.payload;
     },
     /** 회전 원판 — 누가 원판 밖으로 떨어졌다(trial_fell). 내 좌석일 때만 센다 */
     fellRecorded(s, a: PayloadAction<string>) {
@@ -296,7 +288,6 @@ export const gameSelectors = {
   selectMyPicks: (r: Root) => r.interrogation.myPicks,
   selectMyLandings: (r: Root) => ({ landings: r.interrogation.myLandings, centers: r.interrogation.myCenters, misses: r.interrogation.myMisses, finished: r.interrogation.myFinished }),
   selectMyFalls: (r: Root) => r.interrogation.myFalls,
-  selectDiscOmega: (r: Root) => r.interrogation.discOmega,
   selectHunt: (r: Root) => r.interrogation.hunt,
   selectLatestResult: (r: Root) => r.interrogation.latestResult,
   selectHistory: (r: Root) => r.interrogation.history,

@@ -306,7 +306,7 @@ npm run worker:dev     # ws://127.0.0.1:8787  (.dev.vars 를 자동으로 읽는
   <tbody>
     <tr><td>0초</td><td>lobby → briefing (7초)</td><td>배역 카드(사람 / AI 설계자)가 6초 떠 있다가 걷힌다. AI 좌석에는 카드가 없다. 설계자에게는 「표식 없는 AI는 &lt;좌석 이름&gt; 이다.」 줄이 붙는다. 내 몸이 좌석 원(반지름 3.4m) 위 자기 자리로 옮겨진다.</td></tr>
     <tr><td>7초</td><td>discussion(첫) — 프롤로그</td><td>정부 통제실 프롤로그 11줄이 터미널 스킨 대화창으로 흐른다(피실험자 셋 + 통제실, 목소리 동기). 이 동안 채팅 판 · 내 의심도 계기 · 발치 줄이 내려가고 봇도 조용하다. 서버 상한 75초. 줄 길이는 합성한 목소리에 맞추므로 판마다 다르다(대략 45~55초).</td></tr>
-    <tr><td>프롤로그 끝</td><td>discussion 40초</td><td>왼쪽 아래 구역 통신 판이 서고 발언권 칩 <code>발언권 6</code>. Enter 로 입력, 한 마디에 발언권 1. 봇은 2.5초 뒤부터 3.5~10초 간격으로 말한다. 관리 AI(세계관의 「처형 AI」)가 9초 간격으로 새 발언 2줄 이상을 읽어 의심도를 −10~+16 움직인다. 머리 위 의심도 막대가 움직이면 정상.</td></tr>
+    <tr><td>프롤로그 끝</td><td>discussion 40초</td><td>왼쪽 아래 구역 통신 판이 서고 발언권 칩 <code>발언권 6</code>. Enter 로 입력, 한 마디에 발언권 1. 봇은 2.5초 뒤부터 3.5~10초 간격으로 말한다. 관리 AI(세계관의 「처형 AI」)가 7초 간격으로 새 발언 2줄 이상을 읽어 의심도를 −10~+20 움직인다. 머리 위 의심도 막대가 움직이면 정상.</td></tr>
     <tr><td>+40초</td><td>test ① 낙하 생존 30초</td><td>위 가운데 큰 시계 30 → 0, 발치 HUD 「피격 N」. 250ms 마다 공이 떨어지고 85% 는 참가자를 겨냥한다. WASD 이동, Space 점프(높이는 서버가 계산).</td></tr>
     <tr><td>+30초</td><td>result 7초</td><td>「기록 공개」 모달 — 안 맞고 버틴 시간 · 피격 · 등수 · 발언권 +N. 전원 입력 잠금. 관리 AI 해설(readout)이 소리로 들린다. 발언권 = 버틴 3초마다 1(최소 1, 30초면 10), 남은 것은 5까지만 이월.</td></tr>
     <tr><td>+7초</td><td>discussion 40초</td><td>검문 단계 「대조」 — 관리 AI 가 「지금부터 모든 관측은 1.2배로 기록된다」를 방송(alarm). 올라가는 걸음에만 곱한다.</td></tr>
@@ -600,7 +600,7 @@ npx wrangler secret put WORLD_TICKET_SECRET</code></pre>
   <thead><tr><th>호출</th><th>빈도(4인 판 기준)</th><th>모델(배포)</th></tr></thead>
   <tbody>
     <tr><td>봇 대사 <code>sayAs</code></td><td>토론마다 3.5~10초 간격, 동시 최대 2, 발언권이 있는 봇만. 대화 4회 × 40초 ≈ 판당 20~40회</td><td><code>gpt-5.6-terra</code> — 성격(<code>src/lab/personas.ts</code>)의 <code>model</code> 을 따른다. 대부분 sonnet-5, opus-5 성격 하나만 <code>gpt-6-astra</code></td></tr>
-    <tr><td>관리 AI 말 읽기 <code>readTalk</code></td><td>토론 중 9초 간격 + 닫히기 8초 전 마지막 한 번 ≈ 토론당 3~5회</td><td><code>gpt-6-astra</code> (opus-5)</td></tr>
+    <tr><td>관리 AI 말 읽기 <code>readTalk</code></td><td>토론 중 7초 간격 + 닫히기 8초 전 마지막 한 번 ≈ 토론당 4~6회</td><td><code>gpt-6-astra</code> (opus-5)</td></tr>
     <tr><td>기록 해설 <code>leaderComment</code></td><td>시험당 1회 (판당 3회)</td><td><code>gpt-5.6-terra</code> (sonnet-5)</td></tr>
     <tr><td>AI 좌석 전략 <code>aiStrategy</code></td><td>시험당 1회 (판당 3회)</td><td><code>gpt-5.6-terra</code> — AI 좌석 성격의 <code>model</code>(opus 성격이면 <code>gpt-6-astra</code>)</td></tr>
     <tr><td>주장 판정 <code>judgeClaim</code></td><td>화면에 입력 UI 가 없어 0회</td><td>(<code>gpt-6-astra</code> 로 짜여 있으나 불리지 않는다)</td></tr>

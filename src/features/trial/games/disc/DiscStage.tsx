@@ -59,7 +59,11 @@ function Plate() {
   );
 }
 
-export function DiscStage() {
+/**
+ * @param lights 원판 위 작업등을 여기서 켤지 — /trial 은 켠다(기본). 검문소 홀(HallScene)은 광원 수를 고정하려고 제 ArenaWorkLights 로
+ *   들고 false 를 준다: 무대가 서면서 등이 늘면 three 가 재질 셰이더를 전부 다시 링크해 그 프레임이 멈춘다
+ */
+export function DiscStage({ lights = true }: { lights?: boolean } = {}) {
   const spin = useRef<THREE.Group>(null);
   useFrame(() => {
     if (spin.current) spin.current.rotation.y = discState.thetaAt(Date.now());
@@ -93,9 +97,13 @@ export function DiscStage() {
           <Plate />
         </Suspense>
       </group>
-      {/* 원판 위 작업등 — 홀의 링 조명은 무대에만 떨어져 마당이 어둡다 */}
-      <pointLight position={[0, 7.5, 0]} color="#dfe9ff" intensity={70} distance={24} decay={2} />
-      <pointLight position={[0, 2.6, 0]} color="#5ff0ff" intensity={6} distance={7} decay={2} />
+      {/* 원판 위 작업등 — 홀의 링 조명은 무대에만 떨어져 마당이 어둡다 (lights 머리말) */}
+      {lights ? (
+        <>
+          <pointLight position={[0, 7.5, 0]} color="#dfe9ff" intensity={70} distance={24} decay={2} />
+          <pointLight position={[0, 2.6, 0]} color="#5ff0ff" intensity={6} distance={7} decay={2} />
+        </>
+      ) : null}
     </group>
   );
 }

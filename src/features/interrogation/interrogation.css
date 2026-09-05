@@ -742,11 +742,6 @@
   letter-spacing: 0.14em;
   color: var(--amber);
 }
-.ig-designer p {
-  margin: 0 0 6px;
-  color: var(--dust);
-  line-height: 1.5;
-}
 .ig-designer select,
 .ig-designer button {
   font: inherit;

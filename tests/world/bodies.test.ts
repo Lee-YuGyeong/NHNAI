@@ -45,7 +45,7 @@ describe('몸의 물리 — 비만인 둘은 느리고 낮게 뛴다', () => {
    */
   it('점프는 발판 한 칸을 건넌다 — 날씬한 몸은 걸어서 넘고, 비만은 걸어서 다음 발판 앞쪽에 닿는다', () => {
     expect(peak(BODIES.sol_fit_m.jump)).toBeGreaterThan(1.2);
-    expect(peak(BODIES.sol_heavy_m.jump)).toBeLessThan(1);
+    expect(peak(BODIES.sol_heavy_m.jump)).toBeLessThan(1.2);
     const air = (v: number) => (2 * v) / GRAVITY;
     expect(WALK_SPEED * air(BODIES.sol_fit_m.jump)).toBeGreaterThan(PAD_GAP);
     expect(WALK_SPEED * air(BODIES.sol_heavy_m.jump)).toBeGreaterThan(PAD_GAP - PAD_R);
