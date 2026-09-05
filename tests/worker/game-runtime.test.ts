@@ -341,12 +341,15 @@ describe('GameRuntime — 판 한 바퀴', () => {
         await vi.advanceTimersByTimeAsync(1_000);
       }
     }
-    // 거짓 해명 열 번 → p1 100 → 격리 · 사람이었다 · 판은 계속 (목표 2 중 1)
+    // 거짓 해명 열 번 → p1 100 → 격리 · 사람이었다 · **판은 거기서 끝난다** — AI 는 아직 이 안에 있으니 AI 의 승리
+    // (2026-09-05 사용자: 처형되면 그 순간 끝. 예전엔 목표 2 중 1 이라 판이 계속됐다)
     const iso = h2.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_isolated' }> => m.t === 'game_isolated');
     expect(iso?.id).toBe(p1Seat);
     expect(iso?.role === 'human' || iso?.role === 'designer').toBe(true);
-    expect(h2.lastState().seats.find((s) => s.id === p1Seat)?.revealed).toBe(iso?.role);
-    expect(h2.lastState().seats.find((s) => s.id === ai2.id)?.revealed).toBeUndefined();
+    expect(h2.lastState().phase).toBe('ended');
+    const ended2 = h2.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_ended' }> => m.t === 'game_ended')!;
+    expect(ended2.outcome.winner).toBe('ai');
+    expect(ended2.roles[ai2.id]).toBe('ai');
   });
 
   it('셋이 AI 를 거듭 몰면 100 — 격리 · AI 였다 · 사람 승리로 끝나고 정체표가 공개된다', async () => {
@@ -567,7 +570,7 @@ describe('GameRuntime — 고정 차례표', () => {
     expect(h.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_ended' }> => m.t === 'game_ended')?.outcome.winner).toBe('ai');
   });
 
-  it('시험이 도는 중에도 의심도 100 은 그 자리에서 격리한다 — 격리가 목표에 닿으면 차례표가 남아도 끝난다', async () => {
+  it('시험이 도는 중에도 의심도 100 은 그 자리에서 격리한다 — 격리되면 차례표가 남아도 끝난다', async () => {
     const h = harness();
     await h.rt.handle('p1', { t: 'game_start' });
     await openBoard(h);
