@@ -146,6 +146,12 @@ export const ASSETS = {
    */
   seesaw_pivot: { url: '/world/seesaw/seesaw_pivot.glb' },
   seesaw_stop: { url: '/world/seesaw/seesaw_stop.glb' },
+  /**
+   * 무너지는 타워 생존(features/trial/games/tower, 2026-09-05) — 탑의 몸통인 격자 기둥. Tripo Studio(tools/tower-parts.json →
+   * tripo-studio-parts.sh → tower-glb.sh). 발판은 코드 기하 + 힉스필드 텍스처(public/textures/tower/), 발판 받침은 격납고의 steel_column 재사용.
+   * HUD 시안은 UX Pilot(page q6v38m6GZMYLa7rrThVk)
+   */
+  tower_pylon: { url: '/world/tower/tower_pylon.glb' },
 
   /**
    * 물리 미니게임 — 정지선(features/trial). 심문소 홀 안에 레인을 깔고 그 위에 세우는 소품 둘:

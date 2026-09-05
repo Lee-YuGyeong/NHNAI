@@ -57,8 +57,9 @@ footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);fon
 <table>
   <tr><th style="width:26%">장르</th><td>실시간 3D 물리 미니게임 + 대화 심리 추리 (멀티플레이)</td></tr>
   <tr><th>인원</th><td>사람 3~8명 + AI 1좌석</td></tr>
-  <tr><th>한 판</th><td>약 5분 — 프롤로그 방송 → (대화 40초 → 물리 시험 30초 → 기록 공개 7초) × 3 → 마지막 대화 40초 → 판정</td></tr>
+  <tr><th>한 판</th><td>약 5분 — 프롤로그 방송 → (대화 40초 → 물리 시험 30초 → 기록 공개 7초) × 3 → 마지막 대화 40초 → 판정. 시험 셋은 판이 열릴 때 후보 넷(낙하 생존 · 움직이는 발판 · 회전 원판 · 무게 중심 다리)에서 무작위로 뽑힌다. 시험마다 1등은 대화에서 쓸 카드를 한 장 받는다.</td></tr>
   <tr><th>이기는 법</th><td><b>사람</b>: AI를 찾아 격리시킨다 · <b>AI</b>: 끝까지 들키지 않는다 · <b>AI 설계자</b>: AI도 살고 자기도 살고, 인간이 검출되게 하는 것이 목표</td></tr>
+  <tr><th>시험 1등의 몫</th><td>시험마다 1등은 <b>아이템 카드</b>를 한 장 얻는다 — 엎어진 세 장(지목권 · 진정권 · 답변 강제권) 중 하나를 뽑는다. 적절한 때에 쓰면 판을 내게 유리하게 끈다. 그래서 배역이 무엇이든 <b>모든 시험에서 1등을 노려야 한다</b>.</td></tr>
 </table>
 
 <h1 class="sec" id="s1b">2. 주제어를 이렇게 풀었다 — 2026 · 물리법칙 · 제한</h1>
@@ -73,7 +74,7 @@ footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);fon
 <table>
   <tr><th style="width:22%">원칙</th><th>적용한 것</th><th>게임에서 보이는 것</th></tr>
   <tr><td>몸이 다르면 물리가 다르다</td><td>캐릭터마다 <b>몸무게가 다른 몸</b>. 무거운 몸은 느리고, 낮게 뛰고, 도는 원판에서 먼저 미끄러진다.</td><td>같은 장애물 앞에서 몸마다 움직임이 달라지고, 기록도 몸에 따라 다르게 읽힌다.</td></tr>
-  <tr><td>중력·마찰·회전을 몸으로 겪는다</td><td><b>낙하 생존</b>(중력), <b>움직이는 발판</b>(마찰·배속), <b>회전 원판</b>(회전·마찰)에 물리법칙을 적용해서 게임을 만들었다.</td><td>공을 피해 달리고, 발판을 건너뛰고, 원판 위에서 버틴다. 조작은 WASD · Space · Shift뿐.</td></tr>
+  <tr><td>중력·마찰·회전·지레를 몸으로 겪는다</td><td><b>낙하 생존</b>(중력), <b>움직이는 발판</b>(마찰·배속), <b>회전 원판</b>(회전·마찰), <b>무게 중심 다리</b>(지레·토크·무게중심)에 물리법칙을 적용해서 게임을 만들었다.</td><td>공을 피해 달리고, 발판을 건너뛰고, 원판 위에서 버티고, 기우는 판자 위에서 무리의 무게중심을 축에 맞춘다. 조작은 WASD · Space · Shift뿐.</td></tr>
 </table>
 <div class="grid2">
   <figure><img src="img/game-test-fall.jpg" alt="낙하 생존"><figcaption>낙하 생존 — 무게로 인해 떨어지는 속도가 다른 공들을 피한다.</figcaption></figure>
@@ -83,7 +84,7 @@ footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);fon
 <h2>제한 — 시간 · 목숨 · 말 · 정보</h2>
 <table>
   <tr><th style="width:18%">무엇을 제한했나</th><th>어떻게</th><th>왜</th></tr>
-  <tr><td><b>시간</b></td><td>고정 차례표 한 판 약 5분 — 대화 40초 · 시험 30초 · 기록 공개 7초 × 3. 마지막 대화가 끝날 때까지 AI가 지목되지 않거나 사람이 과반수 이상 죽으면 AI가 승리한다.</td><td>사람 쪽에 제한 시간이 있고, 끝까지 AI를 선별하지 못하거나 추리하지 못하면 패배한다.</td></tr>
+  <tr><td><b>시간</b></td><td>한 판 약 5분 — 대화 40초 · 시험 30초 · 기록 공개 7초 × 3. 차례표는 판이 열릴 때 후보 넷에서 셋을 뽑는다. 마지막 대화가 끝날 때까지 AI가 지목되지 않거나 사람이 과반수 이상 죽으면 AI가 승리한다.</td><td>사람 쪽에 제한 시간이 있고, 끝까지 AI를 선별하지 못하거나 추리하지 못하면 패배한다.</td></tr>
   <tr><td><b>목숨</b></td><td>0~100%의 <b>AI 의심도</b>. 관리 AI(세계관의 처형 AI)가 대화를 읽어 올리고 내리며, 100%에 닿는 순간 <b>즉시 처리</b>된다. 처리된 사람의 과반수가 사람이면 패배한다.</td><td>점수가 아니라 생존 자원이다. 남을 의심하는 말이 곧 남의 목숨을 깎는다.</td></tr>
   <tr><td><b>말</b></td><td><b>발언권</b> — 시작 6개, 한 마디에 하나. 시험에서 버틴 시간만큼만 다시 받고, 안 쓴 것은 5개까지만 넘어간다.</td><td>말을 무한정 쏟아내지 못한다. 나의 발언권은 곧 게임의 분위기를 주도적으로 잡을 수 있는 권리이자 남을 처형시킬 수 있는 힘이 되기에, 말을 쓸 때마다 신중해야 하며 게임을 통해 발언권을 최대한 따 놓는 것이 목표다.</td></tr>
   <tr><td><b>정보</b></td><td>배역은 본인에게만, AI의 정체는 설계자에게만. 좌석 이름은 판마다 다시 섞이며 심리전을 요구한다.</td><td>관찰과 대화 말고는 알 길이 없게 만든다 — 그래서 추리 게임이 된다.</td></tr>
@@ -111,13 +112,13 @@ footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);fon
   <span class="step">배역 통보 7초</span><span class="arrow">→</span>
   <span class="step">프롤로그 방송</span><span class="arrow">→</span>
   <span class="step talk">대화 40초</span><span class="arrow">→</span>
-  <span class="step test">① 낙하 생존 30초</span><span class="arrow">→</span>
+  <span class="step test">① 시험 30초</span><span class="arrow">→</span>
   <span class="step">기록 공개 7초</span><span class="arrow">→</span>
   <span class="step talk">대화 40초</span><span class="arrow">→</span>
-  <span class="step test">② 움직이는 발판 30초</span><span class="arrow">→</span>
+  <span class="step test">② 시험 30초</span><span class="arrow">→</span>
   <span class="step">기록 공개 7초</span><span class="arrow">→</span>
   <span class="step talk">대화 40초</span><span class="arrow">→</span>
-  <span class="step test">③ 회전 원판 30초</span><span class="arrow">→</span>
+  <span class="step test">③ 시험 30초</span><span class="arrow">→</span>
   <span class="step">기록 공개 7초</span><span class="arrow">→</span>
   <span class="step talk">대화 40초</span><span class="arrow">→</span>
   <span class="step">판정 종료</span>
@@ -125,8 +126,8 @@ footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);fon
 <ul>
   <li><b>프롤로그</b>: 정부 통제실의 방송이 대화창으로 흐른다. 이 동안은 아무도 말하지 않는다.</li>
   <li><b>대화</b>: 채팅으로 추리하고 지목한다. 관리 AI가 말을 읽어 의심도를 움직인다.</li>
-  <li><b>시험</b>: 전원이 동시에 30초. 채팅은 내려가고 몸으로만 말한다.</li>
-  <li><b>기록 공개</b>: 버틴 시간 · 등수 · 받은 발언권을 전원이 같은 화면으로 본다. 입력 잠금.</li>
+  <li><b>시험</b>: 전원이 동시에 30초. 채팅은 내려가고 몸으로만 말한다. 어느 셋인지는 판이 열릴 때 후보 넷에서 무작위로 뽑히고, 뽑힌 순서는 처음부터 공개된다 — 조건값만 비밀이다.</li>
+  <li><b>기록 공개</b>: 버틴 시간 · 등수 · 받은 발언권을 전원이 같은 화면으로 본다. 입력 잠금. 이때 <b>1등에게만</b> 카드 세 장이 엎어진 채 나온다 — 「7. 카드」.</li>
   <li><b>처형</b>은 국면과 상관없이 의심도 100%인 순간 즉시. 처형으로 판이 끝난다.</li>
 </ul>
 <div class="grid2">
@@ -134,21 +135,54 @@ footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);fon
   <figure><img src="img/game-discussion.jpg" alt="대화"><figcaption>대화 국면 — 왼쪽 구역 통신 판(발언권), 머리 위 이름표·의심도 막대, 아래 내 의심도.</figcaption></figure>
 </div>
 
-<h1 class="sec" id="s5">6. 세 가지 시험</h1>
+<h1 class="sec" id="s5">6. 시험 — 후보 넷 중 셋</h1>
 <table>
   <tr><th style="width:18%">시험</th><th>조작</th><th>무엇을 하나</th><th>기록에 남는 것</th></tr>
-  <tr><td><b>① 낙하 생존</b></td><td><kbd>WASD</kbd> 이동 · <kbd>Space</kbd> 점프</td><td>머리 위에서 떨어지는 공을 30초 동안 무게로 인해 떨어지는 속도가 다른 공들을 피한다.</td><td>첫 피격까지 버틴 시간 · 피격 횟수</td></tr>
-  <tr><td><b>② 움직이는 발판</b></td><td><kbd>W</kbd> 전진 · <kbd>Space</kbd> 점프</td><td>움직이는 발판을 건너 도착 발판에 선다. 떨어지면 출발로. 바닥 마찰이 도중에 바뀐다.</td><td>도착하고 남긴 시간 · 착지 정확도</td></tr>
-  <tr><td><b>③ 회전 원판</b></td><td><kbd>WASD</kbd> 걷기 · <kbd>Shift</kbd> 달리기</td><td>도는 원판 위에서 밀려나지 않고 버틴다. 회전 속도와 마찰이 바뀐다.</td><td>첫 낙하까지 버틴 시간 · 낙하 횟수</td></tr>
+  <tr><td><b>낙하 생존</b></td><td><kbd>WASD</kbd> 이동 · <kbd>Space</kbd> 점프</td><td>머리 위에서 떨어지는 공을 30초 동안 무게로 인해 떨어지는 속도가 다른 공들을 피한다.</td><td>첫 피격까지 버틴 시간 · 피격 횟수</td></tr>
+  <tr><td><b>움직이는 발판</b></td><td><kbd>W</kbd> 전진 · <kbd>Space</kbd> 점프</td><td>움직이는 발판을 건너 도착 발판에 선다. 떨어지면 출발로. 바닥 마찰이 도중에 바뀐다.</td><td>도착하고 남긴 시간 · 착지 정확도</td></tr>
+  <tr><td><b>회전 원판</b></td><td><kbd>WASD</kbd> 걷기 · <kbd>Shift</kbd> 달리기</td><td>도는 원판 위에서 밀려나지 않고 버틴다. 회전 속도와 마찰이 바뀐다.</td><td>첫 낙하까지 버틴 시간 · 낙하 횟수</td></tr>
+  <tr><td><b>무게 중심 다리</b></td><td><kbd>WASD</kbd> 걷기 · <kbd>Shift</kbd> 달리기</td><td>축 하나로 선 판자 위에서 무리의 무게중심을 축에 맞춰 버틴다. 상자가 떨어지면 반대쪽으로. 무거운 몸은 더 기울이고, 마찰이 바뀐다.</td><td>첫 낙하까지 버틴 시간 · 낙하 횟수 · 반응 시간</td></tr>
 </table>
-<div class="callout warn">미니게임을 불러올 때 조건값(중력·마찰·배속)을 가져온다. 미니게임 안에서 물리적인 조건이 계속 바뀌며 잠깐 틀리다가 적응한다. 사람은 이 게임 세계관에서 자기가 주도적으로 이야기할 수 있도록 발언권을 따내기 위해 매판 게임에 최선을 다한다.</div>
-<figure><img src="img/game-test-fall.jpg" alt="낙하 생존"><figcaption>① 낙하 생존 — 무게로 인해 떨어지는 속도가 다른 공들을 피한다.</figcaption></figure>
+<div class="callout warn">미니게임을 불러올 때 조건값(중력·마찰·배속·판자 마찰)을 가져온다. 미니게임 안에서 물리적인 조건이 계속 바뀌며 잠깐 틀리다가 적응한다. 사람은 이 게임 세계관에서 자기가 주도적으로 이야기할 수 있도록 발언권을 따내기 위해 매판 게임에 최선을 다한다.</div>
+<figure><img src="img/game-test-fall.jpg" alt="낙하 생존"><figcaption>낙하 생존 — 무게로 인해 떨어지는 속도가 다른 공들을 피한다.</figcaption></figure>
 <div class="grid2">
-  <figure><img src="img/game-test-platform.jpg" alt="움직이는 발판"><figcaption>② 움직이는 발판 — 진폭이 다른 발판을 건너간다.</figcaption></figure>
-  <figure><img src="img/game-test-disc.jpg" alt="회전 원판"><figcaption>③ 회전 원판 — 캐릭터들마다 무게와 원판의 회전력을 바탕으로 밀려나는 환경 속에 적응해 버틴다.</figcaption></figure>
+  <figure><img src="img/game-test-platform.jpg" alt="움직이는 발판"><figcaption>움직이는 발판 — 진폭이 다른 발판을 건너간다.</figcaption></figure>
+  <figure><img src="img/game-test-disc.jpg" alt="회전 원판"><figcaption>회전 원판 — 캐릭터들마다 무게와 원판의 회전력을 바탕으로 밀려나는 환경 속에 적응해 버틴다.</figcaption></figure>
 </div>
+<figure><img src="img/game-test-seesaw.jpg" alt="무게 중심 다리"><figcaption>무게 중심 다리 — 상자가 놓여 기우는 판자 위에서 반대쪽으로 옮겨 가 무게중심을 맞춘다.</figcaption></figure>
 
-<h1 class="sec" id="s6">7. 대화 · 의심도 · 발언권</h1>
+<h1 class="sec" id="s6">7. 카드 — 시험 1등의 몫</h1>
+<p>시험은 기록만 남기는 것이 아니다. <b>1등을 하면 아이템 카드를 얻는다.</b> 카드는 세 종류 — 지목권 · 진정권 · 답변 강제권 — 이고, 무엇을 얻을지는 <b>엎어진 세 장 중 하나를 뽑아</b> 정해진다. 쥔 카드를 알맞은 때에 쓰면 몰리던 판을 되돌리고, 의심이 가던 사람을 단번에 몰고, 해명을 강제로 받아 낼 수 있다 — 판을 <b>내가 유리한 쪽으로 끄는 힘</b>이다. 사람도 AI도 설계자도 마찬가지라, 배역이 무엇이든 <b>모든 시험에서 1등을 노려야 한다.</b> 몸으로 버티는 30초가 곧 다음 대화의 무기다.</p>
+<p>시험이 끝나 기록이 공개되는 순간, <b>가장 오래 버틴 한 사람</b>에게만 카드 세 장이 <b>엎어진 채</b> 나온다. 공동 1등이면 그중 한 명을 무작위로 뽑는다. 세 장은 순서만 섞였을 뿐 겉모습이 같아서, 무엇인지는 <b>고르고 뒤집어야</b> 안다. 고르는 시간은 45초 — 기록 공개를 지나 다음 대화 앞머리까지다. 그 안에 안 고르면 그냥 지나간다.</p>
+<div class="grid2">
+  <figure><img src="img/game-card-offer.jpg" alt="전리품 배분"><figcaption>전리품 배분 — 1등에게만 뜬다. 엎어진 세 장 중 하나를 고른다.</figcaption></figure>
+  <figure><img src="img/game-card-reveal.jpg" alt="카드 확보"><figcaption>고른 장을 뒤집은 순간. 쥔 카드는 오른쪽 아래 「내 카드」에 쌓이고, 쓸 때 겨눌 사람을 고른다.</figcaption></figure>
+</div>
+<table>
+  <tr><th style="width:18%">카드</th><th style="width:22%">겨누는 곳</th><th>무슨 일이 일어나나</th></tr>
+  <tr><td><b>지목권</b></td><td>살아 있는 다른 한 사람</td><td>그 사람의 의심도를 <b>+20</b>. 말로 몰아붙이지 않고도 한 사람을 단번에 올린다 — 뒤쪽 대화일수록 더 세게 먹힌다.</td></tr>
+  <tr><td><b>진정권</b></td><td>나 자신</td><td>내 의심도를 <b>−20</b>. 100%에 가까워진 한 번을 되돌린다.</td></tr>
+  <tr><td><b>답변 강제권</b></td><td>살아 있는 다른 한 사람</td><td>그 사람은 내 다음 질문에 답해야 한다. 관리 AI가 그 답을 판정해 <b>거짓이면 +25 · 얼버무리면 +12 · 진실이면 −10</b>.</td></tr>
+</table>
+
+<h2>답변 강제권은 이렇게 흐른다</h2>
+<ol>
+  <li>카드를 쓰면서 겨눌 사람을 고른다. 누가 누구에게 걸었는지는 전원이 본다.</li>
+  <li><b>건 사람이 다음에 하는 말</b>이 질문이 된다.</li>
+  <li><b>걸린 사람이 다음에 하는 말</b>이 답이다. 25초 안에 답이 없으면 얼버무린 것으로 친다.</li>
+  <li>관리 AI가 그 답을 기록·앞뒤 말과 대조해 판정하고, 판정과 움직인 의심도를 전원에게 알린다.</li>
+</ol>
+<div class="callout">이 판정에서만 관리 AI는 <b>전원의 정체가 적힌 비공개 장부</b>를 본다. 그래서 「너 AI야?」에 AI가 「아니」라고 하면 거짓(+25)이고, 사람이 「아니」라고 하면 진실(−10)이다. 겨눠진 AI에게는 얼버무려 +12로 막는 것이 그나마 낫다.</div>
+
+<h2>쥐고 쓰는 규칙</h2>
+<ul>
+  <li><b>대화 중에만</b> 쓴다. 시험·기록 공개 중에는 잠긴다. 카드를 쓰는 데 발언권은 들지 않는다 — 다만 답변 강제권의 질문은 채팅이라 발언권을 하나 쓴다.</li>
+  <li>손에 쥔 카드는 <b>본인만</b> 안다. 쓰는 순간 무엇을 누구에게 썼는지 전원이 본다.</li>
+  <li>쌓아 둘 수 있는 것은 <b>3장까지</b>. 답변 강제권은 한 번에 하나만 걸린다.</li>
+  <li><b>AI와 대역도 1등하면 받는다.</b> 고르는 판만 안 뜨고, 엎어진 셋 중 하나를 그 자리에서 쥔다 — 무엇인지는 AI도 모른다. 자기가 몰리면 진정권, 남을 몰 때는 지목권·답변 강제권을 쓴다.</li>
+</ul>
+
+<h1 class="sec" id="s7">8. 대화 · 의심도 · 발언권</h1>
 <h2>발언권 — 말은 공짜가 아니다</h2>
 <ul>
   <li>시작할 때 <b>6개</b>. 채팅 한 마디에 하나씩 쓴다. 0이 되면 다음 게임까지 말할 수 없다.</li>
@@ -166,7 +200,7 @@ footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);fon
 </table>
 <div class="callout">의심도는 <b>게임 점수로는 절대 움직이지 않는다.</b> 기록은 화면에 뜰 뿐이고, 그 수치를 기반으로 사용자들이 상대를 의심해야 의심도가 움직인다. 그래서 이 게임은 말이 곧 무기다.</div>
 
-<h1 class="sec" id="s7">8. 승패</h1>
+<h1 class="sec" id="s8">9. 승패</h1>
 <table>
   <tr><th style="width:40%">끝나는 순간</th><th>결과</th></tr>
   <tr><td>AI가 100%에 닿아 격리됐다</td><td><b>사람 진영 승리</b>. 설계자는 패배.</td></tr>
@@ -175,14 +209,16 @@ footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);fon
 </table>
 <figure><img src="img/game-end.jpg" alt="판정 종료"><figcaption>판정 종료 — 승패와 전원의 정체가 공개된다.</figcaption></figure>
 
-<h1 class="sec" id="s8">9. 전략 한 줄씩</h1>
+<h1 class="sec" id="s9">10. 전략 한 줄씩</h1>
 <table>
   <tr><th style="width:16%">사람</th><td>기록 공개 때 <b>전환 직후 오차</b>가 유난히 작거나 방향이 한쪽인 사람을 기억해 두고, 대화에서 그 기록을 근거로 물어라. 발언권은 첫 대화에서 다 쓰지 말 것.</td></tr>
+  <tr><th>무게 중심 다리</th><td>혼자 잘하는 게임이 아니다. 상자가 떨어지면 누가 먼저 반대쪽으로 뛰는지, 누가 남들이 움직인 뒤에야 따라가는지가 보인다 — 반응이 늘 한 박자 정확한 사람을 기억해 두라.</td></tr>
   <tr><th>AI</th><td>너무 잘하지 마라. 조건이 바뀐 직후 한 번은 틀리고 서서히 나아지는 것이 사람의 곡선이다. 지목받으면 기록으로 해명하되, 말투를 설명체로 굳히지 마라.</td></tr>
+  <tr><th>카드</th><td>먼저 <b>시험마다 1등</b>을 해서 카드를 쥐어라 — 카드 없는 사람은 말로만 싸운다. 그 다음은 <b>언제 쓰느냐</b>가 전부다. 지목권은 이미 몰린 사람에게 얹어 마지막 한 걸음을 만들 때, 진정권은 내가 몰린 마지막 대화에 아껴 두고 쓴다. 답변 강제권은 「너 AI야?」보다 <b>기록과 어긋난 해명</b>을 파고들 때 상대가 피하기 어렵다.</td></tr>
   <tr><th>설계자</th><td>AI가 몰리기 시작하면 그 의심을 최대한 다른 사람에게 돌린다. 인간이라고 생각되는 사람에게 신경이 가도록 해서 AI가 의심받지 않도록 돕는다.</td></tr>
 </table>
 
-<footer class="end">who-is-human · 게임설명서 v1.1 · 2026-09-05 — 상세 규칙과 수치는 기술설명서를 본다.</footer>
+<footer class="end">who-is-human · 게임설명서 v1.3 · 2026-09-05 — 상세 규칙과 수치는 기술설명서를 본다.</footer>
 </div>
 </body>
 </html>

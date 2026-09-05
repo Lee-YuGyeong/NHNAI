@@ -34,6 +34,7 @@ import { SelfAvatar } from './SelfAvatar';
 import { selfPose } from './selfPose';
 import { ARENA_WORK_LIGHTS, FallStage } from './FallStage';
 import { PlatformCourse } from './PlatformCourse';
+import { WarpFx } from './WarpFx';
 import { PADS, PLATFORM_ARENA } from '@/world/mp/platform';
 import { DISC_CENTER, SEESAW_CENTER } from '@/world/mp/constants';
 // 색 사냥의 구슬 · 견본판 · E 키는 /trial 과 같은 부품이다 — 상태(huntState)가 하나라 화면도 하나로 그린다
@@ -170,6 +171,8 @@ export function HallScene(p: HallSceneProps) {
           <Suspense fallback={null}>
             <PlatformCourse />
           </Suspense>
+          {/* 떨어져 돌아가는 순간이동의 빛기둥 (scene/warp.ts). 걸린 것이 없으면 여섯 자리가 다 꺼져 있다 */}
+          <WarpFx />
         </group>
       ) : null}
       {/* 회전 원판 — 원판은 서버가 준 각도로 돌고(discState), 그 위의 몸은 스냅샷으로 온다 (InterrogationFeature 의 trial_disc).

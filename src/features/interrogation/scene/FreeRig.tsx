@@ -24,6 +24,10 @@
  * 서면 겹칠 수밖에 없는데 겹친 만큼 밀면 라운드가 열리자마자 서로를 발판 밖으로 떠밀고, 같은 발판에 내리는 봇에게도 밀린다 —
  * 남의 어깨에 밀려 떨어진 것이 내 점프 정확도로 찍히면 안 된다 (2026-09-05 사용자: 「사람을 밀치는 것」, platform.ts 머리말).
  *
+ * 그 **돌아가는 600ms 는 순간이동으로 보인다** (2026-09-05 사용자: "떨어지면 처음부터 다시 시작하잖아. 이때 텔레포트
+ * 같은 모션 넣어줄수있어?"). 여기서 하는 일은 시각 두 개를 알려 주는 것뿐이다 — 바닥에 닿은 순간 회수, 발판 위로
+ * 옮기는 순간 도착 (scene/warp.ts). 몸을 줄이고 빛기둥을 세우는 것은 SelfAvatar 와 Warp.tsx 다.
+ *
  * 토론과 낙하 생존 · 색 사냥에서 쓴다. 낙하 생존 동안은 마당(bounds)이 좁아진다 — 서버가 그 범위 안에서만
  * 떨어뜨리고 판정하므로 밖으로 나가면 기록이 안 남는다.
  */
@@ -41,6 +45,7 @@ import { PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, createChaseFollow, forwardOf, plac
 import { fallState } from '@/features/trial/games/fall/fallState';
 import { platformState } from './platformState';
 import { selfPose } from './selfPose';
+import { SELF_WARP, warp } from './warp';
 
 /** 막는 벽은 **보이는 벽과 같은 맵**의 것이어야 한다 — 배경을 갈아끼운 자리는 HallScene 의 def (머리말) */
 const map: MapDef = MAPS.govcenter;
@@ -128,6 +133,12 @@ export function FreeRig({
      * (2026-09-05 사용자: "발판 게임 시작하는데 몸이 안 움직이는 건 무슨 버그지"). 옮겨 놓았으면 넘어짐도 끝난 것이다
      */
     platformState.respawned();
+    /*
+     * 라운드가 열려 발판 위로 옮겨진 것도 순간이동이다 — 도착 빛기둥을 세운다 (scene/warp.ts).
+     * 발판이 도는 중일 때만이다: 이 효과는 검문소의 **좌석 배치**(teleport key seat-…)로도 한 번 도는데,
+     * 토론하는 홀 한가운데 난데없이 빛기둥이 서면 그건 딴 게임의 신호다.
+     */
+    if (platformState.active) warp.beam(SELF_WARP, 'in', teleport.x, pos.current.y, teleport.z, Date.now());
     yaw.current = yawToFocus(teleport.x, teleport.z);
     heading.current = yaw.current;
     lastSent.current.x = NaN; // 다음 프레임에 무조건 한 번 보낸다
@@ -263,12 +274,18 @@ export function FreeRig({
     // 플랫폼 — 바닥에 닿았으면 넘어진 것: 잠깐 뒤 출발 발판의 내 자리로. 도착 발판에 섰으면 완주
     if (platformState.active && grounded.current) {
       if (pos.current.y < 0.02) {
+        // 바닥에 닿은 **그 프레임**에 회수가 시작된다 — 기둥이 서고 몸이 가늘어져 빨려 올라간다 (scene/warp.ts).
+        // 회수 시간은 돌아가기까지의 시간(PLATFORM_RESPAWN_MS)과 같다: 연출이 더 길면 몸이 저쪽에 선 뒤에도
+        // 여기서 사라지는 중이 된다
+        if (platformState.fellAt === null) warp.beam(SELF_WARP, 'out', pos.current.x, 0, pos.current.z, nowMs);
         platformState.fell(nowMs);
         if (nowMs - (platformState.fellAt ?? nowMs) >= PLATFORM_RESPAWN_MS) {
           const home = platformState.home;
           pos.current.set(home.x, PAD_TOP, home.z);
           vy.current = 0;
           platformState.respawned();
+          // 도착 — 출발 발판 위로 기둥이 내려꽂히고 몸이 다시 선다. 카메라는 3m 넘게 옮겨졌으니 따라오지 않고 붙는다 (chase.ts)
+          warp.beam(SELF_WARP, 'in', home.x, PAD_TOP, home.z, nowMs);
           lastSent.current.x = NaN;
         }
       } else {

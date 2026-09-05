@@ -11,6 +11,8 @@ import { FreeRig, type Teleport } from '@/features/interrogation/scene/FreeRig';
 import { PlatformCourse } from '@/features/interrogation/scene/PlatformCourse';
 import { SelfAvatar } from '@/features/interrogation/scene/SelfAvatar';
 import { platformState } from '@/features/interrogation/scene/platformState';
+import { WarpFx } from '@/features/interrogation/scene/WarpFx';
+import { warp } from '@/features/interrogation/scene/warp';
 import { RobotAvatar } from '@/world/avatar/RobotAvatar';
 import { BASE_FOV } from '@/world/input/input';
 import { MAPS, type MapDef } from '@/world/map';
@@ -28,6 +30,8 @@ const SPAWN = { x: 0, z: PAD_START_Z } as const;
 /** AI 좌석(SUBJECT_nn)의 몸 — 자리는 스냅샷(platformState.botAt, y 포함). 발판 위(0.5)는 공중이 아니다 */
 function PlatformBot({ id }: { id: string }) {
   const group = useRef<THREE.Group>(null);
+  /** 순간이동 중의 몸 — 사람과 같다 (interrogation/scene/warp.ts). 이름표는 안 줄인다: 글씨는 몸이 아니다 */
+  const warped = useRef<THREE.Group>(null);
   const pose = useRef({ y: 0, x: 0, z: 0, moving: false });
   useFrame(() => {
     const g = group.current;
@@ -39,13 +43,20 @@ function PlatformBot({ id }: { id: string }) {
     if (Math.hypot(dx, dz) > 0.01) g.rotation.y = Math.atan2(dx, dz);
     pose.current = { x: p.x, z: p.z, y: p.y, moving: p.moving };
     g.position.set(p.x, p.y, p.z);
+    const w = warp.bodyAt(id);
+    if (warped.current) {
+      warped.current.scale.set(w.xz, w.y, w.xz);
+      warped.current.position.y = w.lift;
+    }
   });
   const getAnim = (): AnimState => (pose.current.moving ? 'walk' : 'idle');
   const getAirborne = () => pose.current.y > platformState.groundAt(pose.current.x, pose.current.z, pose.current.y) + 0.02;
   return (
     <group ref={group}>
       <Suspense fallback={null}>
-        <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />
+        <group ref={warped}>
+          <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />
+        </group>
       </Suspense>
       <Html position={[0, 2.0, 0]} center distanceFactor={9} zIndexRange={[10, 0]}>
         <div style={{ whiteSpace: 'nowrap', borderRadius: 999, background: 'rgba(0,0,0,0.6)', padding: '2px 8px', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#e8ddcd', pointerEvents: 'none' }}>
@@ -87,6 +98,8 @@ export function PlatformScene({ myBody = null, roster, aiIds = [], teleport = nu
         <def.Scene quality="high" />
         <PlatformCourse />
       </Suspense>
+      {/* 떨어져 출발 발판으로 돌아가는 순간이동의 빛기둥 — 사람도 AI 좌석도 같은 것을 쓴다 (interrogation/scene/warp.ts) */}
+      <WarpFx />
       {def.Effects ? <def.Effects /> : null}
 
       <Remotes roster={roster} bubbleTick={0} />

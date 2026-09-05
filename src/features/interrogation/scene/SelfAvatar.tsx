@@ -39,6 +39,7 @@ import { Downed } from './Downed';
 import { hallGroundAt } from './ground';
 import { selfBubble } from './selfBubble';
 import { selfPose } from './selfPose';
+import { SELF_WARP, warp } from './warp';
 import { SuspicionBar } from './SuspicionBar';
 
 /** 내 막대의 높이(m) — 모델 키(SoldierAvatar TARGET_HEIGHT 1.72) 바로 위. 막대 반높이(7px)가 헬멧에 닿지 않을 만큼만 띄운다 */
@@ -57,6 +58,12 @@ export function SelfAvatar({
 }) {
   const group = useRef<Group>(null);
   const shadow = useRef<Mesh>(null);
+  /**
+   * 순간이동 중의 몸 — 발판에서 떨어져 돌아가는 동안 가늘어졌다 다시 선다 (scene/warp.ts).
+   * 바깥 그룹(자리·방향)이 아니라 **안쪽 그룹**을 줄인다: 바깥을 줄이면 발밑 그림자까지 같이 줄어드는데,
+   * 그림자는 늘 바닥에 붙은 채 몸이 사라지는 만큼만 옅어져야 한다 (아래에서 따로 곱한다).
+   */
+  const warped = useRef<Group>(null);
 
   // 내 말풍선 — 수명이 끝나는 그 시각에 한 번 다시 그린다 (SeatAvatar 와 같은 수법). bubbleTick 은 새 말이 왔다는 신호다
   const bubble = selfBubble.at(performance.now());
@@ -74,9 +81,14 @@ export function SelfAvatar({
     if (!g) return;
     g.position.set(selfPose.x, selfPose.y, selfPose.z);
     g.rotation.y = selfPose.heading;
+    const w = warp.bodyAt(SELF_WARP);
+    if (warped.current) {
+      warped.current.scale.set(w.xz, w.y, w.xz);
+      warped.current.position.y = w.lift;
+    }
     if (shadow.current) {
       shadow.current.position.y = 0.02 - selfPose.y;
-      const k = Math.max(0.45, 1 - selfPose.y * 0.35);
+      const k = Math.max(0.45, 1 - selfPose.y * 0.35) * w.xz;
       shadow.current.scale.set(k, k, 1);
     }
   });
@@ -88,9 +100,11 @@ export function SelfAvatar({
     <group ref={group}>
       <Suspense fallback={null}>
         {/* 그림자는 안 눕는다 — 넘어가는 것은 몸뿐이고 그림자는 늘 바닥에 붙어 있다 */}
-        <Downed id={seatId} getPose={getSelfPose}>
-          {body ? <SoldierAvatar body={body} getAnim={getAnim} getAirborne={getAirborne} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
-        </Downed>
+        <group ref={warped}>
+          <Downed id={seatId} getPose={getSelfPose}>
+            {body ? <SoldierAvatar body={body} getAnim={getAnim} getAirborne={getAirborne} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
+          </Downed>
+        </group>
         <mesh ref={shadow} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.34, 20]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.35} />

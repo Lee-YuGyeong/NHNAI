@@ -44,6 +44,11 @@ const COLS: Record<TrialGame, Col[]> = {
     { key: 'walked', label: '이동거리', unit: 'm', digits: 1 },
     { key: 'falls', label: '낙하', unit: '회', digits: 0 },
   ],
+  tower: [
+    { key: 'survivalTime', label: '버틴 시간', unit: '초', digits: 1 },
+    { key: 'slabOffset', label: '가운데서 벗어남', unit: 'm', digits: 2 },
+    { key: 'falls', label: '낙하', unit: '회', digits: 0 },
+  ],
   bar: [
     { key: 'clearRate', label: '넘은 비율', unit: '', digits: 2 },
     { key: 'leadErrMs', label: '타이밍 오차', unit: 'ms', digits: 0 },

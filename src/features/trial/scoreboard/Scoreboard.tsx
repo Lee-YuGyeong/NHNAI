@@ -96,6 +96,21 @@ const SPEC: Record<TrialGame, Spec> = {
     curveLabel: '미끄러진 거리 추이 (에피소드 1 → 2 → 3 …, m)',
     dirLabel: '미끄러진 뒤 자리 (낮은 쪽으로 밀림 + / 높은 쪽으로 고침 −)',
   },
+  tower: {
+    primary: { key: 'slabOffset', label: '발판 가운데에서 떨어져 선 거리 평균', unit: 'm', digits: 2 },
+    rows: [
+      { key: 'survivalTime', label: '처음 떨어지기까지', unit: '초', digits: 1 },
+      { key: 'falls', label: '낙하', unit: '회', digits: 0 },
+      { key: 'centerDist', label: '탑 가운데에서 떨어져 선 거리 평균', unit: 'm', digits: 2 },
+      { key: 'pushes', label: '밀침', unit: '회', digits: 0 },
+      { key: 'shoved', label: '밀림', unit: '회', digits: 0 },
+      { key: 'reactionMs', label: '발판 경고 뒤 반응까지', unit: 'ms', digits: 0 },
+      { key: 'transitionError', label: '바닥이 바뀐 직후 미끄러진 거리', unit: 'm', digits: 2 },
+      { key: 'walked', label: '이동거리', unit: 'm', digits: 1 },
+    ],
+    curveLabel: '미끄러진 거리 추이 (에피소드 1 → 2 → 3 …, m)',
+    dirLabel: '미끄러진 뒤 자리 (발판 끝 쪽 + / 가운데 쪽 −)',
+  },
   bar: {
     primary: { key: 'clearRate', label: '봉을 넘은 비율', unit: '', digits: 2 },
     rows: [
@@ -115,7 +130,7 @@ function fmt(v: unknown, unit: string, digits: number): string {
   return typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(digits)}${unit}` : '—';
 }
 
-const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리', bar: '회전 봉 넘기' };
+const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리', tower: '무너지는 타워', bar: '회전 봉 넘기' };
 
 export function Scoreboard({ result, roster }: { result: TrialResultWire; roster: Record<string, string> }) {
   const spec = SPEC[result.game] ?? SPEC.stopline;
