@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>특수인공지능대응센터 — 게임 빌드 · 실행 · 배포 안내</title>
+<title>특수인공지능대응센터 — 게임 빌드 · 실행 · 배포</title>
 <style>
 :root{--ink:#1a1a1a;--dim:#5c5c5c;--line:#d9d9d9;--key:#0b5cad;--amber:#a3620a;--bg:#fff}
 *{box-sizing:border-box}
@@ -15,720 +15,110 @@ header.cover .kicker{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;le
 header.cover h1{font-size:2.4rem;line-height:1.2;margin:.3em 0 .2em}
 header.cover .sub{font-size:1.05rem;color:var(--dim)}
 header.cover .meta{margin-top:18px;font-size:.85rem;color:var(--dim)}
-nav.toc{border:1px solid var(--line);padding:16px 22px;margin:0 0 36px;background:#fafafa}
-nav.toc h2{font-size:.95rem;margin:0 0 8px;letter-spacing:.1em;color:var(--dim)}
-nav.toc ol{margin:0;padding-left:1.3em;columns:2;column-gap:32px}
-nav.toc li{break-inside:avoid;margin:2px 0}
-nav.toc a{color:var(--ink);text-decoration:none}
-h1.sec{font-size:1.7rem;margin:48px 0 14px;padding-top:12px;border-top:1px solid var(--line)}
-h2{font-size:1.25rem;margin:30px 0 10px}
-h3{font-size:1.05rem;margin:22px 0 8px}
+h1.sec{font-size:1.6rem;margin:44px 0 12px;padding-top:12px;border-top:1px solid var(--line)}
+h2{font-size:1.2rem;margin:26px 0 8px}
 p{margin:0 0 12px}
 ul,ol{margin:0 0 12px;padding-left:1.4em}
 li{margin:3px 0}
-table{border-collapse:collapse;width:100%;margin:10px 0 18px;font-size:.92rem}
+table{border-collapse:collapse;width:100%;margin:10px 0 18px;font-size:.93rem}
 th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
 th{background:#f3f3f3;font-weight:700}
-tr:nth-child(even) td{background:#fbfbfb}
-code,kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;background:#f2f2f2;padding:1px 5px;border-radius:3px}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;background:#f2f2f2;padding:1px 5px;border-radius:3px}
 pre{background:#f5f5f5;border:1px solid var(--line);padding:12px 14px;overflow:auto;font-size:.86rem;line-height:1.5}
 pre code{background:none;padding:0}
-figure{margin:18px 0 24px;break-inside:avoid}
+figure{margin:16px 0 22px;break-inside:avoid}
 figure img{width:100%;border:1px solid var(--line);display:block}
 figcaption{font-size:.85rem;color:var(--dim);margin-top:6px}
 .callout{border-left:4px solid var(--key);background:#f1f6fc;padding:10px 14px;margin:14px 0}
 .callout.warn{border-color:var(--amber);background:#fdf6ea}
-.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0 18px}
-.flow .step{border:1px solid var(--ink);padding:6px 12px;border-radius:4px;background:#fff;font-size:.9rem;break-inside:avoid}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:12px 0 18px}
+.flow .step{border:1px solid var(--ink);padding:5px 11px;border-radius:4px;background:#fff;font-size:.9rem}
 .flow .arrow{color:var(--dim)}
-.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;margin:8px 0 14px;font-size:.93rem}
-.kv dt{font-weight:700;color:var(--dim)}
-.kv dd{margin:0}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-footer.end{margin-top:60px;padding-top:14px;border-top:1px solid var(--line);font-size:.8rem;color:var(--dim)}
+footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);font-size:.8rem;color:var(--dim)}
 @page{size:A4;margin:16mm 14mm}
-@media print{html{font-size:12.5px}.page{max-width:none;padding:0}h1.sec{break-before:page;border-top:0;margin-top:0}header.cover{break-after:page;min-height:60vh}nav.toc{break-after:page}nav.toc ol{columns:1}a{color:inherit;text-decoration:none}figure img{max-height:120mm;object-fit:contain}.grid2{grid-template-columns:1fr 1fr}tr,figure,.callout,.step{break-inside:avoid}}
+@media print{html{font-size:12.5px}.page{max-width:none;padding:0}h1.sec{break-before:page;border-top:0;margin-top:0}header.cover{break-after:page;min-height:60vh}a{color:inherit;text-decoration:none}figure img{max-height:105mm;object-fit:contain}tr,figure,.callout,.step{break-inside:avoid}}
 </style>
 </head>
 <body>
 <div class="page">
 
 <header class="cover">
-  <div class="kicker">WHO IS HUMAN · BUILD &amp; DEPLOY GUIDE</div>
-  <h1>특수인공지능대응센터 — 게임 빌드 · 실행 · 배포 안내</h1>
-  <div class="sub">저장소 하나를 받아 로컬에서 판을 열고, 빌드하고, Cloudflare 워커 하나로 올리기까지. 팀원 · 새 개발자 · 운영자용.</div>
-  <div class="meta">문서 버전 v1.0 · 2026-09-05 · 저장소 브랜치 main · 패키지 <code>who-is-human</code> 0.1.0 · 워커 이름 <code>nhnai</code></div>
+  <div class="kicker">WHO IS HUMAN · BUILD &amp; DEPLOY</div>
+  <h1>특수인공지능대응센터<br>게임 빌드 · 실행 · 배포</h1>
+  <p class="sub">저장소 하나가 프론트(Vite + React)와 서버(Cloudflare Worker + Durable Objects)를 함께 담는다. 로컬에서 5분 안에 돌리고, 명령 두 줄로 배포한다.</p>
+  <p class="meta">v1.1 · 2026-09-05 · 개발자 · 운영자용 요약본</p>
 </header>
 
-<nav class="toc">
-  <h2>차례</h2>
-  <ol>
-    <li><a href="#overview">개요 — 한 저장소, 한 배포 단위</a></li>
-    <li><a href="#requirements">요구 사항</a></li>
-    <li><a href="#install">설치와 첫 실행</a></li>
-    <li><a href="#playcheck">플레이 확인 절차</a></li>
-    <li><a href="#scripts">스크립트 표</a></li>
-    <li><a href="#tests">테스트와 품질</a></li>
-    <li><a href="#build">빌드</a></li>
-    <li><a href="#deploy">배포</a></li>
-    <li><a href="#ops">운영 메모</a></li>
-    <li><a href="#troubleshooting">문제 해결</a></li>
-    <li><a href="#layout">저장소 구조</a></li>
-    <li><a href="#appendix">부록 — PDF 로 남기기 · 출처</a></li>
-  </ol>
-</nav>
-
-<!-- ============================================================ 1 -->
-<h1 class="sec" id="overview">1. 개요 — 한 저장소, 한 배포 단위</h1>
-
-<p>「특수인공지능대응센터」(내부 이름 <code>who-is-human</code>)는 브라우저 프론트와 서버가 <strong>한 저장소 · 한 워커</strong>로 묶인 멀티플레이 웹 게임이다. 프론트는 Vite + React 19 + three.js(react-three-fiber)로 짓고, 서버는 Cloudflare Worker 하나가 정적 파일(<code>dist/</code>)을 서빙하면서 방마다 Durable Object(<code>RoomDO</code>)를 하나씩 세운다. 열린 방 목록은 등록소 DO(<code>LobbyDO</code>) 하나가 든다. 별도의 API 서버 · DB 서버는 없다(계정 이름 하나만 Supabase 에 둔다 — 선택 사항).</p>
-
-<div class="kv">
-  <dt>프론트</dt><dd><code>src/</code> — Vite 8 · React 19 · Redux Toolkit · react-router 7 · three 0.185 · @react-three/fiber 9 · drei 10. 화면은 전부 <code>React.lazy</code> 라우트 청크다.</dd>
-  <dt>워커</dt><dd><code>worker/src/</code> — <code>index.ts</code>(라우팅) · <code>room-do.ts</code>(방 = RoomDO) · <code>lobby-do.ts</code>(등록소 = LobbyDO) · <code>game/</code>(판의 규칙) · <code>trial/</code>(물리 시험 엔진) · <code>auth.ts</code> · <code>tts.ts</code>.</dd>
-  <dt>공유 계약</dt><dd><code>src/world/mp/</code> — 프로토콜 · 상수 · 몸(BodyId) 등 브라우저와 워커가 같은 파일을 import 한다. 워커 타입 검사(<code>tsconfig.worker.json</code>)가 이 폴더를 함께 검사한다.</dd>
-  <dt>배포 설정</dt><dd><code>wrangler.jsonc</code> 하나. 워커 이름 <code>nhnai</code> · <code>main: worker/src/index.ts</code> · <code>assets.directory: ./dist</code> · DO 바인딩 <code>ROOM_DO</code> · <code>LOBBY_DO</code>.</dd>
-  <dt>배포 주소</dt><dd><code>https://nhnai.lyg6452620.workers.dev</code> (wrangler.jsonc 머리말). 프론트와 WebSocket 이 같은 오리진이라 주소 연결 변수가 필요 없다.</dd>
-</div>
-
-<h2>게임 흐름과 서버 경로</h2>
-<p>이 문서가 다루는 흐름은 게임 스토리 그대로다. 실험용 화면(3D 월드 · 창고 맵 · 중앙 시설 · 재검실 · /lab · /talk · /arena · /trial 연습판)은 라우트로 남아 있지만 게임 흐름 밖이며 여기서는 다루지 않는다.</p>
+<h1 class="sec" id="s1">1. 구성과 요구 사항</h1>
 <div class="flow">
-  <span class="step">/intro 인트로</span><span class="arrow">→</span>
-  <span class="step">입장하기 (구글 로그인, 선택)</span><span class="arrow">→</span>
-  <span class="step">/lobby 방 목록</span><span class="arrow">→</span>
-  <span class="step">/lobby?code=NNNN 대기방</span><span class="arrow">→</span>
-  <span class="step">/interrogation?code=NNNN 검문실</span><span class="arrow">→</span>
-  <span class="step">배역 통보 7초 → 프롤로그 → 대화 40초 ⇄ 시험 30초 ×3 → 판정 종료</span>
+  <span class="step">브라우저 (Vite · React 19 · three.js)</span><span class="arrow">⇄ WebSocket ⇄</span>
+  <span class="step">Cloudflare Worker (방마다 Durable Object)</span><span class="arrow">→</span>
+  <span class="step">LLM · TTS · Supabase</span>
 </div>
-
-<p>요청은 <code>run_worker_first</code> 에 적힌 경로만 워커가 먼저 받고, 나머지는 정적 파일이 먼저다(없는 경로는 SPA 폴백으로 <code>index.html</code>).</p>
 <table>
-  <thead><tr><th>경로</th><th>받는 곳</th><th>무엇</th></tr></thead>
-  <tbody>
-    <tr><td><code>/world-ws/rooms/&lt;방번호&gt;/ws</code> (접두어 <code>/world-ws</code> 는 있어도 없어도 됨)</td><td><code>RoomDO</code> — <code>idFromName(방번호)</code></td><td>방 접속 WebSocket. 쿼리 <code>?v=1&amp;nick=…[&amp;tk=입장권]</code></td></tr>
-    <tr><td><code>GET/POST /api/rooms</code></td><td><code>LobbyDO</code> — <code>idFromName('lobby')</code> 하나</td><td>열린 방 목록 · 방 만들기</td></tr>
-    <tr><td><code>/api/config</code> · <code>/api/profile</code> · <code>/api/world/ticket</code></td><td><code>worker/src/auth.ts</code></td><td>Supabase 공개 설정 · 이 게임의 이름 · 60초 입장권</td></tr>
-    <tr><td><code>/api/tts</code> · <code>/api/tts/*</code></td><td><code>tts.ts</code> · <code>seat-voice.ts</code></td><td>관리 AI 방송 · 프롤로그 목소리 합성(ElevenLabs)</td></tr>
-    <tr><td><code>/api/lab/*</code> · <code>/api/world/*</code> · <code>/api/world2/say</code></td><td><code>worker/src/lab/</code></td><td>실험용 화면의 LLM 호출 — 게임 흐름 밖</td></tr>
-    <tr><td><code>/health</code></td><td><code>index.ts</code></td><td>문자열 <code>ok</code> — 배포 확인용</td></tr>
-    <tr><td>그 밖 전부</td><td><code>env.ASSETS</code></td><td><code>dist/</code> 정적 파일, 없으면 <code>index.html</code></td></tr>
-  </tbody>
+  <tr><th style="width:26%">Node.js · npm</th><td>Node 20 이상 권장 (저장소에 버전 고정 없음). <code>npm install</code>이 git 훅(비밀 키 커밋 차단)도 함께 건다.</td></tr>
+  <tr><th>Cloudflare</th><td>배포 계정 + <code>wrangler</code>(devDependency에 포함). 로컬 실행에는 계정이 필요 없다.</td></tr>
+  <tr><th>LLM 키</th><td>봇 대사·관리 AI의 말 읽기에 쓴다. 없어도 판은 돈다 — 봇은 조용해지고 의심도는 규칙 표식으로만 움직인다.</td></tr>
+  <tr><th>선택</th><td>ElevenLabs(목소리, 없으면 브라우저 음성), Supabase(구글 로그인, 없으면 게스트 닉네임).</td></tr>
 </table>
 
-<div class="callout">
-  <strong>한 판이 워커 안에서 어떻게 도는가.</strong> 방(<code>RoomDO</code>)이 <code>worker/src/game/runtime.ts</code> 의 <code>GameRuntime</code> 을 하나 쥔다. 판이 도는 동안 채팅 · 이동 · <code>trial_*</code> 메시지는 전부 그쪽으로 넘어가고, 화면(<code>src/features/interrogation</code>)은 상태를 받아 그리고 입력을 보낼 뿐이다. LLM 호출(봇 대사 · 관리 AI 의 말 읽기)도 DO 안에서 <code>game/brain.ts</code> 가 직접 부른다 — HTTP 라우트가 아니다.
-</div>
-
-<figure>
-  <img src="img/intro-hero.jpg" alt="인트로 표지 — 특수인공지능대응센터 영상 화면과 입장 버튼">
-  <figcaption>정상 실행 시 첫 화면 — <code>/intro</code> 표지. 영상 배경 위에 「누가 인간인가?」 타자 제목과 입장 버튼이 선다.</figcaption>
-</figure>
-
-<!-- ============================================================ 2 -->
-<h1 class="sec" id="requirements">2. 요구 사항</h1>
-
-<h2>도구</h2>
+<h1 class="sec" id="s2">2. 로컬 실행</h1>
+<pre><code>npm install
+cp .dev.vars.example .dev.vars      # 키 이름만 들어 있다 — 값은 각자 채운다
+npm run worker:dev                  # 서버  http://localhost:8787
+npm run dev                         # 프론트 http://localhost:5173  (터미널 하나 더)</code></pre>
+<p>프론트는 <code>/world-ws</code>를 워커로 프록시한다. 포트를 바꾸려면 두 터미널에 같은 <code>WORKER_PORT</code>를 준다.</p>
+<h2>환경 변수 (<code>.dev.vars</code> · 배포는 wrangler secret)</h2>
 <table>
-  <thead><tr><th>항목</th><th>버전 · 상태</th><th>비고</th></tr></thead>
-  <tbody>
-    <tr><td>Node.js</td><td><strong>미지정</strong> — <code>package.json</code> 에 <code>engines</code> 없음, <code>.nvmrc</code> · <code>.node-version</code> 없음</td><td>README 는 「Node.js 20+」를 요구한다. <code>tests/setup.ts</code> 가 Node 22+ 의 jsdom localStorage 문제를 우회하므로 22 이상이 무난하다. 이 문서를 쓴 머신은 v24.1.0.</td></tr>
-    <tr><td>npm</td><td>Node 에 딸린 것</td><td><code>package-lock.json</code> 이 있다 — <code>npm install</code> 로 고정 버전을 받는다.</td></tr>
-    <tr><td>wrangler</td><td>devDependency <code>^4.0.0</code> (머신 4.125.0)</td><td>전역 설치 불필요 — <code>npx wrangler</code> 또는 <code>npm run worker:dev</code>. 배포 · 시크릿 등록 때 Cloudflare 로그인(<code>npx wrangler login</code>)이 필요하다.</td></tr>
-    <tr><td>Cloudflare 계정</td><td>Workers 무료 플랜으로 충분</td><td>Durable Object 는 SQLite 백엔드(<code>new_sqlite_classes</code>) — 무료 플랜에서 만들 수 있는 유일한 형태다. 대시보드에 워커 <code>nhnai</code> 가 이미 있다.</td></tr>
-    <tr><td>Claude Code 로그인 (로컬만)</td><td>기본 <code>npm run dev</code> 경로</td><td>키 없이 판을 돌릴 때 개발 서버가 이 머신의 Claude 구독으로 LLM 을 대신 부른다(<code>tools/vite-lab.ts</code>). 키를 넣으면 필요 없다.</td></tr>
-    <tr><td>Supabase 프로젝트 (선택)</td><td>humanish 와 같은 프로젝트, 스키마 <code>wih</code></td><td>구글 로그인과 「이 게임에서 지은 이름」에만 쓴다. 없으면 로그인 단추가 아예 안 그려지고 게임은 게스트 이름으로 그대로 돈다.</td></tr>
-    <tr><td>psql (선택)</td><td><code>brew install postgresql@16</code></td><td><code>npm run db:apply</code> 로 <code>supabase/schema.sql</code> 을 올릴 때만.</td></tr>
-  </tbody>
+  <tr><th style="width:32%">이름</th><th>켜는 것</th><th>없으면</th></tr>
+  <tr><td><code>OPENAI_API_KEY</code></td><td>LLM — 봇 대사 · 관리 AI 읽기 · AI 전략 (배포본의 경로)</td><td>봇 침묵, 규칙 폴백</td></tr>
+  <tr><td><code>ANTHROPIC_API_KEY</code></td><td>LLM — 있으면 OpenAI보다 우선 (개발 비교용)</td><td>선택</td></tr>
+  <tr><td><code>ELEVENLABS_API_KEY</code> (+ 목소리 id)</td><td>관리 AI 방송 · 프롤로그 목소리</td><td>브라우저 Web Speech로 대체</td></tr>
+  <tr><td><code>SUPABASE_URL</code> · <code>SUPABASE_ANON_KEY</code> · <code>WORLD_TICKET_SECRET</code></td><td>구글 로그인과 이름 보호</td><td>로그인 꺼짐, 게스트로 입장</td></tr>
 </table>
+<div class="callout">로컬에서 키 없이 봇 대사를 보려면 워커가 개발 서버의 Claude Code 구독 경로를 자동으로 두드린다(<code>mode: dev</code>). 배포본은 <code>OPENAI_API_KEY</code> 하나만 넣는다.</div>
 
-<h2>키가 필요한 기능과 없을 때의 폴백</h2>
-<p>키가 하나도 없어도 판은 열리고 끝까지 돈다. 키는 「말과 소리」를 살릴 뿐이다.</p>
-<table>
-  <thead><tr><th>기능</th><th>필요한 키</th><th>없을 때</th></tr></thead>
-  <tbody>
-    <tr><td>판 진행 (좌석 · 시험 · 의심도 · 격리 · 승패)</td><td>없음</td><td>그대로 돈다. 물리 시험의 대역 · AI 좌석은 엔진 프로파일이 움직인다.</td></tr>
-    <tr><td>봇(대역 · AI 좌석) 대사, AI 좌석의 시험 전략(precision)</td><td>LLM 키 하나 (<code>OPENAI_API_KEY</code> 또는 <code>ANTHROPIC_API_KEY</code>) — 로컬은 Claude 구독으로 대체 가능</td><td>봇은 조용히 차례를 넘기고, AI 전략은 규칙 폴백(<code>0.45 ± 0.15 − 의심도/250</code>)으로 정해진다.</td></tr>
-    <tr><td>관리 AI 의 말 읽기(의심도 ±) · 기록 해설 · 주장 판정</td><td>같은 LLM 키</td><td>말 읽기는 빈 결과(의심도 안 움직임), 해설은 규칙 폴백(평균에서 가장 먼 사람을 짚음), 판정은 <code>unclear</code>. 지목 · 동조 · 되풀이 · 몰이 · 회피 · 굳음 · 뒷걸음 같은 규칙 표식은 LLM 없이 그대로 돈다.</td></tr>
-    <tr><td>관리 AI 목소리 · 프롤로그 목소리</td><td><code>ELEVENLABS_API_KEY</code> (+ 목소리 id 들)</td><td>관리 AI 방송은 브라우저 Web Speech(ko-KR)로 떨어진다. 프롤로그는 잇달아 3번 실패하면 소리를 포기하고 자막만 흐른다.</td></tr>
-    <tr><td>구글 로그인 · 사칭되지 않는 이름</td><td><code>SUPABASE_URL</code> · <code>SUPABASE_ANON_KEY</code> · <code>WORLD_TICKET_SECRET</code> 셋 다</td><td>하나라도 비면 로그인이 통째로 꺼진다(고장 아님). 방에는 게스트 닉네임으로 들어간다.</td></tr>
-    <tr><td>방 목록(등록소)</td><td>키 없음 — 워커(<code>LOBBY_DO</code>)가 떠 있어야 함</td><td>워커가 없으면 로비가 「등록소에 닿지 못했다」(offline)를 적는다. 번호를 아는 방에는 그대로 들어간다.</td></tr>
-  </tbody>
-</table>
-
-<h3>LLM 관로(brain mode)</h3>
-<p><code>worker/src/game/brain.ts</code> 의 <code>makeBrain</code> 이 판이 열릴 때 관로를 하나 고른다. 워커 로그의 <code>[game/brain]</code> 줄이 어느 길인지 말한다.</p>
-<table>
-  <thead><tr><th>mode</th><th>조건</th><th>어디로</th><th>모델</th></tr></thead>
-  <tbody>
-    <tr><td><code>anthropic</code></td><td><code>ANTHROPIC_API_KEY</code> 있음 (OpenAI 보다 우선)</td><td>Anthropic Messages API</td><td><code>claude-opus-5</code> · <code>claude-sonnet-5</code> 이름 그대로</td></tr>
-    <tr><td><code>openai</code></td><td><code>OPENAI_API_KEY</code> 있음 — <strong>배포본의 유일한 길</strong></td><td>OpenAI Responses API <code>/v1/responses</code></td><td>opus-5 → <code>gpt-6-astra</code>, sonnet-5 → <code>gpt-5.6-terra</code>, haiku-4-5 → <code>gpt-5.6-luna</code>(그 밖의 이름도 luna 로 떨어진다 — <code>worker/src/lab/openai.ts</code> 의 <code>MODEL_MAP</code> · <code>FALLBACK_MODEL</code>, 커밋 c51a0c0). <code>OPENAI_MODEL</code> 이 있으면 전부 그 모델</td></tr>
-    <tr><td><code>dev</code></td><td>키 없음, 로컬</td><td>개발 서버 <code>POST {LAB_DEV_URL 또는 localhost:5173}/api/lab/complete</code> → Claude Code CLI 자식 프로세스(구독)</td><td>별칭 opus / sonnet. 한 줄에 3~55초</td></tr>
-    <tr><td><code>none</code></td><td>개발 서버를 한 번도 못 찾음(<code>devDead</code>)</td><td>부르지 않음 — 그 방에서는 다시 안 두드린다</td><td>호출자마다 폴백 문장 · 규칙</td></tr>
-  </tbody>
-</table>
-<div class="callout warn">
-  <strong>배포본에서는 Claude 구독 경로를 못 쓴다.</strong> <code>@anthropic-ai/claude-agent-sdk</code> 는 CLI 프로세스를 띄워야 하므로 워커 안에서 동작하지 않는다. 배포본은 <code>OPENAI_API_KEY</code> 하나로 돈다. Chat Completions 가 아니라 Responses API 를 쓰는 이유는 도구 호출과 <code>reasoning_effort</code> 를 같이 받기 때문이다(2026-09-05 실측 400).
-</div>
-
-<!-- ============================================================ 3 -->
-<h1 class="sec" id="install">3. 설치와 첫 실행</h1>
-
-<h2>설치</h2>
-<pre><code>git clone https://github.com/Lee-YuGyeong/NHNAI.git
-cd NHNAI
-npm install                      # prepare 훅: git config core.hooksPath tools/git-hooks
-cp .dev.vars.example .dev.vars   # 이름 목록만 복사된다 — 값은 각자 자기 키
-npm run vars:check               # 어떤 이름이 채워졌는지 ✓/✗ 만 보여 준다 (값은 절대 출력 안 함)</code></pre>
-<ul>
-  <li><code>npm install</code> 의 <code>prepare</code> 가 git 훅 경로를 <code>tools/git-hooks</code> 로 건다. pre-commit 은 <code>.dev.vars</code> · <code>.env</code> 계열 파일의 스테이징과 키 모양 값(<code>sk-ant-…</code> · <code>tsk_…</code> · <code>ep_…</code> · <code>xi-api-key</code> · JWT(<code>eyJ…</code>) · <code>AKIA…</code> · <code>ghp_…</code>)이 든 줄을 거부하고 — <strong><code>sk-proj-…</code>(OpenAI) 는 아직 패턴에 없다</strong>, 그 키는 훅이 못 잡는다(<code>tools/git-hooks/pre-commit</code> 의 <code>pattern=</code>) —, pre-push 는 올라갈 커밋 안의 시크릿 파일을 거부한다. 우회는 <code>--no-verify</code> 뿐이며 사용자의 명시적 결정이다.</li>
-  <li>README 의 clone 주소(<code>Who-is-human.git</code>)는 옛 것이다. 현재 origin 은 <code>github.com/Lee-YuGyeong/NHNAI.git</code>.</li>
-</ul>
-
-<h2>환경 변수 — 이름만</h2>
-<p>값은 <code>.dev.vars</code> 한 파일에만 둔다(커밋되는 것은 <code>.dev.vars.example</code> 뿐). <code>npm run worker:dev</code> 의 wrangler 가 이 파일을 자동으로 읽어 <code>env.XXX</code> 로 준다. 아래는 코드(<code>worker/src/index.ts</code> 의 <code>Env</code> · <code>game/brain.ts</code> · <code>vite.config.ts</code> · <code>tools/</code>)에서 확인한 이름이다.</p>
-
-<h3>워커 시크릿 (<code>.dev.vars</code> → 배포는 <code>wrangler secret put</code>)</h3>
-<table>
-  <thead><tr><th>이름</th><th>켜는 것</th><th>필수?</th></tr></thead>
-  <tbody>
-    <tr><td><code>OPENAI_API_KEY</code></td><td>LLM — 봇 대사 · 관리 AI 읽기/해설/판정 · AI 전략. <code>sk-proj-</code> 로 시작하는 프로젝트 키</td><td>배포본에서 사실상 필수(없으면 폴백 문장)</td></tr>
-    <tr><td><code>OPENAI_MODEL</code></td><td>등급(opus/sonnet/haiku 매핑)을 무시하고 한 모델로 고정 (예 <code>gpt-5.6-terra</code>)</td><td>선택</td></tr>
-    <tr><td><code>ANTHROPIC_API_KEY</code></td><td>LLM — 있으면 OpenAI 보다 우선. 개발 비교용, 크레딧이 나간다</td><td>선택</td></tr>
-    <tr><td><code>LAB_DEV_URL</code></td><td>키가 없을 때 워커가 두드릴 개발 서버 주소. 없으면 <code>localhost:5173</code> → <code>[::1]:5173</code> → <code>127.0.0.1:5173</code> 순으로 찾는다</td><td>선택(로컬)</td></tr>
-    <tr><td><code>ELEVENLABS_API_KEY</code></td><td>관리 AI 방송 · 프롤로그 목소리 합성</td><td>선택(없으면 Web Speech)</td></tr>
-    <tr><td><code>ELEVENLABS_VOICE_ID</code></td><td>관리 AI 기본 목소리. 없으면 소스 고정값(Ethan)</td><td>선택</td></tr>
-    <tr><td><code>ELEVENLABS_VOICE_ID_ANNOUNCE</code> / <code>_READOUT</code> / <code>_ALARM</code></td><td>관리 AI 방송 갈래별 목소리</td><td>선택</td></tr>
-    <tr><td><code>ELEVENLABS_SEAT_VOICE_IDS</code></td><td>좌석 목소리 명부(쉼표 9개) — 좌석 음성은 게임 본판에 아직 배선되지 않았다(<code>/voice</code> 시연만)</td><td>선택</td></tr>
-    <tr><td><code>TTS_CLIP_SECRET</code></td><td>좌석 클립 토큰 서명. 비우면 <code>ELEVENLABS_API_KEY</code> 에서 파생</td><td>선택</td></tr>
-    <tr><td><code>SEAT_VOICE_DEV</code></td><td><code>'1'</code> 이면 좌석 음성 개발 경로(<code>/api/tts/clip/mint</code> 등) 활성 — 배포에서는 켜지 않는다</td><td>로컬만</td></tr>
-    <tr><td><code>SUPABASE_URL</code> · <code>SUPABASE_ANON_KEY</code></td><td>구글 로그인 · 이름. anon 키는 <code>/api/config</code> 로 브라우저에 나가는 공개 값</td><td>셋이 한 묶음</td></tr>
-    <tr><td><code>WORLD_TICKET_SECRET</code></td><td>방 입장권 HMAC-SHA256 서명. <code>openssl rand -hex 32</code></td><td>셋이 한 묶음 — 하나라도 비면 로그인 통째로 꺼짐</td></tr>
-  </tbody>
-</table>
-
-<h3>워커 밖 (셸 · 빌드 · 도구)</h3>
-<table>
-  <thead><tr><th>이름</th><th>읽는 곳</th><th>무엇</th></tr></thead>
-  <tbody>
-    <tr><td><code>WORKER_PORT</code></td><td><code>vite.config.ts</code> · <code>package.json worker:dev</code></td><td>워커 포트(기본 8787). 바꿀 때는 <strong>양쪽 터미널에 같은 값</strong></td></tr>
-    <tr><td><code>LAB_VIA_WORKER</code></td><td><code>vite.config.ts</code></td><td><code>1</code> 이면 labPlugin 을 빼고 <code>/api/lab</code> · <code>/api/world2</code> 를 워커로 프록시 (<code>npm run dev:api</code>)</td></tr>
-    <tr><td><code>LAB_CONCURRENCY</code></td><td><code>tools/vite-lab.ts</code></td><td>동시에 띄우는 Claude Code CLI 수(기본 2, 3개에서 하나가 깨진 실측)</td></tr>
-    <tr><td><code>SUPABASE_DB_URL_DIRECT</code></td><td><code>supabase/apply.sh</code></td><td>DDL 전용 접속 문자열(Session pooler 5432). 런타임에는 안 쓴다</td></tr>
-    <tr><td><code>UXPILOT_API_KEY</code></td><td><code>tools/mcp-uxpilot.mjs</code></td><td>디자인 도구 MCP — 게임과 무관</td></tr>
-    <tr><td><code>VITE_WORLD_WS_URL</code></td><td><code>src</code> (빌드 시)</td><td>별도 워커를 가리킬 때만. 한 오리진 배포에서는 필요 없다</td></tr>
-    <tr><td><code>VITE_SUPABASE_URL</code> · <code>VITE_SUPABASE_ANON_KEY</code></td><td><code>src/shared/supabase.ts</code> (빌드 시)</td><td>Supabase 설정의 두 번째 출처. 없으면 <code>/api/config</code> 에서 받는다</td></tr>
-  </tbody>
-</table>
-<div class="callout warn">
-  <code>.dev.vars.example</code> 은 Claude Code 의 훅이 열지 못한다. 위 표는 코드에서 모은 이름이므로 example 파일에만 적힌 이름이 더 있을 수 있다 — 새 키를 붙일 때는 example 에 이름과 용도 한 줄을 먼저 적는 것이 팀 규칙이다.
-</div>
-
-<h2>첫 실행 — 터미널 두 개</h2>
-<pre><code># 터미널 1 — 프론트 (vite)
-npm run dev            # http://localhost:5173
-
-# 터미널 2 — 워커 (wrangler dev + Durable Objects, 로컬 SQLite)
-npm run worker:dev     # ws://127.0.0.1:8787  (.dev.vars 를 자동으로 읽는다)</code></pre>
-<p>개발 서버는 아래 경로를 <code>127.0.0.1:${WORKER_PORT:-8787}</code> 로 프록시한다. 워커를 안 띄우면 화면은 뜨지만 방에 붙지 못한다.</p>
-<table>
-  <thead><tr><th>vite 프록시</th><th>대상</th><th>비고</th></tr></thead>
-  <tbody>
-    <tr><td><code>/world-ws</code></td><td><code>ws://127.0.0.1:8787</code> (ws, 접두어를 떼고 보냄)</td><td>방 접속. 배포에서는 같은 오리진이라 프록시 없이 <code>/world-ws</code> 가 그대로 워커로 간다</td></tr>
-    <tr><td><code>/api/tts</code></td><td>http</td><td>TTS 는 대신할 구독이 없어 로컬에서도 키를 쥔 워커가 받는다</td></tr>
-    <tr><td><code>/api/config</code> · <code>/api/profile</code> · <code>/api/world/ticket</code></td><td>http</td><td>워커가 없으면 조용히 「로그인 없음」으로 떨어진다</td></tr>
-    <tr><td><code>/api/rooms</code></td><td>http</td><td>등록소. 없으면 로비 목록이 offline</td></tr>
-    <tr><td><code>/api/lab</code> · <code>/api/world2</code></td><td>http — <code>LAB_VIA_WORKER=1</code> 일 때만</td><td>기본은 labPlugin 이 개발 서버 안에서 처리(구독)</td></tr>
-  </tbody>
-</table>
-<div class="callout">
-  <strong>포트가 막혀 있으면</strong> 양쪽 터미널에 같은 값을 준다: <code>WORKER_PORT=8788 npm run dev</code> 와 <code>WORKER_PORT=8788 npm run worker:dev</code>. vite 는 5173 이 막히면 스스로 다음 포트로 옮기는데, 그러면 키 없는 워커가 <code>localhost:5173</code> 을 두드리다 못 찾는다 — 그때는 <code>.dev.vars</code> 에 <code>LAB_DEV_URL=http://localhost:5174</code> 처럼 적어 준다.
-</div>
-
-<!-- ============================================================ 4 -->
-<h1 class="sec" id="playcheck">4. 플레이 확인 절차</h1>
-
-<h2>정식 경로 — 인트로에서 검문실까지</h2>
-<div class="flow">
-  <span class="step">1. <code>/intro</code></span><span class="arrow">→</span>
-  <span class="step">2. 「입장하기」</span><span class="arrow">→</span>
-  <span class="step">3. 구글 로그인 (설정 있고 로그아웃 상태일 때만)</span><span class="arrow">→</span>
-  <span class="step">4. <code>/lobby</code> 오프닝 영상 → 방 목록</span><span class="arrow">→</span>
-  <span class="step">5. 방 만들기 / 입장 → 대기방</span><span class="arrow">→</span>
-  <span class="step">6. 방장 「시작」 → 카운트다운</span><span class="arrow">→</span>
-  <span class="step">7. <code>/interrogation?code=NNNN&amp;nick=…</code></span>
-</div>
+<h1 class="sec" id="s3">3. 플레이 확인</h1>
 <ol>
-  <li><strong>인트로</strong> <code>http://localhost:5173/intro</code> — 표지 → BRIEFING → ROLES → HOW TO PLAY → FINAL BRIEFING 다섯 칸을 스크롤한다. 마지막 칸 「가려내라.」 아래 입장 버튼.</li>
-  <li><strong>입장하기</strong> — 계정 상태가 <code>out</code>(Supabase 설정은 있는데 로그아웃)이면 구글 OAuth 로 곧장 떠나고(<code>redirectTo &lt;오리진&gt;/login</code>), 로그인 중이거나 설정이 없으면(<code>in</code> · <code>off</code>) 바로 <code>/lobby</code>. 중간 화면은 없다. 로그인 뒤 이름이 없으면 <code>/account/nickname</code> 에서 한 번만 짓는다(DB 트리거로 변경 불가, 1~12자).</li>
-  <li><strong>로비</strong> — 처음 오는 브라우저(localStorage <code>wih:opening-seen</code> 없음)에는 오프닝 영상이 먼저 뜬다. 방 목록은 <code>GET /api/rooms</code> 를 5초마다(탭이 보일 때만) 읽는다. 방 만들기는 <code>POST /api/rooms</code> — 번호를 비우면 1000~9999 에서 자동 발급.</li>
-  <li><strong>대기방</strong> <code>/lobby?code=NNNN</code> — 같은 RoomDO 에 붙어 좌석판을 그린다. 「준비」는 채팅 한 줄(<code>준비 완료</code>)로 나른다. 시작 조건은 2명 이상 + 방장 외 전원 준비. 방장(좌석 번호가 가장 작은 사람)이 시작하면 방송 <code>전원 구역으로 진입한다</code> 가 나가고 전원이 카운트다운 뒤 검문실로 이동한다.</li>
-  <li><strong>검문실</strong> — 연결되면 방장이 자동으로 판을 연다(아래 「빠르게 판 열기」와 같은 동작).</li>
+  <li><code>http://localhost:5173/intro</code> → 입장하기 → (로그인) → 방 목록 → 대기방 → 시작.</li>
+  <li>빠른 확인: <code>http://localhost:5173/interrogation?code=123456</code> 처럼 <b>숫자 방 번호</b>로 바로 들어가면 나 + 대역 2 + AI 1의 4인 판이 자동으로 열린다. 프롤로그 → 대화 → 낙하 생존 순으로 돌면 정상이다.</li>
+  <li>같은 번호에 지난 판이 남아 있으면 프롤로그 없이 중간부터 보인다. 새 번호를 쓴다.</li>
 </ol>
-<div class="grid2">
-  <figure>
-    <img src="img/intro-briefing.jpg" alt="인트로 01 BRIEFING — 「2026. 표식 없는 개체가 새어 나왔다…」 세계관 글">
-    <figcaption>인트로 두 번째 칸 <code>01 // BRIEFING</code>. 위 내비게이션 「게임 소개 · 배역 · 진행」이 스크롤 위치를 따라간다. 아래 줄 「4분 38초 한 판 — 대화 40초 ⇄ 시험 30초 × 3」.</figcaption>
-  </figure>
-  <figure>
-    <img src="img/intro-roles.jpg" alt="인트로 02 ROLES — 「이 안의 하나는 인간이 아니다.」 배역 슬라이드(사람)">
-    <figcaption><code>02 // ROLES</code> — 배역 슬라이드 3장을 좌우 화살표로 넘긴다. 사진은 마지막 장 「사람」.</figcaption>
-  </figure>
-  <figure>
-    <img src="img/intro-howto.jpg" alt="인트로 03 HOW TO PLAY — 방에 모인다 → 시험 3번 → 기록이 공개된다 → 의심이 쌓인다 → 격리">
-    <figcaption><code>03 // HOW TO PLAY</code> — 다섯 단계 타임라인. 「사람 3~8명 + AI 1좌석」 · 「의심도 100%에 닿는 즉시 격리」 등 코드와 같은 수가 적혀 있다.</figcaption>
-  </figure>
-  <figure>
-    <img src="img/intro-final.jpg" alt="인트로 FINAL BRIEFING — 「가려내라.」와 입장하기 버튼">
-    <figcaption>마지막 칸 <code>FINAL BRIEFING</code> 「가려내라.」 — 「입장하기 →」 버튼 아래 「다음: 구글 로그인 → 방 목록 → 대기방 → 게임 시작」 안내.</figcaption>
-  </figure>
-</div>
+<figure><img src="img/game-discussion.jpg" alt="정상 실행 화면"><figcaption>정상 실행 시 대화 국면 — 구역 통신 판 · 발언권 · 머리 위 이름표 · 내 의심도 계기.</figcaption></figure>
 
-<h2>빠르게 판 열기 — 로컬 지름길</h2>
-<p>워커와 vite 를 띄운 뒤 브라우저에서 바로 검문실로 들어간다. 로비 · 로그인을 거치지 않는다.</p>
+<h1 class="sec" id="s4">4. 테스트 · 빌드 · 배포</h1>
+<pre><code>npm run typecheck     # 프론트 + 워커 타입 검사
+npm test              # vitest — 규칙 · 엔진 · 화면 테스트 2,000여 개
+npm run build         # typecheck + vite build → dist/
+npx wrangler deploy   # dist/ 와 워커를 한 번에 배포 (사람이 직접 실행)</code></pre>
 <table>
-  <thead><tr><th>주소</th><th>동작</th></tr></thead>
-  <tbody>
-    <tr><td><code>/interrogation?code=1234</code></td><td>방 <code>1234</code> 에 붙는다. 내가 방장이면 로비 국면에 들어서는 순간 <code>game_start {fillTo: 3}</code> 를 한 번 보내 <strong>4인 판(나 + 대역 2 + AI 1)</strong>이 자동으로 열린다(<code>AUTO_SEATS = 4</code>). 발치 줄에 「판을 여는 중 — 좌석을 섞고 대역이 앉는다…」가 보인다.</td></tr>
-    <tr><td><code>/interrogation?code=1234&amp;lobby</code></td><td>자동 시작을 끄고 <strong>소집 대기 판</strong>을 세운다. 방장은 총 인원(3~8)을 고르고 「시작」을 누른다. 같은 <code>?code=</code> 로 탭을 더 열어 여러 사람으로 시험할 때 쓴다.</td></tr>
-    <tr><td><code>/interrogation?code=1234&amp;nick=요원A</code></td><td>닉네임 지정. 없으면 localStorage 게스트 닉네임, 그것도 없으면 <code>테스터&lt;100~999&gt;</code>.</td></tr>
-    <tr><td><code>/interrogation</code> (code 없음)</td><td>기본 방 <code>1234</code>. 같은 번호는 같은 판이다 — 지난 판이 남아 있을 수 있으니 확인용은 새 번호를 쓴다.</td></tr>
-  </tbody>
-</table>
-<div class="callout warn">
-  <strong>방 번호는 숫자만, 1~6자리.</strong> 워커의 <code>ROOM_PATH = /^(?:\/world-ws)?\/rooms\/([0-9]{1,6})\/ws$/</code> 와 클라이언트의 <code>ROOM_CODE_RE = /^[0-9]{1,6}$/</code> 가 같은 규칙이다. 문자가 섞인 번호는 라우트에 안 걸려 정적 파일(<code>index.html</code>, 200)로 떨어지고 WebSocket 업그레이드가 실패한다.
-</div>
-
-<h2>정상 실행 시 보이는 것 — 타임라인</h2>
-<p>기본 자동 판(4좌석) 기준. 좌석 이름은 몸의 성별을 따른 한국인 이름이고, 좌석 목록에는 사람/대역/AI 구분이 없다. 정체는 격리된 뒤에만 공개된다.</p>
-<table>
-  <thead><tr><th>시각(누적)</th><th>국면</th><th>화면에서 확인할 것</th></tr></thead>
-  <tbody>
-    <tr><td>0초</td><td>lobby → briefing (7초)</td><td>배역 카드(사람 / AI 설계자)가 6초 떠 있다가 걷힌다. AI 좌석에는 카드가 없다. 설계자에게는 「표식 없는 AI는 &lt;좌석 이름&gt; 이다.」 줄이 붙는다. 내 몸이 좌석 원(반지름 3.4m) 위 자기 자리로 옮겨진다.</td></tr>
-    <tr><td>7초</td><td>discussion(첫) — 프롤로그</td><td>정부 통제실 프롤로그 11줄이 터미널 스킨 대화창으로 흐른다(피실험자 셋 + 통제실, 목소리 동기). 이 동안 채팅 판 · 내 의심도 계기 · 발치 줄이 내려가고 봇도 조용하다. 서버 상한 75초. 줄 길이는 합성한 목소리에 맞추므로 판마다 다르다(대략 45~55초).</td></tr>
-    <tr><td>프롤로그 끝</td><td>discussion 40초</td><td>왼쪽 아래 구역 통신 판이 서고 발언권 칩 <code>발언권 6</code>. Enter 로 입력, 한 마디에 발언권 1. 봇은 2.5초 뒤부터 3.5~10초 간격으로 말한다. 관리 AI(세계관의 「처형 AI」)가 9초 간격으로 새 발언 2줄 이상을 읽어 의심도를 −10~+16 움직인다. 머리 위 의심도 막대가 움직이면 정상.</td></tr>
-    <tr><td>+40초</td><td>test ① 낙하 생존 30초</td><td>위 가운데 큰 시계 30 → 0, 발치 HUD 「피격 N」. 250ms 마다 공이 떨어지고 85% 는 참가자를 겨냥한다. WASD 이동, Space 점프(높이는 서버가 계산).</td></tr>
-    <tr><td>+30초</td><td>result 7초</td><td>「기록 공개」 모달 — 안 맞고 버틴 시간 · 피격 · 등수 · 발언권 +N. 전원 입력 잠금. 관리 AI 해설(readout)이 소리로 들린다. 발언권 = 버틴 3초마다 1(최소 1, 30초면 10), 남은 것은 5까지만 이월.</td></tr>
-    <tr><td>+7초</td><td>discussion 40초</td><td>검문 단계 「대조」 — 관리 AI 가 「지금부터 모든 관측은 1.2배로 기록된다」를 방송(alarm). 올라가는 걸음에만 곱한다.</td></tr>
-    <tr><td>+40초</td><td>test ② 움직이는 발판 30초</td><td>발치 HUD 「착지 · 정중앙 · 실패」. W 전진, Space 점프. 떨어지면 출발로 돌아간다. 버틴 초 = 도착하고 남긴 초.</td></tr>
-    <tr><td>+37초</td><td>result 7초 → discussion 40초</td><td>단계 「선별」 ×1.5.</td></tr>
-    <tr><td>+40초</td><td>test ③ 회전 원판 30초</td><td>발치 HUD 「낙하 N회」. WASD 걷기, Shift 달리기. 밖으로 밀려나면 떨어진다.</td></tr>
-    <tr><td>+37초</td><td>result 7초 → 마지막 대화 40초</td><td>단계 「마감」 ×2. 이번에는 큰 시계가 보이고 「마지막 대화 — 시간이 다 되면 판정」.</td></tr>
-    <tr><td>+40초 (합계 278초 + 프롤로그)</td><td>ended</td><td>판정 종료 화면 — 승패 · 사유 · 「표식 없는 AI 는 &lt;이름&gt; 이었다」 · 전원의 정체표. 30초 뒤 서버가 방을 로비로 되돌린다. 방장에게만 「다시 — 새 판」.</td></tr>
-  </tbody>
-</table>
-<p><strong>어느 대화 · 시험 중이든</strong> 누군가의 의심도가 100 에 닿으면 그 순간 격리(처형 연출 약 3.6초, 정체 공개)되고 <strong>첫 격리가 곧 판의 끝</strong>이다 — AI 가 격리됐으면 사람 승리, 사람 · 설계자가 격리됐으면 AI 승리. 아무도 격리되지 않고 마지막 대화가 끝나면 AI 승리(「시간이 다 됐다. AI 는 끝내 들키지 않았다.」). 10분 하드캡 타이머도 걸리지만 차례표(약 4분 38초 + 프롤로그 ≤75초)가 그보다 짧아 정상 진행에서는 발동하지 않는다.</p>
-
-<h2>정상 실행 시 보이는 것 — 화면</h2>
-<p>아래는 <code>docs/img/</code> 의 실제 캡처를 타임라인 순서로 놓은 것이다. 좌석 이름 · 배역 · 의심도는 판마다 다르다.</p>
-<div class="grid2">
-  <figure>
-    <img src="img/game-prologue.jpg" alt="프롤로그 — 터미널 스킨 대화창에 「피실험자 01 · 강시우 / 난 인간이야.」">
-    <figcaption>프롤로그(첫 discussion 앞). 화면 아래 터미널 스킨 대화창에 초상 · 「피실험자 01 · 이름」 머리말 · 한 줄씩 흐른다. 채팅 판 · 내 의심도 계기 · 발치 줄은 이 동안 내려가 있다. 머리 위 이름표와 빈 의심도 막대는 이미 서 있다.</figcaption>
-  </figure>
-  <figure>
-    <img src="img/game-prologue-designer.jpg" alt="프롤로그 — 설계자 시점. 오른쪽 아래 DESIGNER · 기록 조작 1회 남음 패널">
-    <figcaption>같은 프롤로그를 <strong>설계자</strong>가 볼 때. 오른쪽 아래 <code>DESIGNER · 기록 조작 1회 남음</code> 패널(<code>hud/DesignerPanel</code>) — 대상을 고르고 「튀게 / 평범하게」로 다음 시험 결과의 공개본 하나를 바꾼다. 사람 · AI 에게는 이 패널이 없다.</figcaption>
-  </figure>
-</div>
-<figure>
-  <img src="img/game-discussion.jpg" alt="대화 국면 — 구역 통신 판, 머리 위 이름표와 의심도 막대, 화면 아래 내 의심도 계기">
-  <figcaption>대화 국면. 왼쪽 아래 구역 통신 판(발언권 칩), 좌석 머리 위 한국인 이름표 · 의심도 막대 · 말풍선, 화면 아래 내 의심도 계기와 「WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다」 안내줄.</figcaption>
-</figure>
-<div class="grid2">
-  <figure>
-    <img src="img/game-test-fall.jpg" alt="시험 ① 낙하 생존 — 큰 시계 13초, 「머리 위 낙하물을 피하라」, 떨어지는 공들과 바닥 그림자, 발치 「피격 0」">
-    <figcaption>시험 ① 낙하 생존. 위 가운데 큰 시계와 「머리 위 낙하물을 피하라」, 공이 떨어질 자리에 바닥 그림자, 발치 HUD 「피격 0 · 화면을 클릭하면 마우스로 둘러본다」.</figcaption>
-  </figure>
-  <figure>
-    <img src="img/game-test-platform.jpg" alt="시험 ② 움직이는 발판 — 붉은 큰 시계 10초, 「발판을 건너 도착까지 — 떨어지면 출발로」, 빛나는 원형 발판들, 발치 「착지 0 · 정중앙 0 · 실패 0」">
-    <figcaption>시험 ② 움직이는 발판. 시계가 10초 아래로 내려오면 붉게 바뀐다. 제목 아래 조작 안내 「W 전진 · Space 점프」, 발치 HUD 「착지 · 정중앙 · 실패」.</figcaption>
-  </figure>
-  <figure>
-    <img src="img/game-test-disc.jpg" alt="시험 ③ 회전 원판 — 「도는 원판 위에서 밀려나지 말고 버텨라」, 노란·검정 경계 띠, 발치 「낙하 0회」">
-    <figcaption>시험 ③ 회전 원판. 카메라가 위에서 내려다본다. 「WASD 걷기 · Shift 달리기」, 발치 HUD 「낙하 0회」. 내 의심도 계기가 81% 까지 차 있다 — 100 에 닿으면 그 자리에서 격리.</figcaption>
-  </figure>
-  <figure>
-    <img src="img/game-result-fall.jpg" alt="시험 ① 뒤 대화 — 구역 통신 판 발언권 15, 내 의심도 0%">
-    <figcaption>시험 ① 기록 공개가 걷힌 직후의 대화. 발언권 칩이 <code>15</code> — 이월 5 + 30초 버틴 10. (7초짜리 「기록 공개」 모달 자체는 캡처에 없다 — 모달이 걷힌 뒤 발언권 수로 확인한다.)</figcaption>
-  </figure>
-  <figure>
-    <img src="img/game-result-platform.jpg" alt="시험 ② 뒤 대화 — 발언권 6, 말풍선, 내 의심도 27%">
-    <figcaption>시험 ② 뒤 대화(「선별」 ×1.5). 발언권 <code>6</code>, 머리 위 말풍선과 의심도 막대가 움직인다. 채팅 판 줄이 쌓여 스크롤된다.</figcaption>
-  </figure>
-  <figure>
-    <img src="img/game-result-disc.jpg" alt="마지막 대화 — 큰 시계 38초 「마지막 대화 — 시간이 다 되면 판정」, 발언권 15, 내 의심도 81%">
-    <figcaption>시험 ③ 뒤 마지막 대화(「마감」 ×2). 이번에만 큰 시계가 보이고 그 아래 「마지막 대화 — 시간이 다 되면 판정」. 이 40초 안에 아무도 격리되지 않으면 AI 승리.</figcaption>
-  </figure>
-</div>
-<figure>
-  <img src="img/game-end.jpg" alt="판정 종료 — 「사람 진영 승리」, 「표식 없는 AI 는 권예준 이었다」, 나는 AI 설계자였다 패배, 전원 정체표, 00:19, 「다시 — 새 판」">
-  <figcaption>판정 종료 화면(<code>hud/EndScreen</code>). 승패 · 사유 · 「표식 없는 AI 는 &lt;이름&gt; 이었다」 · 내 배역과 승패 · 전원 정체표(격리된 좌석에 「격리」 표식). 오른쪽 위 <code>00:19</code> 는 로비로 돌아가기까지 남은 30초의 카운트다운, 「다시 — 새 판」은 방장에게만. 뒤의 채팅 판은 「기록 공개 중 — 입력이 잠긴다」로 잠겨 있다.</figcaption>
-</figure>
-
-<h2>배역 — 오늘 빌드가 앉히는 수</h2>
-<table>
-  <thead><tr><th>사람 쪽 좌석 수 (실제 사람 + 대역)</th><th>AI 좌석</th><th>AI 설계자</th></tr></thead>
-  <tbody>
-    <tr><td>≤ 2 (판이 안 열림 — 최소 3)</td><td rowspan="3">항상 <strong>정확히 1</strong></td><td>0</td></tr>
-    <tr><td>3 ~ 5 (기본 자동 판 = 3)</td><td>1</td></tr>
-    <tr><td>6 ~ 8</td><td>2</td></tr>
-  </tbody>
-</table>
-<p>기본 자동 판(사람 쪽 3좌석 + AI 1)은 <strong>설계자 1 · 사람 2 · AI 1</strong> 이다(<code>worker/src/game/roles.ts designerCount</code>, 커밋 7163b77). 누가 설계자인지만 굴리고 수는 고정이다. 설계자 풀에 대역 좌석도 들어가므로 혼자 들어간 판에서 내가 설계자가 아닐 수 있다 — 여러 번 열어 카드가 바뀌는지 본다.</p>
-<div class="callout">
-  <strong>세계관 글과 코드가 다른 자리 셋.</strong> ① 세계관은 「AI 는 게임마다 1명 이상」이라 하지만 오늘 빌드는 AI 좌석을 <strong>정확히 1개</strong> 얹는다. ② 세계관은 「설계자 1~2명」이라 하지만 코드는 사람 쪽 좌석 수로 0 · 1 · 2 를 고정한다(직전 코드는 같은 표를 <em>상한</em>으로 두고 0부터 랜덤이었다 — 그래서 기본 판에 설계자가 한 번도 안 나왔고, 2026-09-05 에 고정 수로 바뀌었다). ③ 세계관은 「전체 인원의 과반수가 탈락하면 종료」라 하지만 코드는 <strong>첫 격리에서 끝</strong>난다. 격리 목표 <code>quota = floor(총원/2)</code> 는 와이어에 실리지만 판을 끝내는 문턱이 아니다(<code>checkIsolation</code> 주석). PLANNING.md §1.3 의 「사람이 서로를 잘못 지목해 격리해도 게임은 계속된다」는 옛 서술이다.
-</div>
-
-<h2>확인 체크리스트</h2>
-<ul>
-  <li>워커 터미널에 방 접속 로그가 찍히고 발치 줄이 「연결하는 중…」에서 벗어난다.</li>
-  <li>배역 카드가 뜨고 7초 뒤 프롤로그가 흐른다(소리가 없으면 자막만이라도 흐른다).</li>
-  <li>대화 국면에 봇이 말한다 — 안 하면 워커 로그의 <code>[game/brain]</code> 줄과 발언권을 본다(§10).</li>
-  <li>내가 한 마디 하면 발언권 칩이 하나 줄고, 몇 초 뒤 누군가의 머리 위 막대가 움직인다.</li>
-  <li>시험 셋이 낙하 생존 → 움직이는 발판 → 회전 원판 순서로 열리고 각각 기록 공개 모달이 선다.</li>
-  <li>판정 종료 화면에 정체표가 뜨고 30초 뒤 로비로 돌아간다. 「다시 — 새 판」이 같은 방에서 새 판을 연다.</li>
-</ul>
-
-<!-- ============================================================ 5 -->
-<h1 class="sec" id="scripts">5. 스크립트 표</h1>
-<p><code>package.json</code> 의 <code>scripts</code> 전부. 게임 흐름과 직접 관련된 것은 <code>dev</code> · <code>worker:dev</code> · <code>build</code> · <code>typecheck</code> · <code>test</code> 다섯이다.</p>
-<table>
-  <thead><tr><th>스크립트</th><th>명령</th><th>무엇을 하나</th></tr></thead>
-  <tbody>
-    <tr><td><code>dev</code></td><td><code>vite</code></td><td>프론트 개발 서버 5173. labPlugin(<code>tools/vite-lab.ts</code>)이 <code>/api/lab/*</code> 을 Claude 구독으로 직접 처리하고, 나머지 <code>/world-ws</code> · <code>/api/*</code> 는 워커로 프록시.</td></tr>
-    <tr><td><code>lab</code></td><td><code>vite --open /lab</code></td><td>실험용 대화 화면(<code>/lab</code>)을 열며 시작 — 게임 흐름 밖.</td></tr>
-    <tr><td><code>talk</code></td><td><code>vite --open /talk</code></td><td>실험용 화면 — 게임 흐름 밖.</td></tr>
-    <tr><td><code>dev:api</code></td><td><code>LAB_VIA_WORKER=1 vite</code></td><td>labPlugin 을 빼고 <code>/api/lab</code> · <code>/api/world2</code> 도 워커로 넘긴다. 워커에 LLM 키가 있어야 하고 크레딧이 나간다(1~2초/줄). 워커를 같이 띄운다.</td></tr>
-    <tr><td><code>worker:dev</code></td><td><code>wrangler dev --port ${WORKER_PORT:-8787}</code></td><td>워커 + Durable Objects 로컬 실행. <code>.dev.vars</code> 자동 로드. DO 스토리지는 <code>.wrangler/</code> 아래 로컬 SQLite.</td></tr>
-    <tr><td><code>build</code></td><td><code>npm run typecheck &amp;&amp; vite build</code></td><td>타입 검사 둘을 통과해야 <code>dist/</code> 를 만든다. 배포 전 필수.</td></tr>
-    <tr><td><code>preview</code></td><td><code>vite preview</code></td><td><code>dist/</code> 를 정적으로 띄워 본다. 워커 프록시가 없으므로 방 접속은 안 된다 — 청크 · 자원 경로 확인용.</td></tr>
-    <tr><td><code>typecheck</code></td><td><code>tsc --noEmit &amp;&amp; tsc -p tsconfig.worker.json</code></td><td>브라우저(<code>tsconfig.json</code>: DOM, <code>src</code> + <code>vite.config.ts</code>)와 워커(<code>tsconfig.worker.json</code>: workers-types, <code>worker/src</code> + <code>src/world/mp</code> + <code>src/lab</code> + 공유 파일 둘) 두 세계를 따로 검사.</td></tr>
-    <tr><td><code>test</code></td><td><code>vitest run</code></td><td><code>tests/**/*.test.{ts,tsx}</code> 한 번 실행.</td></tr>
-    <tr><td><code>test:watch</code></td><td><code>vitest</code></td><td>감시 모드.</td></tr>
-    <tr><td><code>bench:leader</code></td><td><code>node tools/leader-bench.mjs</code></td><td>서버 코드 없이 Claude Agent SDK 로 리더 프롬프트를 벤치(<code>--n</code> · <code>--model</code> · <code>--seed</code> · <code>--verbose</code>). Claude Code 로그인 자격을 쓴다.</td></tr>
-    <tr><td><code>vars:check</code></td><td><code>node tools/load-vars.mjs --check</code></td><td><code>.dev.vars</code> 에 어떤 이름이 있는지 ✓/✗ 와 출처만 보여 준다. 값은 절대 출력하지 않는다.</td></tr>
-    <tr><td><code>db:check</code></td><td><code>node tools/load-vars.mjs -- supabase/apply.sh --check</code></td><td>Supabase 접속 · <code>wih</code> 스키마 · RLS · public 표 대조를 읽기만. <code>SUPABASE_DB_URL_DIRECT</code> 와 psql 필요.</td></tr>
-    <tr><td><code>db:fence</code></td><td><code>bash supabase/fence.test.sh</code></td><td>DB 없이 울타리 규칙(<code>public.</code> · drop schema · truncate 등 거부) 자가 점검.</td></tr>
-    <tr><td><code>db:apply</code></td><td><code>node tools/load-vars.mjs -- supabase/apply.sh</code></td><td><code>supabase/schema.sql</code>(<code>wih.profiles</code> 표 하나)을 적용. 울타리 검사 → public 스냅샷 → [y/N] → psql → 사후 점검.</td></tr>
-    <tr><td><code>prepare</code></td><td><code>git config core.hooksPath tools/git-hooks || exit 0</code></td><td><code>npm install</code> 때 자동. 시크릿 유출 방지 git 훅을 건다.</td></tr>
-  </tbody>
+  <tr><th style="width:26%">배포 단위</th><td>워커 하나. 정적 프론트(<code>dist/</code>)를 워커의 assets로 함께 올린다. WebSocket과 API가 같은 오리진이라 추가 설정이 없다.</td></tr>
+  <tr><th>배포 후 확인</th><td><code>/health</code> → <code>ok</code>, 인트로 → 방 입장 → 프롤로그가 흐르면 끝.</td></tr>
+  <tr><th>바꾸지 말 것</th><td><code>wrangler.jsonc</code>의 Durable Object 바인딩과 migrations 태그 — 방 저장소의 이력이라 되돌릴 수 없다.</td></tr>
+  <tr><th>알려진 불안정 테스트</th><td>무작위 기반 테스트 두어 개(quick · say)가 가끔 실패한다. 다시 돌리면 통과한다.</td></tr>
 </table>
 
-<!-- ============================================================ 6 -->
-<h1 class="sec" id="tests">6. 테스트와 품질</h1>
-
-<h2>vitest 구조</h2>
-<ul>
-  <li>설정 <code>vitest.config.ts</code>: <code>include: tests/**/*.test.{ts,tsx}</code>, <code>globals: true</code>, 기본 환경 <strong>node</strong>(DOM 이 필요한 파일만 맨 위에 <code>// @vitest-environment jsdom</code>), <code>setupFiles: ./tests/setup.ts</code>(jest-dom 매처 등록 + Node 22+ 에서 jsdom localStorage 가 안 넘어오는 문제를 메모리 Storage 로 보정), alias <code>@</code> → <code>./src</code>.</li>
-  <li>테스트는 소스 옆이 아니라 루트 <code>tests/</code> 아래에 소스 구조를 그대로 따라 둔다(폴더 소유권 규칙 — 남의 폴더에 파일을 만들지 않기 위해).</li>
-  <li>2026-09-05 기준 테스트 파일 <strong>152개</strong>, 테스트 <strong>2,040개</strong>. README 의 「642개」는 옛 수치다.</li>
-</ul>
+<h1 class="sec" id="s5">5. 문제 해결</h1>
 <table>
-  <thead><tr><th>폴더</th><th>파일 수</th><th>게임 흐름과의 관계</th></tr></thead>
-  <tbody>
-    <tr><td><code>tests/worker</code></td><td>17</td><td><strong>본판</strong> — <code>game-runtime</code>(와이어에 정체 · 조건값이 안 실리는지 잠금) · <code>room-do</code> · <code>lobby</code> · <code>auth</code> 등</td></tr>
-    <tr><td><code>tests/features/interrogation</code></td><td>4</td><td><strong>본판</strong> 화면</td></tr>
-    <tr><td><code>tests/features/lobby</code></td><td>8</td><td>로비 · 대기방 · 로그인</td></tr>
-    <tr><td><code>tests/features/intro</code></td><td>1</td><td>인트로</td></tr>
-    <tr><td><code>tests/world</code> · <code>tests/shared</code></td><td>11 · 11</td><td>공유 계약 · 유틸</td></tr>
-    <tr><td><code>tests/features/tts</code> · <code>voice</code></td><td>9 · 5</td><td>방송 · 목소리</td></tr>
-    <tr><td><code>tests/features/trial</code></td><td>1</td><td>물리 시험 연습판</td></tr>
-    <tr><td><code>tests/features/world2</code> · <code>arena</code> · <code>world</code> · <code>talk</code> · <code>lab</code> · <code>main</code> · <code>tests/lab</code> · <code>tests/arena3d</code></td><td>29 · 18 · 13 · 2 · 1 · 1 · 19 · 2</td><td>실험용 화면 — 게임 흐름 밖</td></tr>
-  </tbody>
+  <tr><th style="width:36%">증상</th><th>원인 · 조치</th></tr>
+  <tr><td>「연결 실패 — 워커가 떠 있어야 한다」</td><td>워커가 안 떠 있다. <code>npm run worker:dev</code>. 포트를 바꿨으면 양쪽에 같은 <code>WORKER_PORT</code>.</td></tr>
+  <tr><td>방 번호를 넣었는데 접속이 안 된다</td><td>방 번호는 숫자 1~6자리만 받는다.</td></tr>
+  <tr><td>프롤로그가 안 나오고 곧장 대화·시험이다</td><td>같은 번호에 지난 판이 남아 있다. 새 번호로 들어간다(끝난 판은 30초, 버려진 판은 90초 뒤 사라진다).</td></tr>
+  <tr><td>봇이 조용하다</td><td>① 발언권이 0 — 봇도 같은 규칙. ② LLM 키가 없고 개발 서버도 못 찾았다.</td></tr>
+  <tr><td>프롤로그 자막은 흐르는데 소리가 없다</td><td><code>ELEVENLABS_API_KEY</code>가 없다. 방송은 Web Speech로 대체된다.</td></tr>
 </table>
 
-<h2>타입 검사 둘</h2>
-<p><code>npm run typecheck</code> 는 통과한다(2026-09-05). 두 설정이 각각 다른 세계를 본다:</p>
-<table>
-  <thead><tr><th>설정</th><th>lib / types</th><th>include</th><th>주의</th></tr></thead>
-  <tbody>
-    <tr><td><code>tsconfig.json</code></td><td>ES2022 + DOM, <code>vite/client</code></td><td><code>src</code>, <code>vite.config.ts</code></td><td><code>noUnusedLocals</code>, strict</td></tr>
-    <tr><td><code>tsconfig.worker.json</code></td><td>ES2022, <code>@cloudflare/workers-types</code></td><td><code>worker/src/**</code>, <code>src/world/mp/**</code>, <code>src/lab/**</code>, <code>src/shared/broadcast-kind.ts</code>, <code>src/shared/series.ts</code></td><td>워커 밖 공유 파일까지 검사한다. 여기에 react · three · DOM 을 import 하면 <code>build</code> 가 깨진다. <code>noImplicitOverride</code> · <code>noFallthroughCasesInSwitch</code> 추가</td></tr>
-  </tbody>
-</table>
+<h1 class="sec" id="s6">6. 저장소 구조 (게임 흐름 관련만)</h1>
+<pre><code>src/features/lobby/          인트로 · 로그인 · 방 목록 · 대기방
+src/features/interrogation/  검문실 본판 — 홀 씬 · HUD · 네트워크 · 상태
+src/world/mp/                클라이언트와 워커가 공유하는 계약 (프로토콜 · 규칙 상수 · 몸)
+worker/src/game/             판의 상태기계 · 배역 · 의심도 · 관리 AI · 봇
+worker/src/trial/            물리 시험 엔진 셋 (낙하 생존 · 발판 · 원판)
+docs/                        이 문서들 · 개발 메모        tests/  vitest
+tools/docs-pdf.sh            docs/*.html → docs/pdf/*.pdf</code></pre>
+<div class="callout">그 밖의 <code>/world</code> · <code>/warehouse</code> · <code>/central</code> 같은 경로는 개발 중 실험 페이지라 게임 흐름과 무관하다.</div>
 
-<h2>알려진 실패 · 불안정 테스트</h2>
-<p>2026-09-05 에 <code>npm test</code> 를 세 번 돌린 결과 2,040개 중 5~6개가 실패한다. <code>.skip</code> · <code>.todo</code> · <code>.only</code> 는 없다. 구현이 바뀌었는데 시험이 안 따라온 것으로 보이며 원인은 확인되지 않았다.</p>
-<table>
-  <thead><tr><th>파일</th><th>건수</th><th>증상</th><th>성격</th></tr></thead>
-  <tbody>
-    <tr><td><code>tests/features/lobby/LobbyFeature.test.tsx</code></td><td>1</td><td>role heading <code>/특수\s*인공지능\s*대응센터/</code> 를 못 찾음</td><td>항상 실패 — 게임 흐름(로비) 관련</td></tr>
-    <tr><td><code>tests/lab/talkHeat.test.ts</code></td><td>2</td><td><code>runTalk</code> 프롬프트에 「세영이 폐기됐다」 / 「무서워해라」 문구 기대</td><td>항상 실패 — 실험용</td></tr>
-    <tr><td><code>tests/features/tts/audition.test.ts</code></td><td>2</td><td><code>toneOf('unit07')</code> 가 「380~3200Hz · 1배」를 내는데 「1.1배」 기대</td><td>항상 실패 — 좌석 목소리(본판 미배선)</td></tr>
-    <tr><td><code>tests/features/world2/say.test.ts</code></td><td>1</td><td>「시효가 지나면 다시 한 번 두드린다」 — <code>Date.now()</code> 기준 <code>t0 + RETRY_AFTER_MS(45_000)</code> 경계를 ms 단위로 재서 3회 중 1회 실패</td><td>간헐 — 실험용</td></tr>
-    <tr><td><code>tests/lab/quick*.test.ts</code></td><td>—</td><td>실행에 따라 위 목록과 함께 흔들릴 수 있는 것으로 팀에 보고됨(이번 실측 3회에서는 재현되지 않음)</td><td>주시</td></tr>
-  </tbody>
-</table>
-<p>jsdom 환경 테스트에서 <code>Error: Not implemented: HTMLMediaElement.prototype.play/pause</code> 가 stderr 에 찍히지만 실패 원인이 아니다(로그만).</p>
-
-<h2>시크릿을 지키는 세 층</h2>
-<ol>
-  <li><code>.gitignore</code> — <code>.dev.vars</code> · <code>.dev.vars.*</code>(example 제외) · <code>.env</code> · <code>.env.*</code> · <code>.wrangler/</code> · <code>dist/</code>.</li>
-  <li>Claude Code — <code>.claude/settings.json</code> 의 <code>permissions.deny</code> 가 시크릿 파일 읽기/쓰기와 <code>npx wrangler deploy*</code> · <code>npx wrangler secret*</code> 를 거부하고, PreToolUse 훅 <code>.claude/hooks/guard.mjs</code> 가 이름 변형 · 글롭 · <code>rg --no-ignore</code> · <code>wrangler … (deploy|secret|delete)</code> 를 2차로 막는다. 자가 점검 <code>node .claude/hooks/guard.test.mjs</code>.</li>
-  <li>git 훅 <code>tools/git-hooks</code> — pre-commit · pre-push(§3).</li>
-</ol>
-
-<!-- ============================================================ 7 -->
-<h1 class="sec" id="build">7. 빌드</h1>
-<pre><code>npm run build
-# = tsc --noEmit  &amp;&amp;  tsc -p tsconfig.worker.json  &amp;&amp;  vite build
-# → dist/  (index.html + assets/ 청크 + public/ 의 정적 자원)</code></pre>
-<ul>
-  <li>타입 검사가 하나라도 실패하면 <code>dist/</code> 를 만들지 않는다. 배포 전에 <code>npm test</code> 도 돌리되, §6 의 알려진 실패 5~6건은 빌드를 막지 않는다(빌드는 vitest 를 부르지 않는다).</li>
-  <li>워커 코드(<code>worker/src</code>)는 vite 가 아니라 <code>wrangler deploy</code> 가 번들한다. <code>npm run build</code> 는 워커를 타입만 검사한다.</li>
-  <li>화면 컴포넌트는 전부 <code>React.lazy</code> 라 라우트마다 청크가 갈린다 — 정적으로 물면 three/drei 까지 1.7MB 통짜 청크가 된다. 새 화면을 붙일 때도 <code>src/features/index.ts</code> 의 lazy 패턴을 따른다.</li>
-  <li>빌드 시점 환경 변수 <code>VITE_WORLD_WS_URL</code> · <code>VITE_SUPABASE_URL</code> · <code>VITE_SUPABASE_ANON_KEY</code> 는 셋 다 선택이다. 한 오리진 배포에서는 WS 주소가 필요 없고, Supabase 설정은 런타임에 <code>/api/config</code> 로 받는다.</li>
-  <li><code>public/</code> 아래의 아바타 GLB · 얼굴 이미지 · 처형자 모델 · 맵 자원은 그대로 <code>dist/</code> 로 복사된다. 오프닝 영상(<code>who_is_AI.faststart.mp4</code>)은 저장소 밖 R2 에 있으며 <code>src/shared/opening.ts</code> 의 <code>OPENING_SOURCES</code> 가 주소를 든다.</li>
-</ul>
-
-<h2><code>wrangler.jsonc</code> 의 assets 설정</h2>
-<table>
-  <thead><tr><th>키</th><th>값</th><th>뜻</th></tr></thead>
-  <tbody>
-    <tr><td><code>assets.directory</code></td><td><code>./dist</code></td><td>빌드 결과물을 그대로 서빙</td></tr>
-    <tr><td><code>assets.binding</code></td><td><code>ASSETS</code></td><td>워커 코드에서 <code>env.ASSETS.fetch(req)</code> 로 넘김</td></tr>
-    <tr><td><code>assets.not_found_handling</code></td><td><code>single-page-application</code></td><td>없는 경로는 <code>index.html</code> — <code>/intro</code> · <code>/lobby</code> · <code>/interrogation</code> 새로고침이 되는 이유</td></tr>
-    <tr><td><code>assets.run_worker_first</code></td><td><code>["/world-ws/*", "/rooms/*", "/api/*", "/health"]</code></td><td>이 경로만 워커가 먼저 받는다. 새 API 경로를 붙이면 여기에도 적어야 한다</td></tr>
-  </tbody>
-</table>
-
-<!-- ============================================================ 8 -->
-<h1 class="sec" id="deploy">8. 배포</h1>
-
-<h2>두 가지 길</h2>
-<table>
-  <thead><tr><th>길</th><th>누가</th><th>어떻게</th></tr></thead>
-  <tbody>
-    <tr><td>자동 (평소)</td><td>Cloudflare Git 연동 (Workers Builds)</td><td><code>main</code> 에 push 하면 대시보드의 Git 연동이 빌드 · 배포를 돈다. <strong>저장소 안에는 이를 증명하는 것이 없다</strong> — <code>.github/</code> 디렉터리가 없고 <code>wrangler.jsonc</code> 도 빌드 명령을 적지 않는다(둘 다 확인). 설정은 대시보드에만 있으니 아래 「대시보드에서 볼 것」으로 맞춘다. 옛 Pages 식 「output <code>dist</code>」 설정과 다르다(<code>docs/DEVELOPMENT.md</code>).</td></tr>
-    <tr><td>수동</td><td><strong>사람이 직접</strong></td><td><code>npm run build &amp;&amp; npx wrangler deploy</code>. Claude Code 는 <code>settings.json</code> deny + <code>guard.mjs</code> 로 <code>wrangler deploy</code> · <code>wrangler secret</code> · <code>wrangler delete</code> 가 차단돼 있다 — 배포와 시크릿 등록은 언제나 사용자의 손으로 한다.</td></tr>
-  </tbody>
-</table>
-<pre><code>npx wrangler login                 # 처음 한 번
-npm run build                      # typecheck 둘 + vite build → dist/
-npx wrangler deploy                # 워커 nhnai 에 dist(ASSETS) + RoomDO + LobbyDO 를 함께 올린다
-curl https://nhnai.lyg6452620.workers.dev/health     # → ok</code></pre>
-
-<h2>대시보드에서 볼 것 — Git 연동이 맞게 걸려 있는지</h2>
-<p>Cloudflare 대시보드 → Workers &amp; Pages → 워커 <code>nhnai</code> → Settings → Build. 코드로 검증할 수 없으므로 배포가 안 올라가면 이 네 칸부터 본다.</p>
-<table>
-  <thead><tr><th>칸</th><th>있어야 할 값</th><th>왜</th></tr></thead>
-  <tbody>
-    <tr><td>Git repository · Production branch</td><td>이 저장소 · <code>main</code></td><td>다른 브랜치 push 는 배포하지 않는다(프리뷰를 켜 두었다면 별개 URL).</td></tr>
-    <tr><td>Build command</td><td><code>npm run build</code></td><td><code>typecheck</code> 둘 + <code>vite build</code> → <code>dist/</code>. 타입 오류면 여기서 멈춘다.</td></tr>
-    <tr><td>Deploy command</td><td><code>npx wrangler deploy</code></td><td><code>wrangler.jsonc</code> 의 <code>assets.directory = dist</code> 와 DO 마이그레이션을 함께 올린다. Pages 식 「output directory」 칸이 아니다.</td></tr>
-    <tr><td>Root directory · Build variables</td><td>비움(저장소 루트) · 시크릿은 여기 아님</td><td>시크릿(§3 표)은 워커 Settings → Variables and Secrets 에 있어야 한다. 빌드 변수에 넣어도 런타임 <code>env</code> 에는 안 실린다.</td></tr>
-  </tbody>
-</table>
-<p>확인 뒤에는 Deployments 탭에서 마지막 배포의 커밋 해시가 <code>git log -1 origin/main</code> 과 같은지, 그리고 <code>/health</code> 가 <code>ok</code> 를 돌려주는지 본다.</p>
-
-<div class="callout warn">
-  <strong><code>wrangler.jsonc</code> 에서 바꾸지 말 것.</strong>
-  <ul>
-    <li><code>name: "nhnai"</code> — 대시보드의 워커 이름과 글자 하나까지 같아야 한다. 바꾸면 <code>deploy</code> 도 <code>secret put</code> 도 그 이름의 <em>새 워커</em>로 가고, 시크릿은 아무도 안 읽는 곳에 들어가 앉는다. 옛 이름은 <code>who-is-human</code> 이었다(R2 버킷 <code>who-is-human</code> 은 별개, 그대로 둔다).</li>
-    <li><code>assets</code> 블록 — 디렉터리 · 바인딩 · SPA 폴백 · <code>run_worker_first</code>. 경로를 <em>추가</em>하는 것은 되지만 지우면 그 경로가 정적 파일로 떨어진다.</li>
-    <li><code>durable_objects.bindings</code> — <code>ROOM_DO</code> → <code>RoomDO</code>, <code>LOBBY_DO</code> → <code>LobbyDO</code>. 코드가 이 이름으로 <code>env.ROOM_DO</code> 를 찾는다.</li>
-    <li><code>migrations</code> — <code>v1 new_sqlite_classes [RoomDO]</code>, <code>v2 new_sqlite_classes [LobbyDO]</code>. tag 는 배포된 마이그레이션 이력이라 바꾸거나 지우면 되돌릴 수 없다. 새 DO 클래스를 붙일 때는 <code>v3</code> 을 <em>뒤에</em> 잇는다.</li>
-  </ul>
-</div>
-
-<h2>시크릿 등록</h2>
-<pre><code>npx wrangler secret put OPENAI_API_KEY        # 배포본의 유일한 LLM 키 — 사람이 직접
-npx wrangler secret put ELEVENLABS_API_KEY    # 소리 (선택)
-npx wrangler secret put SUPABASE_URL          # 로그인 셋 (선택 — 셋 다 넣어야 켜진다)
-npx wrangler secret put SUPABASE_ANON_KEY
-npx wrangler secret put WORLD_TICKET_SECRET</code></pre>
-<p>대시보드 Worker → Settings → Variables and Secrets 에서 넣어도 같다. <strong>넣는 즉시 반영된다 — 재배포 불필요.</strong> <code>wrangler.jsonc</code> 에는 <code>vars</code> · KV · R2 · D1 바인딩이 없고 모든 설정값은 시크릿으로만 들어간다. 키가 없어도 배포는 되고 오류도 안 난다 — 관리 AI · 봇이 폴백 문장으로 떨어질 뿐이며 워커 로그에 <code>[game/brain] … 실패</code> 가 찍힌다.</p>
-
-<h2>Supabase 대시보드에서 한 번만 (로그인을 켤 때)</h2>
-<ol>
-  <li>Authentication → URL Configuration → Redirect URLs 에 <code>http://localhost:5173/login</code>(또는 <code>/**</code>)과 <code>https://&lt;배포 주소&gt;/**</code> 를 추가한다. <code>redirectTo</code> 는 늘 <code>&lt;오리진&gt;/login</code> 하나다. 목록에 없으면 에러 없이 Site URL(humanish 배포)로 튕긴다 — 2026-08-31 실제로 막힌 사례.</li>
-  <li>Project Settings → API → Data API → Exposed schemas 에 <code>wih</code> 를 추가한다. 안 하면 PostgREST 가 <code>PGRST106 Invalid schema: wih</code> 를 돌려주고 이름이 저장되지 않는다.</li>
-  <li>표는 <code>npm run db:apply</code> 로 올린다(<code>wih.profiles</code> 하나 — user_id PK · display_name 1~12자 · 대소문자 무시 유니크 · 변경 불가 트리거 · RLS 본인 행만). 구글 클라우드 콘솔은 손댈 일이 없다 — OAuth 리디렉션은 Supabase 주소 하나다.</li>
-</ol>
-
-<h2>배포 후 확인</h2>
-<ol>
-  <li><code>GET /health</code> → 본문 <code>ok</code>.</li>
-  <li><code>GET /api/rooms</code> → <code>{ rooms: [...] }</code>. <code>503 registry_disabled</code> 면 <code>LOBBY_DO</code> 바인딩 · 마이그레이션 v2 가 빠진 것.</li>
-  <li>브라우저에서 <code>/intro</code> → 입장 → <code>/lobby</code> 방 목록이 뜨는지. <code>/interrogation?code=&lt;새 번호&gt;</code> 로 4인 판이 열리고 프롤로그 뒤 봇이 말하는지(말이 판에 박혀 있으면 <code>OPENAI_API_KEY</code> 부터).</li>
-  <li>워커 로그(대시보드 Observability, <code>observability.enabled: true</code>)에서 <code>[game/brain]</code> 줄의 mode 가 <code>openai</code> 인지.</li>
-  <li>이전에 따로 올렸던 워커 <code>virtual-heart-signal-world</code> 가 남아 있으면 대시보드에서 지운다. <code>VITE_WORLD_WS_URL</code> 은 필요 없다.</li>
-</ol>
-
-<!-- ============================================================ 9 -->
-<h1 class="sec" id="ops">9. 운영 메모</h1>
-
-<h2>방과 Durable Object</h2>
-<div class="flow">
-  <span class="step">방 번호 <code>1234</code></span><span class="arrow">→</span>
-  <span class="step"><code>ROOM_DO.idFromName('1234')</code></span><span class="arrow">→</span>
-  <span class="step">RoomDO 인스턴스 하나 (전 세계 어디서 붙어도 같은 곳)</span><span class="arrow">→</span>
-  <span class="step"><code>GameRuntime</code> 하나 = 판 하나</span>
-</div>
-<table>
-  <thead><tr><th>항목</th><th>값</th><th>출처</th></tr></thead>
-  <tbody>
-    <tr><td>방 번호</td><td>숫자 1~6자리. 등록소 자동 발급은 1000~9999 에서 빈 번호를 20번까지 시도</td><td><code>ROOM_CODE_RE</code>, <code>lobby-do.ts pickFreeCode</code></td></tr>
-    <tr><td>방 정원</td><td><code>ROOM_MAX_PLAYERS = 8</code> (실제 사람). 판의 사람은 <code>GAME_MIN_HUMANS 3</code> ~ <code>GAME_MAX_HUMANS 8</code>, 모자란 자리는 대역(npc)이 채우고 AI 좌석 1이 위에 얹힌다</td><td><code>constants.ts</code>, <code>game-protocol.ts</code></td></tr>
-    <tr><td>입장 판정 순서</td><td>Upgrade 헤더 → <code>v=1</code>(<code>version_mismatch</code>) → 입장권 검증(이름은 입장권이 <code>?nick=</code> 을 이김, 없으면 게스트) → 닉네임 없음 <code>bad_request</code> → 밴 명부 <code>banned</code> → 정원 <code>room_full</code> → 빈 최저 좌석 배정</td><td><code>room-do.ts upgrade</code></td></tr>
-    <tr><td>소켓 수명</td><td>Hibernatable WebSocket. 하트비트 <code>ping</code> 20초, 60초 넘게 조용하면 <code>close(4001, heartbeat_timeout)</code>. 청소 알람 30초마다</td><td><code>PING_INTERVAL_MS</code>, <code>SOCKET_TIMEOUT_MS</code>, <code>SWEEP_ALARM_MS</code></td></tr>
-    <tr><td>등록소 <code>LobbyDO</code></td><td>전부 합쳐 <strong>하나</strong>(<code>idFromName('lobby')</code>). 스토리지 한 칸 <code>rooms</code>. 상한 200줄. 인원 0 이면 줄 삭제, 소식 끊긴 줄 150초, 아무도 안 들어온 방 60초에 걷힘. 방은 입장 · 퇴장 · 30초 알람마다 <code>POST lobby/report</code> 로 보고하며 실패해도 조용하다 — 등록소가 없어도 방은 돈다</td><td><code>lobby-do.ts</code>, <code>ROOM_STALE_MS</code>, <code>EMPTY_STALE_MS</code></td></tr>
-    <tr><td>RoomDO 스토리지</td><td><code>code</code> · <code>phase</code> · <code>bans</code> · <code>game:state</code>(판 저장본) · 시험 <code>history</code>(원본 결과 + 숨은 조건값 — 와이어에는 절대 안 나감)</td><td><code>room-do.ts</code>, <code>runtime.ts STATE_KEY</code></td></tr>
-  </tbody>
-</table>
-
-<h2>판의 저장본과 복구</h2>
-<ul>
-  <li>판의 시계는 <code>setTimeout</code> 이다. DO 가 잠들어 타이머를 잃어도 30초 청소 알람 <code>onSweep</code> 이 <code>phaseEndsAt + 1초</code> 가 지난 국면을 <code>advance</code> 로 민다.</li>
-  <li>DO 가 잠들었다 깨면 <code>restoreIfNeeded</code> 가 <code>game:state</code> 를 되살린다. 복구는 <strong>무조건 토론 40초로 시작</strong>한다 — 프롤로그 없음, 시험 도중이었으면 그 시험 결과 없이 토론으로 되돌아감. 의심도 값 · 좌석 · 배역 · <code>testsDone</code> · 발언권은 복구되지만 겨눔(pointing) · staked · 몰이 · 표식 누계는 잃는다. 하드캡 남은 시간은 <code>startedAt + 10분</code> 기준으로 다시 잰다.</li>
-  <li>판이 끝나면(<code>ended</code>) 30초 뒤 <code>resetToLobby</code> 가 좌석 · 바인딩 · 저장본을 지우고 방을 로비로 되돌린다. 끝 화면 중에도 방장이 <code>game_start</code> 를 보내면 그 자리에서 새 판이 열린다.</li>
-  <li><strong>버려진 판</strong>: 판에 묶인 실제 사람이 전원 나간 채 <code>ABANDONED_AFTER_MS = 90초</code> 가 지나면 청소 알람이 판을 접는다. 새로고침으로 id 가 바뀐 사람은 같은 닉네임의 빈 좌석에 다시 앉고(rebind), 판 도중 처음 온 사람은 좌석 없이 구경만 한다.</li>
-  <li><strong>하드캡 10분</strong>(<code>GAME_HARD_CAP_MS</code>)은 판이 열릴 때 걸린다. 차례표 합계가 278초 + 프롤로그 ≤75초라 정상 진행에서는 발동하지 않으며, 판의 「시간 종료」는 마지막 대화 뒤 <code>advance</code> 가 <code>hardCap()</code> 을 직접 불러 일어난다.</li>
-</ul>
-
-<h2>인증 · 티켓</h2>
-<ul>
-  <li>방 접속에 <strong>인증은 없다</strong> — 방 번호를 아는 사람은 누구나 게스트 닉네임으로 들어간다. 로그인이 바꾸는 것은 「사칭되지 않는 이름」 하나다.</li>
-  <li>입장권: <code>POST /api/world/ticket</code> 에 Supabase 액세스 토큰을 보내면 HMAC-SHA256(<code>WORLD_TICKET_SECRET</code>) 서명 <code>{ sub, room, exp, name }</code> 을 준다. <strong>60초짜리 · 그 방 하나짜리 · 갱신 불가</strong>. 서명 · 만료 · 방 번호를 검증하고, 없거나 어긋나면 막지 않고 게스트로 앉힌다. 로그인이 꺼져 있으면 <code>/api/config</code> 는 null 둘, <code>/api/world/ticket</code> 은 503.</li>
-  <li>워커는 service role 키를 쓰지 않는다. 이름 읽기 · 쓰기는 사용자 자신의 토큰으로 RLS 를 지난다.</li>
-  <li><code>wrangler.jsonc</code> 머리말의 「비밀은 없다 — 이 워커는 인증을 하지 않는다」는 오래된 문장이다. 지금은 시크릿 16개를 선언하고 <code>auth.ts</code> 가 입장권을 서명 · 검증한다.</li>
-</ul>
-
-<h2>비용 감각 — 한 판이 부르는 것</h2>
-<table>
-  <thead><tr><th>호출</th><th>빈도(4인 판 기준)</th><th>모델(배포)</th></tr></thead>
-  <tbody>
-    <tr><td>봇 대사 <code>sayAs</code></td><td>토론마다 3.5~10초 간격, 동시 최대 2, 발언권이 있는 봇만. 대화 4회 × 40초 ≈ 판당 20~40회</td><td><code>gpt-5.6-terra</code> — 성격(<code>src/lab/personas.ts</code>)의 <code>model</code> 을 따른다. 대부분 sonnet-5, opus-5 성격 하나만 <code>gpt-6-astra</code></td></tr>
-    <tr><td>관리 AI 말 읽기 <code>readTalk</code></td><td>토론 중 9초 간격 + 닫히기 8초 전 마지막 한 번 ≈ 토론당 3~5회</td><td><code>gpt-6-astra</code> (opus-5)</td></tr>
-    <tr><td>기록 해설 <code>leaderComment</code></td><td>시험당 1회 (판당 3회)</td><td><code>gpt-5.6-terra</code> (sonnet-5)</td></tr>
-    <tr><td>AI 좌석 전략 <code>aiStrategy</code></td><td>시험당 1회 (판당 3회)</td><td><code>gpt-5.6-terra</code> — AI 좌석 성격의 <code>model</code>(opus 성격이면 <code>gpt-6-astra</code>)</td></tr>
-    <tr><td>주장 판정 <code>judgeClaim</code></td><td>화면에 입력 UI 가 없어 0회</td><td>(<code>gpt-6-astra</code> 로 짜여 있으나 불리지 않는다)</td></tr>
-    <tr><td>TTS 관리 AI 방송</td><td>방송 1건 = 합성 1회(300자 상한). 브라우저 캐시 30문장</td><td>ElevenLabs <code>eleven_flash_v2_5</code></td></tr>
-    <tr><td>TTS 프롤로그</td><td>판마다 11줄 prefetch (좌석 셋 + 통제실)</td><td>ElevenLabs <code>eleven_multilingual_v2</code></td></tr>
-  </tbody>
-</table>
-<p>모델 열은 <code>worker/src/game/agents.ts</code> 가 요청하는 클로드 등급을 <code>worker/src/lab/openai.ts</code> 의 <code>MODEL_MAP</code> 으로 옮긴 것이다(커밋 c51a0c0). <code>gpt-5.6-luna</code> 는 haiku 짝 · 폴백 등급이라 게임 에이전트가 직접 부르는 일은 없다. <code>OPENAI_MODEL</code> 을 넣으면 이 열 전부가 그 한 모델이 된다.</p>
-
-<!-- ============================================================ 10 -->
-<h1 class="sec" id="troubleshooting">10. 문제 해결</h1>
-<table>
-  <thead><tr><th>증상</th><th>원인</th><th>조치</th></tr></thead>
-  <tbody>
-    <tr><td>발치 줄 「연결 실패: <code>connection_failed</code> — 워커(npm run worker:dev)가 떠 있어야 한다」, 대기방 「서버에 연결하지 못했다」</td><td>워커가 안 떠 있거나 다른 포트에 떠 있다. vite 프록시가 <code>127.0.0.1:${WORKER_PORT:-8787}</code> 로 못 붙음</td><td>다른 터미널에 <code>npm run worker:dev</code>. 포트를 바꿨으면 양쪽에 같은 <code>WORKER_PORT</code></td></tr>
-    <tr><td>방 번호에 문자를 넣었더니 200 은 오는데 WebSocket 이 열리지 않는다</td><td><code>ROOM_PATH</code> 는 숫자 1~6자리만. 그 밖은 정적 파일(<code>index.html</code>)로 떨어져 업그레이드가 실패</td><td>숫자만 쓴다. 로비 화면은 <code>ROOM_CODE_RE</code> 로 미리 거른다</td></tr>
-    <tr><td>검문실에 들어갔는데 프롤로그가 안 나오고 곧장 대화 · 시험 중이다</td><td>같은 번호 방에 지난 판이 남아 있다(판 도중 들어오면 좌석 없이 구경, 또는 DO 가 깨어 복구한 판은 프롤로그 없이 토론 40초로 시작)</td><td>새 방 번호로 들어간다. 버려진 판은 90초, 끝난 판은 30초 뒤 스스로 접힌다</td></tr>
-    <tr><td>프롤로그 자막은 흐르는데 소리가 없다</td><td><code>ELEVENLABS_API_KEY</code> 없음 또는 <code>/api/tts</code> 가 워커에 못 닿음. 잇달아 3번 실패하면 그 판의 프롤로그 소리를 포기한다</td><td>키를 넣고 워커를 띄운다. 관리 AI 방송만 Web Speech 로 폴백된다</td></tr>
-    <tr><td>봇이 조용하다</td><td>① 발언권 0 — 봇도 같은 지갑을 쓰며 <code>talk ≤ 0</code> 이면 차례에서 빠진다. ② brain mode 가 <code>none</code>(개발 서버를 못 찾음) 또는 LLM 응답 실패 → 그 차례를 조용히 넘김. ③ 프롤로그가 걷히지 않음(붙어 있는 좌석 전원이 <code>game_prologue_done</code> 을 안 올렸고 75초 전). ④ 기본 경로는 한 줄에 3~55초 걸린다</td><td>워커 로그 <code>[game/brain]</code> 확인. 키 없이 돌릴 때는 vite 가 5173 에 떠 있어야 하고 Claude Code 로그인이 필요하다. 빠르게 보려면 <code>OPENAI_API_KEY</code> 를 넣는다. 발언권은 다음 시험에서 버틴 만큼 돌아온다</td></tr>
-    <tr><td>봇은 말하는데 문장이 판에 박혀 있다 · 의심도가 안 움직인다</td><td>LLM 폴백 — 배포본이면 <code>OPENAI_API_KEY</code> 미등록, 로컬이면 <code>dev</code> 경로 실패</td><td>시크릿 등록(즉시 반영). 워커 로그 <code>[game/brain] … 실패</code> 의 사유를 본다</td></tr>
-    <tr><td>내가 말할 수 없다 — 「발언권이 없다 — 다음 시험에서 버틴 만큼 받는다」</td><td>발언권 지갑이 0. 시작 6, 한 마디에 1, 시험에서 버틴 3초마다 1(최소 1), 이월 상한 5</td><td>정상 동작. 시험에서 오래 버틴다</td></tr>
-    <tr><td>「기록 공개 중 — 입력이 잠긴다」</td><td>result 국면 7초는 전원 입력 잠금</td><td>정상 동작</td></tr>
-    <tr><td>로그인 단추가 안 보인다</td><td><code>SUPABASE_URL</code> · <code>SUPABASE_ANON_KEY</code> · <code>WORLD_TICKET_SECRET</code> 중 하나라도 비었거나 워커가 안 떠 <code>/api/config</code> 가 실패</td><td>고장이 아니다. 셋을 넣고 워커를 띄운다</td></tr>
-    <tr><td>구글 로그인 뒤 다른 사이트(humanish)로 튕긴다</td><td>Supabase Redirect URLs 에 이 오리진의 <code>/login</code> 이 없다</td><td>대시보드에 추가(§8)</td></tr>
-    <tr><td>이름 저장이 안 되고 <code>schema_not_exposed</code></td><td>PostgREST 에 <code>wih</code> 스키마가 노출되지 않음(<code>PGRST106</code>)</td><td>Exposed schemas 에 <code>wih</code> 추가</td></tr>
-    <tr><td>로비 목록이 「등록소에 닿지 못했다」(offline)</td><td>워커가 없거나 <code>LOBBY_DO</code> 바인딩이 없음(<code>503 registry_disabled</code>)</td><td>워커를 띄운다. 번호를 아는 방에는 그대로 들어갈 수 있다</td></tr>
-    <tr><td>포트 충돌 — 8787 또는 5173 이 이미 쓰인다</td><td>다른 프로젝트의 wrangler/vite</td><td><code>WORKER_PORT=8788</code> 을 양쪽에. vite 가 다른 포트로 옮겨 앉았으면 <code>LAB_DEV_URL</code> 로 워커에 알려 준다</td></tr>
-    <tr><td><code>npm run build</code> 가 워커 타입 검사에서 깨진다</td><td><code>src/world/mp</code> · <code>src/lab</code> · <code>src/shared/broadcast-kind.ts</code> · <code>series.ts</code> 에 react/three/DOM 을 끌어옴</td><td>공유 파일은 순수 TS 로 유지한다</td></tr>
-    <tr><td>커밋이 거부된다 (pre-commit)</td><td>시크릿 파일 스테이징 또는 키 모양 값이 든 줄</td><td>값을 <code>.dev.vars</code> 로 옮긴다. <code>--no-verify</code> 는 명시적 결정일 때만</td></tr>
-    <tr><td>배포는 됐는데 시크릿이 안 먹는다</td><td><code>wrangler.jsonc name</code> 이 대시보드 이름과 달라 새 워커에 들어감</td><td><code>name: "nhnai"</code> 확인</td></tr>
-    <tr><td>같은 <code>?code=</code> 로 두 탭을 열었는데 둘 다 방장처럼 시작을 보낸다</td><td>방장은 좌석 번호가 가장 작은 한 사람뿐 — 남이 보내면 <code>game_reject '방장만 시작할 수 있다'</code></td><td>정상. 거절된 탭에는 소집 대기 판이 선다</td></tr>
-  </tbody>
-</table>
-
-<!-- ============================================================ 11 -->
-<h1 class="sec" id="layout">11. 저장소 구조</h1>
-<p>게임 흐름과 관련된 폴더만 적는다. 규칙: 한 사람 = 한 폴더(<code>src/features/&lt;name&gt;/</code>), feature 끼리 import 금지(공유는 <code>src/shared</code> 또는 store), 새 화면은 <code>features/index.ts</code> 한 줄 + <code>store/index.ts</code> 한 줄로 등록, 테스트는 루트 <code>tests/</code> 아래 같은 구조.</p>
-<pre><code>NHNAI2/
-├─ index.html                      &lt;title&gt; 특수인공지능대응센터
-├─ package.json · package-lock.json
-├─ wrangler.jsonc                  워커 nhnai · assets ./dist · ROOM_DO · LOBBY_DO · migrations v1/v2
-├─ vite.config.ts                  프록시(/world-ws · /api/*) · labPlugin · WORKER_PORT
-├─ tsconfig.json · tsconfig.worker.json · vitest.config.ts
-├─ .dev.vars.example               환경 변수 이름 목록 (값은 .dev.vars — 커밋 안 됨)
-├─ PLANNING.md                     기획 원본 (일부 수치는 코드보다 오래됨)
-├─ README.md
-├─ docs/
-│  ├─ DEVELOPMENT.md               키 · 구조 · 병렬 작업 규칙 · 배포
-│  ├─ SUSPICION.md                 의심도 상태머신 (걸음 · 압력 · 표식)
-│  ├─ SPEECH.md · VOICE.md         말과 목소리의 관로
-│  ├─ COLORHUNT.md                 색 사냥 시험 (엔진은 있으나 차례표에 없음)
-│  ├─ img/                         이 문서들의 스크린샷
-│  └─ build-guide.html             이 문서
-├─ public/                         아바타 GLB · 얼굴 · 처형자 · 맵 자원 → dist 로 복사
-├─ src/
-│  ├─ main.tsx · App.tsx           진입점 · 라우터 · TtsPlayer · BroadcastBanner
-│  ├─ Launcher.tsx                 / — 「인트로 시작」과 개발용 문 목록
-│  ├─ features/
-│  │  ├─ index.ts                  라우트 등록부 (FEATURES)
-│  │  ├─ lobby/                    /intro (Intro.tsx) · /lobby · 대기방 · /login · /account/nickname
-│  │  ├─ interrogation/            /interrogation 검문실 — 본판 화면
-│  │  │  ├─ InterrogationFeature.tsx   연결 · 자동 시작(AUTO_SEATS) · 수신 처리 · HUD 조립
-│  │  │  ├─ interrogationSlice.ts      서버 상태(GameStateWire) · feed · 결과
-│  │  │  ├─ net/GameConnection.ts      WebSocket 래퍼 (입장권 → /rooms/&lt;code&gt;/ws)
-│  │  │  ├─ prologue.ts · prologueVoice.ts   프롤로그 11줄 · 목소리
-│  │  │  ├─ RoleBriefing.tsx           배역 카드
-│  │  │  ├─ hud/                       Chat · BigClock · TestOrder · ResultModal · EndScreen · LobbyPanel · DesignerPanel · SelfSuspicion
-│  │  │  └─ scene/                     HallScene · FreeRig/DiscRig · SeatAvatar · SuspicionBar · Executioner · FallStage/PlatformCourse/DiscStage
-│  │  ├─ tts/                      관리 AI 방송 재생 (엔진 · 큐 · PA 체인)
-│  │  ├─ intro/                    옛 랜딩 (라우트를 잃음 — /intro 는 lobby/Intro.tsx)
-│  │  └─ play · world · world2 · arena · talk · lab · trial · central · recheck · warehouse · voice · tts …   실험용(Launcher 문), 게임 흐름 밖
-│  ├─ world/
-│  │  ├─ mp/                       워커와 공유하는 순수 계약: protocol · game-protocol(판의 상수 · 메시지) · constants · bodies · spawn · koreanNames · lobby
-│  │  ├─ net/                      WorldConnection · remote-players(보간 링버퍼)
-│  │  ├─ scene/ · avatar/ · map/   three.js 캔버스 · SoldierAvatar · MAPS.govcenter
-│  │  └─ input/ · perf/
-│  ├─ shared/                      supabase · useAccount · guest · start · broadcast · opening
-│  ├─ store/                       Redux (11 slices)
-│  └─ lab/personas.ts              봇 성격 풀 (워커와 공유)
-├─ worker/src/
-│  ├─ index.ts                     라우팅 · Env 선언 · /health
-│  ├─ room-do.ts                   RoomDO — 방 · 소켓 · 입장 판정 · GameRuntime 소유
-│  ├─ lobby-do.ts                  LobbyDO — 등록소 · /api/rooms
-│  ├─ auth.ts                      /api/config · /api/profile · /api/world/ticket
-│  ├─ tts.ts · seat-voice.ts       ElevenLabs 합성
-│  ├─ game/
-│  │  ├─ runtime.ts                판의 국면 · 좌석 · 배역 · 시험 조립 · 격리 · 승패 · 봇 발화 · 설계자 조작 · 저장/복구
-│  │  ├─ roles.ts                  designerCount · quotaFor · assignRoles · outcomeFor
-│  │  ├─ suspicion.ts · tells.ts   의심도 회계 · 규칙 표식
-│  │  ├─ agents.ts                 프롬프트 (sayAs · leaderComment · readTalk · judgeClaim · aiStrategy) · LINES
-│  │  ├─ brain.ts                  LLM 관로 선택 (anthropic · openai · dev · none)
-│  │  └─ engines.ts                시험 엔진 조립 · INSTRUCTION
-│  ├─ trial/
-│  │  ├─ fall/ · platform/ · disc/   낙하 생존 · 움직이는 발판 · 회전 원판 (엔진 · npc · 통계)
-│  │  ├─ condition.ts              숨은 조건표 (src 에서 import 금지 — P8)
-│  │  └─ stopline* · colorhunt/    엔진은 있으나 검문실 차례표에 없음
-│  └─ lab/                         provider(pickApi) · openai · anthropic — 실험용 라우트와 공유
-├─ supabase/                       schema.sql (wih.profiles) · apply.sh · fence.sh · checks.sh
-├─ tools/
-│  ├─ vite-lab.ts                  개발 서버의 Claude 구독 경로 (/api/lab/complete)
-│  ├─ load-vars.mjs                .dev.vars 주입 (값 미출력)
-│  ├─ git-hooks/                   pre-commit · pre-push
-│  └─ leader-bench.mjs
-├─ tests/                          worker/ · features/ · world/ · shared/ · lab/ · arena3d/ · setup.ts
-└─ .claude/                        settings.json(deny) · hooks/guard.mjs</code></pre>
-
-<!-- ============================================================ 12 -->
-<h1 class="sec" id="appendix">12. 부록 — PDF 로 남기기 · 출처</h1>
-
-<h2>이 문서를 PDF 로</h2>
-<ol>
-  <li>브라우저(Chrome · Safari · Edge)에서 <code>docs/build-guide.html</code> 을 연다. 외부 자원이 없어 오프라인에서도 그대로 렌더된다(스크린샷은 <code>docs/img/</code> 상대 경로).</li>
-  <li>인쇄(<kbd>⌘P</kbd> / <kbd>Ctrl+P</kbd>) → 대상 「PDF 로 저장」. 용지 A4, 여백 기본(<code>@page</code> 가 16mm/14mm 를 지정), 배경 그래픽 켬(표 머리 · 콜아웃 배경이 살아난다).</li>
-  <li>표지와 차례가 각각 한 쪽, 절(§)마다 새 쪽에서 시작한다. 표 행 · 그림 · 콜아웃은 쪽 경계에서 잘리지 않는다.</li>
-</ol>
-
-<h2>출처</h2>
-<ul>
-  <li>코드: <code>package.json</code> · <code>wrangler.jsonc</code> · <code>vite.config.ts</code> · <code>tsconfig*.json</code> · <code>vitest.config.ts</code> · <code>worker/src/index.ts</code> · <code>worker/src/game/{runtime,roles,brain}.ts</code> · <code>worker/src/{room-do,lobby-do,auth}.ts</code> · <code>src/world/mp/{constants,game-protocol}.ts</code> · <code>src/features/interrogation/InterrogationFeature.tsx</code> · <code>src/features/lobby/*</code> — 2026-09-05 main (HEAD 6a3b0af).</li>
-  <li>문서: <code>docs/DEVELOPMENT.md</code>(시작 · 키 · 계정 · 배포) · <code>README.md</code>(요구 사항 · 시작하기) · <code>docs/SUSPICION.md</code> · <code>PLANNING.md</code>.</li>
-  <li>팀 세계관 글(2026 · 물리법칙 · 제한 · 배역 · 흐름) — §4 의 「세계관 글과 코드가 다른 자리」 콜아웃에서 코드와 대조했다.</li>
-  <li>실측: <code>npm test</code> 3회(2026-09-05), <code>npm run typecheck</code> 통과, Node v24.1.0, wrangler 4.125.0. wrangler dev · 실제 LLM/TTS/Supabase 호출은 이 문서를 쓰며 다시 실행하지 않았다.</li>
-</ul>
-
-<footer class="end">
-  특수인공지능대응센터 (who-is-human) — 게임 빌드 · 실행 · 배포 안내 v1.0 · 2026-09-05 · 저장소 브랜치 main. 이 문서는 오늘 빌드가 하는 일을 적는다. 코드가 바뀌면 §4 타임라인 · §5 스크립트 표 · §6 실패 목록부터 다시 맞춘다.
-</footer>
-
+<footer class="end">who-is-human · 빌드 안내 v1.1 · 2026-09-05 — PDF는 <code>sh tools/docs-pdf.sh</code> 또는 브라우저 인쇄(A4).</footer>
 </div>
 </body>
 </html>
