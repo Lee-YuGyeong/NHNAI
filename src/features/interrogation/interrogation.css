@@ -444,69 +444,7 @@
   cursor: default;
 }
 
-/* ── 기록 요약 (오른쪽 위) — 통신판과 같은 모따기 판: 머리띠 · 표 ── */
-.ig-record {
-  position: absolute;
-  right: 12px;
-  top: 48px;
-  width: 360px;
-  display: grid;
-  clip-path: var(--ig-chamfer);
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
-.ig-record::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.3;
-  background: var(--ig-scan);
-  background-size: 100% 3px;
-}
-.ig-record .hd {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px 7px 12px;
-  background: rgba(8, 6, 4, 0.84);
-  border-left: 1px solid var(--ig-edge);
-  border-bottom: 1px solid var(--ig-line-soft);
-}
-.ig-record .hd::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 1px;
-  background: linear-gradient(to right, transparent, var(--amber), transparent);
-  opacity: 0.55;
-}
-.ig-record .live {
-  flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--amber);
-  box-shadow: 0 0 8px var(--amber);
-}
-.ig-record .ttl {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: var(--dust);
-}
-.ig-record .bd {
-  max-height: 38vh;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(232, 221, 205, 0.22) transparent;
-  padding: 6px 10px 8px;
-  background: rgba(8, 6, 4, 0.76);
-  border-left: 1px solid var(--ig-edge);
-}
+/* 오른쪽 위 기록판(.ig-record)은 걷었다 (2026-09-05 사용자: "1시 방향의 기록 리스트 없애줘") — 표(.ig-table)는 결과 모달의 요약이 쓴다 */
 .ig-table {
   width: 100%;
   border-collapse: collapse;
@@ -1201,9 +1139,6 @@
   .ig-endpanel .live,
   .ig-result .ig-sheet,
   .ig-result .live,
-  .ig-record .live {
-    animation: none;
-  }
   .ig-endpanel .shine {
     display: none;
   }

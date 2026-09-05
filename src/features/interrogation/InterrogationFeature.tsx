@@ -28,7 +28,7 @@ import { PROLOGUE, castSubjects, prologueLineOf, prologueLines } from './prologu
 import { prefetchPrologue, prologueClipMs, prologueLagMs, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
-import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TestOrder } from './hud/Panels';
+import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, ResultModal, TestOrder } from './hud/Panels';
 import { SelfSuspicion } from './hud/SelfSuspicion';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
@@ -695,7 +695,6 @@ export function InterrogationFeature() {
           * "카드는 안보여도돼. 머리위에 의심도만 보이면 돼"). 단추로 지목하는 짓도 같이 사라졌다:
           * 눈금을 움직이는 것은 **관리 AI 가 사람들의 말을 읽는 것**이다 (worker/src/game/agents.ts 의 readTalk).
           */}
-        {inGame && latestResult && phase !== 'result' ? <RecordPanel result={latestResult} nameOf={nameOf} mySeatId={mySeatId} /> : null}
         {me?.role === 'designer' && wire && inGame && phase !== 'ended' ? (
           <DesignerPanel seats={seats} mySeatId={mySeatId} tamperLeft={me.tamperLeft} phase={phase} onTamper={onTamper} />
         ) : null}
@@ -724,10 +723,13 @@ export function InterrogationFeature() {
           />
         ) : null}
 
-        {/* 내 의심도 — 발치 줄 위의 고정 계기 (hud/SelfSuspicion 머리말). 좌석이 있을 때만, 끝 화면에서는 걷는다 */}
-        {inGame && mySeatId && phase !== 'ended' ? <SelfSuspicion getValue={() => getSuspicion(mySeatId)} /> : null}
+        {/* 내 의심도 — 발치 줄 위의 고정 계기 (hud/SelfSuspicion 머리말). 좌석이 있을 때만, 끝 화면에서는 걷는다.
+            프롤로그 대화창이 서 있는 동안도 걷는다 — 같은 자리(화면 아래 가운데)에 상자가 서서 계기와 안내줄이 상자 위로
+            비쳤다 (2026-09-05 사용자: "시나리오 나올 때는 WASD · 의심도 텍스트 안 나오게"). 대본이 흐르는 동안은
+            움직이지도 말하지도 못하니 둘 다 아직 할 말이 없다 */}
+        {inGame && mySeatId && phase !== 'ended' && !prologueUp ? <SelfSuspicion getValue={() => getSuspicion(mySeatId)} /> : null}
         {/* 시험 중의 발치 줄은 수치판(.stat)이다 — 안내 문장일 때보다 크고 밝게, 숫자는 자리를 안 떤다 */}
-        {hud ? (
+        {hud && !prologueUp ? (
           <p className={`ig-foot${phase === 'test' ? ' stat' : ''}`}>
             {hud}
             {!locked && status === 'connected' && !modalUp ? ' · 화면을 클릭하면 마우스로 둘러본다' : ''}

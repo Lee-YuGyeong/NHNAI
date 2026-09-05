@@ -17,7 +17,7 @@ import { GAME_MAX_HUMANS, GAME_MIN_HUMANS, type GameOutcome, type GameRole, type
 import type { TrialResultWire } from '@/world/mp/protocol';
 import { BODIES, type BodyId } from '@/world/mp/bodies';
 import type { ChatEntry } from '../interrogationSlice';
-import { ResultSummary, ResultTable, TEST_TITLE } from './ResultTable';
+import { ResultSummary, TEST_TITLE } from './ResultTable';
 
 export const ROLE_LABEL: Record<GameRole, string> = { human: '사람', designer: 'AI 설계자', ai: 'AI' };
 
@@ -258,21 +258,10 @@ export function TestOrder({ game, round, fallback }: { game: string; round: numb
 
 /* ─────────────────────────────── 기록 요약 · 결과 모달 ─────────────────────────────── */
 
-export function RecordPanel({ result, nameOf, mySeatId }: { result: TrialResultWire; nameOf: (id: string) => string; mySeatId: string | null }) {
-  return (
-    <div className="ig-record">
-      <div className="hd">
-        <i aria-hidden className="live" />
-        <span className="ttl">
-          RECORD · {TEST_TITLE[result.game]} {result.round}회차
-        </span>
-      </div>
-      <div className="bd">
-        <ResultTable result={result} nameOf={nameOf} mySeatId={mySeatId} />
-      </div>
-    </div>
-  );
-}
+/*
+ * 오른쪽 위에 서던 기록판(RecordPanel — 마지막 시험의 원자료 표)은 걷었다 (2026-09-05 사용자: "1시 방향의 기록 리스트
+ * 없애줘"). 기록은 7초 모달의 요약(ResultSummary)으로만 보고, 눈금은 몸 위 막대가 말한다.
+ */
 
 /**
  * 기록 공개 모달 — 끝 화면(.ig-endpanel)과 같은 모따기 판이다: 머리띠 · 표 · 발치.
@@ -310,8 +299,8 @@ export function ResultModal({
             {TEST_TITLE[result.game]} <span>{result.round}회차</span>
           </p>
           {/*
-            요약만 (2026-09-05 사용자: "간단하게 몇 초 안 맞았냐 · 몇 등 · 발언권 몇 개, 대충 통계만") — 상세 표는
-            모달이 걷힌 뒤 옆에 서는 기록판(RecordPanel)이 그대로 든다. 7초 모달은 읽는 자리가 아니라 보는 자리다.
+            요약만 (2026-09-05 사용자: "간단하게 몇 초 안 맞았냐 · 몇 등 · 발언권 몇 개, 대충 통계만"). 7초 모달은
+            읽는 자리가 아니라 보는 자리다. 상세 표를 들던 오른쪽 위 기록판은 같은 날 걷었다.
           */}
           <ResultSummary result={result} nameOf={nameOf} mySeatId={mySeatId} gained={gained} />
           <p className="ig-note">
