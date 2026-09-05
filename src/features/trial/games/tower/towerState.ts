@@ -15,6 +15,15 @@ const DELAY_MS = TOWER_SNAPSHOT_MS + 30;
 let prev: Snapshot | null = null;
 let next: Snapshot | null = null;
 let clockOffset = 0;
+/** 발판 번호 → 스냅샷의 발판 — 프레임마다 25 × find 를 돌지 않게 push 때 한 번 색인한다 (2026-09-05 최적화) */
+let prevSlabs: (TowerSlabWire | undefined)[] = [];
+let nextSlabs: (TowerSlabWire | undefined)[] = [];
+
+function indexSlabs(s: Snapshot): (TowerSlabWire | undefined)[] {
+  const out = new Array<TowerSlabWire | undefined>(TOWER_N * TOWER_N);
+  for (const sl of s.slabs) out[sl.i] = sl;
+  return out;
+}
 
 function lerp(a: number, b: number, u: number): number {
   return a + (b - a) * u;
@@ -49,11 +58,15 @@ export const towerState = {
   push(s: Snapshot): void {
     if (!prev && !next) clockOffset = s.at - Date.now();
     prev = next;
+    prevSlabs = nextSlabs;
     next = s;
+    nextSlabs = indexSlabs(s);
   },
   clear(): void {
     prev = null;
     next = null;
+    prevSlabs = [];
+    nextSlabs = [];
     towerState.selfStance = 0;
   },
   get offset(): number {
@@ -70,9 +83,9 @@ export const towerState = {
   },
   /** 발판 하나 — 기울기는 한 스냅샷 늦게 보간. 스냅샷에 없으면 「없다」 */
   slabAt(idx: number, nowLocal: number): SlabFrame {
-    const b = next?.slabs.find((s) => s.i === idx);
+    const b = nextSlabs[idx];
     if (!next || !b) return { idx, tx: 0, tz: 0, state: 3, atLocal: 0, wear: 0 };
-    const a = prev?.slabs.find((s) => s.i === idx);
+    const a = prevSlabs[idx];
     const t = nowLocal + clockOffset - DELAY_MS;
     let tx = b.tx;
     let tz = b.tz;
