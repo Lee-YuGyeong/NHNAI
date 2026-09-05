@@ -404,8 +404,9 @@ export class GameRuntime {
     const seat = this.seatOfPlayer(playerId);
     if (!seat) return true; // 좌석이 없는 구경꾼 — 판에는 안 실린다
     if (this.phase === 'result') return true; // 모달 동안은 전원 입력이 잠긴다 (§3)
-    // 발언권 하나 — 없으면 말이 안 나간다. 다음 시험에서 기록만큼 다시 받는다 (TALK)
-    if (!this.spendTalk(seat)) {
+    // 발언권 하나 — 없으면 말이 안 나간다. 다음 시험에서 기록만큼 다시 받는다 (TALK).
+    // 단, 강제된 질문에 대한 답은 공짜다 — 지갑이 빈 사람이 15초 무응답 +25 를 피할 길이 없으면 카드가 함정이 된다
+    if (!this.mustAnswer(seat) && !this.spendTalk(seat)) {
       this.reject(playerId, '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다');
       return true;
     }
@@ -1204,13 +1205,18 @@ export class GameRuntime {
     const now = this.now();
     // 카드를 쥔 봇이 있으면 처지를 보고 한 장 쓴다 — 쓴 봇이 이번 말의 차례를 잡는다(질문 · 이유가 그 말이다)
     const used = this.botCards();
-    // 발언권이 남은 봇만 — 지갑이 빈 좌석은 사람이든 봇이든 똑같이 조용하다 (P10 · TALK)
-    const bots = this.seats.filter((s) => s.kind !== 'real' && !s.isolated && s.persona && s.talk > 0 && !this.botBusy.has(s.id));
+    // 발언권이 남은 봇만 — 지갑이 빈 좌석은 사람이든 봇이든 똑같이 조용하다 (P10 · TALK). 강제된 답만 공짜다 (mustAnswer)
+    const bots = this.seats.filter(
+      (s) => s.kind !== 'real' && !s.isolated && s.persona && (s.talk > 0 || this.mustAnswer(s)) && !this.botBusy.has(s.id),
+    );
     if (!bots.length) return;
-    // 지목당한 봇이 먼저, 오래 조용했던 봇이 다음 — 그 안에서 무작위
+    // 지목당한 봇이 먼저, 오래 조용했던 봇이 다음 — 그 안에서 무작위.
+    // 답변 강제권에 걸린 봇은 그보다 앞이다 — 마감이 15초라 이번 차례를 놓치면 무응답 +25 를 맞는다
     const weight = (s: Seat) => (this.book.accusersOf(s.id).length ? 3 : 1) * (now - s.lastSpokeAt > QUIET_MS ? 1.6 : 1) * (0.5 + this.rand());
-    const pick = (used && bots.find((s) => s.id === used.by)) ?? [...bots].sort((a, b) => weight(b) - weight(a))[0];
+    const pick =
+      bots.find((s) => this.mustAnswer(s)) ?? (used && bots.find((s) => s.id === used.by)) ?? [...bots].sort((a, b) => weight(b) - weight(a))[0];
     if (!pick?.persona) return;
+    const free = this.mustAnswer(pick);
 
     this.botBusy.add(pick.id);
     try {
@@ -1230,8 +1236,8 @@ export class GameRuntime {
         card: used && used.by === pick.id ? { item: used.item, target: used.target ? this.nameOf(used.target) : null } : null,
       });
       if (!out || !this.active() || pick.isolated) return;
-      // 말을 짓는 동안 지갑이 비었을 수 있다 (같은 좌석의 앞 차례) — 그러면 이 말은 버린다
-      if (!this.spendTalk(pick)) return;
+      // 말을 짓는 동안 지갑이 비었을 수 있다 (같은 좌석의 앞 차례) — 그러면 이 말은 버린다. 강제된 답은 안 센다
+      if (!free && !this.spendTalk(pick)) return;
       if (this.phase === 'discussion') {
         this.say(pick.id, out.text);
         if (out.withdraw) this.applyDeltas(this.book.withdraw(pick.id));
@@ -1438,7 +1444,7 @@ export class GameRuntime {
 
   /**
    * 답변 강제권의 흐름 — say() 가 매 말마다 부른다.
-   *   by 의 첫 말 = 질문 (마감 CARD.answerMs 를 새로 센다). 과녁이 봇이면 곧 답할 차례를 잡는다.
+   *   by 의 첫 말 = 질문 (마감 CARD.answerMs · 15초를 새로 센다 — 넘기면 무응답 +truthSilent). 과녁이 봇이면 곧 답할 차례를 잡는다.
    *   그 뒤 target 의 첫 말 = 답 → 관리 AI 가 기록·앞말과 대조한다 (agents.judgeCompelled). 판정은 전원이 본다.
    */
   private onCompelledSpeech(seat: Seat, text: string, now: number): void {
@@ -1484,21 +1490,28 @@ export class GameRuntime {
     }
   }
 
-  /** 판정을 눈금에 얹고 알린다 — 거짓 +truthLie · 회피 +truthEvade · 진실 truthHonest(−). 그러고 나면 강제권은 풀린다 */
+  /** 판정을 눈금에 얹고 알린다 — 거짓 +truthLie · 회피 +truthEvade · 무응답 +truthSilent · 진실 truthHonest(−). 그러고 나면 강제권은 풀린다 */
   private settleCompelled(verdict: CompelledVerdict, reason: string): void {
     const c = this.compelled;
     if (!c) return;
     this.compelled = null;
-    const amount = verdict === 'false' ? CARD.truthLie : verdict === 'evasive' ? CARD.truthEvade : CARD.truthHonest;
-    const d = this.book.boost(c.target, amount, 'LEADER', verdict === 'false' ? '강제 답변 — 거짓' : verdict === 'evasive' ? '강제 답변 — 회피' : '강제 답변 — 진실');
+    const amount =
+      verdict === 'false' ? CARD.truthLie : verdict === 'silent' ? CARD.truthSilent : verdict === 'evasive' ? CARD.truthEvade : CARD.truthHonest;
+    const why =
+      verdict === 'false' ? '강제 답변 — 거짓' : verdict === 'silent' ? '강제 답변 — 무응답' : verdict === 'evasive' ? '강제 답변 — 회피' : '강제 답변 — 진실';
+    const d = this.book.boost(c.target, amount, 'LEADER', why);
     const text = LINES.compelled(this.nameOf(c.target), verdict, reason);
     this.deps.broadcast({ t: 'game_compelled', by: c.by, target: c.target, verdict, text, delta: d?.amount ?? 0 });
-    this.leader(text, verdict === 'false' ? 'alarm' : 'readout');
+    this.leader(text, verdict === 'false' || verdict === 'silent' ? 'alarm' : 'readout');
     if (d) this.applyDeltas([d]);
     else this.broadcastState();
   }
 
-  /** 질문이 나왔는데 마감까지 답이 없다 — 회피로 친다. 질문조차 안 나온 채 마감이면 그냥 푼다 */
+  /**
+   * 질문이 나왔는데 마감(CARD.answerMs · 15초)까지 답이 없다 — **무응답**으로 문다 (+truthSilent, 거짓과 같은 크기).
+   * 회피(+12)로 치면 입을 다무는 쪽이 교묘히 피하는 것보다 싸다 — 그러면 카드가 죽는다 (2026-09-05 사용자).
+   * 질문조차 안 나온 채 마감이면 그냥 푼다 — 건 사람이 안 물은 것이라 걸린 사람 잘못이 아니다.
+   */
   private watchCompelled(now: number): void {
     const c = this.compelled;
     if (!c || this.compelledInFlight || now < c.until) return;
@@ -1507,7 +1520,15 @@ export class GameRuntime {
       this.broadcastState();
       return;
     }
-    this.settleCompelled('evasive', '마감까지 답이 없다');
+    // 걸린 봇이 지금 답을 짓고 있다(LLM 왕복 중) — 모델 지연은 봇의 침묵이 아니다. 그 말이 나오면 판정으로 간다
+    if (this.botBusy.has(c.target)) return;
+    this.settleCompelled('silent', `${Math.round(CARD.answerMs / 1000)}초 안에 답이 없다`);
+  }
+
+  /** 이 좌석은 지금 강제된 질문에 답해야 한다 — 그 답은 발언권을 안 쓴다 (onChat · botTurn) */
+  private mustAnswer(seat: Seat): boolean {
+    const c = this.compelled;
+    return c !== null && c.target === seat.id && c.question !== null && !this.compelledInFlight;
   }
 
   /**
