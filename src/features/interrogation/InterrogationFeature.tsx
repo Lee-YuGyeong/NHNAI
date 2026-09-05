@@ -24,7 +24,7 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { PROLOGUE, prologueLineOf, prologueLines } from './prologue';
+import { PROLOGUE, castSubjects, prologueLineOf, prologueLines } from './prologue';
 import { prefetchPrologue, prologueClipMs, prologueLagMs, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
@@ -57,6 +57,13 @@ function seatSpot(seat: GameSeat, total: number): { x: number; z: number } {
  * 둘이 같이 들어오면 사람이 대역 자리를 차지한다 — 넷은 그대로다. 예전처럼 소집 대기를 보려면 ?lobby.
  */
 const AUTO_SEATS = 4;
+
+/**
+ * 대화권 — 판에서 말할 권리의 수. 머리띠(구역 통신 헤더) 오른쪽에 선다 (2026-09-05 사용자:
+ * "대화권(발언권)이라는 게 추가될거야"). 아직 표시뿐이다 — 차감·회복 규칙이 정해지면 이 상수는
+ * 서버가 세는 값(tamperLeft 처럼 game_role · 전용 이벤트)으로 바뀐다. 로비에서는 안 센다.
+ */
+const TALK_QUOTA = 5;
 
 export function InterrogationFeature() {
   const dispatch = useAppDispatch();
@@ -431,7 +438,11 @@ export function InterrogationFeature() {
      * 소리는 미리 받아 둔다 — 합성 왕복이 300~800ms 라, 줄이 뜬 뒤에 받기 시작하면 첫 줄만
      * 자막이 먼저 뜨고 소리가 뒤늦게 붙는다 (prologueVoice 머리말).
      */
-    resetPrologueVoice();
+    /*
+     * 배역(몸)을 먼저 적는다 — 목소리가 얼굴(몸)을 따르기 때문이다 (prologueVoice 의 BODY_VOICE).
+     * 아래 prologueLines 와 같은 씨앗이라 얼굴과 목소리가 같은 배역을 본다.
+     */
+    resetPrologueVoice(castSubjects(seatsRef.current, startedAt));
     prefetchPrologue(PROLOGUE);
     /*
      * 소리가 스피커에 닿기까지의 늦음 — 자막을 그만큼 늦게 연다 (DialogueBox 의 voiceLagMs).
@@ -682,6 +693,7 @@ export function InterrogationFeature() {
             feed={feed}
             mySeatId={mySeatId}
             markId={markId}
+            talkLeft={inGame ? TALK_QUOTA : null}
             disabled={status !== 'connected' || phase === 'result' || phase === 'ended' || (inGame && !mySeatId)}
             onSend={onSend}
             onComposing={setComposing}
