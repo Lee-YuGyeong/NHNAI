@@ -45,3 +45,12 @@ export const DISC_GRIP: readonly number[] = [0.6, 0.35, 0.85];
  * 그 사람에게 보낸다 — 색 사냥이 반사율 대신 표시색만 내려보내는 것과 같은 수법이다(colorhunt/palette.ts).
  */
 export const PLATFORM_GRIP: readonly number[] = [0.85, 0.3, 1.15];
+
+/**
+ * 무게 중심 다리 3구간의 **판자 윗면 마찰계수** — 도장 강판(기준) → 젖은 강판 → 고무 깔개. 기울기 φ 에서 발이 버티는 조건은
+ * tan φ ≤ μ 다: 0.3 이면 16.7° 까지(상한 20.6° 직전에야 미끄러진다), 0.12 면 6.8° 만 넘어도 낮은 쪽으로 흘러내린다, 0.5 면
+ * 상한까지 안 미끄러진다 — 그 구간의 위험은 기울기 자체(멈춤쇠에 닿는 들썩임)뿐이다. 상자도 같은 μ 로 미끄러진다.
+ * P8: μ 는 와이어로 안 나간다 — 미끄러진 결과(자리 · s)만 스냅샷에 실린다 (worker/src/trial/seesaw/sim.ts).
+ */
+export const SEESAW_GRIP: readonly number[] = [0.3, 0.12, 0.5];
+

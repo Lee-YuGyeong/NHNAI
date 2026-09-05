@@ -43,6 +43,9 @@ export const PART_NAMES = {
   // 회전 원판 생존 (features/trial/games/disc)
   disc_hub: '원판 회전축',
   disc_beacon: '원판 비콘',
+  // 무게 중심 다리 (features/trial/games/seesaw)
+  seesaw_pivot: '다리 받침대',
+  seesaw_stop: '다리 멈춤쇠',
   // 특수인공지능대응센터 홀 (map/govcenter.tsx) — 유리 방 소품 · 철문 · 벽등 · 옆벽 콘솔
   gov_server_rack: '서버 랙',
   gov_workstation: '워크스테이션',

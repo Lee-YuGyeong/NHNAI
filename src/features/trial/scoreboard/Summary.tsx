@@ -39,6 +39,11 @@ const COLS: Record<TrialGame, Col[]> = {
     { key: 'falls', label: '낙하', unit: '회', digits: 0 },
     { key: 'radiusStd', label: '자리 흔들림', unit: 'm', digits: 2 },
   ],
+  seesaw: [
+    { key: 'counterRate', label: '높은 쪽에 선 비율', unit: '', digits: 2 },
+    { key: 'walked', label: '이동거리', unit: 'm', digits: 1 },
+    { key: 'falls', label: '낙하', unit: '회', digits: 0 },
+  ],
 };
 
 function fmt(v: unknown, unit: string, digits: number): string {

@@ -266,3 +266,65 @@ export const DISC_TICK_MS = 50;
 export const DISC_SNAPSHOT_MS = 100;
 /** 걷기 입력이 이만큼(ms) 안 오면 손을 뗀 것으로 본다 (클라는 바뀔 때만 보낸다 — 끊긴 사람이 영영 걷지 않게) */
 export const DISC_WALK_STALE_MS = 1500;
+
+/* ───────────────────────────── 물리 미니게임 — 무게 중심 다리 ───────────────────────────── */
+
+/**
+ * 무게 중심 다리의 **공개** 상수 — 숨는 것은 판자 윗면의 마찰계수(worker/src/trial/condition.ts 의 SEESAW_GRIP)뿐이다.
+ * 홀 가운데 마당(FALL_ARENA)에 길이 14m · 폭 3m 의 강판이 가운데 축 하나로 얹혀 있다. 판자는 z 방향으로 길고(판자 좌표 u),
+ * x 축을 중심으로 기울어진다(φ, +u 끝이 올라가면 양수). 서버가 회전(φ · ω)과 참가자·화물 전부의 자리를 적분해
+ * 스냅샷(trial_seesaw)으로 내려 보내고, 클라는 걷기 명령(trial_walk)만 올린다 — 회전 원판과 같은 수법(P8).
+ * 상세 설계는 worker/src/trial/seesaw/sim.ts 머리말.
+ */
+export const SEESAW_CENTER = { x: 0, z: -1.5 } as const;
+/** 판자 절반 길이(m) — 축에서 끝까지. 이 밖으로 나가면 떨어진다 */
+export const SEESAW_HALF = 7;
+/** 판자 절반 폭(m). 옆은 난간이 막아 떨어지지 않는다 — 이 판의 물리는 길이 방향 하나다 */
+export const SEESAW_HALF_W = 1.5;
+/** 축 위 판자 윗면 높이(m). 끝은 최대 기울기에서 바닥 위 0.13m 까지 내려간다 (7·sin 0.36 ≈ 2.47) */
+export const SEESAW_TOP = 2.6;
+/** 판자 두께(m) — 그리기용 */
+export const SEESAW_PLATE_H = 0.3;
+/** 기울기 상한(rad, ≈20.6°) — 멈춤쇠가 받는다. 세게 닿으면 판이 들썩여 발이 미끄러진다 (SEESAW_JOLT) */
+export const SEESAW_TILT_MAX = 0.36;
+/** 멈춤쇠에 닿는 순간 판 위 모든 발에 얹히는 미끄러짐(m/s, 낮은 쪽으로). 이 각속도(rad/s)보다 세게 닿았을 때만 */
+export const SEESAW_JOLT = 1.2;
+export const SEESAW_JOLT_OMEGA = 0.25;
+/**
+ * 판자 질량(kg)과 축 둘레 관성 모멘트(kg·m²) — 균일한 막대 M·L²/12, L = 14. 사람 하나(75kg)가 끝(7m)에 서면 α ≈ 0.13 rad/s² —
+ * 멈춰 있던 판이 상한(0.36)까지 2.4초. 1200kg 로 시작했더니 첫 화면부터 판이 상한에 붙어 있었다(2026-09-05 헤드리스 확인) —
+ * 사람이 반응할 틈이 없어 2500 으로 올렸다
+ */
+export const SEESAW_PLANK_MASS = 2500;
+export const SEESAW_INERTIA = (SEESAW_PLANK_MASS * (2 * SEESAW_HALF) ** 2) / 12;
+/** 축 마찰(N·m·s) — 없으면 영원히 흔들린다. ω = 0.15 rad/s 에서 2250 N·m — 사람 하나가 3m 에 선 토크와 비슷하다 */
+export const SEESAW_DAMPING = 15000;
+/** 축이 판자 무게중심보다 이만큼(m) 위다 — 빈 판이 수평으로 돌아오는 복원력. 0.2rad 에서 사람 하나가 3.3m 에 선 것과 같다 — 끝(7m)의 하나가 이긴다 */
+export const SEESAW_COM_DROP = 0.5;
+/** 사람 몸의 기준 질량(kg) — 몸마다 배율이 붙는다 (mp/bodies.ts massOf: 비만 1.8) */
+export const SEESAW_BODY_MASS = 75;
+/** 판자 위 걷기 · 달리기(Shift) 속도(m/s). 서버가 이 상한으로 자른다 */
+export const SEESAW_WALK_SPEED = WALK_SPEED;
+export const SEESAW_RUN_SPEED = 4.8;
+/** 떨어진 뒤 다시 올라오기까지(ms) · 다시 서는 자리(축에서, m) */
+export const SEESAW_RESPAWN_MS = 2500;
+export const SEESAW_RESPAWN_U = 0.8;
+/** 서버 물리 틱과 스냅샷 주기(ms) — 회전 원판과 같다 */
+export const SEESAW_TICK_MS = 50;
+export const SEESAW_SNAPSHOT_MS = 100;
+export const SEESAW_WALK_STALE_MS = 1500;
+/**
+ * 화물 — 천장 크레인이 판자 위 아무 자리에 상자를 내려놓는다. 이것이 판을 흔드는 「사건」이다: 무리가 반대쪽으로 옮겨 가
+ * 균형을 되찾아야 한다. 상자도 같은 마찰로 미끄러진다 — 기울면 낮은 쪽으로 밀려 끝에서 떨어진다
+ */
+export const SEESAW_CRATE_MASS = 120;
+export const SEESAW_CRATE_SIZE = 1.0;
+/** 다음 상자까지(ms) 최소 · 최대, 상자가 머무는 시간(ms) 최소 · 최대, 동시에 놓이는 상한 */
+export const SEESAW_CRATE_EVERY_MS = [5000, 8000] as const;
+export const SEESAW_CRATE_STAY_MS = [6000, 10000] as const;
+export const SEESAW_CRATE_MAX = 3;
+/** 상자가 내려놓이는 자리(축에서, m) 최소 · 최대 — 축 바로 옆은 힘이 없다 */
+export const SEESAW_CRATE_U = [2, 6] as const;
+/** 크레인에서 판자까지 내려오는 시간(ms) — 클라 연출이자 서버가 「닿는 순간」을 정하는 값. 닿기 전에는 무게가 없다 */
+export const SEESAW_CRATE_DROP_MS = 700;
+

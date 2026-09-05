@@ -139,6 +139,13 @@ export const ASSETS = {
   /** 회전 원판 생존(features/trial/games/disc) — Tripo Studio(tools/disc-parts.json → tripo-studio-parts.sh → disc-glb.sh). 원판 자체는 코드 기하 + 힉스필드 텍스처 */
   disc_hub: { url: '/world/disc/disc_hub.glb' },
   disc_beacon: { url: '/world/disc/disc_beacon.glb' },
+  /**
+   * 무게 중심 다리(features/trial/games/seesaw, 2026-09-05) — 받침대(A 프레임 트러니언)와 멈춤쇠. Tripo Studio(tools/seesaw-parts.json →
+   * tripo-studio-parts.sh → seesaw-glb.sh). 판자 자체는 코드 기하 + 힉스필드 텍스처(public/textures/seesaw/beam_half.webp).
+   * 상자는 격납고의 cargo_container, 크레인은 crane_hoist 를 그대로 쓴다 — 새로 뽑지 않았다
+   */
+  seesaw_pivot: { url: '/world/seesaw/seesaw_pivot.glb' },
+  seesaw_stop: { url: '/world/seesaw/seesaw_stop.glb' },
 
   /**
    * 물리 미니게임 — 정지선(features/trial). 심문소 홀 안에 레인을 깔고 그 위에 세우는 소품 둘:
