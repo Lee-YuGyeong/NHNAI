@@ -55,6 +55,7 @@ import {
 } from '../../../src/world/mp/game-protocol';
 import { pickBody, type BodyId } from '../../../src/world/mp/bodies';
 import { WALK_SPEED } from '../../../src/world/mp/constants';
+import { givenOf, pickKoreanNames } from '../../../src/world/mp/koreanNames';
 import type { PlayerSnapshot, S2CMessage, TrialGame, TrialPlayerResult, TrialResultWire } from '../../../src/world/mp/protocol';
 import { spawnFor } from '../../../src/world/mp/spawn';
 import type { TrialC2SMessage } from '../../../src/world/mp/validate';
@@ -453,8 +454,11 @@ export class GameRuntime {
       if (s.role === 'designer') s.tamperLeft = 1;
     }
 
-    // 좌석을 섞는다 — AI 와 설계자도 순열에 든다 (§1.1)
-    this.seats = shuffled([...humans, ai], this.rand).map((s, i) => ({ ...s, seat: i + 1, name: `SUBJECT ${String(i + 1).padStart(2, '0')}` }));
+    // 좌석을 섞는다 — AI 와 설계자도 순열에 든다 (§1.1). 이름은 「SUBJECT 01」이 아니라 한국인 이름이다 — 한 판 안에서
+    // 성도 이름도 겹치지 않게 뽑는다 (mp/koreanNames, 2026-09-05 사용자). 좌석 번호(seat)는 그대로 있어 「3번」도 여전히 통한다
+    const order = shuffled([...humans, ai], this.rand);
+    const names = pickKoreanNames(order.length, this.rand);
+    this.seats = order.map((s, i) => ({ ...s, seat: i + 1, name: names[i] }));
     this.bindings = new Map();
     for (const p of roster) {
       this.bindings.set(p.id, `seat-${p.id}`);
@@ -830,25 +834,35 @@ export class GameRuntime {
    */
   private accusationIn(text: string, bySeatId: string): string | null {
     if (!/AI|에이아이|의심|수상|지목|범인|너지|너잖|쟤야|걔야|아니야\s*\?|아냐\s*\?/i.test(text)) return null;
-    let best: { id: string; num: string; score: number } | null = null;
+    let best: { id: string; at: number; score: number } | null = null;
     for (const s of this.seats) {
       if (s.id === bySeatId || s.isolated) continue;
       const n = String(s.seat);
       const nn = n.padStart(2, '0');
       const alone = (t: string) => new RegExp(`(?<![0-9])${t}(?![0-9])`).test(text);
-      // 「SUBJECT 03」·「03」 > 「3번」 > 맨 숫자. 자릿수를 맞춰 부르는 것은 좌석 번호밖에 없다
-      const score = new RegExp(`SUBJECT\\s*0*${n}(?![0-9])`, 'i').test(text) || alone(nn)
-        ? 3
-        : new RegExp(`(?<![0-9])${n}\\s*번`).test(text)
-          ? 2
-          : alone(n)
-            ? 1
-            : 0;
-      if (score > (best?.score ?? 0)) best = { id: s.id, num: n, score };
+      /*
+       * 이름(「지훈」·「김지훈」) = 「SUBJECT 03」·「03」 > 「3번」 > 맨 숫자. 좌석은 한국인 이름으로 불리므로(mp/koreanNames)
+       * 이름이 첫째 단서다 — 한 판 안에서 이름 두 글자가 겹치지 않아 성 없이 불러도 한 사람이다. 자릿수를 맞춰 부르는 것은
+       * 좌석 번호밖에 없다
+       */
+      const given = givenOf(s.name);
+      const nameAt = text.indexOf(given);
+      const score =
+        nameAt >= 0 || new RegExp(`SUBJECT\\s*0*${n}(?![0-9])`, 'i').test(text) || alone(nn)
+          ? 3
+          : new RegExp(`(?<![0-9])${n}\\s*번`).test(text)
+            ? 2
+            : alone(n)
+              ? 1
+              : 0;
+      if (score > (best?.score ?? 0)) {
+        const at = nameAt >= 0 ? nameAt : text.search(new RegExp(`(?<![0-9])0*${n}(?![0-9])`, 'i'));
+        best = { id: s.id, at, score };
+      }
     }
     if (!best || best.score < ACCUSE_MIN_SCORE) return null;
-    // 번호를 부른 자리부터 짧게 — "3번은 AI 아닌 것 같아" 는 지목이 아니고, "3번 너 AI 아니야?" 는 지목이다
-    const at = text.search(new RegExp(`(?<![0-9])0*${best.num}(?![0-9])`, 'i'));
+    // 이름·번호를 부른 자리부터 짧게 — "지훈이는 AI 아닌 것 같아" 는 지목이 아니고, "지훈이 너 AI 아니야?" 는 지목이다
+    const at = best.at;
     const tail = at >= 0 ? text.slice(at, at + 24) : text;
     if (/(아니|아닌|아냐|아님|말고|빼고)/.test(tail) && !/(아니야|아냐|아닌가|아닙니까)\s*[?？]/.test(tail)) return null;
     return best.id;
@@ -1236,10 +1250,12 @@ export class GameRuntime {
     return this.seats.find((s) => s.id === id)?.name ?? id;
   }
 
+  /** 이름으로 좌석을 — 「김지훈」·「지훈」·「지훈이」 같은 부름과, 관리 AI 가 옛 버릇으로 적는 「SUBJECT 03」·「03」도 받는다 */
   private seatByName(name: string): Seat | null {
     const key = name.replace(/\s+/g, '').toUpperCase();
     return (
       this.seats.find((s) => s.name.replace(/\s+/g, '').toUpperCase() === key) ??
+      this.seats.find((s) => key.includes(givenOf(s.name))) ??
       this.seats.find((s) => key.endsWith(String(s.seat).padStart(2, '0')) || key === String(s.seat)) ??
       null
     );

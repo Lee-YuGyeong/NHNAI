@@ -135,7 +135,13 @@ describe('GameRuntime — 판 한 바퀴', () => {
     expect(state.phase).toBe('briefing');
     // 사람 3 + 대역 2 + AI 1
     expect(state.seats).toHaveLength(6);
-    expect(state.seats.map((s) => s.name)).toEqual(['SUBJECT 01', 'SUBJECT 02', 'SUBJECT 03', 'SUBJECT 04', 'SUBJECT 05', 'SUBJECT 06']);
+    // 이름은 한국인 이름이다 (2026-09-05 사용자) — 전원 세 글자, 성도 이름도 서로 다르다. 좌석 번호는 1부터 차례로
+    const names = state.seats.map((s) => s.name);
+    for (const n of names) expect(n).toMatch(/^[가-힣]{3}$/);
+    expect(new Set(names).size).toBe(6);
+    expect(new Set(names.map((n) => n[0])).size).toBe(6);
+    expect(new Set(names.map((n) => n.slice(1))).size).toBe(6);
+    expect(state.seats.map((s) => s.seat)).toEqual([1, 2, 3, 4, 5, 6]);
     for (const s of state.seats) {
       expect(s).not.toHaveProperty('kind');
       expect(s).not.toHaveProperty('role');
@@ -158,7 +164,7 @@ describe('GameRuntime — 판 한 바퀴', () => {
     const chat = h.sent.at(-1) as Extract<S2CMessage, { t: 'chat' }>;
     expect(chat.t).toBe('chat');
     expect(chat.id).toBe(h.roleOf('p1')!.seatId);
-    expect(chat.nickname).toMatch(/^SUBJECT \d\d$/);
+    expect(chat.nickname).toMatch(/^[가-힣]{3}$/);
     expect(chat.nickname).not.toBe('닉1');
   });
 
@@ -178,6 +184,21 @@ describe('GameRuntime — 판 한 바퀴', () => {
     await vi.advanceTimersByTimeAsync(6_000);
     h.rt.onChat('p1', '아 배고파');
     expect(h.lastState().suspicion[other.id]).toBe(SUSPICION.accuse);
+  });
+
+  it('이름으로 부르는 지목 — 성 없이 「지훈이 너 AI 아니야?」 도 그 좌석이다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await vi.advanceTimersByTimeAsync(GAME_BRIEFING_MS + 10);
+    const p1Seat = h.roleOf('p1')!.seatId;
+    const other = h.lastState().seats.find((s) => s.id !== p1Seat)!;
+    const given = other.name.slice(1);
+    // 감싸 주는 말은 지목이 아니다
+    h.rt.onChat('p1', `${given}이는 AI 아닌 것 같아`);
+    expect(h.lastState().suspicion[other.id] ?? 0).toBe(0);
+    h.rt.onChat('p1', `${given}이 너 AI 아니야?`);
+    expect(h.lastState().suspicion[other.id]).toBe(SUSPICION.accuse);
+    expect(h.lastState().accusations[p1Seat]).toBe(other.id);
   });
 
   /**

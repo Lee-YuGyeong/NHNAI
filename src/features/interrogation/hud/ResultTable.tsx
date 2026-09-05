@@ -72,7 +72,7 @@ export function ResultTable({
       <table className="ig-table">
         <thead>
           <tr>
-            <th>SUBJECT</th>
+            <th>이름</th>
             {keys.map((k) => (
               <th key={k}>{labelOf(k)}</th>
             ))}
@@ -154,7 +154,7 @@ export function ResultSummary({
       <table className="ig-table ig-summary">
         <thead>
           <tr>
-            <th>SUBJECT</th>
+            <th>이름</th>
             <th>{spec?.held ?? '버틴 시간'}</th>
             {spec?.extra ? <th>{spec.extra.label}</th> : null}
             <th>등수</th>
