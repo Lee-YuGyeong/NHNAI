@@ -72,6 +72,7 @@ export function Chat({
   feed,
   mySeatId,
   markId,
+  talkLeft,
   disabled,
   onSend,
   onComposing,
@@ -80,6 +81,8 @@ export function Chat({
   mySeatId: string | null;
   /** 내가 겨누고 있는 좌석 — 그 좌석의 말에는 색점이 호박으로 켜진다 (몸 위 이름표와 같은 규칙) */
   markId: string | null;
+  /** 남은 대화권 — 머리띠 오른쪽 끝에 센다. null 이면 안 센다(로비) (2026-09-05 사용자: "대화권(발언권)이라는 게 추가될거야") */
+  talkLeft: number | null;
   disabled: boolean;
   onSend: (text: string) => void;
   onComposing: (v: boolean) => void;
@@ -144,6 +147,12 @@ export function Chat({
             지난 대화 · 최신 ↓
           </button>
         )}
+        {/* 남은 대화권 — 아직 세기만 한다. 차감·회복 규칙이 붙으면 이 수가 움직인다 */}
+        {talkLeft != null ? (
+          <span className="quota">
+            남은 대화권 <b>{talkLeft}</b>
+          </span>
+        ) : null}
       </div>
       <div
         className="ig-feed"

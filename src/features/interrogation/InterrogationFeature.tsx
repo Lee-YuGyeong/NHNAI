@@ -58,6 +58,13 @@ function seatSpot(seat: GameSeat, total: number): { x: number; z: number } {
  */
 const AUTO_SEATS = 4;
 
+/**
+ * 대화권 — 판에서 말할 권리의 수. 머리띠(구역 통신 헤더) 오른쪽에 선다 (2026-09-05 사용자:
+ * "대화권(발언권)이라는 게 추가될거야"). 아직 표시뿐이다 — 차감·회복 규칙이 정해지면 이 상수는
+ * 서버가 세는 값(tamperLeft 처럼 game_role · 전용 이벤트)으로 바뀐다. 로비에서는 안 센다.
+ */
+const TALK_QUOTA = 5;
+
 export function InterrogationFeature() {
   const dispatch = useAppDispatch();
   const [params] = useSearchParams();
@@ -680,6 +687,7 @@ export function InterrogationFeature() {
             feed={feed}
             mySeatId={mySeatId}
             markId={markId}
+            talkLeft={inGame ? TALK_QUOTA : null}
             disabled={status !== 'connected' || phase === 'result' || phase === 'ended' || (inGame && !mySeatId)}
             onSend={onSend}
             onComposing={setComposing}
