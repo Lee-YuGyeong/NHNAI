@@ -12,8 +12,9 @@
  *
  * 텍스처(힉스필드 2026-09-04, public/textures/govcenter/): 콘크리트 바닥·벽 2장(z_image), 상황판 3장 · 벽걸이 모니터 1장(nano_banana_pro),
  * 유리 너머 인테리어 4장(soul_location). 간판·정부 상징은 캔버스 텍스처(한글은 이미지 모델이 못 쓴다).
- * GLB(Tripo Studio, tools/govcenter-parts.json → tripo-studio-parts.sh → govcenter-glb.sh): 서버 랙 · 워크스테이션 · 철문 · 벽등.
- * 격납고 홀 부품(콘솔 · 격벽 링 · 격납문 · 컨테이너 · 도크 · 드론)은 그대로 재사용. 알베도는 버리고 노멀맵만 쓴다 (useShapedMaterial).
+ * GLB(Tripo Studio, tools/govcenter-parts.json → tripo-studio-parts.sh → govcenter-glb.sh): 서버 랙 · 워크스테이션 · 철문 · 벽등 · 옆벽 콘솔.
+ * 격납고 홀 부품(격벽 링 · 격납문 · 컨테이너 · 도크 · 드론)은 그대로 재사용. 알베도는 버리고 노멀맵만 쓴다 (useShapedMaterial).
+ * ★ 옆벽 콘솔만 복도 부품(sci_console)에서 **이 홀 전용 gov_console 로 갈아탔다** — 자세한 까닭은 assets/manifest.ts 의 그 항목에.
  *
  * 구조: 배치 배열은 **모듈 수준 상수** — 종류당 드로우콜 하나. 실제 광원은 Lights 가 14개 쥔다. 블룸 없음.
  * 여기에는 **씬만 있다.** 캔버스·카메라·이동·네트워크는 scene/WorldScene.tsx 가 쥔다. 맵 선택은 map/index.ts 의 MAPS.
@@ -416,7 +417,10 @@ const LAMPS: LampSpot[] = [
 
 /* ─────────────────────────────── 옆벽 콘솔 (충돌 상자와 같은 자리) ─────────────────────────────── */
 
-/** 콘솔 모델의 앞면(홈 파인 면)이 +x — 왼벽은 그대로, 오른벽은 π (scifi.sideConsoles 와 같은 규칙) */
+/**
+ * 콘솔 모델의 앞면(홈 파인 면)이 +x — 왼벽은 그대로, 오른벽은 π (scifi.sideConsoles 와 같은 규칙).
+ * 이 홀만 복도 부품(sci_console)이 아닌 **전용 gov_console** 을 쓴다 — 자리·치수·충돌은 격납고 홀 그대로다.
+ */
 const CONSOLE_ITEMS: InstanceItem[] = CONSOLE_BAYS.flatMap((z) => [-1, 1].map((s): InstanceItem => ({ position: [s * (WALL_X - 0.35), 0, z], rotationY: s < 0 ? 0 : Math.PI })));
 
 /* ─────────────────────────────── 등 뒤 벽 — 격벽 링 · 격납문 · 도크 (격납고 홀 그대로) ─────────────────────────────── */
@@ -556,7 +560,7 @@ export function Govcenter(_props: GovcenterProps) {
   const [floorTex, wallTex, boardLeft, boardCenter, boardRight, monitorTex, controlTex, researchTex, serverTex, analysisTex] = useTexture(TEX_LIST);
   const floorMap = useTiled(floorTex, 1, 1);
   const wallMap = useTiled(wallTex, 1, 1);
-  const consoleMat = useShapedMaterial('sci_console');
+  const consoleMat = useShapedMaterial('gov_console');
   const ringMat = useShapedMaterial('sci_bulkhead');
   const blastMat = useShapedMaterial('sci_blast_door');
   const cargoMat = useShapedMaterial('cargo_container');
@@ -672,7 +676,7 @@ export function Govcenter(_props: GovcenterProps) {
       {/* 옆벽 벽걸이 모니터 · 콘솔(충돌 상자 자리) */}
       <Instanced name="모니터 베젤" items={WALL_MONITOR_BEZELS} material={BEZEL_MAT} />
       {WALL_MONITOR_SCREENS.map((p, i) => picture(p, mats.monitor, `monitor${i}`))}
-      <Parts id="sci_console" fit={CONSOLE_FIT} items={CONSOLE_ITEMS} material={consoleMat} />
+      <Parts id="gov_console" fit={CONSOLE_FIT} items={CONSOLE_ITEMS} material={consoleMat} />
 
       {/* 무대 · 계단 · 안내 띠 · 표식 · 스포트 기구 */}
       <group name="무대">

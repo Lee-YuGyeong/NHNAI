@@ -103,6 +103,15 @@ export const ASSETS = {
   gov_workstation: { url: '/world/govcenter/gov_workstation.glb' },
   gov_steel_door: { url: '/world/govcenter/gov_steel_door.glb' },
   gov_wall_lamp: { url: '/world/govcenter/gov_wall_lamp.glb' },
+  /**
+   * 옆벽 콘솔 — 이 홀 **전용**이다. 복도 부품 sci_console 을 쓰던 자리인데, 그건 모서리가 둥근 덩어리라
+   * 각지고 반듯한 콘크리트 홀에서 벽 밑의 검은 혹으로 읽혔다. 게다가 이 맵은 콘솔의 청색 튜브·표시등을
+   * **안 그린다** — 형태만으로 읽혀야 하는데 형태가 없었다.
+   * UX Pilot 로 정면 컨셉 이미지를 그리고(소각로와 같은 절차) Tripo image-to-model 에 넣었다 —
+   * 프롬프트는 tools/govcenter-parts.json, 경량화는 tools/govcenter-glb.sh.
+   * ★ sci_console 은 복도·격납고 홀·중앙 시설·재검실·작업 구역이 그대로 쓴다 — 저 여섯은 건드리지 않는다.
+   */
+  gov_console: { url: '/world/govcenter/gov_console.glb' },
 
   /**
    * 검문소(/interrogation) 플레이어의 몸 — 군인 넷 (2026-09-04 사용자 제공 Tripo 리깅 GLB → tools/soldier-glb.sh).

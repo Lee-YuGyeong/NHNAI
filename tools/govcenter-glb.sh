@@ -6,7 +6,7 @@
 #   sh tools/govcenter-glb.sh <원본 폴더> [id ...]
 #   한 번에: sh tools/tripo-studio-parts.sh tools/govcenter-parts.json <원본 폴더> --reduce tools/govcenter-glb.sh
 #
-# ★ 삼각형 예산 = 인스턴스 수 × 삼각형. 서버 랙 ~14개, 워크스테이션 ~12개, 철문 4개, 벽등 8개.
+# ★ 삼각형 예산 = 인스턴스 수 × 삼각형. 서버 랙 ~14개, 워크스테이션 ~12개, 철문 4개, 벽등 8개, 옆벽 콘솔 16개.
 #   알베도는 어차피 버린다 (useShapedMaterial — 노멀맵만 쓴다) — 텍스처 한 변을 작게 잡아도 손해가 없다.
 set -eu
 SRC_DIR="${1:?원본 폴더}"
@@ -22,6 +22,7 @@ gov_server_rack|3|512|1
 gov_workstation|4|512|1
 gov_steel_door|3|512|1
 gov_wall_lamp|1.5|256|1
+gov_console|12|512|1
 '
 
 convert() {
