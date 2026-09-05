@@ -22,12 +22,41 @@
  * │ 다시 썼다. 새 이미지 role-ai.jpg · role-designer.jpg 는 lobby/Intro.tsx 와 같은 것을     │
  * │ 쓴다(public/intro/) — 같은 게임이 두 얼굴을 갖지 않게.                                   │
  * └────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ 2026-09-05: 수를 상수에 잇는다 ("지금까지 git에 올라온 내용으로 인트로 내용 적용해줘")┐
+ * │ 이 화면이 말하던 판(60~90초마다 정지선·색 사냥 중 하나 · 7~9분 · 넷이 앉아 둘이 나간다) │
+ * │ 은 어느 커밋에도 없는 판이었다. 실제로 도는 것은 **고정 차례표**다(bde946a):            │
+ * │ 배역 통보 → 대화 40초 ⇄ 시험 30초 × 3 (낙하 생존 → 발판 → 원판) → 대화 40초.           │
+ * │                                                                                        │
+ * │ ★ 그래서 이제 **수를 손으로 안 적는다** — lobby/Intro.tsx 가 지키던 규칙을 이 파일도    │
+ * │   따른다. 인원 · 길이 · 횟수가 전부 world/mp/game-protocol 에서 오므로, 차례표 한 줄을  │
+ * │   고치면 두 화면이 같이 따라간다. 어긋난 이유가 바로 「손으로 적은 수」였다.            │
+ * └────────────────────────────────────────────────────────────────────────────────────────┘
  */
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  GAME_BRIEFING_MS,
+  GAME_DISCUSSION_MS,
+  GAME_FIRST_DISCUSSION_MS,
+  GAME_MAX_HUMANS,
+  GAME_MIN_HUMANS,
+  GAME_RESULT_MODAL_MS,
+  GAME_TEST_MS,
+  GAME_TEST_ORDER,
+} from '@/world/mp/game-protocol';
 import { introActions, introSelectors, type IntroSection } from './introSlice';
 import './intro.css';
+
+/**
+ * 한 판이 실제로 걸리는 시간 — 차례표를 그대로 더한다 (lobby/Intro.tsx 의 ROUND_MS 와 같은 셈).
+ * 여기 「7–9 MIN」이 박혀 있었다: 차례표가 고정되기 전(bde946a)의 어림이었고, 실제로는 절반이다.
+ */
+const ROUND_MS =
+  GAME_BRIEFING_MS +
+  GAME_FIRST_DISCUSSION_MS +
+  GAME_TEST_ORDER.length * (GAME_TEST_MS + GAME_RESULT_MODAL_MS + GAME_DISCUSSION_MS);
 
 const NAV: { id: Exclude<IntroSection, 'hero'>; label: string }[] = [
   { id: 'about', label: '게임 소개' },
@@ -77,7 +106,8 @@ export function IntroFeature() {
   return (
     <main className="intro">
       <nav className="intro-nav" aria-label="인트로">
-        <Link to="/" className="intro-brand">WHO IS HUMAN?</Link>
+        {/* 문패는 홀 끝벽 간판과 같은 글자다 (world/map/govcenter/layout.ts 의 TITLE) — 아래 제목과 한 말을 한다 */}
+        <Link to="/" className="intro-brand">특수인공지능대응센터</Link>
         <div className="intro-nav-right">
           <div className="intro-nav-links">
             {NAV.map((n, i) => (
@@ -122,11 +152,20 @@ export function IntroFeature() {
               </span>
               <span>대응센터</span>
             </h1>
-            <p className="intro-sub">SPECIAL AI RESPONSE CENTER · FOUR SIT. TWO LEAVE.</p>
+            <p className="intro-sub">SPECIAL AI RESPONSE CENTER · THREE TESTS. ONE UNMARKED.</p>
+            {/*
+              세 줄은 판의 세 축이다 — 누가 앉나(§1.1) · 누가 판정하나(P1) · 언제 끝나나(§1.2).
+              「넷이 앉는다 · 둘이 나가야 한다」였다: 그 넷은 /trial 의 TRIAL_PARTY_SIZE 였고
+              검문소의 값이 아니었다. 여기 앉는 것은 사람 3~8 에 표식 없는 하나이고,
+              모자란 자리를 채우는 것도 AI 좌석이 아니라 대역이다 (game/runtime.start).
+              끝나는 조건도 「둘」이 아니라 차례표의 끝이다 — 세 번을 다 쓰고도 못 찾으면 진다.
+            */}
             <ul className="intro-lines">
-              <li>넷이 앉는다. 사람이 덜 모이면 그만큼 AI가 앉는다.</li>
+              <li>
+                사람 {GAME_MIN_HUMANS}~{GAME_MAX_HUMANS}명, 그리고 표식 없는 하나. 빈자리는 대역이 채운다.
+              </li>
               <li>센터는 기록만 내놓는다 — 아무도 판정하지 않는다.</li>
-              <li>판이 끝나려면 둘이 나가야 한다.</li>
+              <li>시험은 {GAME_TEST_ORDER.length}번뿐이다. 그때까지 못 찾으면 그쪽이 이긴다.</li>
             </ul>
             <div className="intro-cta">
               <button type="button" className="intro-btn intro-btn--primary" onClick={enter}>
@@ -164,10 +203,12 @@ export function IntroFeature() {
               다른 것은 몸이 물리 법칙에 반응하는 방식뿐이다.
             </p>
             <p>
-              정부는 의심 인물들을 비밀 시설로 소집한다. 시설은 주기적으로 중력 · 마찰 · 빛과 색이 매번 달라지는
-              물리 테스트를 연다. <q>시스템은 아무도 판정하지 않는다</q> — 기록을 보여줄 뿐, 의심도를 움직이는
-              것은 사람들의 말과 실시간 지목뿐이다. 안에서는 아무도 서로의 정체를 모른다. AI도, 사람도, 시스템
-              자신도. 그래서 애먼 사람이 먼저 격리되기도 한다. 당신이 아니길 바랄 뿐이다.
+              정부는 의심 인물들을 비밀 시설로 소집한다. 시설이 여는 물리 테스트는 <b>세 번</b>이고 종류도
+              순서도 정해져 있다 — 낙하 생존, 움직이는 발판, 회전 원판. 숨기는 것은 종목이 아니라 <b>조건</b>이다:
+              중력과 마찰이 시험 도중에 말없이 한 번 바뀐다. <q>시스템은 아무도 판정하지 않는다</q> — 기록을
+              보여줄 뿐, 의심도를 움직이는 것은 사람들의 말과 실시간 지목뿐이다. 안에서는 아무도 서로의 정체를
+              모른다. AI도, 사람도, 시스템 자신도. 그래서 애먼 사람이 먼저 격리되기도 한다. 당신이 아니길 바랄
+              뿐이다.
             </p>
           </div>
           <div className="intro-dossier">
@@ -180,17 +221,21 @@ export function IntroFeature() {
               <li>
                 <small>PLAYERS</small>
                 <strong>
-                  <span className="human">3–8</span>
+                  <span className="human">
+                    {GAME_MIN_HUMANS}–{GAME_MAX_HUMANS}
+                  </span>
                 </strong>
               </li>
               <li>
+                {/* 설계자 상한은 사람 수가 정한다 (roles.designerCap: 3명→0 · 4~5명→1 · 6~8명→2) */}
                 <small>DESIGNERS</small>
                 <strong>0–2</strong>
               </li>
               <li>
+                {/* 「7–9 MIN」이었다 — 차례표가 고정되기 전의 어림이다. 이제 더하기로 나온다(ROUND_MS) */}
                 <small>RUNTIME</small>
                 <strong>
-                  7–9<span className="unit"> MIN</span>
+                  {Math.floor(ROUND_MS / 60_000)}:{String(Math.round((ROUND_MS % 60_000) / 1000)).padStart(2, '0')}
                 </strong>
               </li>
             </ul>
@@ -202,9 +247,15 @@ export function IntroFeature() {
             */}
             <ol className="intro-origin">
               <li>
-                <span>60–90s</span>
-                <b>테스트 트리거</b>
-                <small>물리 테스트가 새로 열리는 간격</small>
+                {/*
+                  「60–90s · 테스트 트리거」였다 — 관리 AI 가 종목과 시점을 고르던 시절의 값이다.
+                  그 설계는 접혔고(bde946a) 지금은 차례표 한 줄이 정한다: 대화 ⇄ 시험이 번갈아 세 번.
+                */}
+                <span>
+                  {GAME_DISCUSSION_MS / 1000}s ⇄ {GAME_TEST_MS / 1000}s
+                </span>
+                <b>고정 차례표 ×{GAME_TEST_ORDER.length}</b>
+                <small>무엇이 몇 번째인지 모두가 알고 들어온다</small>
               </li>
               <li className="now">
                 <span>100%</span>
@@ -306,9 +357,10 @@ export function IntroFeature() {
           <div className="intro-steps-head">
             <span className="intro-index">03 // HOW TO PLAY</span>
             {/* 뒷박자 「쌓이기만 한다」는 새 기획과 모순이다(§1.2 상승·하강 대칭) — 라이브 인트로와
-                같은 이유로 맞춘다(2026-09-04 절충). 앞박자는 그대로 — 시험의 region 이름이 그걸 본다 */}
+                같은 이유로 맞춘다(2026-09-04 절충). 앞박자 「시행은 계속된다」도 차례표가 고정되면서
+                (bde946a) 틀린 말이 됐다 — 시험에는 끝이 있고, 그 끝이 곧 AI 의 승리 조건이다 */}
             <h2 id="intro-rules-h" className="intro-h2">
-              시행은 계속된다. <span className="dim">의심은 말로만 움직인다.</span>
+              시험은 {GAME_TEST_ORDER.length}번뿐이다. <span className="dim">의심은 말로만 움직인다.</span>
             </h2>
           </div>
           <ol className="intro-steps">
@@ -355,14 +407,17 @@ export function IntroFeature() {
           </button>
         </div>
         <footer className="intro-footer">
-          <span>WHO IS HUMAN? · EP.01</span>
+          <span>SPECIAL AI RESPONSE CENTER · EP.01</span>
           <span>SEOUL, KR</span>
           {/*
             옛 연표(shared/era, ORIGIN_YEAR/ZONE_YEAR)는 72년짜리 신화였다 — 이 판은 사건이
             일어난 그해, 2026년 하루라 그 상수를 안 쓴다(ZONE_YEAR=2098 은 이 판의 "지금"이
             아니다). 그래서 여기 2026은 상수가 아니라 그대로 적는다.
+
+            서명도 같은 이유로 바뀐다 — SECTOR AUTHORITY 는 AI 전용 구역(2098)을 운영하던
+            옛 기관이다. 이 판을 여는 것은 대한민국 정부다 (홀 간판의 TITLE 과 같은 주체).
           */}
-          <span>© 2026 SECTOR AUTHORITY</span>
+          <span>© 2026 대한민국 정부</span>
         </footer>
       </section>
     </main>
@@ -370,14 +425,33 @@ export function IntroFeature() {
 }
 
 /*
- * 진행 순서 — README/PLANNING 의 흐름을 다섯 칸으로 (숫자를 바꾸면 거기도 같이).
+ * 진행 순서 — README/PLANNING 의 흐름을 다섯 칸으로. **수는 손으로 안 적는다**(2026-09-05):
+ * 전부 game-protocol 의 상수에서 오므로 차례표가 바뀌면 이 칸도 같이 따라간다.
+ *
  * 옛 다섯 칸은 라운드제였다. PLANNING §1.2 개정으로 라운드 경계가 사라졌다 — 2~4번이
  * 순환(테스트 → 기록 공개 → 의심이 쌓인다)이고, 5번(격리)만 그 순환을 끊는 유일한 사건이다.
+ * bde946a 로 그 순환에 **끝이 생겼다** — 딱 세 바퀴다. 경계가 돌아온 것은 아니다(대화도
+ * 지목도 시험 중에 안 멈춘다). 다만 무한하지 않을 뿐이고, 그 끝이 AI 의 승리 조건이다.
  */
 const STEPS = [
-  { title: '입장 & 배치', body: '사람 3~8명과 AI 1개체가 뒤섞여 자리를 잡는다. 설계자가 몇 있는지는 아무도 모른다.' },
-  { title: '물리 테스트', body: '60~90초마다 낙하 생존 · 정지선 · 색 사냥 중 하나가 열린다. 조건값은 공개되지 않는다.' },
-  { title: '기록 공개', body: '전체 화면 결과 창이 뜬다. 무리 평균 대비 편차가 원자료 그대로 드러난다.' },
-  { title: '토론 & 지목', body: '지목 · 동조 · 몰이가 의심도를 올린다. 철회와 해명만이 내린다.' },
-  { title: '격리', body: '의심도 100%에 닿는 즉시 격리된다. 총원의 절반이 격리되면 그 자리에서 끝난다.' },
+  {
+    title: '입장 & 배치',
+    body: `사람 ${GAME_MIN_HUMANS}~${GAME_MAX_HUMANS}명과 AI 1좌석이 뒤섞여 자리를 잡는다. 모자란 자리는 대역이 채우고, 설계자가 몇 있는지는 아무도 모른다.`,
+  },
+  {
+    title: `물리 테스트 ×${GAME_TEST_ORDER.length}`,
+    body: `대화 ${GAME_DISCUSSION_MS / 1000}초와 시험 ${GAME_TEST_MS / 1000}초가 번갈아 ${GAME_TEST_ORDER.length}번 — 낙하 생존 → 움직이는 발판 → 회전 원판. 순서는 공개고, 조건값은 공개되지 않는다.`,
+  },
+  {
+    title: '기록 공개',
+    body: `${GAME_RESULT_MODAL_MS / 1000}초 동안 전체 화면 결과 창이 뜬다. 무리 평균 대비 편차가 원자료 그대로 드러난다.`,
+  },
+  {
+    title: '토론 & 지목',
+    body: `시험이 끝날 때마다 ${GAME_DISCUSSION_MS / 1000}초. 지목 · 동조 · 몰이가 의심도를 올리고, 철회와 해명만이 내린다.`,
+  },
+  {
+    title: '격리',
+    body: '의심도 100%에 닿는 즉시 그 자리에서 격리된다 — 무대 위 처형자가 쏜다. 총원의 절반(내림)이 격리되면 차례표가 남아 있어도 끝난다.',
+  },
 ];
