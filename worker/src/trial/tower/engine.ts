@@ -324,6 +324,9 @@ export class TowerEngine implements GameEngine {
             f: b.stance === 'air' ? 1 : b.stance === 'down' ? 2 : 0,
             sx: r2(b.sx),
             sz: r2(b.sz),
+            vx: r2(b.vx),
+            vy: r2(b.vy),
+            vz: r2(b.vz),
           };
         }),
       });

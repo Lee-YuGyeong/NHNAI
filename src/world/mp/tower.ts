@@ -9,7 +9,8 @@
  *
  * 물리 (사용자 스펙 "중력 + 질량 + 충돌 + 토크 + 중심 이동"):
  *   발판   기울기 벡터 t(낮은 쪽을 가리키고 크기가 tan φ). I·ẗ = g·Σ mᵢdᵢ − c·ṫ − k·t — 무게 mᵢ 가 발판 중심에서 dᵢ 에 서면 그쪽이 내려간다.
- *          k 는 사람 하나가 끝(0.9m)에 서면 8.6° 에서 멎는 세기 — 둘이면 17°, 셋이면 부서진다(23°). 무거운 몸(mass 1.8)은 둘 몫이다.
+ *          k 는 사람 하나가 끝(1.2m)에 서면 9° 에서 멎는 세기 — 둘이면 17°, 셋이면 부서진다(22°). 무거운 몸(mass 1.8)은 둘 몫이다.
+ *          감쇠는 임계(ζ≈1) — 처음 800 으로 두었더니 발판이 트램펄린처럼 되튀었다 (2026-09-05 사용자: "무너지는 게 부자연스러워").
  *   몸     기울어진 발판 위에서 발이 미끄러지는 조건은 |t| > μ — μ 가 숨은 조건(worker/src/trial/condition.ts TOWER_GRIP)이다.
  *          밀린 속도도 같은 마찰로 줄어든다: 미끄러운 구간에는 한 번 밀리면 끝까지 간다.
  *   밀치기 앞 TOWER_PUSH_R 안의 몸에 TOWER_PUSH_V × (내 질량 / 그 질량)의 속도. 무거운 몸은 세게 밀고 잘 안 밀린다. 쿨다운 1초, 반동 조금.
@@ -22,7 +23,8 @@
 export const TOWER_CENTER = { x: 0, z: -1.5 } as const;
 /** 격자 한 변의 발판 수 · 발판 한 변(m) · 발판 사이 틈(그리기용) */
 export const TOWER_N = 5;
-export const TOWER_SLAB = 2.0;
+/** 2.0 으로 시작했는데 달리면 0.4초에 한 장을 넘어 자꾸 떨어졌다 (2026-09-05 사용자: "걷는 게 자연스럽지 않아") — 2.6 이면 한 장이 한 걸음의 자리다 */
+export const TOWER_SLAB = 2.6;
 export const TOWER_GAP = 0.06;
 /**
  * 발판 윗면 높이(m) · 발판 두께. 4.5 로 시작했는데 추격 카메라(발 위 약 3.5m)가 /trial 홀의 천장 트러스(7~8m)에 박혔다
@@ -35,14 +37,15 @@ export const TOWER_BODY_MASS = 75;
 /** 발판 질량(kg) · 중심축 둘레 관성(정사각 판 M·L²/6) · 복원 스프링(N·m/rad) · 감쇠(N·m·s) */
 export const TOWER_SLAB_MASS = 400;
 export const TOWER_SLAB_INERTIA = (TOWER_SLAB_MASS * TOWER_SLAB * TOWER_SLAB) / 6;
-export const TOWER_SPRING = 4400;
-export const TOWER_DAMPING = 800;
+export const TOWER_SPRING = 5600;
+/** 임계 감쇠 2·√(k·I) ≈ 3175 */
+export const TOWER_DAMPING = 3200;
 /** 이 기울기(tan)를 넘으면 발판이 떨어져 나간다 (≈ 22°) */
 export const TOWER_TILT_BREAK = 0.4;
 export const TOWER_WALK_SPEED = 2.6;
 export const TOWER_RUN_SPEED = 4.8;
 /** 밀치기 — 닿는 거리(m) · 주는 속도(m/s, 질량비를 곱한다) · 앞쪽으로 보는 폭(내적 문턱) · 쿨다운(ms) · 반동(m/s) */
-export const TOWER_PUSH_R = 1.3;
+export const TOWER_PUSH_R = 1.4;
 export const TOWER_PUSH_V = 3.6;
 export const TOWER_PUSH_ARC = 0.3;
 export const TOWER_PUSH_COOLDOWN_MS = 1000;

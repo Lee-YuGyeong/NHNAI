@@ -30,7 +30,7 @@ export function TowerRig({ selfId, body = null, sendWalk, sendPush }: { selfId: 
   const corr = useRef({ x: 0, z: 0 });
   const cam = useRef({ x: Number.NaN, y: 0, z: 0 });
   const seenSnapshotAt = useRef(0);
-  const srvRef = useRef<{ x: number; y: number; z: number; f: number; at: number } | null>(null);
+  const srvRef = useRef<{ x: number; y: number; z: number; f: number; at: number; vx: number; vy: number; vz: number } | null>(null);
   const yaw = useRef(0);
   const pitch = useRef(PITCH_DEFAULT);
   const heading = useRef(0);
@@ -78,7 +78,7 @@ export function TowerRig({ selfId, body = null, sendWalk, sendPush }: { selfId: 
     if (srv && snapAt !== seenSnapshotAt.current) {
       seenSnapshotAt.current = snapAt;
       const wasGrounded = (srvRef.current?.f ?? 0) === 0;
-      srvRef.current = { x: srv.x, y: srv.y, z: srv.z, f: srv.f, at: snapAt };
+      srvRef.current = { x: srv.x, y: srv.y, z: srv.z, f: srv.f, at: snapAt, vx: srv.vx, vy: srv.vy, vz: srv.vz };
       towerState.selfStance = srv.f;
       if (srv.f === 0) {
         if (!wasGrounded || Math.hypot(srv.x - p.current.x, srv.z - p.current.z) > 2.5) {
@@ -137,11 +137,11 @@ export function TowerRig({ selfId, body = null, sendWalk, sendPush }: { selfId: 
       const idx = slabIndexAt(x, z);
       y = (idx >= 0 ? towerState.surfaceAt(idx, x, z, now) : null) ?? s?.y ?? TOWER_TOP;
     } else {
-      // 떨어지는 중 · 누움 — 서버 자리를 잇는다. 떨어지는 중이면 포물선
+      // 떨어지는 중 · 누움 — 서버 자리 + 속도로 잇는다(포물선). 스냅샷마다 자리가 튀지 않게
       const t = Math.min(0.6, Math.max(0, (now - s.at) / 1000));
-      x = s.x;
-      z = s.z;
-      y = s.f === 1 ? Math.max(0, s.y - 0.5 * GRAVITY * t * t) : 0;
+      x = s.f === 1 ? s.x + s.vx * t : s.x;
+      z = s.f === 1 ? s.z + s.vz * t : s.z;
+      y = s.f === 1 ? Math.max(0, s.y + s.vy * t - 0.5 * GRAVITY * t * t) : 0;
       p.current = { x, z };
     }
     selfPose.x = x;

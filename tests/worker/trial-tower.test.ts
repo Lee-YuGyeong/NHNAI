@@ -30,7 +30,8 @@ function seeded(seed = 7): () => number {
 describe('sim — 발판', () => {
   it('무게가 +x 끝에 서면 그쪽으로 기울어 멎고(하나) · 셋이면 부서진다 · 무거운 몸은 둘 몫이다', () => {
     const one = makeSlabs()[CENTER];
-    const load = (n: number, mass = TOWER_BODY_MASS): SlabLoad[] => Array.from({ length: n }, () => ({ dx: 0.9, dz: 0, mass }));
+    const edge = TOWER_SLAB / 2 - 0.1; // 발판 끝에 선 몸
+    const load = (n: number, mass = TOWER_BODY_MASS): SlabLoad[] => Array.from({ length: n }, () => ({ dx: edge, dz: 0, mass }));
     let broke = false;
     for (let t = 0; t < 4; t += DT) broke = stepSlab(one, load(1), DT) || broke;
     expect(broke).toBe(false);
@@ -232,7 +233,7 @@ describe('TowerEngine — 철거 · 낙하 · 스냅샷', () => {
     const r = engine.results();
     expect(r.find((x) => x.id === 'me')!.metrics.pushes).toBe(1);
     expect(r.find((x) => x.id === 'you')!.metrics.shoved).toBe(1);
-    expect(TOWER_SLAB).toBe(2);
+    expect(TOWER_SLAB).toBeGreaterThan(2);
     engine.stop();
   });
 });
