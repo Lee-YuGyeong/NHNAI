@@ -3,7 +3,6 @@
  *
  *   피실험자 01 · 02 · 03  → 지정된 세 목소리 (features/tts/openingSpeakers.ts), **원음**
  *   정부 통제실            → 관리 AI 목소리 (worker 의 LEADER_VOICE = Ethan), **시설 방송 음색**
- *   지문(stage)            → 소리 없음. 「천장 스피커가 켜진다」는 아무도 하는 말이 아니다
  *
  * ┌─ 왜 방송 큐(TtsPlayer)를 안 타나 ─────────────────────────────────────────┐
  * │ 프롤로그는 **화면에서만** 나는 줄이다 (prologue.ts 머리말) — 서버도 관리 AI 도 │
@@ -46,13 +45,12 @@ let fails = 0;
 const GIVE_UP = 3;
 
 /**
- * 그 줄을 누가 읽나. 지문은 아무도 안 읽는다.
+ * 그 줄을 누가 읽나 — 모든 줄이 누군가의 말이다 (지문은 없다, prologue.ts 머리말).
  *
  * 통제실은 voiceId 를 **안 준다** — 워커가 관리 AI 목소리(LEADER_VOICE)로 읽는다.
  * 여기서 id 를 적으면 관리 AI 목소리가 두 군데에 있게 되고, 한쪽만 바뀌는 날이 온다.
  */
-export function voiceOf(line: PrologueLine): { voiceId?: string; pa: boolean } | null {
-  if (line.who === 'stage') return null;
+export function voiceOf(line: PrologueLine): { voiceId?: string; pa: boolean } {
   if (line.who === 'control') return { pa: true };
   return { voiceId: OPENING_CAST[(line.n ?? 1) - 1]?.voiceId, pa: false };
 }
@@ -174,8 +172,7 @@ function fetchClip(line: PrologueLine, voiceId: string | undefined): Promise<Aud
  */
 export function prefetchPrologue(lines: readonly PrologueLine[]): void {
   for (const line of lines) {
-    const v = voiceOf(line);
-    if (v) void fetchClip(line, v.voiceId);
+    void fetchClip(line, voiceOf(line).voiceId);
   }
 }
 
@@ -275,7 +272,7 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
  */
 export async function speakPrologueLine(line: PrologueLine): Promise<void> {
   const v = voiceOf(line);
-  if (!v || fails >= GIVE_UP) return;
+  if (fails >= GIVE_UP) return;
 
   /*
    * 줄이 뜬 순간이다 — 상자가 자막을 찍기 시작하는 바로 그때 이 함수가 불린다 (DialogueBox 의 onLine).

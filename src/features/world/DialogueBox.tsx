@@ -212,9 +212,15 @@ export interface DialogueBoxProps {
    * 늦춰 봐야 이 값을 모르는 화면에서는 자막만 뒤처진다.
    */
   voiceLagMs?: number;
+  /**
+   * 생김새 — 기본은 /world 의 청록 SF 프레임. `'terminal'` 은 검문소(/interrogation)의 판과 같은 얼굴이다:
+   * 검은 반투명 모따기 판 · 왼쪽 호박 선 · 모노 라벨 · 스캔라인 (2026-09-05 사용자: 대화창을 「구역 통신」판의
+   * 색감으로). 흐름·타자·소리는 그대로고 **옷만** 갈아입는다 — dialogue.css 의 dlg--terminal.
+   */
+  skin?: 'neon' | 'terminal';
 }
 
-export function DialogueBox({ messages, selfId, touch, speaking, lifted = false, onShowing, onLine, voiceMsOf, voiceLagMs = 0 }: DialogueBoxProps) {
+export function DialogueBox({ messages, selfId, touch, speaking, lifted = false, onShowing, onLine, voiceMsOf, voiceLagMs = 0, skin = 'neon' }: DialogueBoxProps) {
   const queue = useRef<Line[]>([]);
   /** 마지막으로 줄 세운 메시지의 열쇠. undefined = 아직 기준선을 안 잡았다, '' = 마운트 때 기록이 비어 있었다 */
   const seen = useRef<string | undefined>(undefined);
@@ -453,17 +459,18 @@ export function DialogueBox({ messages, selfId, touch, speaking, lifted = false,
 
   return (
     <div
-      className={`dlg ${visible ? 'dlg--in' : 'dlg--out'} ${touch ? 'dlg--touch' : ''} ${lifted ? 'dlg--lifted' : ''} ${current?.thought ? 'dlg--thought' : ''}`}
+      className={`dlg ${skin === 'terminal' ? 'dlg--terminal' : ''} ${visible ? 'dlg--in' : 'dlg--out'} ${touch ? 'dlg--touch' : ''} ${lifted ? 'dlg--lifted' : ''} ${current?.thought ? 'dlg--thought' : ''}`}
       role="status"
       aria-live="polite"
     >
       <div className="dlg__box" onClick={onClick}>
-        <Frame />
+        {skin === 'terminal' ? <TerminalFrame /> : <Frame />}
         <div className={`dlg__portrait ${current?.isSelf ? 'dlg__portrait--self' : ''}`}>
           {portrait ? <img src={portrait} alt="" draggable={false} /> : null}
           <span className="dlg__portrait-ring" />
         </div>
-        <div className="dlg__name">
+        <div className={`dlg__name ${current?.isSelf ? 'dlg__name--self' : ''}`}>
+          {skin === 'terminal' ? <i className="dlg__live" aria-hidden="true" /> : null}
           <span>{current?.nickname}</span>
         </div>
         <p className="dlg__text">
@@ -525,6 +532,33 @@ function Frame() {
       {[0, 1, 2].map((i) => (
         <rect key={i} x={236} y={176 + i * 6} width={40 - i * 12} height={2} fill="#6fd3ff" opacity={0.45 - i * 0.1} />
       ))}
+    </svg>
+  );
+}
+
+/**
+ * 단말 프레임 (skin='terminal') — 검문소의 「구역 통신」판(features/interrogation/interrogation.css 의 .ig-chat)과 같은 판이다:
+ * 오른쪽 위 18 · 왼쪽 아래 12 를 깎은 모따기, 거의 검은 바닥, 왼쪽에 호박 선 하나, 윗변에 가장자리로 사라지는 빛.
+ * 청록 프레임의 장식선·눈금·글로우는 없다 — 저 판에 그런 것이 없어서다. 스캔라인은 CSS 가 판 위에 덮는다 (dlg--terminal .dlg__box::after).
+ */
+function TerminalFrame() {
+  return (
+    <svg className="dlg__frame" viewBox="0 0 900 210" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="dlgTermTop" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#ffca8e" stopOpacity="0" />
+          <stop offset="0.5" stopColor="#ffca8e" stopOpacity="0.6" />
+          <stop offset="1" stopColor="#ffca8e" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* 판 — 모따기 */}
+      <path d="M0 0 H882 L900 18 V210 H12 L0 198 Z" fill="#080604" fillOpacity="0.84" />
+      {/* 윗변의 빛 */}
+      <rect x="0" y="0" width="882" height="1.2" fill="url(#dlgTermTop)" />
+      {/* 왼쪽 선 — 이 화면의 조명색 */}
+      <path d="M0.6 0 V198" fill="none" stroke="#ffca8e" strokeOpacity="0.42" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+      {/* 머리띠 아래 가름선 — 이름과 본문 사이 */}
+      <path d="M206 50 H868" fill="none" stroke="#e8ddcd" strokeOpacity="0.12" strokeWidth="1" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

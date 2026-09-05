@@ -46,13 +46,12 @@ describe('prologueLines — 대본을 대화창 줄로', () => {
     expect(lines[lines.length - 1].text).toBe('판별을 시작합니다.');
   });
 
-  it('정부 통제실은 처형자 얼굴, 피실험자는 제 몸의 얼굴, 지문은 이름표 없이 흐린 글씨', () => {
+  it('정부 통제실은 처형자 얼굴, 피실험자는 제 몸의 얼굴 — 지문(흐린 글씨)은 없다', () => {
     const control = lines.filter((l) => l.nickname === CONTROL_NAME);
     expect(control).toHaveLength(5);
     expect(control.every((l) => l.portraitSrc === CONTROL_FACE)).toBe(true);
-    const stage = lines.filter((l) => l.thought);
-    expect(stage.map((l) => l.text)).toEqual(['천장 스피커가 켜진다.', '잠시 정적.']);
-    expect(stage.every((l) => l.nickname.trim() === '')).toBe(true);
+    expect(lines.some((l) => l.thought)).toBe(false);
+    expect(lines.every((l) => l.nickname.trim() !== '')).toBe(true);
     const first = lines[0];
     expect(first.nickname).toMatch(/^피실험자 01 · N\d$/);
     const who = SEATS.find((s) => s.id === first.id)!;

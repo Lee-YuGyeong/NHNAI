@@ -4,7 +4,6 @@
  *
  *   피실험자 01  "뭐야… 여기가 어디야?"
  *   피실험자 02  "문이 안 열려."
- *   (천장 스피커가 켜진다)
  *   정부 통제실  "현재 식별 표지가 없는 휴머노이드가 여러분 사이에 숨어 있습니다."
  *   …
  *   정부 통제실  "판별을 시작합니다."
@@ -18,7 +17,8 @@
  *
  * 초상: 피실험자는 **그 좌석의 몸**(mp/bodies.ts 군인 넷)의 얼굴 클로즈업, 정부 통제실은 무대 위 처형자의 얼굴 —
  * 둘 다 게임의 GLB 를 tools/soldier-portrait.html (?crop=face) 로 찍은 public/interrogation/face-*.jpg 다.
- * 지문(「천장 스피커가 켜진다」)은 이름표 없이 흐린 글씨(thought)로, 시설 초상을 단다.
+ * 지문(「천장 스피커가 켜진다」「잠시 정적」)은 걷었다 — 대화창에 말 아닌 줄이 서면 흐름이 끊긴다 (2026-09-05 사용자).
+ * 말하는 사람만 있다: 통제실과 피실험자.
  *
  * 피실험자 01 · 02 · 03 은 좌석 가운데 **무작위로** 셋을 뽑는다. 다만 네 사람의 화면이 서로 다른 사람을
  * 가리키면 안 되므로 난수는 판이 열린 서버 시각(GameStateWire.startedAt)으로 심는다 — 전원이 같은 배역을 본다.
@@ -26,7 +26,7 @@
 import type { ChatLine } from '@/features/world/worldSlice';
 import type { GameSeat } from '@/world/mp/game-protocol';
 
-export type PrologueWho = 'control' | 'subject' | 'stage';
+export type PrologueWho = 'control' | 'subject';
 
 export interface PrologueLine {
   who: PrologueWho;
@@ -42,15 +42,11 @@ export const CONTROL_ID = 'CONTROL';
 export const CONTROL_FACE = '/interrogation/face-executioner.jpg';
 /** 몸을 모르는 좌석(옛 워커)의 얼굴 */
 export const FALLBACK_FACE = '/interrogation/face-sol_fit_m.jpg';
-/** 지문의 초상 — 시설 방송 */
-export const STAGE_FACE = '/ui/portrait-system.webp';
 
 export const PROLOGUE: readonly PrologueLine[] = [
   { who: 'subject', n: 1, text: '뭐야… 여기가 어디야?' },
   { who: 'subject', n: 2, text: '문이 안 열려.' },
-  { who: 'stage', text: '천장 스피커가 켜진다.' },
   { who: 'control', text: '현재 식별 표지가 없는 휴머노이드가 여러분 사이에 숨어 있습니다.' },
-  { who: 'stage', text: '잠시 정적.' },
   { who: 'subject', n: 3, text: '…우리 중에 AI가 있다고?' },
   { who: 'subject', n: 1, text: '난 인간이야.' },
   { who: 'subject', n: 2, text: 'AI도 그렇게 말하겠지.' },
@@ -112,7 +108,6 @@ export function prologueLines(seats: readonly GameSeat[], seed: number): ChatLin
     const key = `prologue-${seed}-${i}`;
     const ts = seed + i;
     if (l.who === 'control') return { key, id: CONTROL_ID, nickname: CONTROL_NAME, text: l.text, ts, portraitSrc: CONTROL_FACE };
-    if (l.who === 'stage') return { key, id: 'system', nickname: ' ', text: l.text, ts, portrait: 'system', portraitSrc: STAGE_FACE, thought: true };
     const seat = cast[(l.n ?? 1) - 1];
     const tag = `피실험자 ${String(l.n ?? 1).padStart(2, '0')}`;
     return { key, id: seat?.id ?? 'system', nickname: seat ? `${tag} · ${seat.name}` : tag, text: l.text, ts, portraitSrc: faceOf(seat) };

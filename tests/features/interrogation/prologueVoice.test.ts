@@ -18,7 +18,7 @@ const ASSIGNED = ['4JJwo477JUAx3HV0T7n7', 'hfY9LTyBpmCf5bUstZlU', 'airYK6ydeWdrJ
 describe('프롤로그 목소리 — 피실험자 셋', () => {
   it('n 1·2·3 이 지정된 목소리로 간다', () => {
     for (const n of [1, 2, 3] as const) {
-      expect(voiceOf({ who: 'subject', n, text: '아무 말' })?.voiceId).toBe(ASSIGNED[n - 1]);
+      expect(voiceOf({ who: 'subject', n, text: '아무 말' }).voiceId).toBe(ASSIGNED[n - 1]);
     }
   });
 
@@ -27,24 +27,18 @@ describe('프롤로그 목소리 — 피실험자 셋', () => {
   });
 
   it('피실험자는 원음이다 — 방에 선 사람이지 스피커가 아니다', () => {
-    expect(voiceOf({ who: 'subject', n: 1, text: 'x' })?.pa).toBe(false);
+    expect(voiceOf({ who: 'subject', n: 1, text: 'x' }).pa).toBe(false);
   });
 });
 
 describe('프롤로그 목소리 — 통제실과 지문', () => {
   /** 관리 AI 목소리를 여기 또 적으면 한쪽만 바뀌는 날이 온다 */
   it('통제실은 목소리를 여기서 정하지 않는다 — 워커가 정한다', () => {
-    const v = voiceOf({ who: 'control', text: '판별을 시작합니다.' });
-    expect(v).not.toBeNull();
-    expect(v?.voiceId).toBeUndefined();
+    expect(voiceOf({ who: 'control', text: '판별을 시작합니다.' }).voiceId).toBeUndefined();
   });
 
   it('통제실은 시설 방송 음색이다 — 천장 스피커에서 나온다', () => {
-    expect(voiceOf({ who: 'control', text: 'x' })?.pa).toBe(true);
-  });
-
-  it('지문은 아무도 읽지 않는다 — 「천장 스피커가 켜진다」는 말이 아니라 설명이다', () => {
-    expect(voiceOf({ who: 'stage', text: '천장 스피커가 켜진다.' })).toBeNull();
+    expect(voiceOf({ who: 'control', text: 'x' }).pa).toBe(true);
   });
 });
 
