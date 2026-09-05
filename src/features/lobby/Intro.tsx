@@ -232,7 +232,8 @@ export function LobbyIntro() {
       <Backdrop />
 
       <header className="bl-top">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 26, minWidth: 0 }}>
+        {/* 26 → 48 (2026-09-05 사용자 시안의 gap-12) — 나머지 옷은 lobby.css 의 .bl--snap .bl-top 묶음이다 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 48, minWidth: 0 }}>
           <span className="bl-logo">특수인공지능대응센터</span>
           <nav className="bl-nav">
             {NAV.map((id) => (

@@ -1,10 +1,22 @@
 /**
- * 「인간인 척」의 순수 규칙 — 배역(roles.ts)과 의심도(suspicion.ts). PLANNING §1.1 · §1.2 · §1.3 의 표를 그대로 잠근다.
+ * 「인간인 척」의 순수 규칙 — 배역(roles.ts) · 의심도(suspicion.ts) · 표식(tells.ts).
+ * PLANNING §1.1 · §1.2 · §1.3 과 **docs/SUSPICION.md** 의 표를 그대로 잠근다.
  */
 import { describe, expect, it } from 'vitest';
 import { SUSPICION } from '../../src/world/mp/game-protocol';
 import { assignRoles, designerCap, outcomeFor, quotaFor, shuffled } from '../../worker/src/game/roles';
 import { REPEAT_STEP, SuspicionBook } from '../../worker/src/game/suspicion';
+import {
+  BACK_MAX_MS,
+  BACK_MIN_M,
+  BodyWatch,
+  MENTION_MIN_SCORE,
+  STILL_MS,
+  calledIn,
+  echoes,
+  isBacking,
+  seatMentions,
+} from '../../worker/src/game/tells';
 
 describe('배역 — §1.1', () => {
   it('설계자 상한은 실제 플레이어 수로 정해진다 (3→0 · 4~5→1 · 6~8→2)', () => {
@@ -174,5 +186,152 @@ describe('의심도 — §1.2', () => {
     expect(back[0]).toMatchObject({ target: 'a', amount: -SUSPICION.accuse });
     expect(book.accusationsSnapshot()).toEqual({});
     expect(book.overCut()).toEqual([]);
+  });
+});
+
+describe('표식 — docs/SUSPICION.md', () => {
+  const ids = ['a', 'b', 'c', 'd'];
+
+  it('같은 항목에 거듭 걸리면 무거워진다 — 그 누계는 지워지지 않는다', () => {
+    const book = new SuspicionBook(ids);
+    expect(book.tell('a', 'echo', '되풀이')?.amount).toBe(SUSPICION.echo);
+    expect(book.tell('a', 'echo', '되풀이')?.amount).toBe(SUSPICION.echo + SUSPICION.repeatWeight);
+    expect(book.tell('a', 'echo', '되풀이')?.amount).toBe(SUSPICION.echo + SUSPICION.repeatWeight * 2);
+    // 항목마다 따로 센다 — 되풀이 셋이 회피의 누계를 밀지 않는다
+    expect(book.tell('a', 'duck', '회피')?.amount).toBe(SUSPICION.duck);
+    expect(book.tellCount('a', 'echo')).toBe(3);
+  });
+
+  it('회피는 그때 몰려 있었으면 더 문다 (extra)', () => {
+    const book = new SuspicionBook(ids);
+    expect(book.tell('a', 'duck', '회피', SUSPICION.duckAccused)?.amount).toBe(SUSPICION.duck + SUSPICION.duckAccused);
+  });
+
+  it('몸은 bodyCap 에서 멈춘다 — 몸만으로는 격리되지 않는다', () => {
+    const book = new SuspicionBook(ids);
+    for (let i = 0; i < 40; i += 1) {
+      book.tell('a', 'still', '부동');
+      book.tell('a', 'backstep', '역방향');
+    }
+    expect(book.get('a')).toBe(SUSPICION.bodyCap);
+    expect(book.get('a')).toBeLessThan(SUSPICION.cut);
+    // 말은 상한을 안 나눠 쓴다 — 몸이 다 찼어도 말은 계속 문다
+    expect(book.tell('a', 'echo', '되풀이')?.amount).toBe(SUSPICION.echo);
+  });
+
+  it('표식은 겨눔도 되돌림도 안 남긴다 — 남의 철회로 안 걷힌다', () => {
+    const book = new SuspicionBook(ids);
+    book.tell('a', 'echo', '되풀이');
+    expect(book.accusationsSnapshot()).toEqual({});
+    book.accuse('b', 'a');
+    book.withdraw('b');
+    expect(book.get('a')).toBe(SUSPICION.echo);
+  });
+
+  it('얼어붙은 좌석에는 아무 표식도 안 붙는다', () => {
+    const book = new SuspicionBook(ids);
+    book.freeze('a');
+    expect(book.tell('a', 'still', '부동')).toBeNull();
+  });
+});
+
+describe('좌석 부르기 — 지목과 호명이 같은 눈을 쓴다', () => {
+  const seats = [1, 2, 3, 12].map((seat) => ({ id: `s${seat}`, seat }));
+
+  it('자릿수를 맞춰 부르면 3점 · 「n번」은 2점 · 맨 숫자는 1점', () => {
+    const by = (t: string, n: number) => seatMentions(t, seats).find((m) => m.id === `s${n}`)?.score ?? 0;
+    expect(by('SUBJECT 03 너지', 3)).toBe(3);
+    expect(by('03 이상해', 3)).toBe(3);
+    expect(by('3번 이상해', 3)).toBe(2);
+    expect(by('3회차 결과 몰라', 3)).toBe(1); // 문턱(2) 밑이라 혼자서는 아무것도 아니다
+  });
+
+  it('두 자리 번호를 한 자리로 잘라 읽지 않는다', () => {
+    const ms = seatMentions('12번 얘기하는 거야', seats);
+    // 두 자리 좌석은 맨 숫자가 곧 자릿수를 맞춘 꼴이라 3점이다
+    expect(ms.find((m) => m.id === 's12')?.score).toBe(3);
+    expect(ms.find((m) => m.id === 's1')).toBeUndefined();
+    expect(ms.find((m) => m.id === 's2')).toBeUndefined();
+  });
+
+  it('호명은 **맨 뒤에 불린 사람**이 대답 차례다', () => {
+    expect(calledIn('2번은 아까 그렇다 치고, 3번 너는?', seats)).toBe('s3');
+    expect(calledIn('3번 너는? 아 2번도', seats)).toBe('s2');
+    // 자기 자신은 부른 것으로 안 친다
+    expect(calledIn('3번 나 말하는 중', seats, 's3')).toBeNull();
+    // 문턱 밑은 호명이 아니다
+    expect(calledIn('3회차 얘기야', seats)).toBeNull();
+    expect(MENTION_MIN_SCORE).toBe(2);
+  });
+});
+
+describe('같은 말 되풀이 — echoes', () => {
+  it('문장부호·공백이 달라도 같은 말이면 잡는다', () => {
+    expect(echoes('그건 아까 3번이 한 말이잖아', ['그건 아까 3번이 한 말이잖아!!'])).toBe(true);
+  });
+
+  it('짧은 말은 안 센다 — 채팅의 정상 리듬이다', () => {
+    expect(echoes('ㅇㅇ', ['ㅇㅇ'])).toBe(false);
+    expect(echoes('몰라', ['몰라', '몰라'])).toBe(false);
+  });
+
+  it('다른 말은 안 잡는다', () => {
+    expect(echoes('나는 그때 왼쪽에 서 있었는데', ['정지선에서 너만 반대로 밀렸잖아'])).toBe(false);
+  });
+});
+
+describe('몸 — BodyWatch', () => {
+  it('굳음: 한자리에 STILL_MS 붙어 있으면 한 장면, 그 뒤로도 STILL_MS 마다 다시', () => {
+    const w = new BodyWatch();
+    expect(w.sample('a', 0, 0, 0, false)).toEqual([]);
+    expect(w.sample('a', 0, 0, STILL_MS - 1, false)).toEqual([]);
+    expect(w.sample('a', 0, 0, STILL_MS, false)).toEqual(['still']);
+    expect(w.sample('a', 0, 0, STILL_MS * 2 - 1, false)).toEqual([]);
+    expect(w.sample('a', 0, 0, STILL_MS * 2, false)).toEqual(['still']);
+  });
+
+  it('굳음: 앵커를 벗어나면 시계가 다시 선다', () => {
+    const w = new BodyWatch();
+    w.sample('a', 0, 0, 0, false);
+    w.sample('a', 3, 0, STILL_MS - 1, false); // 걸어갔다 — 여기서 다시 센다
+    expect(w.sample('a', 3, 0, STILL_MS, false)).toEqual([]);
+    expect(w.sample('a', 3, 0, STILL_MS * 2 - 1, false)).toEqual(['still']);
+  });
+
+  it('뒷걸음: 장면이 끊길 때 판정하고, 짧거나 가까우면 안 문다', () => {
+    const back = (dist: number, ms: number) => {
+      const w = new BodyWatch();
+      w.sample('a', 0, 0, 0, false);
+      w.sample('a', 0, 0, 100, true); // 장면 시작
+      w.sample('a', 0, -dist, 100 + ms, true);
+      // 멈춘 뒤 유예를 넘기면 그 자리에서 판정된다
+      return w.sample('a', 0, -dist, 100 + ms + 1_000, false);
+    };
+    expect(back(BACK_MIN_M + 0.5, 1_000)).toEqual(['backstep']);
+    expect(back(0.3, 1_000)).toEqual([]); // 너무 가깝다
+    expect(back(BACK_MIN_M + 0.5, 100)).toEqual([]); // 너무 짧다
+  });
+
+  it('뒷걸음: 계속 물러서도 BACK_MAX_MS 에서 한 번 끊는다', () => {
+    const w = new BodyWatch();
+    w.sample('a', 0, 0, 0, false);
+    let hit = 0;
+    for (let t = 100; t <= 100 + BACK_MAX_MS; t += 100) hit += w.sample('a', 0, -t / 100, t, true).length;
+    expect(hit).toBe(1);
+  });
+
+  it('얼어붙은 좌석은 잊는다 — 쓰러진 몸에 「미동이 없다」가 걸리지 않게', () => {
+    const w = new BodyWatch();
+    w.sample('a', 0, 0, 0, false);
+    w.forget('a');
+    expect(w.sample('a', 0, 0, STILL_MS, false)).toEqual([]); // 처음 본 몸으로 다시 센다
+  });
+
+  it('뒤로 가는가는 보는 쪽과 가는 쪽의 각으로 정한다 (120°)', () => {
+    // heading 0 = +z 를 본다
+    expect(isBacking(0, -1, 0)).toBe(true); // 정반대
+    expect(isBacking(0, 1, 0)).toBe(false); // 앞으로
+    expect(isBacking(1, 0, 0)).toBe(false); // 옆걸음은 뒷걸음이 아니다
+    expect(isBacking(0, 0, 0)).toBe(false); // 안 움직였다
   });
 });

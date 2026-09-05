@@ -6,9 +6,9 @@
  *  ② 통제실은 목소리를 여기서 정하지 않나 — 관리 AI 목소리는 워커 한 곳에서만 정해야 한다
  *  ③ 자막과 소리의 **짝이 어긋나지 않나** — 이게 조용히 깨지는 자리다
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { PROLOGUE, prologueLines } from '@/features/interrogation/prologue';
-import { leadingSilenceSec, voiceOf, type ClipSamples } from '@/features/interrogation/prologueVoice';
+import { leadingSilenceSec, resetPrologueVoice, voiceOf, type ClipSamples } from '@/features/interrogation/prologueVoice';
 import { OPENING_CAST } from '@/features/tts/openingSpeakers';
 import type { GameSeat } from '@/world/mp/game-protocol';
 
@@ -28,6 +28,56 @@ describe('프롤로그 목소리 — 피실험자 셋', () => {
 
   it('피실험자는 원음이다 — 방에 선 사람이지 스피커가 아니다', () => {
     expect(voiceOf({ who: 'subject', n: 1, text: 'x' }).pa).toBe(false);
+  });
+});
+
+/**
+ * 몸 → 목소리 (2026-09-05 사용자: 「비만 남군은 셋 중 남자 목소리로」「다른 두 명은 랜덤으로
+ * 그 두 여자 목소리」). 초상이 좌석의 몸이라(prologue.ts 의 faceOf), 번호로만 주면 남자
+ * 얼굴에서 여자 목소리가 난다.
+ */
+describe('프롤로그 목소리 — 몸을 따라간다 (얼굴과 성별을 맞춘다)', () => {
+  const seat = (body?: string) => ({ id: 'x', seat: 1, name: '이름', isolated: false, body }) as unknown as GameSeat;
+  const MALE = OPENING_CAST.find((s) => s.gender === '남')!.voiceId;
+  const FEMALE = OPENING_CAST.filter((s) => s.gender === '여').map((s) => s.voiceId);
+  const heard = (n: 1 | 2 | 3) => voiceOf({ who: 'subject', n, text: 'x' }).voiceId;
+
+  // 배역은 모듈의 상태다 — 여기서 적은 것이 다른 벌레잡이(위 「피실험자 셋」)로 새면 안 된다
+  afterEach(() => resetPrologueVoice());
+
+  it('남자 몸이면 남자 목소리다 — 번호(여자 목소리)가 아니라 얼굴을 따른다', () => {
+    resetPrologueVoice([seat('sol_fit_f'), seat('sol_heavy_m'), seat('sol_fit_m')], 7);
+    expect(heard(2)).toBe(MALE);
+    // 남자 목소리가 하나뿐이라 남자 몸 둘이면 같은 목소리다 — 여자 목소리를 얹는 것보다 낫다
+    expect(heard(3)).toBe(MALE);
+  });
+
+  it('여자 몸 둘은 여자 목소리 둘을 나눠 갖는다 — 같은 목소리로 겹치지 않는다', () => {
+    resetPrologueVoice([seat('sol_fit_f'), seat('sol_heavy_m'), seat('sol_heavy_f')], 7);
+    expect(FEMALE).toContain(heard(1));
+    expect(FEMALE).toContain(heard(3));
+    expect(heard(1)).not.toBe(heard(3));
+  });
+
+  it('섞기는 씨앗의 것이다 — 같은 씨앗이면 네 화면이 같고, 판(씨앗)마다 갈린다', () => {
+    const cast = [seat('sol_fit_f'), seat('sol_heavy_f'), seat('sol_heavy_m')];
+    const firstOf = (s: number) => {
+      resetPrologueVoice(cast, s);
+      return heard(1)!;
+    };
+    expect(firstOf(42)).toBe(firstOf(42));
+    // 씨앗 몇 개만 돌려도 두 배정이 다 나와야 한다 — 안 나오면 「랜덤」이 아니라 고정이다
+    expect(new Set([0, 1, 2, 3, 4, 5, 6, 7].map(firstOf)).size).toBe(2);
+  });
+
+  it('몸을 모르는 좌석은 남자 목소리다 — 얼굴도 같은 폴백으로 남군이다 (FALLBACK_FACE)', () => {
+    resetPrologueVoice([seat(undefined), seat('sol_fit_f'), seat('sol_fit_f')], 7);
+    expect(heard(1)).toBe(MALE);
+  });
+
+  it('배역을 모르는 화면(판 도중 합류)도 번호 배정으로 소리는 난다', () => {
+    resetPrologueVoice();
+    expect(heard(3)).toBe(ASSIGNED[2]);
   });
 });
 

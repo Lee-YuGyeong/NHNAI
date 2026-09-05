@@ -15,6 +15,8 @@
  * 이 판에서 달라진 것 하나: **어느 몸이 사람인지 이 파일은 모른다.** 실제 사람 · 대역 · AI 가 전부 같은
  * 좌석 id 로 오고 이름은 SUBJECT nn 이다 (game-protocol.ts 머리말). 그래서 옛 판처럼 좌석 색으로 이름을
  * 칠하지 않는다 — 색이 좌석 번호를 말하면 그 번호가 곧 입장 순서로 읽힌다.
+ *
+ * **처형당한 몸은 그 자리에서 넘어간다** (scene/Downed) — 내 몸(SelfAvatar)과 같은 부품, 같은 그림이다.
  */
 import { Suspense, memo, useCallback, useEffect, useReducer, useRef } from 'react';
 import { Html } from '@react-three/drei';
@@ -28,6 +30,7 @@ import { sampleAt, type Pose } from '@/world/mp/interp';
 import type { AnimState } from '@/world/mp/protocol';
 import { remotePlayers, type RemotePlayer } from '@/world/net/remote-players';
 import { ChatBubble } from './ChatBubble';
+import { Downed } from './Downed';
 import { hallGroundAt } from './ground';
 import { SuspicionBar } from './SuspicionBar';
 
@@ -78,6 +81,8 @@ const SeatAvatar = memo(function SeatAvatar({
    */
   const speed = useRef({ v: 0, x: player.pose.x, z: player.pose.z, at: 0 });
   const getSpeed = useCallback(() => speed.current.v, []);
+  /** 넘어가는 각을 몸 기준으로 옮기는 데 쓴다 (scene/Downed) — 총은 늘 무대에서 온다 */
+  const getFallPose = useCallback(() => ({ x: player.pose.x, z: player.pose.z, heading: player.pose.heading }), [player]);
 
   const bubble = player.bubbleUntil > performance.now() ? player.bubbleText : '';
   void bubbleTick;
@@ -135,8 +140,10 @@ const SeatAvatar = memo(function SeatAvatar({
        * 바닥에 그림자만 떠 있는 사람이 된다 (world/scene/WorldScene 의 같은 자리 주석).
        */}
       <Suspense fallback={null}>
-        {/* 몸은 서버가 준 군인(mp/bodies.ts) — 옛 워커라 몸이 없으면 로봇 */}
-        {player.body ? <SoldierAvatar body={player.body} getAnim={getAnim} getAirborne={getAirborne} getSpeed={getSpeed} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
+        {/* 몸은 서버가 준 군인(mp/bodies.ts) — 옛 워커라 몸이 없으면 로봇. 처형당하면 이 안에서 넘어간다 */}
+        <Downed id={player.id} getPose={getFallPose}>
+          {player.body ? <SoldierAvatar body={player.body} getAnim={getAnim} getAirborne={getAirborne} getSpeed={getSpeed} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
+        </Downed>
         <mesh ref={shadow} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.34, 20]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.35} />

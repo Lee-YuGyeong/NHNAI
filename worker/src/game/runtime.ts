@@ -43,6 +43,7 @@ import {
   READ_EVERY_MS,
   READ_MAX_LINES,
   READ_MIN_LINES,
+  SUSPICION,
   type GameC2SMessage,
   type GameOutcome,
   type GamePhase,
@@ -68,6 +69,20 @@ import type { Brain } from './brain';
 import { ENGINES, INSTRUCTION, availableGames } from './engines';
 import { assignRoles, outcomeFor, quotaFor, shuffled } from './roles';
 import { SuspicionBook, type SuspicionDelta } from './suspicion';
+import {
+  BodyWatch,
+  DUCK_FREE,
+  DUCK_WINDOW_MS,
+  ECHO_GAP_MS,
+  ECHO_LOOKBACK,
+  MENTION_MIN_SCORE,
+  PRIOR_LINES,
+  calledIn,
+  echoes,
+  isBacking,
+  seatMentions,
+  type Mention,
+} from './tells';
 
 export type OutMessage = S2CMessage | GameS2CMessage;
 
@@ -144,8 +159,21 @@ const BOT_DEFEND_JITTER_MS = 3_000;
 const CLAIM_GAP_MS = 12_000;
 /** 같은 사람의 지목 발언 사이의 최소 간격(ms) — 단추 연타로 눈금을 미는 것은 발언이 아니다 */
 const ACCUSE_GAP_MS = 5_000;
-/** 말에서 좌석을 읽어 낼 때 필요한 최소 점수 — 맨 숫자(1)는 회차·등수·초와 못 가른다 (accusationIn) */
-const ACCUSE_MIN_SCORE = 2;
+/**
+ * 대역이 쉴 때 **오래 굳을** 확률과 그 길이(ms).
+ *
+ * 굳음 판정(docs/SUSPICION.md ⑧)을 켜는 순간 필요해진 값이다. 여태 대역은 늘 목표점으로 곧장 걸었고
+ * 쉼도 1.5~7.5초뿐이었는데, 사람은 자판에서 손을 떼면 몇 분씩 굳는다 — 그대로 두면
+ * **방에서 유일하게 굳는 몸 = 사람**이 되어, 판정이 아니라 사람 탐지기가 된다.
+ * 판은 틀린 사람을 잡아야지 사람이라는 것을 자동으로 잡으면 안 된다.
+ */
+const BOT_STILL_ODDS = 0.12;
+const BOT_STILL_MIN_MS = 22_000;
+const BOT_STILL_JITTER_MS = 18_000;
+/** 대역이 다음 자리로 갈 때 **몸을 안 돌리고 물러설** 확률 — 뒷걸음 판정(⑨)이 사람만 잡지 않게 */
+const BOT_BACK_ODDS = 0.1;
+/** 사람의 move 가 끊긴 뒤 「뒤로 걷는 중」을 유지하는 시간(ms) — 송신이 멎으면 걸음도 멎은 것이다 */
+const HUMAN_BACK_HOLD_MS = 400;
 /** 토론 중 봇 배회 — 스냅샷 간격(ms) · 제 자리에서 벗어나는 반경(m) · 걷는 속도(사람 걷기의 비율) */
 /**
  * 대역이 움직이는 박자. 1초였을 때는 클라가 1초에 한 번 자리를 받아 **순간이동한 뒤 제자리에서 걷는** 것으로 보였다
@@ -189,8 +217,24 @@ export class GameRuntime {
   /** 토론이 닫히기 전 마지막 읽기 (READ_FLUSH_BEFORE_MS) */
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private idleTimer: ReturnType<typeof setInterval> | null = null;
-  /** 봇의 자리와 지금 향하는 곳 — 토론 중 배회용. 가만히 선 몸은 그 자체로 표식이라 사람처럼 조금씩 움직인다 */
-  private botPos = new Map<string, { x: number; z: number; tx: number; tz: number; hx: number; hz: number; restUntil: number }>();
+  /**
+   * 봇의 자리와 지금 향하는 곳 — 토론 중 배회용. 가만히 선 몸은 그 자체로 표식이라 사람처럼 조금씩 움직인다.
+   * `heading` 은 보는 쪽, `back` 은 이번 구간을 **몸을 안 돌리고 물러서는가** (BOT_BACK_ODDS).
+   */
+  private botPos = new Map<
+    string,
+    { x: number; z: number; tx: number; tz: number; hx: number; hz: number; restUntil: number; heading: number; back: boolean }
+  >();
+  /** 사람 좌석의 마지막 자리 — move 가 올 때만 갱신된다. 안 오는 것이 곧 「안 움직인다」다 (docs/SUSPICION.md 「몸」) */
+  private humanPos = new Map<string, { x: number; z: number; backing: boolean; at: number }>();
+  /** 몸의 장면을 모으는 눈 (tells.BodyWatch) — 토론마다 새로 센다 */
+  private bodyWatch = new BodyWatch();
+  /** 불린 좌석 → 불린 시각. 그 좌석이 말하면 지운다 (DUCK_WINDOW_MS 안에 안 말하면 회피) */
+  private called = new Map<string, number>();
+  /** 좌석 → 회피 횟수. 첫 번은 안 문다 (DUCK_FREE) */
+  private ducked = new Map<string, number>();
+  /** 좌석 → 마지막 되풀이 판정 시각 (ECHO_GAP_MS) */
+  private lastEchoAt = new Map<string, number>();
   /** 지금 말을 짓고 있는 좌석들 — 방 전체가 아니라 **좌석마다**의 잠금이다 (BOT_TALK_CONCURRENCY) */
   private botBusy = new Set<string>();
   /** 토론이 아닌 국면에 도착한 봇의 한 마디 — 토론이 다시 열리면 내보낸다 */
@@ -240,6 +284,22 @@ export class GameRuntime {
     return this.phase !== 'result';
   }
 
+  /**
+   * **판이 실제로 굴러가는 중인가** — 사람이 말할 수도 움직일 수도 있는 시간.
+   *
+   * 토론 국면인 것만으로는 부족하다: 첫 토론은 화면에서 검문소 대본이 흐르는 동안 열려 있고(prologueHold),
+   * 그 동안 사람은 조작이 잠긴 채 방송을 보고 있다 (InterrogationFeature 의 modalUp).
+   * 그때도 의심도를 재면 **못 움직이게 해 놓고 안 움직였다고 무는 셈**이다
+   * (2026-09-05 사용자: "방송할때 안움직였다고 이렇게떠"). 방송은 75초까지 갈 수 있어서
+   * (GAME_PROLOGUE_MAX_MS) 굳음 25초가 세 번까지 걸렸고, 누계까지 붙어 판이 열리기도 전에
+   * 몸의 상한(bodyCap)을 다 써 버렸다.
+   *
+   * 그래서 표식(굳음 · 뒷걸음 · 되풀이 · 회피)도 봇 차례도 전부 이 문 하나를 지난다.
+   */
+  private judging(): boolean {
+    return this.phase === 'discussion' && this.prologueHold === null;
+  }
+
   /** 입장 직후 — 지금 상태와 (앉아 있던 자리가 있으면) 배역을 그 사람에게만 보낸다 */
   async onJoin(playerId: string): Promise<void> {
     await this.restoreIfNeeded();
@@ -262,10 +322,19 @@ export class GameRuntime {
   }
 
   /** room-do.ts 의 move — 시간제 테스트(낙하 생존)가 사람의 자리를 아는 길 */
-  onMove(playerId: string, x: number, z: number, now: number, y = 0): void {
-    if (this.phase !== 'test' || !this.engine) return;
+  onMove(playerId: string, x: number, z: number, now: number, y = 0, heading = 0): void {
     const seat = this.seatOfPlayer(playerId);
-    if (seat && !seat.isolated) this.engine.onMove(seat.id, x, z, now, y);
+    if (!seat || seat.isolated) return;
+    if (this.phase === 'test') {
+      if (this.engine) this.engine.onMove(seat.id, x, z, now, y);
+      return;
+    }
+    // 토론 중의 몸 — 굳음과 뒷걸음을 재는 자리다 (docs/SUSPICION.md 「몸」). 자리만 적어 두고 판정은 idleTick 이 한다:
+    // 클라는 **자리가 바뀔 때만** move 를 보내므로(WorldScene 의 changed &&), 굳어 있으면 여기가 아예 안 불린다.
+    if (this.phase !== 'discussion') return;
+    const prev = this.humanPos.get(seat.id);
+    const backing = prev ? isBacking(x - prev.x, z - prev.z, heading) : false;
+    this.humanPos.set(seat.id, { x, z, backing, at: now });
   }
 
   /**
@@ -469,7 +538,7 @@ export class GameRuntime {
     for (const s of this.seats) {
       if (s.kind === 'real') continue;
       const spot = spawnFor(s.seat, this.seats.length);
-      this.botPos.set(s.id, { x: spot.x, z: spot.z, tx: spot.x, tz: spot.z, hx: spot.x, hz: spot.z, restUntil: 0 });
+      this.botPos.set(s.id, { x: spot.x, z: spot.z, tx: spot.x, tz: spot.z, hx: spot.x, hz: spot.z, restUntil: 0, heading: 0, back: false });
     }
     this.book = new SuspicionBook(this.seats.map((s) => s.id));
     this.quota = quotaFor(this.seats.length);
@@ -561,6 +630,14 @@ export class GameRuntime {
     this.startIdle();
     // 지난 토론에서 남은 말은 안 읽는다 — 시험을 사이에 두고 온 말은 이미 지난 장면이다 (readRoom)
     this.unread = [];
+    /*
+     * 몸과 호명도 토론마다 새로 센다 — 시험 30초 동안 몸은 시험판을 돌아다녔고(굳음이 아니다),
+     * 시험을 사이에 두고 불린 사람에게 「대답이 없다」고 하는 것도 말이 안 된다 (docs/SUSPICION.md ⑦⑧).
+     * 누계(tellNth)는 안 지운다 — 거듭 걸린 것은 판이 끝날 때까지 남는다.
+     */
+    this.bodyWatch.clear();
+    this.humanPos.clear();
+    this.called.clear();
     // 다른 국면에 도착해 있던 봇의 말을 먼저 내보낸다 — 사람과 같은 스트림으로 (P10)
     for (const line of this.heldLines) this.say(line.id, line.text);
     this.heldLines = [];
@@ -834,33 +911,11 @@ export class GameRuntime {
    */
   private accusationIn(text: string, bySeatId: string): string | null {
     if (!/AI|에이아이|의심|수상|지목|범인|너지|너잖|쟤야|걔야|아니야\s*\?|아냐\s*\?/i.test(text)) return null;
-    let best: { id: string; at: number; score: number } | null = null;
-    for (const s of this.seats) {
-      if (s.id === bySeatId || s.isolated) continue;
-      const n = String(s.seat);
-      const nn = n.padStart(2, '0');
-      const alone = (t: string) => new RegExp(`(?<![0-9])${t}(?![0-9])`).test(text);
-      /*
-       * 이름(「지훈」·「김지훈」) = 「SUBJECT 03」·「03」 > 「3번」 > 맨 숫자. 좌석은 한국인 이름으로 불리므로(mp/koreanNames)
-       * 이름이 첫째 단서다 — 한 판 안에서 이름 두 글자가 겹치지 않아 성 없이 불러도 한 사람이다. 자릿수를 맞춰 부르는 것은
-       * 좌석 번호밖에 없다
-       */
-      const given = givenOf(s.name);
-      const nameAt = text.indexOf(given);
-      const score =
-        nameAt >= 0 || new RegExp(`SUBJECT\\s*0*${n}(?![0-9])`, 'i').test(text) || alone(nn)
-          ? 3
-          : new RegExp(`(?<![0-9])${n}\\s*번`).test(text)
-            ? 2
-            : alone(n)
-              ? 1
-              : 0;
-      if (score > (best?.score ?? 0)) {
-        const at = nameAt >= 0 ? nameAt : text.search(new RegExp(`(?<![0-9])0*${n}(?![0-9])`, 'i'));
-        best = { id: s.id, at, score };
-      }
-    }
-    if (!best || best.score < ACCUSE_MIN_SCORE) return null;
+    // 번호와 이름을 세는 눈은 tells.seatMentions 한 곳이다 — 지목과 호명(calledIn)이 같은 것을 봐야 판이 안 어긋난다.
+    // 좌석은 한국인 이름으로 불리므로(mp/koreanNames) 「지훈」·「김지훈」이 첫째 단서고, 「SUBJECT 03」·「03」·「3번」이 그다음이다
+    let best: Mention | null = null;
+    for (const m of seatMentions(text, this.seats, bySeatId)) if (m.score > (best?.score ?? 0)) best = m;
+    if (!best || best.score < MENTION_MIN_SCORE) return null;
     // 이름·번호를 부른 자리부터 짧게 — "지훈이는 AI 아닌 것 같아" 는 지목이 아니고, "지훈이 너 AI 아니야?" 는 지목이다
     const at = best.at;
     const tail = at >= 0 ? text.slice(at, at + 24) : text;
@@ -895,6 +950,10 @@ export class GameRuntime {
       const seat = this.seats.find((s) => s.id === id);
       if (!seat) continue;
       seat.isolated = true;
+      // 얼어붙은 몸은 더 안 본다 — 쓰러진 채로 「미동이 없다」가 걸리면 안 된다
+      this.bodyWatch.forget(id);
+      this.humanPos.delete(id);
+      this.called.delete(id);
       const withdrawn = this.book.freeze(id);
       const text = LINES.isolated(seat.name, seat.role);
       this.deps.broadcast({ t: 'game_isolated', id, role: seat.role, text });
@@ -1030,8 +1089,8 @@ export class GameRuntime {
   /* ─────────────────────────────── 봇 발화 (AI 참가자 · 대역) ─────────────────────────────── */
 
   private scheduleTalk(delayMs?: number): void {
-    // 프롤로그 방송이 흐르는 동안은 아무 차례도 안 잡는다 — 판을 여는 말은 대본의 것이다 (prologueHold)
-    if (this.phase !== 'discussion' || this.prologueHold !== null) return;
+    // 프롤로그 방송이 흐르는 동안은 아무 차례도 안 잡는다 — 판을 여는 말은 대본의 것이다 (judging)
+    if (!this.judging()) return;
     const delay = delayMs ?? BOT_TALK_MIN_MS + this.rand() * BOT_TALK_JITTER_MS;
     // 이미 더 이른 차례가 잡혀 있으면 그대로 둔다 — 없거나 이번이 더 이르면 바꾼다
     if (this.talkTimer !== null) {
@@ -1096,17 +1155,98 @@ export class GameRuntime {
     }
   }
 
-  /** 봇의 한 마디 — 사람 채팅과 **같은 메시지**로 나간다 (P10) */
+  /**
+   * 봇의 한 마디 — 사람 채팅과 **같은 메시지**로 나간다 (P10).
+   *
+   * 말에 붙는 규칙 판정(docs/SUSPICION.md ⑥⑦)도 전부 여기서 걸린다 — 사람의 말이든 봇의 말이든
+   * 같은 문이라야 관리 AI 가 누가 사람인지 모르는 채로 판정한다 (P5).
+   */
   private say(seatId: string, text: string): void {
     const seat = this.seats.find((s) => s.id === seatId);
     if (!seat) return;
-    seat.lastSpokeAt = this.now();
-    this.deps.broadcast({ t: 'chat', id: seat.id, nickname: seat.name, text, ts: this.now() });
+    const now = this.now();
+    // 이 사람은 대답했다 — 불려 있었다면 회피가 아니다 (호명을 새로 잡기 **전에** 지운다)
+    this.called.delete(seat.id);
+    if (this.judging()) this.checkEcho(seat, text, now);
+
+    seat.lastSpokeAt = now;
+    this.deps.broadcast({ t: 'chat', id: seat.id, nickname: seat.name, text, ts: now });
     this.pushLog(seat.id, text);
+
+    // 이 말이 누구에게 말을 건 것인가 — 그 사람이 DUCK_WINDOW_MS 안에 안 답하면 회피다 (watchDucks)
+    const called = calledIn(text, this.seats, seat.id);
+    if (called && this.judging()) this.called.set(called, now);
+
     // 사람의 말이든 봇의 말이든 같은 문으로 들어간다 — 관리 AI 는 누가 사람인지 모른다 (P5)
     this.unread.push({ name: seat.name, text });
     if (this.unread.length > READ_MAX_LINES) this.unread = this.unread.slice(-READ_MAX_LINES);
     void this.readRoom();
+  }
+
+  /**
+   * 같은 말 되풀이 (docs/SUSPICION.md ⑥) — **자기가 아까 한 말**을 다시 치는가. LLM 을 안 부른다.
+   *
+   * 말 읽기(readTalk)로는 이걸 못 잡는다: 그쪽은 한 장면(2~12줄)만 보고 9초에 한 번 도는데,
+   * 되풀이는 판 전체에 걸쳐 있다. 로그를 쥔 것은 여기뿐이다.
+   * pushLog 보다 **먼저** 불러야 이번 말이 제 비교 대상에 안 들어간다.
+   */
+  private checkEcho(seat: Seat, text: string, now: number): void {
+    if (now - (this.lastEchoAt.get(seat.id) ?? 0) < ECHO_GAP_MS) return;
+    const mine = this.log
+      .filter((l) => l.id === seat.id)
+      .slice(-ECHO_LOOKBACK)
+      .map((l) => l.text);
+    if (!echoes(text, mine)) return;
+    this.lastEchoAt.set(seat.id, now);
+    const nth = this.book.tellCount(seat.id, 'echo') + 1;
+    const d = this.book.tell(seat.id, 'echo', '같은 말을 되풀이함');
+    if (!d) return;
+    this.leader(LINES.tell(seat.name, d.amount, `앞서 한 말을 그대로 되풀이했다 (${nth}회)`), 'readout');
+    this.applyDeltas([d]);
+  }
+
+  /**
+   * 말 회피 (docs/SUSPICION.md ⑦) — **불렀는데 대답 없이 넘긴** 것만 문다.
+   *
+   * 침묵 자체는 벌하지 않는다. 말수는 성격이고, 그걸 벌하면 입 다무는 것이 최적 전략이 된다.
+   * 첫 번은 그냥 넘어간다(DUCK_FREE) — 한 번 못 들은 것과 피하는 것은 다르다.
+   */
+  private watchDucks(now: number): void {
+    for (const [id, at] of [...this.called]) {
+      if (now - at < DUCK_WINDOW_MS) continue;
+      this.called.delete(id);
+      const seat = this.seats.find((s) => s.id === id);
+      if (!seat || seat.isolated) continue;
+      const n = (this.ducked.get(id) ?? 0) + 1;
+      this.ducked.set(id, n);
+      if (n <= DUCK_FREE) continue;
+      // 몰린 채로 답을 피하는 것은 다른 무게다
+      const extra = this.book.accusersOf(id).length ? SUSPICION.duckAccused : 0;
+      const d = this.book.tell(id, 'duck', '호명에 응답 없음', extra);
+      if (!d) continue;
+      this.leader(LINES.tell(seat.name, d.amount, `${n}번째 호명에 응답이 없다`), 'alarm');
+      this.applyDeltas([d]);
+    }
+  }
+
+  /**
+   * 몸 (docs/SUSPICION.md ⑧⑨) — 굳음과 뒷걸음. idleTick 이 10Hz 로 전원의 자리를 넣는다.
+   * 값은 SuspicionBook.tell 이 bodyCap 안에서 무므로, 몸만으로는 격리되지 않는다.
+   */
+  private readBodies(poses: { id: string; x: number; z: number; backing: boolean }[], now: number): void {
+    const deltas: SuspicionDelta[] = [];
+    for (const p of poses) {
+      const seat = this.seats.find((s) => s.id === p.id);
+      if (!seat || seat.isolated) continue;
+      for (const kind of this.bodyWatch.sample(p.id, p.x, p.z, now, p.backing)) {
+        const why = kind === 'still' ? '한자리에서 미동이 없다' : '몸을 돌리지 않고 물러섰다';
+        const d = this.book.tell(seat.id, kind, kind === 'still' ? '장시간 부동' : '역방향 이동');
+        if (!d) continue;
+        deltas.push(d);
+        this.leader(LINES.tell(seat.name, d.amount, why), 'readout');
+      }
+    }
+    if (deltas.length) this.applyDeltas(deltas);
   }
 
   /* ─────────────────────────────── 관리 AI 의 말 읽기 ─────────────────────────────── */
@@ -1138,8 +1278,21 @@ export class GameRuntime {
      * 최적 전략이 된다 (agents.readTalk 의 "조용한 것은 근거가 아니다").
      */
     const spoke = new Set(lines.map((l) => l.name));
+    /*
+     * 앞뒤 모순을 보는 눈(readTalk ③)의 입력 — 이 장면에서 말한 사람들이 **그 전에** 한 말.
+     * 이번 장면의 줄은 뺀다: 로그에는 이미 들어와 있어서 그대로 넘기면 "방금 한 말과 방금 한 말"을 맞춰 보게 된다.
+     */
+    const sceneTexts = new Set(lines.map((l) => l.text));
+    const prior = [...spoke]
+      .map((name) => {
+        const seat = this.seatByName(name);
+        if (!seat) return null;
+        const past = this.log.filter((l) => l.id === seat.id && !sceneTexts.has(l.text));
+        return past.length ? { name, lines: past.slice(-PRIOR_LINES).map((l) => l.text) } : null;
+      })
+      .filter((p): p is { name: string; lines: string[] } => p !== null);
     try {
-      const out = await readTalk(this.deps.brain, { facts: this.facts(), results: this.history, lines });
+      const out = await readTalk(this.deps.brain, { facts: this.facts(), results: this.history, lines, prior });
       if (!this.active()) return;
       const deltas: SuspicionDelta[] = [];
       const said: string[] = [];
@@ -1190,31 +1343,53 @@ export class GameRuntime {
     if (this.phase !== 'discussion' && this.phase !== 'briefing') return;
     const now = this.now();
     const step = (IDLE_SPEED * IDLE_TICK_MS) / 1000;
-    const ai: { id: string; x: number; z: number }[] = [];
+    const ai: { id: string; x: number; z: number; h: number }[] = [];
+    /** 이번 눈금에 몸을 볼 좌석들 — 대역은 여기서, 사람은 마지막으로 받은 자리에서 (docs/SUSPICION.md 「몸」) */
+    const poses: { id: string; x: number; z: number; backing: boolean }[] = [];
     for (const s of this.seats) {
       const p = this.botPos.get(s.id);
       if (!p || s.isolated) continue;
       const dx = p.tx - p.x;
       const dz = p.tz - p.z;
       const d = Math.hypot(dx, dz);
-      if (d <= step) {
+      const moving = d > step;
+      if (!moving) {
         p.x = p.tx;
         p.z = p.tz;
         if (now >= p.restUntil) {
-          // 잠깐 서 있다가 집 근처의 새 점으로 — 사람마다 리듬이 다르게
-          p.restUntil = now + 1_500 + this.rand() * 6_000;
+          /*
+           * 잠깐 서 있다가 집 근처의 새 점으로 — 사람마다 리듬이 다르게.
+           * 열에 한 번 남짓은 **오래 굳는다** (BOT_STILL_ODDS): 굳음 판정이 사람만 잡지 않으려면
+           * 대역도 사람만큼 서 있어야 한다. 안 그러면 방에서 유일하게 굳는 몸이 곧 사람이다.
+           */
+          const long = this.rand() < BOT_STILL_ODDS;
+          p.restUntil = now + (long ? BOT_STILL_MIN_MS + this.rand() * BOT_STILL_JITTER_MS : 1_500 + this.rand() * 6_000);
           const a = this.rand() * Math.PI * 2;
           const r = this.rand() * IDLE_RADIUS;
           p.tx = p.hx + Math.cos(a) * r;
           p.tz = p.hz + Math.sin(a) * r;
+          // 이번 구간은 몸을 안 돌리고 물러선다 — 뒷걸음 판정도 사람만 잡으면 안 된다 (BOT_BACK_ODDS)
+          p.back = this.rand() < BOT_BACK_ODDS;
+          if (p.back) p.heading = Math.atan2(p.x - p.tx, p.z - p.tz);
         }
       } else {
         p.x += (dx / d) * step;
         p.z += (dz / d) * step;
+        if (!p.back) p.heading = Math.atan2(dx, dz);
       }
-      ai.push({ id: s.id, x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100 });
+      ai.push({ id: s.id, x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100, h: Math.round(p.heading * 1000) / 1000 });
+      poses.push({ id: s.id, x: p.x, z: p.z, backing: moving && p.back });
     }
     if (ai.length) this.deps.broadcast({ t: 'trial_snapshot', at: now, objects: [], ai });
+    if (!this.judging()) return;
+    for (const s of this.seats) {
+      if (s.kind !== 'real' || s.isolated) continue;
+      const p = this.humanPos.get(s.id);
+      // move 는 자리가 바뀔 때만 온다 — 안 오는 동안 그 자리에 그대로 있다는 뜻이다
+      if (p) poses.push({ id: s.id, x: p.x, z: p.z, backing: p.backing && now - p.at < HUMAN_BACK_HOLD_MS });
+    }
+    this.readBodies(poses, now);
+    this.watchDucks(now);
   }
 
   /* ─────────────────────────────── 공개 사실 · 유틸 ─────────────────────────────── */

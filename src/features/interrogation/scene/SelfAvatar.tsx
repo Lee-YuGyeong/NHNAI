@@ -19,8 +19,13 @@
  *     커지고, 고개를 내려다볼수록 또 커진다. 그래서 픽셀로 못 박는다 — 자는 남의 것(60×7)의 두 배.
  *     남의 막대가 3m 거리에서 보이는 크기와 비슷하다.
  *
- * `getSuspicion` 은 선택이다 — 물리 테스트 연습판(features/trial 의 PlatformScene, 다른 세션 소유)도 이 몸을
- * 그대로 쓰는데 거기엔 의심도가 없다. 안 주면 막대도 없다.
+ * `getSuspicion` · `seatId` 는 선택이다 — 물리 테스트 연습판(features/trial 의 PlatformScene, 다른 세션 소유)도 이 몸을
+ * 그대로 쓰는데 거기엔 의심도도 처형도 없다. 안 주면 막대도 없고 넘어지지도 않는다.
+ *
+ * **처형당하면 이 몸도 넘어간다** (scene/Downed) — 남의 몸(SeatAvatar)과 같은 부품, 같은 그림이다.
+ * 죽는 법이 나와 남이 다르면 그 홀은 두 규칙으로 도는 셈이다 (/arena 의 처형 행진을 걷어 낸 이유와 같다).
+ * 머리 위 의심도 막대는 **같이 안 눕는다** — 나를 끝까지 민 그 100 이 마지막 화면에 서 있어야 왜 쏘는지가
+ * 읽힌다 (2026-09-03 사용자, /arena 의 같은 결정).
  */
 import { Suspense, useEffect, useReducer, useRef } from 'react';
 import { Html } from '@react-three/drei';
@@ -30,6 +35,7 @@ import { RobotAvatar } from '@/world/avatar/RobotAvatar';
 import { SoldierAvatar } from '@/world/avatar/SoldierAvatar';
 import type { BodyId } from '@/world/mp/bodies';
 import { ChatBubble } from './ChatBubble';
+import { Downed } from './Downed';
 import { hallGroundAt } from './ground';
 import { selfBubble } from './selfBubble';
 import { selfPose } from './selfPose';
@@ -38,7 +44,17 @@ import { SuspicionBar } from './SuspicionBar';
 /** 내 막대의 높이(m) — 모델 키(SoldierAvatar TARGET_HEIGHT 1.72) 바로 위. 막대 반높이(7px)가 헬멧에 닿지 않을 만큼만 띄운다 */
 const SELF_BAR_Y = 1.8;
 
-export function SelfAvatar({ body, getSuspicion, bubbleTick = 0 }: { body: BodyId | null; getSuspicion?: () => number; bubbleTick?: number }) {
+export function SelfAvatar({
+  body,
+  getSuspicion,
+  seatId = null,
+  bubbleTick = 0,
+}: {
+  body: BodyId | null;
+  getSuspicion?: () => number;
+  seatId?: string | null;
+  bubbleTick?: number;
+}) {
   const group = useRef<Group>(null);
   const shadow = useRef<Mesh>(null);
 
@@ -65,12 +81,16 @@ export function SelfAvatar({ body, getSuspicion, bubbleTick = 0 }: { body: BodyI
     }
   });
   const getAnim = () => selfPose.anim;
+  const getSelfPose = () => ({ x: selfPose.x, z: selfPose.z, heading: selfPose.heading });
   // 발판(움직이는 플랫폼) 위도 원판(회전 원판) 위도 공중이 아니다 — SeatAvatar 와 같은 규칙 (scene/ground.ts)
   const getAirborne = () => selfPose.y > hallGroundAt(selfPose.x, selfPose.z, selfPose.y) + 0.02;
   return (
     <group ref={group}>
       <Suspense fallback={null}>
-        {body ? <SoldierAvatar body={body} getAnim={getAnim} getAirborne={getAirborne} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
+        {/* 그림자는 안 눕는다 — 넘어가는 것은 몸뿐이고 그림자는 늘 바닥에 붙어 있다 */}
+        <Downed id={seatId} getPose={getSelfPose}>
+          {body ? <SoldierAvatar body={body} getAnim={getAnim} getAirborne={getAirborne} /> : <RobotAvatar getAnim={getAnim} getAirborne={getAirborne} />}
+        </Downed>
         <mesh ref={shadow} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.34, 20]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.35} />
