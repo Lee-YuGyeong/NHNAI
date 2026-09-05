@@ -224,10 +224,22 @@ npm run worker:dev
 
 ```bash
 npm run dev:api      # /api/lab 을 워커로 넘긴다
-npm run worker:dev   # 다른 터미널 — ANTHROPIC_API_KEY 필요 (크레딧이 나간다)
+npm run worker:dev   # 다른 터미널 — .dev.vars 에 API 키 필요 (크레딧이 나간다)
 ```
 
 자세한 것은 [개발 문서](docs/DEVELOPMENT.md#대사가-느릴-때--npm-run-devapi).
+
+### 🔑 배포할 때 — 키는 OpenAI 하나
+
+로컬은 이 머신의 **Claude 구독**으로 돌지만 그 SDK 는 워커 안에서 못 쓴다(CLI 프로세스를 띄운다).
+그래서 배포본만 **OpenAI 키**로 간다:
+
+```bash
+npx wrangler secret put OPENAI_API_KEY   # sk-proj- 로 시작하는 프로젝트 키. 넣는 즉시 반영된다
+```
+
+안 넣어도 배포는 되고 오류도 안 난다 — AI 가 조용히 폴백 문장으로 떨어질 뿐이다.
+[개발 문서](docs/DEVELOPMENT.md#배포본의-ai-키--openai-하나).
 
 ---
 
