@@ -112,7 +112,11 @@ const FLUOR_HOUSING_MAT = new THREE.MeshStandardMaterial({ color: '#d7dbe0', rou
 /** 바닥 노란 차선 — 닳은 도료 */
 const LANE_MAT = new THREE.MeshStandardMaterial({ color: LANE.color, roughness: 0.55, metalness: 0.05 });
 /** 유리 — 살짝 푸른 반투명. 안쪽 인테리어가 비쳐 보인다 */
-const GLASS_MAT = new THREE.MeshStandardMaterial({ color: '#9fc0e0', roughness: 0.12, metalness: 0.55, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide });
+/*
+ * 메자닌 유리 — Phong (2026-09-05 최적화). 방 다섯의 앞면이 큰 투명 판이라 그 픽셀은 벽 위에 한 번 더 그려지는데, Standard 면
+ * 광원마다 GGX 를 한 번 더 돈다. Phong 의 반사 하이라이트로도 유리는 유리로 읽힌다 — 필요한 건 「빛이 스치는 면」이지 PBR 이 아니다
+ */
+const GLASS_MAT = new THREE.MeshPhongMaterial({ color: '#9fc0e0', specular: '#dfe9ff', shininess: 90, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide });
 /** 유리 멀리언·난간 — 어두운 강철 */
 const MULLION_MAT = new THREE.MeshStandardMaterial({ color: '#23272d', roughness: 0.5, metalness: 0.6 });
 /** 벽등의 호박색 렌즈 */
@@ -670,12 +674,12 @@ function WatchDrone({ material }: { material: THREE.Material }) {
 /* ─────────────────────────────── 조명 ─────────────────────────────── */
 
 /**
- * 실제 광원 9개 — 형광등 점광원 4(bay 둘에 하나, layout.BAY_LIGHT_ZS) · 상황판 점광원 1 · 스포트 1 · 벽등 3(끝벽 둘 · 등 뒤 하나).
+ * 실제 광원 8개 — 형광등 점광원 4(bay 둘에 하나, layout.BAY_LIGHT_ZS) · 상황판 점광원 1 · 스포트 1 · 끝벽 벽등 2.
  * 그림자·깜빡임 없음. 옆벽 벽등 넷은 렌즈 발광만 (예산).
  *
  * 2026-09-05 최적화 — 14 → 9. 광원은 개수만큼 **모든 픽셀**의 셰이더 루프를 늘린다(세기 0 이어도). 큰 콘크리트 면이 화면을
- * 채우는 이 홀에서는 광원 수와 픽셀 수(dpr)가 곧 GPU 시간이었다. 시험 무대의 등(HallScene ArenaWorkLights)까지 더해 열아홉이던
- * 것이 열셋이다. 밝기 분포는 겹쳐 있던 형광등을 절반으로 줄이고 세기를 두 배로 해서 맞췄다.
+ * 채우는 이 홀에서는 광원 수와 픽셀 수(dpr)가 곧 GPU 시간이었다. 시험 무대의 등(HallScene ArenaWorkLights, 둘)까지 더해 열아홉이던
+ * 것이 열이다. 밝기 분포는 겹쳐 있던 형광등을 절반으로 줄이고 세기를 두 배로 해서 맞췄다.
  */
 export function GovcenterLights(_props: { flicker: boolean }) {
   const spot = useRef<THREE.SpotLight>(null);
@@ -695,11 +699,10 @@ export function GovcenterLights(_props: { flicker: boolean }) {
       {/* 스포트 → 끝벽 앞 바닥, 처형자가 서는 자리 */}
       <object3D ref={target} position={[0, 0, STAGE_CENTER_Z]} />
       <spotLight ref={spot} position={[0, STAGE_SPOT.y, STAGE_CENTER_Z]} angle={STAGE_SPOT.angle} penumbra={0.6} intensity={STAGE_SPOT.intensity} distance={STAGE_SPOT.distance} decay={1.6} color="#eef3ff" />
-      {/* 끝벽 철문의 호박색 벽등 · 등 뒤 두 짝 문의 것 하나 */}
+      {/* 끝벽 철문의 호박색 벽등 둘. 등 뒤 두 짝 문의 벽등은 렌즈 발광만 — 대개 등 뒤라 광원 하나 값이 안 나온다 (2026-09-05 최적화) */}
       {END_DOOR_XS.map((x) => (
         <pointLight key={x} position={[x, WALL_LAMP.y, FAR_Z + 0.6]} intensity={DOOR_LIGHT.intensity} distance={DOOR_LIGHT.distance} decay={1.8} color="#ffb060" />
       ))}
-      <pointLight position={[0, WALL_LAMP.y, NEAR_Z - 0.6]} intensity={DOOR_LIGHT.intensity} distance={DOOR_LIGHT.distance} decay={1.8} color="#ffb060" />
     </>
   );
 }

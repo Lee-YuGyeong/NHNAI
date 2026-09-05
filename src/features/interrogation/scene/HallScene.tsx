@@ -144,7 +144,7 @@ export function HallScene(p: HallSceneProps) {
       <def.Lights flicker />
       <ambientLight intensity={def.ambient.intensity} color={def.ambient.color} />
       {/* 마당 위 작업등 — 국면이 바뀌어도 **개수가 안 변한다**. 이유는 ArenaWorkLights 머리말 */}
-      <ArenaWorkLights fall={fall} hunt={hunt} platform={platform} disc={disc} />
+      <ArenaWorkLights test={p.test?.game ?? null} />
 
       <Suspense fallback={null}>
         <def.Scene quality="high" />
@@ -239,40 +239,36 @@ export function HallScene(p: HallSceneProps) {
  * 구슬은 무광이지만 견본판 구조물과 몸은 빛이 필요하다.
  */
 /**
- * 시험 무대의 작업등 — 발판 열 위 하나, 원판 위 둘. 값은 무대 부품(PlatformCourse · DiscStage)이 제 안에 들고 있던 것을
- * 여기로 옮겼다: 무대가 라운드 시작에 서면서 등을 같이 켜면 **씬의 광원 수가 바뀌어** three 가 재질 셰이더를 전부 다시
- * 링크한다 — 그 프레임이 통째로 멈췄다 (2026-09-05 사용자: "화면 끊기는 거"). 등의 개수는 늘 같고 세기만 0 ↔ 값으로 오간다.
+ * 시험 무대의 작업등 — **광원 둘**로 모든 시험을 비춘다 (2026-09-05 최적화, 넷 → 둘).
+ *
+ *   main   마당 위 큰 등. 낙하·색 사냥이면 마당 가운데, 발판이면 발판 열 가운데, 원판이면 원판 위로 **자리를 옮긴다.**
+ *          광원의 자리·세기·색은 유니폼이라 바꿔도 셰이더가 다시 링크되지 않는다 — 개수만 안 바뀌면 된다.
+ *   upper  천장 밑 등. 낙하에서만 켠다 (배출구에서 나오는 공이 보의 그늘에 묻히지 않게).
+ *
+ * 예전엔 무대마다 제 등이 있었다(낙하 2 · 발판 1 · 원판 2 → 셋을 걷어 둘로). 광원은 개수만큼 모든 픽셀의 셰이더 루프를
+ * 늘리므로, 한 번에 하나만 켜질 등을 넷씩 들고 있을 이유가 없다. 값은 무대 부품이 들던 것 그대로다.
  */
-const STAGE_WORK_LIGHTS = [
-  { on: 'platform' as const, position: [0, 7.5, (PADS[0].z + PADS[PADS.length - 1].z) / 2] as const, color: '#dfe9ff', intensity: 55, distance: 24 },
-  { on: 'disc' as const, position: [DISC_CENTER.x, 7.5, DISC_CENTER.z] as const, color: '#dfe9ff', intensity: 70, distance: 24 },
-  // 원판 위의 작은 청록 등(2.6m)은 뺐다 — 광원은 세기가 0 이어도 셰이더의 광원 루프에 남는다
-];
-
-function ArenaWorkLights({ fall, hunt, platform, disc }: { fall: boolean; hunt: boolean; platform: boolean; disc: boolean }) {
+const PLATFORM_LIGHT_Z = (PADS[0].z + PADS[PADS.length - 1].z) / 2;
+function ArenaWorkLights({ test }: { test: TrialGame | null }) {
+  const base = ARENA_WORK_LIGHTS[0];
+  const main =
+    test === 'platform'
+      ? { position: [0, 7.5, PLATFORM_LIGHT_Z] as const, color: '#dfe9ff', intensity: 55, distance: 24 }
+      : test === 'disc'
+        ? { position: [DISC_CENTER.x, 7.5, DISC_CENTER.z] as const, color: '#dfe9ff', intensity: 70, distance: 24 }
+        : { position: base.position, color: base.color, intensity: test === 'fall' || test === 'colorhunt' ? base.intensity : 0, distance: base.distance };
+  const upper = ARENA_WORK_LIGHTS[1];
   return (
     <>
-      {ARENA_WORK_LIGHTS.map((l, i) => (
-        <pointLight
-          key={i}
-          position={l.position}
-          color={l.color}
-          /* 첫 등은 낙하·색 사냥 둘 다, 천장 밑 등은 떨어지는 것이 있을 때만 */
-          intensity={(i === 0 ? fall || hunt : fall) ? l.intensity : 0}
-          distance={l.distance}
-          decay={2}
-        />
-      ))}
-      {STAGE_WORK_LIGHTS.map((l, i) => (
-        <pointLight key={`stage-${i}`} position={l.position} color={l.color} intensity={(l.on === 'platform' ? platform : disc) ? l.intensity : 0} distance={l.distance} decay={2} />
-      ))}
+      <pointLight position={main.position} color={main.color} intensity={main.intensity} distance={main.distance} decay={2} />
+      <pointLight position={upper.position} color={upper.color} intensity={test === 'fall' ? upper.intensity : 0} distance={upper.distance} decay={2} />
     </>
   );
 }
 
 /**
  * 해상도를 프레임에 맞춘다 — 프레임이 처지면 dpr 을 1 로(레티나 픽셀의 절반 이하), 여유가 돌아오면 1.5 로.
- * 홀은 광원 열셋을 앞으로 그리는 씬이라 픽셀 수가 곧 GPU 시간이다. 한 기계에서 창을 여럿 띄워 시험하면
+ * 홀은 광원 열 개를 앞으로 그리는 씬이라 픽셀 수가 곧 GPU 시간이다. 한 기계에서 창을 여럿 띄워 시험하면
  * (멀티플레이 시험) GPU 를 나눠 쓰니 특히 여기서 떨어진다 (2026-09-05 사용자: "배포 버전은 왜 끊기나").
  * 세 번 오르내리면(flipflops) 그 사이 값으로 붙잡는다 — 해상도가 매초 바뀌는 것도 끊김으로 보인다.
  */
