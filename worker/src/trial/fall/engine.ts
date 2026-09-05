@@ -12,11 +12,20 @@
  * "몸이 물리법칙에 반응하는 방식"인데 정작 몸만 반응하지 않았던 셈이다.
  * 이제 클라는 `trial_jump`(눌렀다)만 올리고, 서버가 그 구간의 숨은 중력으로 포물선을 적분해 스냅샷의 `air` 로
  * 돌려준다 — 회전 원판이 걷기 명령만 받고 자리를 돌려주는 것과 같은 수법이다. 중력값은 여전히 안 나간다(P8).
+ *
+ * **이륙 속도는 홀의 눈금에서 이 판의 눈금으로 옮겨 쓴다** (FALL_JUMP_SCALE). 몸의 점프 속도(mp/bodies)는 홀의
+ * 중력 15 에 맞춰 잡은 값인데(6.4 → 1.37m), 이 판의 기준 중력은 9.8 이라 그대로 쓰면 기준 구간에서 2.1m, 60% 구간에서
+ * 3.5m 를 뛰었다 (2026-09-05 사용자: "점프하면 엄청 높게 올라가는데 왜"). 같은 다리 힘이면 기준 중력에서 홀과 같은
+ * 높이여야 한다 — 속도에 √(9.8/15) 를 곱하면 기준 구간의 정점이 홀과 같다. 구간마다 중력이 바뀌면 정점과 체공도
+ * 같이 바뀐다(60% 면 1.7배 높고 오래) — 그것이 이 판이 재는 것이다.
  */
 import { jumpOf } from '../../../../src/world/mp/bodies';
-import { FALL_ARENA, FALL_SNAPSHOT_MS, FALL_SPAWN_MS, FALL_TICK_MS, JUMP_SPEED, TRIAL_GAME_MS, WALK_SPEED } from '../../../../src/world/mp/constants';
+import { FALL_ARENA, FALL_SNAPSHOT_MS, FALL_SPAWN_MS, FALL_TICK_MS, GRAVITY, JUMP_SPEED, TRIAL_GAME_MS, WALK_SPEED } from '../../../../src/world/mp/constants';
 import type { TrialPlayerResult } from '../../../../src/world/mp/protocol';
 import { FALL_GRAVITY } from '../condition';
+
+/** 이륙 속도 배율 — 홀(중력 15)에서 잡은 몸의 점프를 이 판의 기준 중력(FALL_GRAVITY[0]) 눈금으로 (머리말) */
+export const FALL_JUMP_SCALE = Math.sqrt(FALL_GRAVITY[0] / GRAVITY);
 import type { EngineContext, GameEngine, SeatTuning } from '../engine';
 import { phaseAt, phaseStarts } from '../phase';
 import type { TrialCondition } from '../types';
@@ -87,7 +96,7 @@ export class FallEngine implements GameEngine {
     // 사람은 마당 가운데 근처에서 시작한다고 본다 — 첫 move 가 오면 바로 덮인다
     for (const id of realIds) {
       this.stats.set(id, new DodgeStats(0, 0, now));
-      this.air.set(id, { y: 0, vy: 0, v0: jumpOf(ctx.bodyOf?.(id), JUMP_SPEED), since: 0, jumps: 0, airMs: [] });
+      this.air.set(id, this.freshAir(id));
     }
 
     this.dodgers = aiIds.map((id, i) => {
@@ -104,7 +113,7 @@ export class FallEngine implements GameEngine {
       const st = new DodgeStats(x, z, now);
       st.seen = true; // AI 는 자리를 처음부터 안다
       this.stats.set(id, st);
-      this.air.set(id, { y: 0, vy: 0, v0: jumpOf(ctx.bodyOf?.(id), JUMP_SPEED), since: 0, jumps: 0, airMs: [] });
+      this.air.set(id, this.freshAir(id));
       return makeDodger(id, x, z, profile);
     });
 
@@ -120,7 +129,7 @@ export class FallEngine implements GameEngine {
 
   join(id: string): void {
     if (!this.stats.has(id)) this.stats.set(id, new DodgeStats(0, 0, Date.now()));
-    if (!this.air.has(id)) this.air.set(id, { y: 0, vy: 0, v0: jumpOf(this.ctx?.bodyOf?.(id), JUMP_SPEED), since: 0, jumps: 0, airMs: [] });
+    if (!this.air.has(id)) this.air.set(id, this.freshAir(id));
   }
 
   /** Space — 땅에 있을 때만 뜬다. 얼마나 오래 떠 있을지는 **그 구간의 중력**이 정한다(클라는 모른다, P8) */
@@ -128,6 +137,11 @@ export class FallEngine implements GameEngine {
     if (!this.ctx) return;
     this.join(id);
     this.jump(id, now);
+  }
+
+  /** 땅에 선 몸 — 이륙 속도는 그 몸의 것을 이 판의 눈금으로 옮긴 값 (FALL_JUMP_SCALE) */
+  private freshAir(id: string): Air {
+    return { y: 0, vy: 0, v0: jumpOf(this.ctx?.bodyOf?.(id), JUMP_SPEED) * FALL_JUMP_SCALE, since: 0, jumps: 0, airMs: [] };
   }
 
   private jump(id: string, now: number): void {
