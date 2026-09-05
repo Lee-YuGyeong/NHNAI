@@ -1503,8 +1503,12 @@ export class GameRuntime {
     const online = new Set(this.deps.roster().map((p) => p.id));
     for (const [pid, sid] of this.bindings) {
       if (online.has(pid)) continue;
+      // 그 자리에 **이미 다른 사람이 앉아 있으면** 넘긴다 — 새로고침한 사람이 앉고 남은 옛 표(pid)를
+      // 같은 닉네임의 딴 사람이 또 집으면 한 좌석에 둘이 앉는다 (같은 이름의 창 두 개로 들어오는 길)
+      if (this.playerOfSeat(sid)) continue;
       const seat = this.seats.find((s) => s.id === sid);
       if (seat?.kind === 'real' && sid === `seat-${pid}` && this.nickOf(pid) === snap.nickname) {
+        this.bindings.delete(pid); // 옛 표는 버린다 — 남겨 두면 그것이 곧 위의 겹쳐 앉기다
         this.bindings.set(snap.id, sid);
         return;
       }

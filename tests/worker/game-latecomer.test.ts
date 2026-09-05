@@ -26,15 +26,15 @@ function fakeStorage() {
   } as unknown as DurableObjectStorage;
 }
 
-function player(id: string, seat: number): PlayerSnapshot {
-  return { id, seat, nickname: `닉${seat}`, x: 0, z: 0, y: 0, heading: 0, anim: 'idle' };
+function player(id: string, seat: number, nickname = `닉${seat}`): PlayerSnapshot {
+  return { id, seat, nickname, x: 0, z: 0, y: 0, heading: 0, anim: 'idle' };
 }
 
 const silentBrain: Brain = { mode: 'none', ask: async () => null };
 
 /** 명부가 **자라는** 판 — 판이 열린 뒤에 사람이 하나씩 붙는다 (join 이 명부에 넣고 onJoin 을 부른다) */
-function harness() {
-  const roster: PlayerSnapshot[] = [player('p1', 1)];
+function harness(start: PlayerSnapshot[] = [player('p1', 1)]) {
+  const roster: PlayerSnapshot[] = [...start];
   const sent: Out[] = [];
   const direct: { to: string; msg: Out }[] = [];
   const rt = new GameRuntime({
@@ -49,13 +49,18 @@ function harness() {
     makeEngine: () => null,
     rand: () => 0.4,
   });
-  const join = async (id: string, seat: number) => {
-    roster.push(player(id, seat));
+  const join = async (id: string, seat: number, nickname?: string) => {
+    roster.push(player(id, seat, nickname));
     await rt.onJoin(id);
+  };
+  /** 창을 닫았다 — 명부에서 빠진다 (새로고침은 leave 뒤 join 이다: 소켓이 새로 열리니 id 도 새것) */
+  const leave = (id: string) => {
+    roster.splice(roster.findIndex((p) => p.id === id), 1);
+    rt.onLeave(id);
   };
   const roleOf = (to: string) => [...direct].reverse().find((d) => d.to === to && d.msg.t === 'game_role')?.msg as Extract<GameS2CMessage, { t: 'game_role' }> | undefined;
   const lastState = () => [...sent].reverse().find((m): m is { t: 'game_state'; state: GameStateWire } => m.t === 'game_state')!.state;
-  return { rt, roster, sent, direct, join, roleOf, lastState };
+  return { rt, roster, sent, direct, join, leave, roleOf, lastState };
 }
 
 beforeEach(() => vi.useFakeTimers());
@@ -94,6 +99,22 @@ describe('늦게 붙은 사람', () => {
     expect(h.roleOf('p2')).toBeUndefined();
     // 구경꾼의 이동은 판에 안 들어간다 — 좌석이 없으니 몸을 읽을 자리도 없다
     expect(() => h.rt.onMove('p2', 1, 1, Date.now())).not.toThrow();
+  });
+
+  it('새로고침한 사람의 자리를 **같은 이름의 딴 사람**이 뺏지 못한다', async () => {
+    // 셋이 앉은 판. 둘은 이름이 같다 — 저장된 게스트 이름 그대로 창을 두 개 연 길이다
+    const h = harness([player('p1', 1, '이유경'), player('p2', 2, '이유경'), player('p3', 3, '딴사람')]);
+    await h.rt.handle('p1', { t: 'game_start' });
+    const seatOfP2 = h.roleOf('p2')!.seatId;
+
+    // p2 가 새로고침한다 — 소켓이 새로 열려 id 가 바뀐다. 같은 이름이라 제 자리로 돌아온다
+    h.leave('p2');
+    await h.join('p2b', 2, '이유경');
+    expect(h.roleOf('p2b')!.seatId).toBe(seatOfP2);
+
+    // 이제 **또 다른** 「이유경」이 들어온다. p2 의 옛 표가 남아 있으면 그 자리를 또 준다 — 한 좌석에 둘
+    await h.join('p2c', 4, '이유경');
+    expect(h.roleOf('p2c')?.seatId).not.toBe(seatOfP2);
   });
 
   it('자리를 물려받은 대역은 더는 스스로 말하지 않는다', async () => {
