@@ -811,13 +811,14 @@ body{
       </div>
 
       <div class="panel chamfer p-8 flex flex-col" style="min-height:560px;">
-        <p class="font-kr font-black text-[#5fb8e8] text-[27px] mb-6">② 에셋 · 목소리 생성</p>
+        <p class="font-kr font-black text-[#5fb8e8] text-[27px] mb-6">② 에셋 · 음악 · 목소리 생성</p>
         <div class="space-y-4 flex-1">
           <div class="flex gap-3"><i class="fa-solid fa-cube text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Tripo</span> — 3D 모델(GLB)</p></div>
           <div class="flex gap-3"><i class="fa-solid fa-person-walking text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Meshy</span> — AI 캐릭터 애니메이션</p></div>
           <div class="flex gap-3"><i class="fa-solid fa-swatchbook text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Higgsfield</span> — 텍스처 · 참고 이미지</p></div>
           <div class="flex gap-3"><i class="fa-solid fa-film text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Kling AI</span> — 인트로 배경 영상</p></div>
           <div class="flex gap-3"><i class="fa-solid fa-pen-ruler text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">UX Pilot</span> — 화면 시안</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-music text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Suno</span> — 배경음악</p></div>
           <div class="flex gap-3"><i class="fa-solid fa-volume-high text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">ElevenLabs</span> — 음성 합성(관리 AI · 참가자의 말)</p></div>
         </div>
       </div>
@@ -841,7 +842,7 @@ body{
 
   <div class="vignette"></div>
 </div>
-<p class="note">여기서부터는 AI를 어디에 썼는지입니다. 세 가지 용도로 나눠 썼습니다. 첫째, 게임 안에서 실시간으로 도는 LLM. 배포본은 OpenAI의 gpt-6-astra와 gpt-5.6-terra, 로컬 개발은 Claude Agent SDK입니다. 대사 생성과 전략 결정, 대화 분석과 답변 판정에 쓰고, 전략 결정만 게임 직전이고 나머지는 대화 중에 호출합니다. 둘째, 에셋과 목소리 생성기. 3D는 Tripo, 애니메이션은 Meshy, 텍스처는 Higgsfield, 인트로 영상은 Kling, 화면 시안은 UX Pilot, 음성 합성은 ElevenLabs입니다. 셋째, 개발 도구 Claude Code입니다. 병합을 뺀 205 커밋 중 202건이 공동 작성입니다.</p>
+<p class="note">여기서부터는 AI를 어디에 썼는지입니다. 세 가지 용도로 나눠 썼습니다. 첫째, 게임 안에서 실시간으로 도는 LLM. 배포본은 OpenAI의 gpt-6-astra와 gpt-5.6-terra, 로컬 개발은 Claude Agent SDK입니다. 대사 생성과 전략 결정, 대화 분석과 답변 판정에 쓰고, 전략 결정만 게임 직전이고 나머지는 대화 중에 호출합니다. 둘째, 에셋과 목소리 생성기. 3D는 Tripo, 애니메이션은 Meshy, 텍스처는 Higgsfield, 인트로 영상은 Kling, 화면 시안은 UX Pilot, 배경음악은 Suno, 음성 합성은 ElevenLabs입니다. 셋째, 개발 도구 Claude Code입니다. 병합을 뺀 205 커밋 중 202건이 공동 작성입니다.</p>
 </section>
 <!-- ═══ 10 · LLM 공급자와 런타임 ═══ -->
 <section class="slide">
@@ -1079,43 +1080,48 @@ body{
 
   <main class="absolute" style="left:80px;top:150px;width:1615px;height:800px;transform:scale(1.09);transform-origin:0 0;">
     <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">제작 파이프라인</h1>
-    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:24px; line-height:1.5;">3D 공간 · 소품 · 애니메이션 · 영상 · 목소리는 모두 생성형 도구로. 사람은 무엇을 만들고 어디에 놓을지만 정했다.</p>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:24px; line-height:1.5;">3D 공간 · 소품 · 애니메이션 · 영상 · 음악 · 목소리는 모두 생성형 도구로. 사람은 무엇을 만들고 어디에 놓을지만 정했다.</p>
 
     <div class="panel chamfer overflow-hidden mt-8">
       <div class="grid" style="grid-template-columns: 0.85fr 1.5fr 2.1fr; background:rgba(95,184,232,0.08);">
-        <div class="font-mono text-[#5fb8e8] text-[17px] font-bold px-6 py-3.5 border-r border-white/10">도구</div>
-        <div class="font-mono text-[#5fb8e8] text-[17px] font-bold px-6 py-3.5 border-r border-white/10">활용 내용</div>
-        <div class="font-mono text-[#5fb8e8] text-[17px] font-bold px-6 py-3.5">게임 반영 방식</div>
+        <div class="font-mono text-[#5fb8e8] text-[17px] font-bold px-6 py-3 border-r border-white/10">도구</div>
+        <div class="font-mono text-[#5fb8e8] text-[17px] font-bold px-6 py-3 border-r border-white/10">활용 내용</div>
+        <div class="font-mono text-[#5fb8e8] text-[17px] font-bold px-6 py-3">게임 반영 방식</div>
       </div>
       <div class="grid border-t border-white/10" style="grid-template-columns: 0.85fr 1.5fr 2.1fr;">
-        <div class="font-mono font-bold text-white text-[19px] px-6 py-4 border-r border-white/10">UX Pilot</div>
-        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-4 border-r border-white/10 leading-[1.4]">화면 시안 — 인트로 · 로비 · 검문실 HUD</div>
-        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-4 leading-[1.4]">MCP 로 시안을 HTML 로 받아 React 컴포넌트와 CSS 로</div>
+        <div class="font-mono font-bold text-white text-[19px] px-6 py-3 border-r border-white/10">UX Pilot</div>
+        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-3 border-r border-white/10 leading-[1.4]">화면 시안 — 인트로 · 로비 · 검문실 HUD</div>
+        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-3 leading-[1.4]">MCP 로 시안을 HTML 로 받아 React 컴포넌트와 CSS 로</div>
       </div>
       <div class="grid border-t border-white/10" style="grid-template-columns: 0.85fr 1.5fr 2.1fr;">
-        <div class="font-mono font-bold text-white text-[19px] px-6 py-4 border-r border-white/10">Higgsfield</div>
-        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-4 border-r border-white/10 leading-[1.4]">텍스처 · 참고 이미지 — 콘크리트 · 상황판 · 배역 카드</div>
-        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-4 leading-[1.4]">노멀맵 · 텍스처로 가공해 재질에 붙인다</div>
+        <div class="font-mono font-bold text-white text-[19px] px-6 py-3 border-r border-white/10">Higgsfield</div>
+        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-3 border-r border-white/10 leading-[1.4]">텍스처 · 참고 이미지 — 콘크리트 · 상황판 · 배역 카드</div>
+        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-3 leading-[1.4]">노멀맵 · 텍스처로 가공해 재질에 붙인다</div>
       </div>
       <div class="grid border-t border-white/10" style="grid-template-columns: 0.85fr 1.5fr 2.1fr;">
-        <div class="font-mono font-bold text-white text-[19px] px-6 py-4 border-r border-white/10">Tripo</div>
-        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-4 border-r border-white/10 leading-[1.4]">3D 오브젝트(GLB) — 홀 부품 · 발판 · 원판 · 비콘 · 군인 몸과 총</div>
-        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-4 leading-[1.4]">단순화하고 텍스처를 정리해 넣는다. 배치는 레이아웃 파일이 치수로 관리</div>
+        <div class="font-mono font-bold text-white text-[19px] px-6 py-3 border-r border-white/10">Tripo</div>
+        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-3 border-r border-white/10 leading-[1.4]">3D 오브젝트(GLB) — 홀 부품 · 발판 · 원판 · 비콘 · 군인 몸과 총</div>
+        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-3 leading-[1.4]">단순화하고 텍스처를 정리해 넣는다. 배치는 레이아웃 파일이 치수로 관리</div>
       </div>
       <div class="grid border-t border-white/10" style="grid-template-columns: 0.85fr 1.5fr 2.1fr;">
-        <div class="font-mono font-bold text-white text-[19px] px-6 py-4 border-r border-white/10">Meshy</div>
-        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-4 border-r border-white/10 leading-[1.4]">AI 캐릭터 애니메이션 — 걷기 · 달리기 · 점프 · 동의 · 화남</div>
-        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-4 leading-[1.4]">리타깃이 뼈를 잘못 잡아, 뼈대를 다시 분류해 직접 합성했다</div>
+        <div class="font-mono font-bold text-white text-[19px] px-6 py-3 border-r border-white/10">Meshy</div>
+        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-3 border-r border-white/10 leading-[1.4]">AI 캐릭터 애니메이션 — 걷기 · 달리기 · 점프 · 동의 · 화남</div>
+        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-3 leading-[1.4]">리타깃이 뼈를 잘못 잡아, 뼈대를 다시 분류해 직접 합성했다</div>
       </div>
       <div class="grid border-t border-white/10" style="grid-template-columns: 0.85fr 1.5fr 2.1fr;">
-        <div class="font-mono font-bold text-white text-[19px] px-6 py-4 border-r border-white/10">Kling AI</div>
-        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-4 border-r border-white/10 leading-[1.4]">인트로 화면의 배경 영상</div>
-        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-4 leading-[1.4]">표지 뒤에서 반복 재생</div>
+        <div class="font-mono font-bold text-white text-[19px] px-6 py-3 border-r border-white/10">Kling AI</div>
+        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-3 border-r border-white/10 leading-[1.4]">인트로 화면의 배경 영상</div>
+        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-3 leading-[1.4]">표지 뒤에서 반복 재생</div>
       </div>
       <div class="grid border-t border-white/10" style="grid-template-columns: 0.85fr 1.5fr 2.1fr;">
-        <div class="font-mono font-bold text-white text-[19px] px-6 py-4 border-r border-white/10">ElevenLabs</div>
-        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-4 border-r border-white/10 leading-[1.4]">음성 합성 — 관리 AI 와 참가자들의 말</div>
-        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-4 leading-[1.4]">워커가 합성해 mp3 로 내려보낸다. 복도 장면 대사만 미리 구워 파일로</div>
+        <div class="font-mono font-bold text-white text-[19px] px-6 py-3 border-r border-white/10">Suno</div>
+        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-3 border-r border-white/10 leading-[1.4]">배경음악</div>
+        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-3 leading-[1.4]">게임에 배경음악으로 넣었다</div>
+      </div>
+      <div class="grid border-t border-white/10" style="grid-template-columns: 0.85fr 1.5fr 2.1fr;">
+        <div class="font-mono font-bold text-white text-[19px] px-6 py-3 border-r border-white/10">ElevenLabs</div>
+        <div class="font-kr font-semibold text-white/85 text-[18px] px-6 py-3 border-r border-white/10 leading-[1.4]">음성 합성 — 관리 AI 와 참가자들의 말</div>
+        <div class="font-kr font-semibold text-white/75 text-[17px] px-6 py-3 leading-[1.4]">워커가 합성해 mp3 로 내려보낸다. 복도 장면 대사만 미리 구워 파일로</div>
       </div>
     </div>
 
@@ -1138,7 +1144,7 @@ body{
 
   <div class="vignette"></div>
 </div>
-<p class="note">3D 공간과 소품, 캐릭터 애니메이션, 인트로 영상, 그리고 목소리는 모두 생성형 도구로 만들었습니다. 사람이 판단한 것은 무엇을 만들지와 어디에 배치할지뿐입니다. 화면 시안은 UX Pilot에서 MCP로 받아 React로 옮겼고, 텍스처는 Higgsfield, 3D 오브젝트는 Tripo, 애니메이션은 Meshy, 인트로 영상은 Kling, 음성 합성은 ElevenLabs입니다. 목소리는 워커가 실시간으로 합성해 내려보내고, 대본이 정해진 복도 장면 대사만 미리 구워 파일로 넣었습니다. 다만 생성 결과물을 그대로 쓴 경우는 없습니다. 원본은 모델 하나가 수십 MB라 브라우저에서 돌아가는 크기로 줄이는 후처리를 반드시 거칩니다. Meshy는 리타깃 결과가 뼈를 잘못 잡는 경우가 많아서 뼈대를 다시 분류해 직접 합성했습니다. 도구가 내놓는 건 전부 파일이고, 넣는 방식은 전부 스크립트와 레이아웃 수치라 모델을 다시 생성해도 배치와 충돌 판정은 그대로입니다.</p>
+<p class="note">3D 공간과 소품, 캐릭터 애니메이션, 인트로 영상, 배경음악, 그리고 목소리는 모두 생성형 도구로 만들었습니다. 사람이 판단한 것은 무엇을 만들지와 어디에 배치할지뿐입니다. 화면 시안은 UX Pilot에서 MCP로 받아 React로 옮겼고, 텍스처는 Higgsfield, 3D 오브젝트는 Tripo, 애니메이션은 Meshy, 인트로 영상은 Kling, 배경음악은 Suno, 음성 합성은 ElevenLabs입니다. 목소리는 워커가 실시간으로 합성해 내려보내고, 대본이 정해진 복도 장면 대사만 미리 구워 파일로 넣었습니다. 다만 생성 결과물을 그대로 쓴 경우는 없습니다. 원본은 모델 하나가 수십 MB라 브라우저에서 돌아가는 크기로 줄이는 후처리를 반드시 거칩니다. Meshy는 리타깃 결과가 뼈를 잘못 잡는 경우가 많아서 뼈대를 다시 분류해 직접 합성했습니다. 도구가 내놓는 건 전부 파일이고, 넣는 방식은 전부 스크립트와 레이아웃 수치라 모델을 다시 생성해도 배치와 충돌 판정은 그대로입니다.</p>
 </section>
 <!-- ═══ 14 · Claude Code — 개발 도구 ═══ -->
 <section class="slide">

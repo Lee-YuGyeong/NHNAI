@@ -74,10 +74,11 @@ tr.tts-now{background:#fdf6ea;box-shadow:none}
   <tr><th style="width:15%">구분</th><th style="width:24%">AI 도구 · 모델</th><th>활용 내용</th><th style="width:9%">상세</th></tr>
   <tr><td rowspan="2"><b>① 게임 안<br>실시간 LLM</b></td><td>배포 — gpt-6-astra · gpt-5.6-terra (OpenAI)</td><td>참가자들의 대사 생성, AI 참가자의 물리 게임 전략 결정, 관리 AI 의 대화 분석과 답변 판정. 전략 결정만 게임 직전이고 나머지는 대화 중에 호출한다</td><td rowspan="2"><a href="#s1">1장</a></td></tr>
   <tr><td>로컬 — Claude Agent SDK (Claude 구독)</td><td>배포와 같은 로직을 API 키 없이 개발 중 테스트</td></tr>
-  <tr><td rowspan="6"><b>② 에셋 생성<br>3D · 이미지 · 영상 · 목소리</b></td><td>Tripo</td><td>3D 모델(GLB) — 홀 부품, 발판 · 원판 · 비콘, 군인 몸</td><td rowspan="6"><a href="#s3">3장</a></td></tr>
+  <tr><td rowspan="7"><b>② 에셋 생성<br>3D · 이미지 · 영상 · 음악 · 목소리</b></td><td>Tripo</td><td>3D 모델(GLB) — 홀 부품, 발판 · 원판 · 비콘, 군인 몸</td><td rowspan="7"><a href="#s3">3장</a></td></tr>
   <tr><td>Meshy AI</td><td>캐릭터 애니메이션 리깅 소스(걷기 · 달리기 · 점프 등)</td></tr>
   <tr><td>Higgsfield</td><td>텍스처 · 참고 이미지</td></tr>
   <tr><td>Kling AI</td><td>인트로 배경 영상</td></tr>
+  <tr><td>Suno</td><td>배경음악</td></tr>
   <tr><td>ElevenLabs</td><td>음성 합성 — 관리 AI 와 참가자들이 주고받는 말을 음성으로 만든다</td></tr>
   <tr><td>UX Pilot</td><td>화면 시안(인트로 · 로비 · HUD)</td></tr>
   <tr><td><b>③ 개발 도구<br>코드 · 문서</b></td><td>Claude Code — Fable 5.1 · Opus 4.8 · Opus 5 · Sonnet 5 · Fable 5</td><td>구현 · 리팩터링 · 테스트 · 문서화. 병합 제외 205커밋 중 202건(99%)이 공동 작성</td><td><a href="#s4">4장</a></td></tr>
@@ -138,7 +139,7 @@ tr.tts-now{background:#fdf6ea;box-shadow:none}
 <p>AI 참가자에게는 조건이 하나 더 붙는다. 세 게임이 열리기 전에 각각 <b>얼마나 정확하게 움직일지</b>를 스스로 정하는데, 너무 정확하면 기록이 그대로 의심의 근거가 되고 너무 부정확하면 순위에서 밀린다. 그 선택이 기록에 남아 이어지는 대화의 단서가 된다.</p>
 
 <h1 class="sec" id="s3">3. 제작 파이프라인</h1>
-<p>3D 공간과 소품, 캐릭터 애니메이션, 인트로 영상은 모두 생성형 도구로 만들었다. 사람이 판단한 것은 무엇을 만들지와 어디에 배치할지뿐이다. 다만 생성 결과물을 그대로 쓴 경우는 없다. 원본은 모델 하나가 수십 MB 라, 브라우저에서 돌아가는 크기(수백 KB~수 MB)로 줄이는 후처리를 반드시 거친다.</p>
+<p>3D 공간과 소품, 캐릭터 애니메이션, 인트로 영상, 배경음악은 모두 생성형 도구로 만들었다. 사람이 판단한 것은 무엇을 만들지와 어디에 배치할지뿐이다. 다만 생성 결과물을 그대로 쓴 경우는 없다. 원본은 모델 하나가 수십 MB 라, 브라우저에서 돌아가는 크기(수백 KB~수 MB)로 줄이는 후처리를 반드시 거친다.</p>
 <table>
   <tr><th style="width:20%">도구</th><th>활용 내용</th><th>게임 반영 방식</th></tr>
   <tr><td>UX Pilot</td><td>웹 화면 디자인 — 인트로 · 로비 · 검문실 HUD 의 시안과 레이아웃</td><td>MCP 로 연결해 시안을 HTML 로 받은 뒤 React 컴포넌트와 CSS 로 옮겼다</td></tr>
@@ -146,6 +147,7 @@ tr.tts-now{background:#fdf6ea;box-shadow:none}
   <tr><td>Tripo</td><td>3D 오브젝트(GLB) — 홀 부품(콘솔 · 철문 · 벽등 · 컨테이너), 발판 · 원판 · 비콘, 군인 몸과 총</td><td>생성한 모델을 단순화하고 텍스처를 정리해 넣는다. 배치는 레이아웃 파일 하나가 치수로 관리한다</td></tr>
   <tr><td>Meshy AI</td><td>캐릭터 애니메이션 원본 — 걷기 · 달리기 · 점프 · 동의 · 화남 클립의 리깅 소스</td><td>생성된 리타깃 결과가 뼈를 잘못 잡는 경우가 많아, 뼈대를 형태로 다시 분류해 걸음 · 숨 동작을 직접 합성했다</td></tr>
   <tr><td>Kling AI</td><td>인트로 화면의 배경 영상</td><td>표지 뒤에서 반복 재생한다</td></tr>
+  <tr><td>Suno</td><td>배경음악</td><td>게임에 배경음악으로 넣었다</td></tr>
   <tr><td>ElevenLabs</td><td>음성 합성 — 관리 AI 와 참가자들이 주고받는 말을 음성으로 만든다</td><td>워커가 합성해 mp3 로 내려보낸다. 대본이 정해진 복도 장면의 대사만 미리 구워 파일로 넣었다</td></tr>
 </table>
 
