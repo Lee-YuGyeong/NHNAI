@@ -844,10 +844,8 @@ export class GameRuntime {
     this.setPhase('result', this.now() + GAME_RESULT_MODAL_MS);
     void this.persist();
 
-    // 해설은 모달이 떠 있는 동안 도착한다 — 방송은 그대로 나간다 (토론에 불을 붙이는 첫 마디)
-    void leaderComment(this.deps.brain, wire, (id) => this.nameOf(id)).then((text) => {
-      if (this.phase !== 'ended') this.leader(text, 'readout');
-    });
+    // 결과 방송 — 등수만 부른다 (agents.leaderComment). LLM 을 안 거치므로 모달과 같은 순간에 나간다
+    this.leader(leaderComment(wire, (id) => this.nameOf(id)), 'readout');
   }
 
   /**
