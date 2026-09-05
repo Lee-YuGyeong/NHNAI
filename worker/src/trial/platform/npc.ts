@@ -37,18 +37,27 @@ export interface JumpProfile {
   lateralSigma: number;
 }
 
+/**
+ * precision → 프로파일. 사람 쪽(h = 1−p)이 커질수록 뛰는 시각이 흔들리고 · 더 일찍 뛰고 · 더 자주 헛짚고 · 더 오래 휘청인다.
+ *
+ * 2026-09-05 사용자: 「AI 가 발판게임을 너무 잘한다」 — 사람 쪽 끝이 사람 같지 않았다. 옛 값으로 30초를 300판 돌리면
+ * 대역(precision 0~0.35)이 착지 78~86% · 완주 17~38% 였다. 손으로 뛰는 사람은 그만큼 못 건넌다: 발판이 초당 4.8m 로
+ * 달리는데 봇은 그 자리를 **계산해서** 잡으니, 흔들림을 사람의 폭까지 키우지 않으면 봇 쪽이 늘 낫다.
+ * 흔들림·헛짚을 확률을 사람 폭으로 올려 대역을 착지 57~74% · 완주 1~16% 로 내렸다. 기계 쪽(p=1)은 그대로다 —
+ * 거기가 표식이고, 그 표식이 흐려지면 이 게임이 볼 것이 없다.
+ */
 export function makeJumpProfile(index: number, precision?: number): JumpProfile {
   const p = precision === undefined ? (index === 0 ? 1 : Math.random() * 0.35) : Math.min(1, Math.max(0, precision));
   const r = precision === undefined ? Math.random : () => 0.5;
   const h = 1 - p;
   return {
-    timingSigma: 0.02 + 0.3 * h + h * r() * 0.08,
-    earlyBias: 0.14 * h + h * r() * 0.06,
-    missP: 0.12 * h,
-    wobbleMs: 120 + 1000 * h + h * r() * 300,
-    wobbleAmp: 0.04 + 0.32 * h,
-    thinkMs: 350 + 900 * h + h * r() * 400,
-    lateralSigma: 0.03 + 0.2 * h,
+    timingSigma: 0.02 + 0.42 * h + h * r() * 0.12,
+    earlyBias: 0.18 * h + h * r() * 0.08,
+    missP: 0.28 * h,
+    wobbleMs: 120 + 1150 * h + h * r() * 300,
+    wobbleAmp: 0.04 + 0.36 * h,
+    thinkMs: 350 + 1000 * h + h * r() * 400,
+    lateralSigma: 0.03 + 0.3 * h,
   };
 }
 
@@ -171,9 +180,10 @@ function planJump(j: Jumper, now: number, startedAt: number, pace: number): void
   j.errX = -dt * landPad.vx + gauss() * p.lateralSigma;
   j.errZ = gauss() * p.lateralSigma;
   if (Math.random() < p.missP) {
-    // 거리 계산 실패 — 0.7~1.2m 크게 빗나간다
+    // 거리 계산 실패 — 1~1.8m 크게 빗나간다. 발판 반지름이 0.8m 다: 예전의 0.7~1.2m 는 절반이 **그래도 발판 위**여서
+    // 「실패」가 실패로 안 찍혔다. 헛짚었으면 헛짚은 자리에 내려야 한다
     const a = Math.random() * Math.PI * 2;
-    const m = 0.7 + Math.random() * 0.5;
+    const m = 0.95 + Math.random() * 0.85;
     j.errX += Math.cos(a) * m;
     j.errZ += Math.sin(a) * m;
   }
