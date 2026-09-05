@@ -1129,7 +1129,7 @@ export class GameRuntime {
       const delta = this.book.judge(me.id, v.verdict);
       const line = LINES.verdict(me.name, v.verdict, v.reason);
       this.deps.broadcast({ t: 'game_verdict', by: me.id, verdict: v.verdict, text: line, delta: delta?.amount ?? 0 });
-      this.leader(line, v.verdict === 'mismatch' ? 'alarm' : 'readout');
+      // 판정 방송(leader)은 걷었다 (2026-09-06 사용자: 「주장 판정이랑 강제 답변 판정도 tts 하지마」) — 같은 문장이 game_verdict 로 채팅 줄에 선다
       if (delta) this.applyDeltas([delta]);
     } finally {
       this.claimInFlight.delete(me.id);
@@ -1507,7 +1507,7 @@ export class GameRuntime {
     const d = this.book.boost(c.target, amount, 'LEADER', why);
     const text = LINES.compelled(this.nameOf(c.target), verdict, reason);
     this.deps.broadcast({ t: 'game_compelled', by: c.by, target: c.target, verdict, text, delta: d?.amount ?? 0 });
-    this.leader(text, verdict === 'false' || verdict === 'silent' ? 'alarm' : 'readout');
+    // 판정 방송(leader)은 걷었다 (2026-09-06 사용자: 「주장 판정이랑 강제 답변 판정도 tts 하지마」) — 같은 문장이 game_compelled 로 채팅 줄에 선다
     if (d) this.applyDeltas([d]);
     else this.broadcastState();
   }
@@ -1748,10 +1748,13 @@ export class GameRuntime {
 
   /**
    * 시험 중에는 입을 다문다 (2026-09-06 사용자: 「미니게임하는 시간에는 모두 tts 없애줘」) — 개시 방송은
-   * 걷었고(openTest), 시험 중에 끼어들 수 있는 것들(격리 경보 · 토론 끝물에 물려 늦게 돌아온 judgeClaim ·
-   * judgeCompelled 의 비동기 판정)도 여기서 삼킨다. 화면 쪽 정보는 그대로다 — game_isolated · game_suspicion
-   * 같은 자료 방송은 leader 가 아니라서 안 걸린다. 판이 끝나는 방송은 나간다 — end() 가 phase 를 먼저
-   * 'ended' 로 바꾼 뒤에 부른다.
+   * 걷었고(openTest), 시험 중에 끼어들 수 있는 격리 경보도 여기서 삼킨다. 화면 쪽 정보는 그대로다 —
+   * game_isolated · game_suspicion 같은 자료 방송은 leader 가 아니라서 안 걸린다. 판이 끝나는 방송은
+   * 나간다 — end() 가 phase 를 먼저 'ended' 로 바꾼 뒤에 부른다.
+   *
+   * 부르는 곳은 이제 셋뿐이다: 격리(checkIsolation) · 카드 사용(useCard) · 선고(end). 주장 판정과
+   * 강제 답변 판정은 자료 방송(game_verdict · game_compelled)만 남기고 걷었다 (2026-09-06 사용자:
+   * 「주장 판정이랑 강제 답변 판정도 tts 하지마」).
    */
   private leader(text: string, kind: LeaderKind): void {
     if (this.phase === 'test') return;
