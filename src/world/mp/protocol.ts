@@ -118,8 +118,11 @@ export type C2SMessage =
  */
 export type ErrorCode = 'version_mismatch' | 'room_full' | 'bad_request' | 'kicked' | 'banned';
 
-/** 물리 미니게임의 식별자. 'platform' 은 움직이는 플랫폼(2026-09-05, mp/platform.ts) — 넷째 게임 */
-export type TrialGame = 'stopline' | 'colorhunt' | 'fall' | 'platform' | 'disc';
+/**
+ * 물리 미니게임의 식별자. 'platform' 은 움직이는 플랫폼(2026-09-05, mp/platform.ts) — 넷째 게임.
+ * 'seesaw' 는 무게 중심 다리(2026-09-05, worker/src/trial/seesaw/) — 여섯째. /trial 에서만 열린다 (검문소 차례표에는 없다)
+ */
+export type TrialGame = 'stopline' | 'colorhunt' | 'fall' | 'platform' | 'disc' | 'seesaw';
 
 /** 판정 대상 한 명의 결과 한 라운드치. 게임마다 metrics 의 키가 다르다 (PLANNING P1~P4). */
 export interface TrialPlayerResult {
@@ -245,8 +248,23 @@ export type S2CMessage =
       omega: number;
       players: { id: string; x: number; z: number; y: number; h: number; m: number; f: number; sx: number; sz: number }[];
     }
-  /** 회전 원판 — 누가 떨어졌다. 떨어진 사람 화면의 연출용. 기록은 서버가 이미 했다 */
+  /** 회전 원판 · 무게 중심 다리 — 누가 떨어졌다. 떨어진 사람 화면의 연출용. 기록은 서버가 이미 했다 */
   | { t: 'trial_fell'; id: string }
+  /**
+   * 무게 중심 다리 — 서버 물리 스냅샷(~10Hz). `phi` 는 판자의 기울기(rad, x 축 둘레, +u 끝이 올라가면 양수), `omega` 는 각속도 —
+   * 클라는 다음 스냅샷까지 이 둘로 판자를 기울인다. `players` 는 **판자 좌표**다: `u` 는 축에서 길이 방향(m), `v` 는 폭 방향(m).
+   * 사람의 자리도 서버가 적분하므로 여기로 온다(회전 원판과 같다). `s` 는 길이 방향 미끄러짐 속도(m/s) — 자기 몸의 예측에만 쓴다.
+   * 마찰계수는 없다(P8). `f` 는 떨어진 상태(1) · `m` 은 걷기(1) · 달리기(2) · `h` 는 몸이 보는 방향(월드).
+   * `crates` 는 판 위 화물 — `at` 은 판에 **닿는** 시각(서버 시각). 그 전이면 아직 크레인에서 내려오는 중이다
+   */
+  | {
+      t: 'trial_seesaw';
+      at: number;
+      phi: number;
+      omega: number;
+      players: { id: string; u: number; v: number; h: number; m: number; f: number; s: number }[];
+      crates: { id: number; u: number; v: number; at: number }[];
+    }
   | { t: 'trial_result'; result: TrialResultWire }
   /** (재)입장 시 지금까지의 전체 기록을 백필한다 — 로그 탭은 이걸로 채운다 */
   | { t: 'trial_history'; results: TrialResultWire[] };

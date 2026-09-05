@@ -12,9 +12,13 @@ import {
   GAME_DISCUSSION_MS,
   GAME_FIRST_DISCUSSION_MS,
   GAME_PROLOGUE_MAX_MS,
+  CARD,
+  CARD_ITEMS,
+  type CardItem,
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
-  GAME_TEST_ORDER,
+  GAME_TEST_COUNT,
+  GAME_TEST_POOL,
   SUSPICION,
   TALK,
   pressureFor,
@@ -24,7 +28,7 @@ import {
 } from '../../src/world/mp/game-protocol';
 import type { PlayerSnapshot, S2CMessage, TrialGame, TrialPlayerResult } from '../../src/world/mp/protocol';
 import type { Brain } from '../../worker/src/game/brain';
-import { GameRuntime } from '../../worker/src/game/runtime';
+import { GameRuntime, dealOrder } from '../../worker/src/game/runtime';
 import { REPEAT_STEP } from '../../worker/src/game/suspicion';
 import { DUCK_WINDOW_MS, MENTION_GAP_MS, STILL_MS } from '../../worker/src/game/tells';
 import type { EngineContext, GameEngine } from '../../worker/src/trial/engine';
@@ -89,7 +93,7 @@ function player(id: string, seat: number): PlayerSnapshot {
 }
 
 /** storage 를 건네면 같은 저장소로 런타임을 하나 더 세울 수 있다 — 워커가 되살리는 길을 재려고. engine 은 가짜 엔진을 바꿔 끼운다 */
-function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; storage?: DurableObjectStorage; engine?: GameEngine } = {}) {
+function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; storage?: DurableObjectStorage; engine?: GameEngine; rand?: () => number } = {}) {
   const roster = opts.players ?? [player('p1', 1), player('p2', 2), player('p3', 3)];
   const sent: Out[] = [];
   const direct: { to: string; msg: Out }[] = [];
@@ -105,7 +109,7 @@ function harness(opts: { players?: PlayerSnapshot[]; brain?: Brain; storage?: Du
     },
     brain: opts.brain ?? silentBrain,
     makeEngine: () => opts.engine ?? engine,
-    rand: () => 0.4,
+    rand: opts.rand ?? (() => 0.4),
   });
   const lastState = () => [...sent].reverse().find((m): m is { t: 'game_state'; state: GameStateWire } => m.t === 'game_state')!.state;
   const roleOf = (to: string) => [...direct].reverse().find((d) => d.to === to && d.msg.t === 'game_role')?.msg as Extract<GameS2CMessage, { t: 'game_role' }> | undefined;
@@ -528,19 +532,34 @@ describe('GameRuntime — 프롤로그 방송이 끝나야 판이 열린다', ()
 });
 
 /**
- * 차례표 (2026-09-05 사용자: "입장 · 40초 대화 · 낙하생존 30초 · 40초 대화 · 발판 30초 · 40초 대화 · 원판 30초").
- * 관리 AI 가 매번 종류를 고르던 것을 그만두었으므로, **무엇이 몇 번째로 몇 초 열리는가**가 이제 판의 규칙이다.
+ * 차례표 (2026-09-05 사용자: "입장 · 40초 대화 · 시험 30초 · 40초 대화 · 시험 30초 · 40초 대화 · 시험 30초").
+ * 관리 AI 가 매번 종류를 고르던 것을 그만두었으므로, **몇 번째로 몇 초 열리는가**가 판의 규칙이다. 어느 셋인가는 판이 열릴 때
+ * 후보 넷에서 뽑는다 (2026-09-05 사용자: "검사판 랜덤 게임에 무게중심다리도") — 뽑힌 차례는 game_state 의 tests 로 공개된다.
  */
-describe('GameRuntime — 고정 차례표', () => {
+describe('GameRuntime — 차례표', () => {
   const rounds = (h: ReturnType<typeof harness>) => h.sent.filter((m): m is Extract<S2CMessage, { t: 'trial_round_start' }> => m.t === 'trial_round_start');
 
-  it('낙하 생존 → 발판 → 원판 을 30초씩, 사이사이 40초 대화로 연다', async () => {
+  it('판이 열리면 후보 넷에서 겹치지 않는 셋을 뽑아 공개하고, 난수가 다르면 다른 셋이 나온다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    const tests = h.lastState().tests!;
+    expect(tests).toHaveLength(GAME_TEST_COUNT);
+    expect(new Set(tests).size).toBe(GAME_TEST_COUNT);
+    for (const g of tests) expect(GAME_TEST_POOL).toContain(g);
+    // 다른 난수 → 다른 차례. 후보가 넷이라 셋을 뽑으면 하나가 빠진다 — 어느 것이 빠지는지가 난수에 달렸다
+    const h2 = harness({ rand: () => 0.9 });
+    await h2.rt.handle('p1', { t: 'game_start' });
+    expect(h2.lastState().tests).not.toEqual(tests);
+  });
+
+  it('뽑힌 셋을 30초씩, 사이사이 40초 대화로 연다', async () => {
     const h = harness();
     await h.rt.handle('p1', { t: 'game_start' });
     await openBoard(h);
     expect(h.lastState().phase).toBe('discussion');
+    const order = h.lastState().tests!;
 
-    for (const game of GAME_TEST_ORDER) {
+    for (const game of order) {
       // 대화가 끝나야 시험이 열린다 — 첫 대화도 그 뒤의 대화도 40초다
       await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
       expect(h.lastState().phase).toBe('test');
@@ -556,8 +575,8 @@ describe('GameRuntime — 고정 차례표', () => {
       expect(h.lastState().phase).toBe('discussion');
     }
 
-    expect(rounds(h).map((r) => r.game)).toEqual([...GAME_TEST_ORDER]);
-    expect(h.lastState().testsDone).toBe(3);
+    expect(rounds(h).map((r) => r.game)).toEqual([...order]);
+    expect(h.lastState().testsDone).toBe(GAME_TEST_COUNT);
     // 마지막 대화 40초까지 끝나면 판이 닫힌다 — 그때까지 AI 를 못 찾았으면 AI 의 승리
     await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
     expect(h.lastState().phase).toBe('ended');
@@ -1000,5 +1019,211 @@ describe('GameRuntime — 표식', () => {
     // 두 번째는 누계만큼 무겁고, 여기는 **두 번째 토론**이라 국면 압력까지 탄다 (docs/SUSPICION.md §7)
     const second = Math.round((SUSPICION.still + SUSPICION.repeatWeight) * pressureFor(1));
     expect(h.lastState().suspicion[p1Seat]).toBe(SUSPICION.still + second);
+  });
+});
+
+/**
+ * 카드 (game-protocol CARD) — 시험 1등이 셋 중 하나를 고르고 토론에서 쓴다 (2026-09-05 사용자: "1등하면 카드 3개를 선택할 수 있게").
+ * 지목권 +20 · 진정권 −20 · 답변 강제권(질문 → 답 → 관리 AI 판정). 1등이 봇이면 카드 없는 시험이다.
+ */
+describe('GameRuntime — 카드', () => {
+  /** 시간제 가짜 엔진 — 좌석마다 버틴 초를 정해 준다. 판이 30초에 닫는다 */
+  class HeldEngine implements GameEngine {
+    readonly game = 'fall' as const;
+    ids: string[] = [];
+    heldOf: (id: string) => number = () => 5;
+    condition() {
+      return { gravity: 9.8 };
+    }
+    start(_round: number, real: readonly string[], ai: readonly string[]) {
+      this.ids = [...real, ...ai];
+    }
+    stop() {}
+    join() {}
+    onAccel() {}
+    onBrake() {}
+    onMove() {}
+    onPick() {}
+    done() {
+      return false;
+    }
+    results(): TrialPlayerResult[] {
+      return this.ids.map((id) => ({ id, metrics: { survivalTime: this.heldOf(id), hitCount: 1, transitionError: 0.1 }, transitionError: 0.1, errorDirection: [1], adaptationCurve: [0.1] }));
+    }
+  }
+  type Cards = Extract<GameS2CMessage, { t: 'game_cards' }>;
+  const cardsTo = (h: ReturnType<typeof harness>, to: string) => [...h.direct].reverse().find((d) => d.to === to && d.msg.t === 'game_cards')?.msg as Cards | undefined;
+  /** 카드는 엎어져 온다 — 시험은 harness 의 rand(0.4)로 섞인 순서를 알아 이름으로 뒤집는다 */
+  const DEALT = dealOrder(() => 0.4);
+  const pick = (h: ReturnType<typeof harness>, who: string, item: CardItem) => h.rt.handle(who, { t: 'game_card_pick', index: DEALT.indexOf(item) });
+
+  /** p1 이 1등인 판을 첫 시험 뒤 토론까지 돌린다 */
+  async function winFirstTest(brain?: Brain) {
+    const engine = new HeldEngine();
+    const h = harness({ engine, brain });
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const winner = h.roleOf('p1')!.seatId;
+    engine.heldOf = (id) => (id === winner ? 28 : 6);
+    await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+    expect(h.lastState().phase).toBe('test');
+    await vi.advanceTimersByTimeAsync(GAME_TEST_MS + 10);
+    expect(h.lastState().phase).toBe('result');
+    return { h, winner, engine };
+  }
+
+  it('1등에게만 카드 셋이 간다 — 고르면 그 카드를 쥐고, 남은 제안은 사라진다', async () => {
+    const { h } = await winFirstTest();
+    const offer = cardsTo(h, 'p1');
+    expect(offer?.offer).toBe(3);
+    expect(new Set(DEALT)).toEqual(new Set(CARD_ITEMS));
+    expect(offer?.items).toEqual([]);
+    expect(cardsTo(h, 'p2')).toBeUndefined();
+    expect(cardsTo(h, 'p3')).toBeUndefined();
+
+    await pick(h, 'p1', 'accuse');
+    const held = cardsTo(h, 'p1');
+    expect(held?.offer).toBeNull();
+    expect(held?.items).toEqual(['accuse']);
+    // 두 번 고르지는 못한다
+    await pick(h, 'p1', 'calm');
+    expect(cardsTo(h, 'p1')?.items).toEqual(['accuse']);
+    expect(h.direct.at(-1)?.msg.t).toBe('game_reject');
+  });
+
+  it('공동 1등이면 그중 하나가 무작위로 카드를 받는다', async () => {
+    for (const [rand, which] of [
+      [() => 0.0, 0],
+      [() => 0.99, 1],
+    ] as const) {
+      const engine = new HeldEngine();
+      const h = harness({ engine, rand });
+      await h.rt.handle('p1', { t: 'game_start' });
+      await openBoard(h);
+      const s1 = h.roleOf('p1')!.seatId;
+      const s2 = h.roleOf('p2')!.seatId;
+      engine.heldOf = (id) => (id === s1 || id === s2 ? 28 : 6);
+      await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
+      await vi.advanceTimersByTimeAsync(GAME_TEST_MS + 10);
+      expect(h.lastState().phase).toBe('result');
+      const got = ['p1', 'p2', 'p3'].filter((p) => cardsTo(h, p) !== undefined);
+      expect(got.length).toBe(1);
+      // 공동 1등은 결과표 순서(좌석 순)로 늘어서고 rand 가 그중 하나를 짚는다
+      const order = h.lastState().seats.filter((s) => s.id === s1 || s.id === s2).map((s) => s.id);
+      expect(h.roleOf(got[0])!.seatId).toBe(order[which]);
+    }
+  });
+
+  it('지목권은 겨눈 상대를 +20 (그 국면의 압력을 곱해), 진정권은 나를 −20 — 결과 모달 중에는 못 쓴다', async () => {
+    const { h, winner } = await winFirstTest();
+    await pick(h, 'p1', 'accuse');
+    const other = h.lastState().seats.find((s) => s.id !== winner)!;
+    await h.rt.handle('p1', { t: 'game_card_use', item: 'accuse', target: other.id });
+    expect(h.direct.at(-1)?.msg.t).toBe('game_reject'); // 토론 중에만
+    await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+    expect(h.lastState().phase).toBe('discussion');
+    await h.rt.handle('p1', { t: 'game_card_use', item: 'accuse', target: other.id });
+    expect(h.lastState().suspicion[other.id]).toBe(Math.round(CARD.accuseBoost * pressureFor(1)));
+    expect(cardsTo(h, 'p1')?.items).toEqual([]);
+    const used = h.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_card_used' }> => m.t === 'game_card_used')!;
+    expect(used).toMatchObject({ by: winner, item: 'accuse', target: other.id });
+    // 같은 카드를 또 쓰지는 못한다
+    await h.rt.handle('p1', { t: 'game_card_use', item: 'accuse', target: other.id });
+    expect(h.direct.at(-1)?.msg.t).toBe('game_reject');
+  });
+
+  it('진정권 — 몰려 있던 내 눈금이 20 내려간다 (압력을 안 곱한다)', async () => {
+    const { h, winner } = await winFirstTest();
+    await pick(h, 'p1', 'calm');
+    await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+    const given = h.lastState().seats.find((s) => s.id === winner)!.name.slice(1);
+    h.rt.onChat('p2', `${given}이 이상해`);
+    const before = h.lastState().suspicion[winner];
+    expect(before).toBeGreaterThan(0);
+    await h.rt.handle('p1', { t: 'game_card_use', item: 'calm' });
+    expect(h.lastState().suspicion[winner]).toBe(Math.max(0, before - CARD.calmDrop));
+  });
+
+  it('답변 강제권 — 내 다음 말이 질문, 상대의 다음 말이 답. 거짓이면 +25, 진실이면 −10, 마감까지 답이 없으면 회피 +12', async () => {
+    const liar: Brain = { mode: 'api', ask: async () => ({ verdict: 'false', reason: '기록은 6초라 했다' }) };
+    const { h, winner } = await winFirstTest(liar);
+    await pick(h, 'p1', 'truth');
+    await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+    const p2Seat = h.roleOf('p2')!.seatId;
+    await h.rt.handle('p1', { t: 'game_card_use', item: 'truth', target: p2Seat });
+    expect(h.lastState().compelled).toMatchObject({ by: winner, target: p2Seat, question: null });
+    // 남의 말은 질문이 아니다 — p1 의 다음 말이 질문이다
+    h.rt.onChat('p3', '뭐야 갑자기');
+    expect(h.lastState().compelled?.question).toBeNull();
+    h.rt.onChat('p1', '너 낙하에서 몇 초 버텼어?');
+    expect(h.lastState().compelled?.question).toBe('너 낙하에서 몇 초 버텼어?');
+    const before = h.lastState().suspicion[p2Seat] ?? 0;
+    h.rt.onChat('p2', '나 끝까지 버텼는데');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(h.lastState().compelled).toBeNull();
+    // 거짓은 25 × 압력이지만 한 걸음의 절대 상한(stepCap)에 걸린다
+    expect(h.lastState().suspicion[p2Seat]).toBe(before + Math.min(SUSPICION.stepCap, Math.round(CARD.truthLie * pressureFor(1))));
+    const judged = h.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_compelled' }> => m.t === 'game_compelled')!;
+    expect(judged).toMatchObject({ by: winner, target: p2Seat, verdict: 'false' });
+  });
+
+  it('답변 강제권 — 진실이면 내려 주고, 답이 없으면 마감에 회피로 문다', async () => {
+    const honest: Brain = { mode: 'api', ask: async () => ({ verdict: 'truthful', reason: '기록과 맞는다' }) };
+    const { h, winner } = await winFirstTest(honest);
+    await pick(h, 'p1', 'truth');
+    await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+    const p2Seat = h.roleOf('p2')!.seatId;
+    const given2 = h.lastState().seats.find((s) => s.id === p2Seat)!.name.slice(1);
+    h.rt.onChat('p3', `${given2}이 이상해`); // 먼저 몰아 둔다 — 내려갈 것이 있어야 보인다
+    const before = h.lastState().suspicion[p2Seat];
+    await h.rt.handle('p1', { t: 'game_card_use', item: 'truth', target: p2Seat });
+    h.rt.onChat('p1', '너 낙하에서 몇 초 버텼어?');
+    h.rt.onChat('p2', '6초쯤 버텼어');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(h.lastState().suspicion[p2Seat]).toBe(Math.max(0, before + CARD.truthHonest));
+    expect(h.lastState().compelled).toBeNull();
+    void winner;
+  });
+
+  it('답변 강제권 — 판별자는 비공개 장부(전원의 배역)를 받는다. 정체를 묻는 질문에 AI 가 부인하면 거짓', async () => {
+    const asked: string[] = [];
+    const brain: Brain = {
+      mode: 'api',
+      ask: async (a) => {
+        asked.push(a.user);
+        return { verdict: 'false', reason: '장부와 다르다' };
+      },
+    };
+    const { h } = await winFirstTest(brain);
+    await pick(h, 'p1', 'truth');
+    await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+    const p2Seat = h.roleOf('p2')!.seatId;
+    const p2Name = h.lastState().seats.find((s) => s.id === p2Seat)!.name;
+    await h.rt.handle('p1', { t: 'game_card_use', item: 'truth', target: p2Seat });
+    h.rt.onChat('p1', '너 AI야?');
+    const before = h.lastState().suspicion[p2Seat] ?? 0;
+    h.rt.onChat('p2', '아니, 나는 사람이야');
+    await vi.advanceTimersByTimeAsync(50);
+    const judged = asked.find((u) => u.includes('비공개 장부'))!;
+    expect(judged).toBeDefined();
+    // 전원의 배역이 장부에 선다 — 답한 사람의 줄에 그 배역이 있다
+    const roleWord = { human: '사람', designer: 'AI 설계자', ai: 'AI (' }[h.roleOf('p2')!.role];
+    expect(judged).toContain(`- ${p2Name}: 배역 ${roleWord}`);
+    expect(h.lastState().suspicion[p2Seat]).toBe(before + Math.min(SUSPICION.stepCap, Math.round(CARD.truthLie * pressureFor(1))));
+  });
+
+  it('답변 강제권 — 질문이 나왔는데 마감까지 답이 없으면 회피로 문다', async () => {
+    const { h } = await winFirstTest();
+    await pick(h, 'p1', 'truth');
+    await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+    const p2Seat = h.roleOf('p2')!.seatId;
+    await h.rt.handle('p1', { t: 'game_card_use', item: 'truth', target: p2Seat });
+    h.rt.onChat('p1', '너 낙하에서 몇 초 버텼어?');
+    const before = h.lastState().suspicion[p2Seat] ?? 0;
+    await vi.advanceTimersByTimeAsync(CARD.answerMs + 1_000);
+    expect(h.lastState().compelled).toBeNull();
+    expect(h.lastState().suspicion[p2Seat]).toBe(before + Math.round(CARD.truthEvade * pressureFor(1)));
+    const judged = h.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_compelled' }> => m.t === 'game_compelled')!;
+    expect(judged.verdict).toBe('evasive');
   });
 });

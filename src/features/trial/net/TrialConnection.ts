@@ -35,8 +35,10 @@ export interface TrialEvents {
   onOrb(orb: ColorOrb): void;
   /** 회전 원판 — 서버 물리 스냅샷(~10Hz): 원판 각도·각속도와 전원의 자리. 사람의 자리도 여기로 온다 */
   onDisc(msg: Extract<S2CMessage, { t: 'trial_disc' }>): void;
-  /** 회전 원판 — 누가 떨어졌다 */
+  /** 회전 원판 · 무게 중심 다리 — 누가 떨어졌다 */
   onFell(id: string): void;
+  /** 무게 중심 다리 — 서버 물리 스냅샷(~10Hz): 판자 기울기·각속도와 전원의 판자 좌표 자리, 상자 */
+  onSeesaw(msg: Extract<S2CMessage, { t: 'trial_seesaw' }>): void;
   /** 움직이는 플랫폼 — 착지한 발이 밀렸다. 마찰계수가 아니라 곱셈이 끝난 미끄러짐만 온다(P8) */
   onSlip(id: string, vx: number, vz: number, ms: number): void;
   onResult(result: TrialResultWire): void;
@@ -153,6 +155,9 @@ export class TrialConnection {
         case 'trial_fell':
           events.onFell(msg.id);
           break;
+        case 'trial_seesaw':
+          events.onSeesaw(msg);
+          break;
         case 'trial_slip':
           events.onSlip(msg.id, msg.vx, msg.vz, msg.ms);
           break;
@@ -192,7 +197,7 @@ export class TrialConnection {
     return this.send({ t: 'trial_pick', objectId });
   }
 
-  /** 회전 원판 — 걷기 명령(월드 기준 속도). 자리는 안 보낸다, 서버가 적분한다 (DiscRig 머리말) */
+  /** 회전 원판 · 무게 중심 다리 — 걷기 명령(월드 기준 속도). 자리는 안 보낸다, 서버가 적분한다 (DiscRig · SeesawRig 머리말) */
   sendWalk(x: number, z: number): boolean {
     return this.send({ t: 'trial_walk', x, z });
   }

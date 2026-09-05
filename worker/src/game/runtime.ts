@@ -3,8 +3,9 @@
  *
  *   lobby → (방장 시작) → briefing → discussion ⇄ test → result → discussion … → ended
  *
- *   차례표는 **고정**이다 (2026-09-05 사용자, game-protocol 의 GAME_TEST_ORDER · GAME_TEST_MS):
- *     입장 → 대화 40초 → ① 낙하 생존 30초 → 대화 40초 → ② 발판 30초 → 대화 40초 → ③ 원판 30초 → 대화 40초 → 끝
+ *   차례표는 대화 40초 ⇄ 시험 30초 × 3 (game-protocol 의 GAME_TEST_COUNT · GAME_TEST_MS). **어느 셋인가는 판이 열릴 때 후보
+ *   (GAME_TEST_POOL: 낙하 생존 · 발판 · 원판 · 무게 중심 다리)에서 무작위로** 뽑는다 (drawTests, 2026-09-05 사용자):
+ *     입장 → 대화 40초 → ① 시험 30초 → 대화 40초 → ② 시험 30초 → 대화 40초 → ③ 시험 30초 → 대화 40초 → 끝
  *   그 사이 언제든 의심도가 100 에 닿은 좌석은 그 자리에서 격리되고(무대 위 처형자가 쏜다), 격리 수가
  *   목표(총원의 절반, roles.quotaFor)에 닿으면 차례표가 남아 있어도 판은 거기서 끝난다.
  *
@@ -38,7 +39,7 @@ import {
   GAME_TEST_MS,
   TALK,
   talkFor,
-  GAME_TEST_ORDER,
+  drawTests,
   READ_EVERY_MS,
   READ_MAX_LINES,
   READ_MIN_LINES,
@@ -53,6 +54,11 @@ import {
   type GameStateWire,
   type GameTestInfo,
   type LeaderKind,
+  CARD,
+  CARD_ITEMS,
+  heldSecondsFor,
+  type CardItem,
+  type CompelledVerdict,
 } from '../../../src/world/mp/game-protocol';
 import { genderOf, pickBody, type BodyId } from '../../../src/world/mp/bodies';
 import { WALK_SPEED } from '../../../src/world/mp/constants';
@@ -64,7 +70,7 @@ import type { GameEngine, SeatTuning } from '../trial/engine';
 import { appendHistory, readHistory } from '../trial/history';
 import { groupStats } from '../trial/scoring';
 import type { TrialResult } from '../trial/types';
-import { LINES, aiStrategy, judgeClaim, leaderComment, personaPool, readTalk, sayAs, type RoomFacts } from './agents';
+import { LINES, aiStrategy, judgeClaim, judgeCompelled, leaderComment, personaPool, readTalk, sayAs, type RoomFacts } from './agents';
 import type { Brain } from './brain';
 import { ENGINES, INSTRUCTION, availableGames } from './engines';
 import { assignRoles, outcomeFor, quotaFor, shuffled } from './roles';
@@ -88,6 +94,16 @@ import {
 } from './tells';
 
 export type OutMessage = S2CMessage | GameS2CMessage;
+
+/** 카드 세 장을 엎어 놓는 순서 — Fisher–Yates. rand 를 밖에서 주니 시험이 순서를 안다 */
+export function dealOrder(rand: () => number): CardItem[] {
+  const a = [...CARD_ITEMS];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.min(i, Math.floor(rand() * (i + 1)));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 export interface GameDeps {
   storage: DurableObjectStorage;
@@ -201,6 +217,8 @@ export class GameRuntime {
   private startedAt = 0;
   private phaseEndsAt: number | null = null;
   private testsDone = 0;
+  /** 이 판이 여는 시험들 — 판이 열릴 때 뽑는다 (drawTests). 되살린 판은 저장본에서 */
+  private tests: TrialGame[] = [];
   private history: TrialResultWire[] = [];
   private currentTest: GameTestInfo | null = null;
   /** 지금 테스트의 조건 강도(1~3) — 엔진의 round 인자. 와이어에는 안 실린다 (P8) */
@@ -239,6 +257,14 @@ export class GameRuntime {
   private called = new Map<string, number>();
   /** 좌석 → 회피 횟수. DUCK_FREE 번까지는 안 문다 */
   private ducked = new Map<string, number>();
+  /* ── 카드 (game-protocol CARD) — 시험 1등이 셋 중 하나를 고르고, 가진 것을 토론에서 쓴다. 메모리에만 산다(되살린 판은 빈손) ── */
+  /** 좌석 → 고르는 중인 카드 셋과 마감 */
+  private cardOffer = new Map<string, { options: CardItem[]; until: number }>();
+  /** 좌석 → 쥔 카드 */
+  private items = new Map<string, CardItem[]>();
+  /** 답변 강제권이 걸려 있다 — by 의 다음 말이 질문, 그다음 target 의 말이 답 */
+  private compelled: { by: string; target: string; question: string | null; until: number } | null = null;
+  private compelledInFlight = false;
   /** 거론(⑩) — 대상 좌석 → 센 횟수와 「누가 언제 마지막으로 불렀나」 (MENTION_GAP_MS 안의 연타는 한 번) */
   private mentions = new Map<string, { n: number; lastBy: Map<string, number> }>();
   /** 좌석 → 마지막 되풀이 판정 시각 (ECHO_GAP_MS) */
@@ -431,6 +457,12 @@ export class GameRuntime {
       case 'game_prologue_done':
         this.prologueDone(playerId);
         return;
+      case 'game_card_pick':
+        this.cardPick(playerId, msg.index);
+        return;
+      case 'game_card_use':
+        this.cardUse(playerId, msg.item, msg.target);
+        return;
       default:
         return;
     }
@@ -545,6 +577,9 @@ export class GameRuntime {
     const order = shuffled([...humans, ai], this.rand);
     const names = pickKoreanNames(order.map((s) => genderOf(s.body)), this.rand);
     this.seats = order.map((s, i) => ({ ...s, seat: i + 1, name: names[i] }));
+    this.cardOffer = new Map();
+    this.items = new Map();
+    this.compelled = null;
     this.bindings = new Map();
     for (const p of roster) {
       this.bindings.set(p.id, `seat-${p.id}`);
@@ -564,6 +599,7 @@ export class GameRuntime {
     this.quota = quotaFor(this.seats.length);
     this.startedAt = this.now();
     this.testsDone = 0;
+    this.tests = drawTests(this.rand);
     this.history = [];
     this.testRuns = new Map();
     this.latestResult = null;
@@ -624,7 +660,7 @@ export class GameRuntime {
         // 아직 프롤로그를 기다리는 중이었다 — 그 마감은 상한이었으니 여기서 걷는다. 토론 40초는 그때부터다
         if (this.prologueHold !== null) return this.endPrologue();
         // 차례표를 다 돌았다 — 마지막 대화까지 끝났으니 여기서 닫는다 (아직 AI 를 못 찾았으면 AI 의 승리)
-        if (this.testsDone >= schedule().length) return void (await this.hardCap());
+        if (this.testsDone >= this.schedule().length) return void (await this.hardCap());
         await this.openTest();
         return;
       case 'test':
@@ -735,9 +771,23 @@ export class GameRuntime {
 
   /* ─────────────────────────────── 테스트 ─────────────────────────────── */
 
+  /**
+   * 이 판이 실제로 여는 시험들 — 뽑힌 차례표(tests) 중 엔진이 꽂혀 있는 것만.
+   * 엔진이 빠진 종류는 조용히 건너뛴다: 차례가 비었다고 판이 멎는 것보다 한 판이 두 시험으로 도는 편이 낫다.
+   */
+  private schedule(): TrialGame[] {
+    const have = new Set(availableGames());
+    return this.tests.filter((g) => have.has(g));
+  }
+
+  /** 시험용 — 뽑힌 차례표 */
+  drawnTests(): readonly TrialGame[] {
+    return this.tests;
+  }
+
   private async openTest(): Promise<void> {
     if (this.phase !== 'discussion') return;
-    const order = schedule();
+    const order = this.schedule();
     const step = this.testsDone + 1;
     const game = order[this.testsDone];
     if (!game) return void (await this.hardCap());
@@ -846,6 +896,7 @@ export class GameRuntime {
     this.currentTest = null;
     this.deps.broadcast({ t: 'trial_result', result: wire });
     this.grantTalk(engine.game, raw);
+    this.offerCard(engine.game, raw);
     this.setPhase('result', this.now() + GAME_RESULT_MODAL_MS);
     void this.persist();
 
@@ -1122,6 +1173,11 @@ export class GameRuntime {
         accusedBy: this.book.accusersOf(pick.id),
         freshResult: fresh,
         opening: this.testsDone === 0 && this.log.length < 3,
+        // 답변 강제권의 과녁이고 질문이 나왔다 — 이번 말이 그 답이다
+        compelled:
+          this.compelled && this.compelled.target === pick.id && this.compelled.question !== null
+            ? { by: this.nameOf(this.compelled.by), question: this.compelled.question }
+            : null,
       });
       if (!out || !this.active() || pick.isolated) return;
       // 말을 짓는 동안 지갑이 비었을 수 있다 (같은 좌석의 앞 차례) — 그러면 이 말은 버린다
@@ -1156,6 +1212,7 @@ export class GameRuntime {
     seat.lastSpokeAt = now;
     this.deps.broadcast({ t: 'chat', id: seat.id, nickname: seat.name, text, ts: now });
     this.pushLog(seat.id, text);
+    this.onCompelledSpeech(seat, text, now);
 
     /*
      * 이 말이 누구에게 말을 건 것인가 — 그 사람이 DUCK_WINDOW_MS 안에 안 답하면 회피다 (watchDucks).
@@ -1219,6 +1276,172 @@ export class GameRuntime {
       const d = this.book.tell(m.id, 'mention', `거듭 거론됨 (${rec.n}회)`);
       if (d) this.applyDeltas([d]);
     }
+  }
+
+  /* ─────────────────────────────── 카드 (docs/SUSPICION.md ⑪ · game-protocol CARD) ─────────────────────────────── */
+
+  /**
+   * 시험이 끝났다 — **1등**(버틴 초가 가장 긴 사람)에게 카드 셋을 내민다. 봇은 안 받는다(카드는 사람의 것, 1등이 봇이면 카드 없는 시험).
+   * 동률이면 앞자리. 고르지 않고 마감(CARD.offerMs)이 지나면 사라진다.
+   */
+  /**
+   * 시험 1등에게 카드 — 살아 있는 좌석 중 기록(heldSecondsFor) 최대. **공동 1등이면 그중 하나를 무작위로**
+   * (2026-09-05 사용자: "공동 1등이 있으면 1등에서 랜덤으로"). 뽑힌 쪽이 봇이면 카드 없는 시험이다.
+   * 세 장은 **엎어서** 준다 — 순서를 섞고(dealOrder) 장수만 알린다. 뭔지는 뒤집어야 안다 (cardPick).
+   */
+  private offerCard(game: TrialGame, published: TrialPlayerResult[]): void {
+    let top = -Infinity;
+    let tied: Seat[] = [];
+    for (const p of published) {
+      const seat = this.seats.find((s) => s.id === p.id);
+      if (!seat || seat.isolated) continue;
+      const held = heldSecondsFor(game, p.metrics, GAME_TEST_MS) ?? 0;
+      if (held > top) {
+        top = held;
+        tied = [seat];
+      } else if (held === top) tied.push(seat);
+    }
+    if (tied.length === 0) return;
+    const best = tied[Math.min(tied.length - 1, Math.floor(this.rand() * tied.length))];
+    if (best.kind !== 'real') return;
+    const playerId = this.playerOfSeat(best.id);
+    if (!playerId) return;
+    this.cardOffer.set(best.id, { options: dealOrder(this.rand), until: this.now() + CARD.offerMs });
+    this.sendCards(best.id);
+  }
+
+  private sendCards(seatId: string): void {
+    const playerId = this.playerOfSeat(seatId);
+    if (!playerId) return;
+    const offer = this.cardOffer.get(seatId);
+    this.deps.sendTo(playerId, { t: 'game_cards', offer: offer && offer.until > this.now() ? offer.options.length : null, items: [...(this.items.get(seatId) ?? [])] });
+  }
+
+  private cardPick(playerId: string, index: number): void {
+    const seat = this.seatOfPlayer(playerId);
+    if (!seat || !this.active()) return;
+    const offer = this.cardOffer.get(seat.id);
+    if (!offer || offer.until < this.now()) return this.reject(playerId, '고를 카드가 없다');
+    const item = Number.isInteger(index) ? offer.options[index] : undefined;
+    if (!item) return this.reject(playerId, '그 자리엔 카드가 없다');
+    const have = this.items.get(seat.id) ?? [];
+    if (have.length >= CARD.maxItems) return this.reject(playerId, `카드는 ${CARD.maxItems}장까지`);
+    this.cardOffer.delete(seat.id);
+    this.items.set(seat.id, [...have, item]);
+    this.sendCards(seat.id);
+  }
+
+  /**
+   * 카드를 쓴다 — 토론 중에만. 지목권은 남에게 +CARD.accuseBoost, 진정권은 나에게 −CARD.calmDrop,
+   * 답변 강제권은 「내 다음 말이 질문, 그다음 상대의 말이 답」을 건다 (onCompelledSpeech).
+   */
+  private cardUse(playerId: string, item: CardItem, targetId?: string): void {
+    if (this.phase !== 'discussion') return this.reject(playerId, '카드는 토론 중에만 쓴다');
+    const me = this.seatOfPlayer(playerId);
+    if (!me || me.isolated) return;
+    const have = this.items.get(me.id) ?? [];
+    const at = have.indexOf(item);
+    if (at < 0) return this.reject(playerId, '그 카드가 없다');
+    let target: Seat | null = null;
+    if (item !== 'calm') {
+      target = this.seats.find((s) => s.id === targetId) ?? null;
+      if (!target || target.isolated || target.id === me.id) return this.reject(playerId, '겨눌 사람을 골라라');
+    }
+    if (item === 'truth' && this.compelled) return this.reject(playerId, '이미 답변 강제권이 걸려 있다');
+
+    have.splice(at, 1);
+    this.items.set(me.id, have);
+    this.sendCards(me.id);
+
+    const text = LINES.cardUsed(me.name, item, target?.name ?? null);
+    this.deps.broadcast({ t: 'game_card_used', by: me.id, item, ...(target ? { target: target.id } : {}), text });
+    this.leader(text, 'announce');
+    this.pushLog(me.id, `(${item === 'truth' ? '답변 강제권' : item === 'accuse' ? '지목권' : '진정권'}) ${text}`);
+
+    if (item === 'accuse' && target) {
+      const d = this.book.boost(target.id, CARD.accuseBoost, me.id, '지목권');
+      if (d) this.applyDeltas([d]);
+    } else if (item === 'calm') {
+      const d = this.book.boost(me.id, -CARD.calmDrop, me.id, '진정권');
+      if (d) this.applyDeltas([d]);
+    } else if (item === 'truth' && target) {
+      this.compelled = { by: me.id, target: target.id, question: null, until: this.now() + CARD.answerMs };
+      this.broadcastState();
+    }
+  }
+
+  /**
+   * 답변 강제권의 흐름 — say() 가 매 말마다 부른다.
+   *   by 의 첫 말 = 질문 (마감 CARD.answerMs 를 새로 센다). 과녁이 봇이면 곧 답할 차례를 잡는다.
+   *   그 뒤 target 의 첫 말 = 답 → 관리 AI 가 기록·앞말과 대조한다 (agents.judgeCompelled). 판정은 전원이 본다.
+   */
+  private onCompelledSpeech(seat: Seat, text: string, now: number): void {
+    const c = this.compelled;
+    if (!c || !this.judging()) return;
+    if (c.question === null) {
+      if (seat.id !== c.by) return;
+      c.question = text;
+      c.until = now + CARD.answerMs;
+      this.broadcastState();
+      const target = this.seats.find((s) => s.id === c.target);
+      if (target && target.kind !== 'real') this.scheduleTalk(BOT_DEFEND_MIN_MS);
+      return;
+    }
+    if (seat.id !== c.target || this.compelledInFlight) return;
+    void this.resolveCompelled(text);
+  }
+
+  private async resolveCompelled(answer: string): Promise<void> {
+    const c = this.compelled;
+    if (!c || c.question === null) return;
+    this.compelledInFlight = true;
+    try {
+      const target = this.seats.find((s) => s.id === c.target);
+      const prior = this.log
+        .filter((l) => l.id === c.target)
+        .slice(-PRIOR_LINES - 1, -1)
+        .map((l) => l.text);
+      const v = await judgeCompelled(this.deps.brain, {
+        by: this.nameOf(c.by),
+        target: this.nameOf(c.target),
+        question: c.question,
+        answer,
+        dossier: this.dossier(),
+        facts: this.facts(),
+        results: this.history,
+        prior,
+      });
+      if (!this.active() || !target || target.isolated) return;
+      this.settleCompelled(v.verdict, v.reason);
+    } finally {
+      this.compelledInFlight = false;
+    }
+  }
+
+  /** 판정을 눈금에 얹고 알린다 — 거짓 +truthLie · 회피 +truthEvade · 진실 truthHonest(−). 그러고 나면 강제권은 풀린다 */
+  private settleCompelled(verdict: CompelledVerdict, reason: string): void {
+    const c = this.compelled;
+    if (!c) return;
+    this.compelled = null;
+    const amount = verdict === 'false' ? CARD.truthLie : verdict === 'evasive' ? CARD.truthEvade : CARD.truthHonest;
+    const d = this.book.boost(c.target, amount, 'LEADER', verdict === 'false' ? '강제 답변 — 거짓' : verdict === 'evasive' ? '강제 답변 — 회피' : '강제 답변 — 진실');
+    const text = LINES.compelled(this.nameOf(c.target), verdict, reason);
+    this.deps.broadcast({ t: 'game_compelled', by: c.by, target: c.target, verdict, text, delta: d?.amount ?? 0 });
+    this.leader(text, verdict === 'false' ? 'alarm' : 'readout');
+    if (d) this.applyDeltas([d]);
+    else this.broadcastState();
+  }
+
+  /** 질문이 나왔는데 마감까지 답이 없다 — 회피로 친다. 질문조차 안 나온 채 마감이면 그냥 푼다 */
+  private watchCompelled(now: number): void {
+    const c = this.compelled;
+    if (!c || this.compelledInFlight || now < c.until) return;
+    if (c.question === null) {
+      this.compelled = null;
+      this.broadcastState();
+      return;
+    }
+    this.settleCompelled('evasive', '마감까지 답이 없다');
   }
 
   /**
@@ -1400,6 +1623,7 @@ export class GameRuntime {
     }
     this.readBodies(poses, now);
     this.watchDucks(now);
+    this.watchCompelled(now);
   }
 
   /* ─────────────────────────────── 공개 사실 · 유틸 ─────────────────────────────── */
@@ -1518,6 +1742,17 @@ export class GameRuntime {
     return { id: s.id, name: s.name, seat: s.seat, isolated: s.isolated, ...(s.isolated ? { revealed: s.role } : {}), ...(s.body ? { body: s.body } : {}) };
   }
 
+  /**
+   * 비공개 장부 — 답변 강제권의 판정에만 쓴다 (2026-09-05 사용자: "판별자 AI 가 모든 상대방의 정보를 알고 있어야").
+   * 배역(사람 · AI 설계자 · AI) · 몸(사람 · 대역 · AI) · 격리 여부. 관리 AI 는 이걸 보고 「너 AI 야?」에 「아니」라 한 AI 를 문다.
+   * 방송에는 안 나간다 — judgeCompelled 의 system 이 reason 에 정체를 못 쓰게 한다.
+   */
+  private dossier(): string {
+    const role = (r: GameRole) => (r === 'ai' ? 'AI (표식 없는 AI — 찾아야 할 그것)' : r === 'designer' ? 'AI 설계자 (사람이지만 AI 편)' : '사람');
+    const kind = (k: Seat['kind']) => (k === 'real' ? '실제 참가자' : k === 'npc' ? '대역(NPC)' : 'AI 봇');
+    return this.seats.map((s) => `- ${s.name}: 배역 ${role(s.role)} · ${kind(s.kind)}${s.isolated ? ' · 격리됨' : ''}`).join('\n');
+  }
+
   private rolesMap(): Record<string, GameRole> {
     const out: Record<string, GameRole> = {};
     for (const s of this.seats) out[s.id] = s.role;
@@ -1541,6 +1776,7 @@ export class GameRuntime {
       accusations: this.book.accusationsSnapshot(),
       phaseEndsAt: this.phaseEndsAt,
       testsDone: this.testsDone,
+      tests: [...this.tests],
       currentTest: this.currentTest,
       latestResult: this.latestResult,
       quota: this.quota,
@@ -1552,6 +1788,7 @@ export class GameRuntime {
       // 붙잡고 있는 동안만 화면이 대본을 튼다 — 트는 쪽과 붙잡는 쪽이 같은 값을 봐야 안 겹친다
       prologue: this.prologueHold !== null,
       talk: this.talkSnapshot(),
+      compelled: this.compelled ? { ...this.compelled } : null,
     };
   }
 
@@ -1611,6 +1848,7 @@ export class GameRuntime {
         startedAt: this.startedAt,
         phaseEndsAt: this.phaseEndsAt,
         testsDone: this.testsDone,
+        tests: this.tests,
         testRuns: [...this.testRuns],
         latestResult: this.latestResult,
         outcome: this.outcome,
@@ -1646,6 +1884,9 @@ export class GameRuntime {
     this.startedAt = Number(saved.startedAt) || this.now();
     // 국면 압력이 여기서 나오므로 **책을 만들기 전에** 되살린다 (pressureFor)
     this.testsDone = Number(saved.testsDone) || 0;
+    // 뽑혀 있던 차례표 — 없으면(옛 저장본) 새로 뽑는다. 이미 지난 시험은 testsDone 이 가리키므로 그 뒤만 열린다
+    const savedTests = Array.isArray(saved.tests) ? (saved.tests as TrialGame[]) : null;
+    this.tests = savedTests && savedTests.length ? savedTests : drawTests(this.rand);
     this.book = new SuspicionBook(
       seats.map((s) => s.id),
       () => this.pressure(),
@@ -1671,11 +1912,4 @@ function finite(v: number | undefined, fallback: number): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
 }
 
-/**
- * 이 판이 실제로 여는 시험들 — 차례표(GAME_TEST_ORDER) 중 엔진이 꽂혀 있는 것만.
- * 엔진이 빠진 종류는 조용히 건너뛴다: 차례가 비었다고 판이 멎는 것보다 한 판이 두 시험으로 도는 편이 낫다.
- */
-function schedule(): TrialGame[] {
-  const have = new Set(availableGames());
-  return GAME_TEST_ORDER.filter((g) => have.has(g));
-}
+

@@ -81,6 +81,8 @@ export interface GameStateWire {
   phaseEndsAt: number | null;
   /** 지금까지 열린 테스트 수 */
   testsDone: number;
+  /** 이 판이 여는 시험들 — 판이 열릴 때 뽑힌 순서 그대로(drawTests). 로비(아직 안 뽑았다)나 옛 워커면 없다 */
+  tests?: TrialGame[];
   currentTest: GameTestInfo | null;
   /** 마지막 결과 — 모달과 HUD 요약 패널이 그린다 (§3) */
   latestResult: TrialResultWire | null;
@@ -114,9 +116,42 @@ export interface GameStateWire {
    * 공개다 — 남은 수는 곧 시험 기록이고, 기록은 어차피 전원이 본다 (§3).
    */
   talk: Record<string, number>;
+  /**
+   * 답변 강제권이 걸려 있다 — 전원이 본다: target 은 by 의 다음 질문에 진실만 답해야 한다.
+   * question 은 by 가 그 뒤 처음 한 말(질문). 아직 안 물었으면 null. until 은 답을 기다리는 마감.
+   */
+  compelled: { by: string; target: string; question: string | null; until: number } | null;
 }
 
 /** 관리 AI 방송의 결 — 화면 배너·TTS 가 같은 값을 본다 (shared/broadcast-kind 의 부분집합) */
+/**
+ * 카드 — 시험에서 **1등**을 한 사람이 셋 중 하나를 고른다 (2026-09-05 사용자: "미니게임에서 1등하면 카드 3개를 선택할 수 있게").
+ *   truth   답변 강제권 — 상대는 내 다음 질문에 **진실만** 답해야 한다. 관리 AI 가 그 답을 기록과 대조해 거짓이면 크게, 교묘히 피하면
+ *           조금 올리고, 진실이면 내려 준다. 상대(사람이든 봇이든)의 전략은 둘 — 진실을 말하거나, 교묘하게 피하거나.
+ *   accuse  지목권 — 겨눈 상대의 의심도를 CARD.accuseBoost 만큼 올린다.
+ *   calm    진정권 — 내 의심도를 CARD.calmDrop 만큼 내린다.
+ * 카드는 가진 사람만 안다(game_cards 는 본인에게만). 쓰면 전원이 본다(game_card_used). 봇은 카드를 안 받는다 — 1등이 봇이면 카드 없는 시험이다.
+ */
+export type CardItem = 'truth' | 'accuse' | 'calm';
+export const CARD_ITEMS: readonly CardItem[] = ['truth', 'accuse', 'calm'];
+export const CARD = {
+  /** 지목권 · 진정권의 걸음 */
+  accuseBoost: 20,
+  calmDrop: 20,
+  /** 고르기 유예(ms) — 결과 모달(7초)과 다음 대화 앞머리까지 */
+  offerMs: 45_000,
+  /** 답변 강제권 — 질문이 나온 뒤 이 안에 답이 없으면 회피로 친다 */
+  answerMs: 25_000,
+  /** 강제된 답이 기록과 어긋난다(거짓) · 교묘히 피한다 · 진실이다 */
+  truthLie: 25,
+  truthEvade: 12,
+  truthHonest: -10,
+  /** 한 사람이 쥘 수 있는 카드 수 */
+  maxItems: 3,
+} as const;
+/** 강제된 답의 판정 — 관리 AI 가 기록·앞뒤와 대조한다 (worker/src/game/agents.ts judgeCompelled) */
+export type CompelledVerdict = 'truthful' | 'evasive' | 'false';
+
 export type LeaderKind = 'announce' | 'readout' | 'alarm';
 
 /** 주장 판정 결과 (§1.2 · §4.2). match −10 · mismatch +10 · unclear 0 */
@@ -141,7 +176,11 @@ export type GameC2SMessage =
    * 자막을 맞추므로(prologueVoice) 판마다·기기마다 다르다. 그래서 「끝났다」만 올린다: 그때까지
    * 대역과 AI 참가자는 입을 다물고, 첫 토론의 40초도 그때부터 센다 (runtime 의 prologueHold).
    */
-  | { t: 'game_prologue_done' };
+  | { t: 'game_prologue_done' }
+  /** 카드 — 1등이 셋 중 하나를 고른다 · 가진 카드를 쓴다 (target 은 truth · accuse 에만) */
+  /** 엎어진 카드 중 몇 번째를 뒤집나 — 뭔지는 뒤집어야 안다 (runtime 의 cardPick) */
+  | { t: 'game_card_pick'; index: number }
+  | { t: 'game_card_use'; item: CardItem; target?: string };
 
 /** 서버 → 클라이언트 */
 export type GameS2CMessage =
@@ -172,7 +211,14 @@ export type GameS2CMessage =
    */
   | { t: 'game_talk'; talk: Record<string, number>; gained?: Record<string, number>; game?: TrialGame }
   /** 거절 사유 한 줄 — 그 소켓에만 (시작 조건 미달 · 권한 없음 · 국면 불일치) */
-  | { t: 'game_reject'; why: string };
+  | { t: 'game_reject'; why: string }
+  /** 본인에게만 — 고를 수 있는 카드(없으면 null)와 쥔 카드 */
+  /** 본인에게만 — offer 는 **엎어진 카드의 장수**다. 뭔지는 서버만 안다: 뒤집으면 items 에 붙어 돌아온다 */
+  | { t: 'game_cards'; offer: number | null; items: CardItem[] }
+  /** 전원에게 — 누가 무슨 카드를 누구에게 썼나 */
+  | { t: 'game_card_used'; by: string; item: CardItem; target?: string; text: string }
+  /** 전원에게 — 강제된 답의 판정 */
+  | { t: 'game_compelled'; by: string; target: string; verdict: CompelledVerdict; text: string; delta: number };
 
 export function isGameMessage(msg: { t: string }): msg is GameC2SMessage {
   return msg.t.startsWith('game_');
@@ -185,14 +231,28 @@ export const GAME_MIN_HUMANS = 3;
 export const GAME_MAX_HUMANS = 8;
 
 /**
- * 검문소 한 판의 **차례표** (2026-09-05 사용자):
+ * 검문소 한 판의 **차례표** — 대화 40초 ⇄ 시험 30초가 **세 번**(GAME_TEST_COUNT) 번갈아 돈다:
  *
- *   입장 → 대화 40초 → ① 낙하 생존 30초 → 대화 40초 → ② 발판 30초 → 대화 40초 → ③ 원판 30초 → 대화 40초 → 끝
+ *   입장 → 대화 40초 → ① 시험 30초 → 대화 40초 → ② 시험 30초 → 대화 40초 → ③ 시험 30초 → 대화 40초 → 끝
  *
- * 종류도 순서도 고정이다 — 예전엔 관리 AI 가 매번 골랐지만(agents.designNext), 그러면 한 판에 무엇을
- * 몇 번 하는지가 판마다 달라져 「세 번의 시험」이라는 판의 모양이 안 선다. 순서를 바꾸려면 여기 한 줄이다.
+ * 어느 셋인가는 **판이 열릴 때 후보(GAME_TEST_POOL)에서 무작위로** 뽑는다 — 겹치지 않게, 순서도 뽑힌 대로
+ * (2026-09-05 사용자: "검사판 랜덤 게임에 무게중심다리도 들어갈 수 있도록"). 그 전에는 낙하 생존 → 발판 → 원판으로
+ * 고정이었다 — 판마다 무엇이 나올지 모르지만 「세 번의 시험」이라는 판의 모양은 그대로다. 뽑힌 차례는 판이 열리는 순간
+ * 서버가 정해 GameStateWire.tests 로 공개한다(순서는 공개, 조건값만 비밀). 관리 AI 가 매번 고르던 설계(agents.designNext)는 접었다.
  */
-export const GAME_TEST_ORDER: readonly TrialGame[] = ['fall', 'platform', 'disc'];
+export const GAME_TEST_POOL: readonly TrialGame[] = ['fall', 'platform', 'disc', 'seesaw'];
+/** 한 판이 여는 시험 수 */
+export const GAME_TEST_COUNT = 3;
+
+/** 이 판의 차례표를 뽑는다 — 후보를 섞어 앞 GAME_TEST_COUNT 개. rand 는 [0,1) (워커는 판의 난수, 시험은 고정값) */
+export function drawTests(rand: () => number = Math.random): TrialGame[] {
+  const pool = [...GAME_TEST_POOL];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.min(i, Math.floor(rand() * (i + 1)));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, GAME_TEST_COUNT);
+}
 
 /** 배역 통보 화면이 떠 있는 시간(ms) — RoleBriefing 의 SHOW_MS 와 같은 박자 */
 export const GAME_BRIEFING_MS = 7_000;
@@ -422,6 +482,7 @@ export function heldSecondsFor(game: TrialGame, metrics: Record<string, number>,
   switch (game) {
     case 'fall':
     case 'disc':
+    case 'seesaw':
       seconds = num(metrics.survivalTime);
       break;
     case 'platform': {

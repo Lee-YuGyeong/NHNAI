@@ -44,7 +44,7 @@ import {
   GAME_MIN_HUMANS,
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
-  GAME_TEST_ORDER,
+  GAME_TEST_COUNT,
 } from '@/world/mp/game-protocol';
 import { introActions, introSelectors, type IntroSection } from './introSlice';
 import './intro.css';
@@ -56,7 +56,7 @@ import './intro.css';
 const ROUND_MS =
   GAME_BRIEFING_MS +
   GAME_FIRST_DISCUSSION_MS +
-  GAME_TEST_ORDER.length * (GAME_TEST_MS + GAME_RESULT_MODAL_MS + GAME_DISCUSSION_MS);
+  GAME_TEST_COUNT * (GAME_TEST_MS + GAME_RESULT_MODAL_MS + GAME_DISCUSSION_MS);
 
 const NAV: { id: Exclude<IntroSection, 'hero'>; label: string }[] = [
   { id: 'about', label: '게임 소개' },
@@ -165,7 +165,7 @@ export function IntroFeature() {
                 사람 {GAME_MIN_HUMANS}~{GAME_MAX_HUMANS}명, 그리고 표식 없는 하나. 빈자리는 대역이 채운다.
               </li>
               <li>센터는 기록만 내놓는다 — 아무도 판정하지 않는다.</li>
-              <li>시험은 {GAME_TEST_ORDER.length}번뿐이다. 그때까지 못 찾으면 그쪽이 이긴다.</li>
+              <li>시험은 {GAME_TEST_COUNT}번뿐이다. 그때까지 못 찾으면 그쪽이 이긴다.</li>
             </ul>
             <div className="intro-cta">
               <button type="button" className="intro-btn intro-btn--primary" onClick={enter}>
@@ -254,8 +254,8 @@ export function IntroFeature() {
                 <span>
                   {GAME_DISCUSSION_MS / 1000}s ⇄ {GAME_TEST_MS / 1000}s
                 </span>
-                <b>고정 차례표 ×{GAME_TEST_ORDER.length}</b>
-                <small>무엇이 몇 번째인지 모두가 알고 들어온다</small>
+                <b>차례표 ×{GAME_TEST_COUNT}</b>
+                <small>후보 넷 가운데 셋이 판마다 무작위로 뽑힌다</small>
               </li>
               <li className="now">
                 <span>100%</span>
@@ -358,7 +358,7 @@ export function IntroFeature() {
                 같은 이유로 맞춘다(2026-09-04 절충). 앞박자 「시행은 계속된다」도 차례표가 고정되면서
                 (bde946a) 틀린 말이 됐다 — 시험에는 끝이 있고, 그 끝이 곧 AI 의 승리 조건이다 */}
             <h2 id="intro-rules-h" className="intro-h2">
-              시험은 {GAME_TEST_ORDER.length}번뿐이다. <span className="dim">의심은 말로만 움직인다.</span>
+              시험은 {GAME_TEST_COUNT}번뿐이다. <span className="dim">의심은 말로만 움직인다.</span>
             </h2>
           </div>
           <ol className="intro-steps">
@@ -437,8 +437,8 @@ const STEPS = [
     body: `사람 ${GAME_MIN_HUMANS}~${GAME_MAX_HUMANS}명과 AI 1좌석이 뒤섞여 자리를 잡는다. 모자란 자리는 대역이 채우고, 그 사람들 틈에 AI 설계자가 섞인다.`,
   },
   {
-    title: `물리 테스트 ×${GAME_TEST_ORDER.length}`,
-    body: `대화 ${GAME_DISCUSSION_MS / 1000}초와 시험 ${GAME_TEST_MS / 1000}초가 번갈아 ${GAME_TEST_ORDER.length}번 — 낙하 생존 → 움직이는 발판 → 회전 원판. 순서는 공개고, 조건값은 공개되지 않는다.`,
+    title: `물리 테스트 ×${GAME_TEST_COUNT}`,
+    body: `대화 ${GAME_DISCUSSION_MS / 1000}초와 시험 ${GAME_TEST_MS / 1000}초가 번갈아 ${GAME_TEST_COUNT}번 — 낙하 생존 · 움직이는 발판 · 회전 원판 · 무게 중심 다리 가운데 셋이 판마다 무작위로 뽑힌다. 순서는 판이 열릴 때 공개되고, 조건값은 공개되지 않는다.`,
   },
   {
     title: '기록 공개',

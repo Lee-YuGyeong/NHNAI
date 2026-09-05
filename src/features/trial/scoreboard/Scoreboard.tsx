@@ -83,13 +83,26 @@ const SPEC: Record<TrialGame, Spec> = {
     curveLabel: '미끄러진 거리 추이 (에피소드 1 → 2 → 3 …, m)',
     dirLabel: '미끄러진 뒤 자리 (바깥으로 밀림 + / 안쪽으로 고침 −)',
   },
+  seesaw: {
+    primary: { key: 'counterRate', label: '기울었을 때 높은 쪽에 서 있던 비율', unit: '', digits: 2 },
+    rows: [
+      { key: 'walked', label: '이동거리 (판 위에서 걸은 거리)', unit: 'm', digits: 1 },
+      { key: 'meanLever', label: '축에서 떨어져 선 거리 평균', unit: 'm', digits: 2 },
+      { key: 'reactionMs', label: '상자가 닿은 뒤 반응까지', unit: 'ms', digits: 0 },
+      { key: 'transitionError', label: '바닥이 바뀐 직후 미끄러진 거리', unit: 'm', digits: 2 },
+      { key: 'slideTotal', label: '미끄러진 거리 합', unit: 'm', digits: 2 },
+      { key: 'falls', label: '낙하', unit: '회', digits: 0 },
+    ],
+    curveLabel: '미끄러진 거리 추이 (에피소드 1 → 2 → 3 …, m)',
+    dirLabel: '미끄러진 뒤 자리 (낮은 쪽으로 밀림 + / 높은 쪽으로 고침 −)',
+  },
 };
 
 function fmt(v: unknown, unit: string, digits: number): string {
   return typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(digits)}${unit}` : '—';
 }
 
-const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판' };
+const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리' };
 
 export function Scoreboard({ result, roster }: { result: TrialResultWire; roster: Record<string, string> }) {
   const spec = SPEC[result.game] ?? SPEC.stopline;

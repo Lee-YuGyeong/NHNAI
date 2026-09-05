@@ -20,7 +20,7 @@ import { BackToRoot } from '@/shared/BackToRoot';
 import { broadcastAnnounce } from '@/shared/broadcast';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { GAME_DISCUSSION_MS, GAME_ENDED_MS, GAME_MAX_HUMANS, GAME_TEST_MS, GAME_TEST_ORDER, type GameSeat } from '@/world/mp/game-protocol';
+import { GAME_DISCUSSION_MS, GAME_ENDED_MS, GAME_MAX_HUMANS, GAME_TEST_MS, GAME_TEST_COUNT, type GameSeat } from '@/world/mp/game-protocol';
 import type { AnimState, PlayerSnapshot } from '@/world/mp/protocol';
 import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
@@ -32,6 +32,8 @@ import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, EndScreen, LobbyPanel, ResultModal, TestOrder, withRo } from './hud/Panels';
 import { SelfSuspicion } from './hud/SelfSuspicion';
+import { CardDock, CardOffer, CardReveal, CompelBar } from './hud/Cards';
+import type { CardItem } from '@/world/mp/game-protocol';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
 import type { Teleport } from './scene/FreeRig';
@@ -47,6 +49,8 @@ import { runnerState } from './scene/stopline/runnerState';
 import { huntState, softLight } from '@/features/trial/games/color-hunt/huntState';
 // 회전 원판도 같은 모듈 하나 — 원판 각도와 몸의 자리가 여기 들어간다 (discState 머리말)
 import { discState } from '@/features/trial/games/disc/discState';
+// 무게 중심 다리도 같다 — 판자 기울기와 몸의 판자 좌표가 여기 들어간다 (seesawState 머리말)
+import { seesawState, worldOf as seesawWorldOf } from '@/features/trial/games/seesaw/seesawState';
 import './interrogation.css';
 
 /** 좌석의 기본 자리 — 홀 가운데 좌석 원 위 (spawn.ts). 판이 열릴 때 전원이 여기서 시작한다 */
@@ -116,6 +120,9 @@ export function InterrogationFeature() {
   const reject = useAppSelector(gameSelectors.selectReject);
   const myTalk = useAppSelector(gameSelectors.selectMyTalk);
   const talkGained = useAppSelector(gameSelectors.selectTalkGained);
+  const cards = useAppSelector(gameSelectors.selectCards);
+  const cardNote = useAppSelector(gameSelectors.selectCardNote);
+  const cardReveal = useAppSelector(gameSelectors.selectCardReveal);
 
   const [locked, setLocked] = useState(false);
   const [composing, setComposing] = useState(false);
@@ -168,6 +175,7 @@ export function InterrogationFeature() {
     platformState.clear();
     huntState.clear();
     discState.clear();
+    seesawState.clear();
     dispatch(gameActions.connecting());
 
     const conn = connRef.current!;
@@ -258,12 +266,22 @@ export function InterrogationFeature() {
         case 'game_talk':
           dispatch(gameActions.talkReceived(msg));
           return;
+        case 'game_cards':
+          dispatch(gameActions.cardsReceived({ offer: msg.offer, items: msg.items }));
+          return;
+        case 'game_card_used':
+          dispatch(gameActions.cardUsed({ by: msg.by, item: msg.item, target: msg.target, text: msg.text }));
+          return;
+        case 'game_compelled':
+          dispatch(gameActions.compelledReceived({ by: msg.by, target: msg.target, verdict: msg.verdict, text: msg.text, delta: msg.delta }));
+          return;
         case 'trial_round_start': {
           dispatch(gameActions.testStarted({ game: msg.game, round: msg.round, startAt: msg.startAt, durationMs: msg.durationMs }));
           runnerState.resetAll();
           fallState.clear();
           huntState.clear();
           discState.clear();
+          seesawState.clear();
           // 움직이는 플랫폼 — 발판 열이 서고(platformState), 전원이 출발 발판 위 2×2 자리에서 시작한다 (좌석 번호로, platform.ts startSlot)
           if (msg.game === 'platform') {
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
@@ -324,6 +342,22 @@ export function InterrogationFeature() {
           }
           return;
         }
+        case 'trial_seesaw': {
+          // 무게 중심 다리 — 원판과 같은 규칙: 사람의 자리도 서버가 적분한다(판이 기울면 미끄러지는 양이 숨은 μ 에서 나온다, P8).
+          // 자리는 판자 좌표(u · v)로 오고, 월드 자리는 기울기로 푼다 (seesawState.worldOf). 남의 몸은 remotePlayers 로
+          seesawState.push(msg);
+          const at = now();
+          for (const b of msg.players) {
+            const w = seesawWorldOf(b.u, b.v, msg.phi, b.f === 1);
+            if (b.id === meRef.current?.seatId) {
+              myPos.current.x = w.x;
+              myPos.current.z = w.z;
+              continue;
+            }
+            remotePlayers.move(b.id, w.x, w.z, w.y, b.h, b.m === 2 ? 'run' : b.m === 1 ? 'walk' : 'idle', at);
+          }
+          return;
+        }
         case 'trial_fell':
           dispatch(gameActions.fellRecorded(msg.id));
           return;
@@ -346,6 +380,7 @@ export function InterrogationFeature() {
           dispatch(gameActions.resultReceived(msg.result));
           platformState.clear();
           discState.clear();
+          seesawState.clear();
           // 무대가 걷혔다 — 원판(0.75m)·발판(0.5m) 위에 있던 남의 몸을 바닥에 내려놓는다. 안 그러면 다음 샘플이 올 때까지
           // 허공에 서 있다 (remotePlayers.settle 머리말, 2026-09-05 사용자)
           remotePlayers.settle(now());
@@ -379,8 +414,8 @@ export function InterrogationFeature() {
         dispatch(gameActions.playerLeft(id));
       },
       onMoved: (id, x, z, y, heading, anim) => {
-        // 정지선은 레일 타임라인이, 회전 원판은 서버 스냅샷이 그린다 — 두 출처로 그리면 몸이 두 자리를 오간다
-        if (testRef.current?.game === 'stopline' || testRef.current?.game === 'disc') return;
+        // 정지선은 레일 타임라인이, 회전 원판 · 무게 중심 다리는 서버 스냅샷이 그린다 — 두 출처로 그리면 몸이 두 자리를 오간다
+        if (testRef.current?.game === 'stopline' || testRef.current?.game === 'disc' || testRef.current?.game === 'seesaw') return;
         remotePlayers.move(id, x, z, y, heading, anim, now());
       },
       onMessage,
@@ -565,6 +600,20 @@ export function InterrogationFeature() {
   /** 낙하 생존 — Space. 몸의 높이는 서버가 적분한다 (FreeRig sendJump) */
   const onJump = useCallback(() => conn.sendJump(), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
+  const onCardPick = useCallback((index: number) => conn.sendCardPick(index), [conn]);
+  const onCardUse = useCallback((item: CardItem, target?: string) => conn.sendCardUse(item, target), [conn]);
+  /* 뒤집은 카드는 3.5초 보여 주고 도크로 들어간다 */
+  useEffect(() => {
+    if (!cardReveal) return;
+    const t = window.setTimeout(() => dispatch(gameActions.clearCardReveal()), 3_500);
+    return () => window.clearTimeout(t);
+  }, [cardReveal, dispatch]);
+  /* 카드 알림은 6초 뒤 스스로 진다 — 로그에는 남아 있다 */
+  useEffect(() => {
+    if (!cardNote) return;
+    const t = window.setTimeout(() => dispatch(gameActions.clearCardNote()), 6_000);
+    return () => window.clearTimeout(t);
+  }, [cardNote, dispatch]);
   const onStart = useCallback(
     (fillTo: number) => {
       dispatch(gameActions.clearReject());
@@ -689,7 +738,7 @@ export function InterrogationFeature() {
                   ? myLand.finished
                     ? `완주 — 도착 발판에서 대기 · 착지 ${myLand.landings} · 정중앙 ${myLand.centers}`
                     : `착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses}`
-                  : test.game === 'disc'
+                  : test.game === 'disc' || test.game === 'seesaw'
                     ? `낙하 ${myFalls}회`
                     : `주움 ${myPicks}`
             : phase === 'discussion'
@@ -768,7 +817,7 @@ export function InterrogationFeature() {
               </div>
             ) : null}
           </div>
-        ) : phase === 'discussion' && wire && wire.testsDone >= GAME_TEST_ORDER.length ? (
+        ) : phase === 'discussion' && wire && wire.testsDone >= GAME_TEST_COUNT ? (
           /*
            * 마지막 대화 — 토론 중 **여기만** 큰 시계가 선다 (2026-09-05 사용자: "마지막 대화 때에는 남은 시간을
            * 보여줘. 위쪽 가운데에 크게" · "의심도 100인 대상이 없으면 갑자기 끝나는 것처럼 느껴지니까").
@@ -828,6 +877,25 @@ export function InterrogationFeature() {
         {/* 소집 대기 판은 ?lobby 로 들어왔거나 자동 시작이 거절됐을 때만 선다 — 나머지는 판이 열리는 한순간뿐이다 */}
         {wire && phase === 'lobby' && (keepLobby || reject) ? <LobbyPanel wire={wire} players={players} selfId={selfId} myBody={myBody} reject={reject} onStart={onStart} /> : null}
         {reject && phase !== 'lobby' ? <p className="ig-banner alarm">{reject}</p> : null}
+        {/*
+          * 카드 (hud/Cards 머리말). 고르는 판은 **토론이 열린 뒤** 선다 — 결과 모달(7초)과 같은 자리에 겹쳐 서지 않도록.
+          * 서버의 고를 시간(CARD.offerMs 45초)은 결과가 난 순간부터라 토론에 들어와도 넉넉히 남는다.
+          * 쥔 카드는 오른쪽 아래에 늘 보이고, 토론 중에만 눌린다 (runtime 의 cardUse 가 토론 밖은 거절한다).
+          */}
+        {cardReveal && phase !== 'test' && !prologueUp ? (
+          <CardReveal key={cardReveal.ts} item={cardReveal.item} />
+        ) : cards.offer && phase === 'discussion' && !prologueUp ? (
+          <CardOffer count={cards.offer} onPick={onCardPick} />
+        ) : null}
+        {inGame && mySeatId && phase !== 'ended' && phase !== 'test' && !prologueUp ? (
+          <CardDock items={cards.items} seats={seats} mySeatId={mySeatId} canUse={phase === 'discussion' && !wire?.compelled} onUse={onCardUse} />
+        ) : null}
+        {wire?.compelled && phase === 'discussion' ? <CompelBar compelled={wire.compelled} mySeatId={mySeatId} nameOf={nameOf} /> : null}
+        {cardNote && phase !== 'test' ? (
+          <p key={cardNote.ts} className={`ig-cardnote ${cardNote.tone}`}>
+            {cardNote.text}
+          </p>
+        ) : null}
         {phase === 'result' && latestResult ? (
           <ResultModal
             result={latestResult}

@@ -7,7 +7,7 @@
  */
 
 import { requestWorldTicket } from '@/shared/supabase';
-import type { GameC2SMessage, GameS2CMessage } from '@/world/mp/game-protocol';
+import type { CardItem, GameC2SMessage, GameS2CMessage } from '@/world/mp/game-protocol';
 import { PING_INTERVAL_MS, PROTOCOL_VERSION } from '@/world/mp/constants';
 import type { AnimState, C2SMessage, ErrorCode, PlayerSnapshot, S2CMessage } from '@/world/mp/protocol';
 
@@ -144,6 +144,16 @@ export class GameConnection {
 
   game(msg: GameC2SMessage): boolean {
     return this.send(msg);
+  }
+
+  /** 시험 1등의 카드 — 엎어진 세 장 중 몇 번째를 뒤집나 (runtime 의 cardPick) */
+  sendCardPick(index: number): boolean {
+    return this.send({ t: 'game_card_pick', index });
+  }
+
+  /** 쥔 카드를 쓴다 — 지목권·답변 강제권은 대상이 있고, 진정권은 나 자신이다 (runtime 의 cardUse) */
+  sendCardUse(item: CardItem, target?: string): boolean {
+    return this.send(target ? { t: 'game_card_use', item, target } : { t: 'game_card_use', item });
   }
 
   private send(msg: C2SMessage | GameC2SMessage): boolean {

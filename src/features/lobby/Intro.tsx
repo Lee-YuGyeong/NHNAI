@@ -59,7 +59,7 @@
  * │   같은 문장이 대기 패널에도 서 있다 (interrogation/hud/Panels.tsx).       │
  * │                                                                          │
  * │ ★ 차례표도 마찬가지다 (2026-09-05, bde946a). 「테스트가 주기적으로        │
- * │   열린다」는 이제 틀린 말이다 — 종류도 순서도 횟수도 GAME_TEST_ORDER      │
+ * │   열린다」는 이제 틀린 말이다 — 종류도 순서도 횟수도 GAME_TEST_COUNT      │
  * │   한 줄이 정한다: 대화 40초 ⇄ 시험 30초가 세 번, 그리고 끝난다.          │
  * │                                                                          │
  * │ ArenaFeature · lab/personas(고정 리더 + AI5 + 사람1)는 아직 옛 구성       │
@@ -84,7 +84,7 @@ import {
   GAME_MIN_HUMANS,
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
-  GAME_TEST_ORDER,
+  GAME_TEST_COUNT,
 } from '@/world/mp/game-protocol';
 import { Backdrop, EnterButton } from './console';
 import { Typed } from './live';
@@ -102,12 +102,12 @@ import { HeroKey } from './heroes';
  *
  * ★ 분 수를 손으로 적지 않는 이유는 머리말 규칙 그대로다. 이 자리에는 「1분 한 판」이
  *   적혀 있었는데, 그건 /trial 의 TRIAL_GAME_MS 였다 — 이 줄이 여는 판은 그 다섯 배다.
- *   더하기로 두면 GAME_TEST_ORDER 에 한 줄이 붙는 날 이 화면도 같이 따라간다.
+ *   더하기로 두면 GAME_TEST_COUNT 에 한 줄이 붙는 날 이 화면도 같이 따라간다.
  */
 const ROUND_MS =
   GAME_BRIEFING_MS +
   GAME_FIRST_DISCUSSION_MS +
-  GAME_TEST_ORDER.length * (GAME_TEST_MS + GAME_RESULT_MODAL_MS + GAME_DISCUSSION_MS);
+  GAME_TEST_COUNT * (GAME_TEST_MS + GAME_RESULT_MODAL_MS + GAME_DISCUSSION_MS);
 
 /** 다섯 칸. 순서가 곧 스크롤 순서다 — 내비도 오른쪽 눈금도 이 하나를 본다 */
 const SECTIONS = [
@@ -408,7 +408,7 @@ export function LobbyIntro() {
               <b>
                 대화 {GAME_DISCUSSION_MS / 1000}초 ⇄ 시험 {GAME_TEST_MS / 1000}초
               </b>{' '}
-              × {GAME_TEST_ORDER.length}
+              × {GAME_TEST_COUNT}
             </p>
             <p className="bl-brief-foot__facts bl-mono">
               {/*
@@ -482,12 +482,12 @@ export function LobbyIntro() {
 
               앞박자는 「테스트는 계속된다」였다 — 차례표가 고정되면서(bde946a) 틀린 말이 됐다.
               시험은 끝이 있고, 그 끝까지 못 찾으면 AI 가 이긴다. 그 사실이 이 칸의 긴장이라
-              앞박자로 세운다. 수는 GAME_TEST_ORDER 에서 온다.
+              앞박자로 세운다. 수는 GAME_TEST_COUNT 에서 온다.
             */}
             <h2 className="bl-scene__h">
               <Typed
                 start={seen.includes('rules')}
-                parts={[`시험은 ${GAME_TEST_ORDER.length}번뿐이다. `, { dim: '의심은 말로만 움직인다.' }]}
+                parts={[`시험은 ${GAME_TEST_COUNT}번뿐이다. `, { dim: '의심은 말로만 움직인다.' }]}
               />
             </h2>
           </div>
@@ -892,8 +892,8 @@ const STEPS = [
     body: `사람 ${GAME_MIN_HUMANS}~${GAME_MAX_HUMANS}명 + AI 1좌석. 모자란 자리는 대역이 채우고, 시작하는 순간 좌석이 다시 섞인다.`,
   },
   {
-    title: `시험 ${GAME_TEST_ORDER.length}번`,
-    body: `대화 ${GAME_DISCUSSION_MS / 1000}초와 시험 ${GAME_TEST_MS / 1000}초가 번갈아 ${GAME_TEST_ORDER.length}번 — 낙하 생존 → 움직이는 발판 → 회전 원판. 순서는 다 알고 들어오고, 숨는 것은 조건뿐이다: ${TRIAL_PHASE_MS / 1000}초 지점에서 말없이 한 번 바뀐다.`,
+    title: `시험 ${GAME_TEST_COUNT}번`,
+    body: `대화 ${GAME_DISCUSSION_MS / 1000}초와 시험 ${GAME_TEST_MS / 1000}초가 번갈아 ${GAME_TEST_COUNT}번 — 낙하 생존 · 움직이는 발판 · 회전 원판 · 무게 중심 다리 가운데 셋이 판마다 무작위로 뽑힌다. 숨는 것은 조건뿐이다: ${TRIAL_PHASE_MS / 1000}초 지점에서 말없이 한 번 바뀐다.`,
   },
   { title: '기록이 공개된다', body: '전체 화면 결과 창이 뜬다. 무리 평균 대비 편차가 원자료 그대로 드러난다.' },
   { title: '의심이 쌓인다', body: '지목·동조·몰이가 의심도를 올린다. 시간으로는 안 풀린다 — 오직 대화뿐이다.' },

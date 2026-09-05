@@ -1253,3 +1253,235 @@
   color: var(--bone);
   font-variant-numeric: tabular-nums;
 }
+
+/* ── 카드 (hud/Cards) ──────────────────────────────────────────────────────
+   시험 1등의 전리품. 고르는 판은 화면 가운데 위, 쥔 카드는 오른쪽 아래 — 예전 설계자 판이 서던 자리다.
+   색은 안내판(.ig-order)과 같은 먹빛 판에 호박색 테두리. 카드마다 한 색: 강제권 빨강 · 지목권 호박 · 진정권 청록 */
+.ig-cardoffer {
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 12px 18px 16px;
+  clip-path: var(--ig-chamfer-sm);
+  background: rgba(8, 6, 4, 0.88);
+  border-left: 1px solid var(--ig-edge);
+  pointer-events: auto;
+  animation: ig-cardin 0.35s ease-out;
+}
+@keyframes ig-cardin {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+.ig-cardoffer .hd,
+.ig-carddock .hd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--dust);
+}
+.ig-cardoffer .row {
+  display: flex;
+  gap: 12px;
+}
+.ig-card {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  width: 168px;
+  padding: 14px 12px 12px;
+  border: 1px solid rgba(232, 221, 205, 0.25);
+  border-top: 3px solid var(--card-hue, var(--amber));
+  background: rgba(232, 221, 205, 0.06);
+  color: var(--linen);
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+.ig-card:hover:not(:disabled) {
+  transform: translateY(-3px);
+  background: rgba(232, 221, 205, 0.13);
+}
+.ig-card:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.ig-card.truth {
+  --card-hue: var(--signal);
+}
+.ig-card.accuse {
+  --card-hue: var(--amber);
+}
+.ig-card.calm {
+  --card-hue: #5fd4c4;
+}
+.ig-card .glyph {
+  font-size: 26px;
+  line-height: 1;
+  color: var(--card-hue, var(--amber));
+}
+.ig-card .ttl {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.ig-card .blurb {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--dust);
+  white-space: normal;
+}
+.ig-card.mini {
+  grid-template-columns: auto 1fr;
+  justify-items: start;
+  width: 176px;
+  padding: 7px 10px;
+  gap: 8px;
+}
+.ig-card.mini .glyph {
+  font-size: 18px;
+}
+.ig-card.mini .ttl {
+  font-size: 12.5px;
+}
+.ig-carddock {
+  position: absolute;
+  right: 18px;
+  bottom: 96px;
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  clip-path: var(--ig-chamfer-sm);
+  background: rgba(8, 6, 4, 0.8);
+  border-left: 1px solid var(--ig-edge);
+  pointer-events: auto;
+}
+.ig-carddock .slot {
+  display: grid;
+  gap: 4px;
+}
+.ig-carddock .targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  max-width: 176px;
+}
+.ig-carddock .targets .ask {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--dust);
+  flex-basis: 100%;
+}
+.ig-carddock .targets button {
+  padding: 3px 8px;
+  border: 1px solid rgba(232, 221, 205, 0.35);
+  background: rgba(232, 221, 205, 0.08);
+  color: var(--flare);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ig-carddock .targets button:hover {
+  background: rgba(232, 221, 205, 0.18);
+}
+/* 엎어진 카드 — 무늬만 있는 뒷면. 고른 것은 살짝 들리고, 앞면은 뒤집히며 선다 */
+.ig-card.back {
+  --card-hue: var(--dust);
+  height: 132px;
+  background: repeating-linear-gradient(135deg, rgba(232, 221, 205, 0.05) 0 6px, rgba(232, 221, 205, 0.11) 6px 12px);
+  align-content: center;
+}
+.ig-card.back .glyph {
+  font-size: 34px;
+  color: rgba(232, 221, 205, 0.55);
+}
+.ig-card.back .ttl {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dust);
+}
+.ig-card.back.picked {
+  transform: translateY(-6px);
+  border-color: var(--amber);
+  opacity: 1;
+}
+.ig-cardoffer .legend {
+  margin: 0;
+  font-size: 11px;
+  color: var(--dust);
+}
+.ig-card.flip {
+  animation: ig-cardflip 0.5s ease-out;
+}
+@keyframes ig-cardflip {
+  from {
+    transform: rotateY(90deg);
+    opacity: 0.2;
+  }
+  to {
+    transform: rotateY(0);
+    opacity: 1;
+  }
+}
+/* 답변 강제 중 — 위 가운데 한 줄. 걸린 사람(onme)에게는 경보 빨강 */
+.ig-compel {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: min(760px, 90vw);
+  padding: 7px 16px;
+  background: rgba(8, 6, 4, 0.85);
+  border-left: 3px solid var(--amber);
+  font-size: 13.5px;
+  color: var(--flare);
+  text-align: center;
+  pointer-events: none;
+}
+.ig-compel.onme {
+  border-left-color: var(--signal);
+  color: #ffd2cb;
+}
+/* 카드 알림 — 6초 뒤 진다 (InterrogationFeature 의 clearCardNote) */
+.ig-cardnote {
+  position: absolute;
+  top: 108px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: min(760px, 90vw);
+  padding: 6px 14px;
+  background: rgba(8, 6, 4, 0.8);
+  border-left: 3px solid var(--amber);
+  font-size: 13px;
+  color: var(--flare);
+  text-align: center;
+  pointer-events: none;
+  animation: ig-notefade 0.6s ease 5.2s forwards;
+}
+.ig-cardnote.good {
+  border-left-color: #5fd4c4;
+}
+.ig-cardnote.bad {
+  border-left-color: var(--signal);
+  color: #ffd2cb;
+}
+@keyframes ig-notefade {
+  to {
+    opacity: 0;
+  }
+}

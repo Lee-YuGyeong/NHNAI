@@ -12,6 +12,8 @@ export interface TrialCondition {
   platformPace?: readonly number[];
   /** 움직이는 플랫폼 — 구간별 발판 윗면 마찰계수 (PLATFORM_GRIP). 이쪽이 그 게임의 **숨은** 값이다 */
   platformGrip?: readonly number[];
+  /** 무게 중심 다리 — 구간별 판자 윗면 마찰계수 (SEESAW_GRIP) */
+  seesawGrip?: readonly number[];
 }
 
 /**

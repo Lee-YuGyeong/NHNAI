@@ -144,6 +144,7 @@ export const FEATURES: FeatureDef[] = [
       { title: '물리 미니게임 · 색 사냥 (빛과 색)', to: '/trial?code=1234&game=colorhunt' },
       { title: '물리 미니게임 · 움직이는 플랫폼 (점프 정확도)', to: '/trial?code=1234&game=platform' },
       { title: '물리 미니게임 · 회전 원판 생존 (원심력 · 마찰)', to: '/trial?code=1234&game=disc' },
+      { title: '물리 미니게임 · 무게 중심 다리 (무게중심 · 토크)', to: '/trial?code=1234&game=seesaw' },
     ],
   },
 ];
