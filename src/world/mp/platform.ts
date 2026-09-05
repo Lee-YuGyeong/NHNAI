@@ -17,12 +17,18 @@
  * 좌표: 발판 열은 홀 가운데를 z 로 지른다 — 출발 발판(정지) z 7, 움직이는 발판 다섯이 2m 간격, 도착 발판(정지) z −5.
  * 여섯 번 뛰면 완주다 — 제한이 30초(PLATFORM_GAME_MS)라 사람이 한 번 떨어져 출발로 돌아가도 다시 건널 시간이 있게.
  * 점프 거리 = **이륙 속도** × 체공이다. 이륙 속도는 공중에서 유지된다(FreeRig — 발이 땅에 없으면 가속도 감속도 못 한다,
- * 대신 손을 떼면 줄일 수는 있다). 걸어 뛰면 1.94m 로 한 칸(2m)에 살짝 못 미치고 — 발판 반지름이 0.8m 라 앞쪽에서 구르면
- * 중앙에 닿는다 — 달려 뛰면 fit 3.88m(두 칸 4m)·비만 2.29m 다. 예전에는 이륙 순간 관성이 사라져 **누구든 공중에서
- * 걷기 속도**였고, 그래서 비만 몸은 1.53m 밖에 못 가 늘 불리했다(같은 실력이 몸 때문에 다르게 찍혔다).
+ * 대신 손을 떼면 줄일 수는 있다). 체공은 몸의 점프 속도가 정한다(mp/bodies.ts): fit 은 걸어 뛰면 2.22m 로 한 칸(2m)을
+ * 넘고 달려 뛰면 4.44m(두 칸 4m), 비만은 걸어 1.80m(발판 반지름 0.8m 라 다음 발판 앞쪽에 닿는다)·달려 2.70m 다.
+ * 예전에는 이륙 순간 관성이 사라져 **누구든 공중에서 걷기 속도**였고, 그래서 비만 몸은 1.53m 밖에 못 가 늘 불리했다
+ * (같은 실력이 몸 때문에 다르게 찍혔다). 점프 자체도 낮았다(5.6·4.4 → 6.4·5.2, 2026-09-05 사용자 — bodies.ts 머리말).
+ *
+ * 이 게임 안에서는 **몸끼리 부딪히지 않는다** (FreeRig — platformState.active 면 pushOut 을 안 건다). 반지름 0.8m
+ * 발판 위에 몸 반지름 0.35m 넷이 서면 겹칠 수밖에 없고, 겹친 만큼 밀어내면 라운드가 열리자마자 서로를 발판 밖으로
+ * 떠민다 — 남의 어깨에 밀려 떨어진 것이 내 점프 정확도로 찍히면 안 된다 (2026-09-05 사용자: 「사람을 밀치는 것」).
  */
 
-import { GRAVITY, JUMP_SPEED, TRIAL_PHASE_MS, WALK_SPEED } from './constants';
+import { BODIES } from './bodies';
+import { GRAVITY, TRIAL_PHASE_MS, WALK_SPEED } from './constants';
 
 /** 마당 — 발판 열 둘레. FreeRig 가 발을 여기 안에 가둔다 */
 export const PLATFORM_ARENA = { minX: -6, maxX: 6, minZ: -11, maxZ: 9 } as const;
@@ -34,6 +40,22 @@ export const PLATFORM_RESPAWN_MS = 600;
 export const PLATFORM_TELEPORT_M = 2.5;
 /** 발판 반지름(m) — 착지 판정 반경. 모델(hover_pad)의 지름을 이만큼으로 세운다 */
 export const PAD_R = 0.8;
+/**
+ * 출발 발판 위 네 자리 — 2×2 (x·z 로 ±0.3m). 한 줄로 0.4m 씩 세우면 양 끝이 중심에서 0.6m 라 발판 가장자리(0.8)에
+ * 바짝 붙고, 몸 반지름 0.35 넷이 한 줄로는 어차피 못 선다. 2×2 면 중심에서 0.42m 안이다. 사람은 좌석 번호로,
+ * 봇은 순번으로 자리를 고른다 (InterrogationFeature · worker platform/engine.ts) — 둘 다 이 표 하나를 본다.
+ */
+export const START_SLOTS: readonly { x: number; z: number }[] = [
+  { x: -0.3, z: -0.3 },
+  { x: 0.3, z: -0.3 },
+  { x: -0.3, z: 0.3 },
+  { x: 0.3, z: 0.3 },
+];
+/** n 번째(0부터) 자리 — 다섯째부터는 겹친다 */
+export function startSlot(n: number): { x: number; z: number } {
+  const s = START_SLOTS[((n % START_SLOTS.length) + START_SLOTS.length) % START_SLOTS.length];
+  return { x: s.x, z: PAD_START_Z + s.z };
+}
 /** 「정중앙」 — 발판 중심에서 이 거리(m) 안이면 중앙 착지 */
 export const PAD_CENTER_R = 0.25;
 /** 발판 사이(z, m) */
@@ -43,8 +65,13 @@ export const PAD_START_Z = 7;
 export const PAD_COUNT = 7;
 /** 도착 발판 번호 — 여기 내리면 완주. 남은 시간은 그 위에서 기다린다 */
 export const PAD_FINISH = PAD_COUNT - 1;
+/**
+ * 이 게임의 점프 이륙 속도(m/s) — **날씬한 몸의 것**이다 (mp/bodies.ts). 봇은 몸이 없어 이 값으로 뛰고, 사람은 제 몸의
+ * 값으로 뛴다(FreeRig). 복도의 JUMP_SPEED(5.6)가 아니다 — 여기서 뛰는 몸은 군인이고, 그 몸의 점프가 올라갔다.
+ */
+export const PLATFORM_JUMP_SPEED = BODIES.sol_fit_m.jump;
 /** 점프 체공(초)과 걷기 점프 거리(m) — 봇이 쓰는 값. 사람은 FreeRig 의 물리 그대로 */
-export const JUMP_AIR_S = (2 * JUMP_SPEED) / GRAVITY;
+export const JUMP_AIR_S = (2 * PLATFORM_JUMP_SPEED) / GRAVITY;
 export const WALK_JUMP_M = WALK_SPEED * JUMP_AIR_S;
 /** 달려서 뛴 거리(m) — 이륙 속도가 공중에서 유지되므로 몸의 달리기 속도 × 체공이다 (mp/bodies.ts BODIES[].run) */
 export function runJumpM(runSpeed: number, airS = JUMP_AIR_S): number {

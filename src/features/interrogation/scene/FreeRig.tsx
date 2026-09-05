@@ -20,7 +20,9 @@
  *
  * 움직이는 플랫폼(platformState.active)에서는 셋이 더 있다 (2026-09-05 사용자): 발판은 **통과 못 하는** 기둥이라 옆에서 부딪히면
  * 테두리 밖으로 밀리고, 바닥에 떨어지면 잠깐 뒤 출발 발판의 내 자리로 돌아가며, 도착 발판에 내리면 완주 — 남은 시간은 거기서
- * 입력 없이 기다린다.
+ * 입력 없이 기다린다. 그리고 하나가 **빠진다**: 몸끼리 밀어내기(remotePlayers.pushOut)를 안 건다. 반지름 0.8m 발판에 넷이
+ * 서면 겹칠 수밖에 없는데 겹친 만큼 밀면 라운드가 열리자마자 서로를 발판 밖으로 떠밀고, 같은 발판에 내리는 봇에게도 밀린다 —
+ * 남의 어깨에 밀려 떨어진 것이 내 점프 정확도로 찍히면 안 된다 (2026-09-05 사용자: 「사람을 밀치는 것」, platform.ts 머리말).
  *
  * 토론과 낙하 생존 · 색 사냥에서 쓴다. 낙하 생존 동안은 마당(bounds)이 좁아진다 — 서버가 그 범위 안에서만
  * 떨어뜨리고 판정하므로 밖으로 나가면 기록이 안 남는다.
@@ -197,11 +199,14 @@ export function FreeRig({
     }
 
     map.resolveColliders(pos.current, pos.current.y);
-    // 캐릭터끼리는 통과 못 한다 — 겹친 만큼 밀려난다. 밀린 자리가 벽 안이면 벽이 다시 민다 (환경이 이긴다)
-    const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, CHAR_BODY_R, performance.now(), body);
-    pos.current.x = among.x;
-    pos.current.z = among.z;
-    map.resolveColliders(pos.current, pos.current.y);
+    // 캐릭터끼리는 통과 못 한다 — 겹친 만큼 밀려난다. 밀린 자리가 벽 안이면 벽이 다시 민다 (환경이 이긴다).
+    // 움직이는 플랫폼에서만 예외다 — 발판 위에서 서로 떠밀면 남의 몸이 내 기록이 된다 (머리말)
+    if (!platformState.active) {
+      const among = remotePlayers.pushOut(pos.current.x, pos.current.z, pos.current.y, CHAR_BODY_R, performance.now(), body);
+      pos.current.x = among.x;
+      pos.current.z = among.z;
+      map.resolveColliders(pos.current, pos.current.y);
+    }
     // 발판은 통과 못 한다 — 윗면보다 낮은 높이로 발판 안에 들어왔으면(옆에서 부딪힘 · 밑으로 지나감) 테두리 밖으로 민다
     if (platformState.active && pos.current.y < PAD_TOP - 0.02) {
       const pad = platformState.padUnder(pos.current.x, pos.current.z, nowMs);
