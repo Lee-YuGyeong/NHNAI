@@ -3,7 +3,7 @@
  * PLANNING §1.1 · §1.2 · §1.3 과 **docs/SUSPICION.md** 의 표를 그대로 잠근다.
  */
 import { describe, expect, it } from 'vitest';
-import { SUSPICION } from '../../src/world/mp/game-protocol';
+import { SUSPICION, SUSPICION_PRESSURE, pressureFor } from '../../src/world/mp/game-protocol';
 import { assignRoles, designerCap, outcomeFor, quotaFor, shuffled } from '../../worker/src/game/roles';
 import { REPEAT_STEP, SuspicionBook } from '../../worker/src/game/suspicion';
 import {
@@ -232,6 +232,118 @@ describe('표식 — docs/SUSPICION.md', () => {
     const book = new SuspicionBook(ids);
     book.freeze('a');
     expect(book.tell('a', 'still', '부동')).toBeNull();
+  });
+});
+
+describe('국면 압력 — docs/SUSPICION.md §7', () => {
+  const ids = ['a', 'b', 'c', 'd'];
+  /** 압력을 밖에서 돌리는 책 — 런타임에서는 testsDone 이 이 손잡이다 */
+  const bookAt = (p: { at: number }) => new SuspicionBook(ids, () => p.at);
+  const up = (base: number, mult: number) => Math.min(SUSPICION.stepCap, Math.round(base * mult));
+
+  it('사다리는 토론을 따라 오르고, 자리를 벗어나면 마지막 칸에 선다', () => {
+    expect(pressureFor(0)).toBe(1);
+    expect(SUSPICION_PRESSURE.every((v, i, a) => i === 0 || v >= a[i - 1])).toBe(true);
+    expect(pressureFor(SUSPICION_PRESSURE.length + 5)).toBe(SUSPICION_PRESSURE[SUSPICION_PRESSURE.length - 1]);
+    expect(pressureFor(-3)).toBe(SUSPICION_PRESSURE[0]);
+  });
+
+  it('압력 ×1 은 아무것도 안 바꾼다 — 전반의 동작은 그대로다', () => {
+    const plain = new SuspicionBook(ids);
+    const one = bookAt({ at: 1 });
+    expect(one.accuse('a', 'd')[0].amount).toBe(plain.accuse('a', 'd')[0].amount);
+    expect(one.read('b', 99, '')?.amount).toBe(plain.read('b', 99, '')?.amount);
+    expect(one.tell('c', 'echo', '')?.amount).toBe(plain.tell('c', 'echo', '')?.amount);
+  });
+
+  it('올라가는 걸음에 곱한다 — 기본값과 몰이 가산을 **합친 뒤 한 번**', () => {
+    const p = { at: 1.5 };
+    const book = bookAt(p);
+    expect(book.accuse('a', 'd')[0].amount).toBe(up(SUSPICION.accuse, 1.5)); // 지목 — 아직 몰이가 아니다
+    expect(book.accuse('b', 'd')[0].amount).toBe(up(SUSPICION.agree + SUSPICION.mobPer, 1.5));
+    expect(book.tell('c', 'echo', '되풀이')?.amount).toBe(up(SUSPICION.echo, 1.5));
+    expect(book.tell('c', 'duck', '회피', SUSPICION.duckAccused)?.amount).toBe(up(SUSPICION.duck + SUSPICION.duckAccused, 1.5));
+    expect(book.judge('c', 'mismatch')?.amount).toBe(up(SUSPICION.claimMismatch, 1.5));
+  });
+
+  it('말 읽기는 **클램프 뒤에** 곱해진다 — 안 그러면 압력이 readMax 에 눌려 사라진다', () => {
+    const book = bookAt({ at: 1.5 });
+    // 판정기는 여전히 −10~+16 한 자로 잰다 (agents.readTalk 의 프롬프트는 안 바뀐다)
+    expect(book.read('a', 99, '')?.amount).toBe(up(SUSPICION.readMax, 1.5));
+    expect(book.read('a', SUSPICION.readMax, '')?.amount).toBe(up(SUSPICION.readMax, 1.5));
+  });
+
+  it('한 걸음은 stepCap 을 못 넘는다', () => {
+    const book = bookAt({ at: SUSPICION_PRESSURE[SUSPICION_PRESSURE.length - 1] });
+    book.accuse('a', 'd');
+    book.accuse('b', 'd'); // 몰이까지 붙은 제일 큰 지목 걸음
+    const steps = [book.accuse('c', 'd')[0].amount, book.read('d', 99, '')?.amount ?? 0, book.judge('d', 'mismatch')?.amount ?? 0];
+    for (const s of steps) expect(s).toBeLessThanOrEqual(SUSPICION.stepCap);
+    expect(Math.max(...steps)).toBe(SUSPICION.stepCap); // 실제로 물었다 — 무의미한 상한이 아니다
+  });
+
+  it('내려가는 걸음은 안 곱한다 — 압력은 「빨리 쌓인다」지 「해명이 무거워진다」가 아니다', () => {
+    const book = bookAt({ at: 2 });
+    book.judge('a', 'mismatch');
+    book.judge('a', 'mismatch');
+    expect(book.judge('a', 'match')?.amount).toBe(SUSPICION.claimMatch);
+    expect(book.read('a', -99, '')?.amount).toBe(SUSPICION.readMin);
+  });
+
+  it('철회는 압력이 바뀌어도 **얹은 만큼** 돌려준다 — 판정이 아니라 회계다', () => {
+    const p = { at: 1 };
+    const book = bookAt(p);
+    const first = book.accuse('a', 'd')[0].amount;
+    p.at = 2; // 후반으로 넘어갔다
+    const second = book.accuse('a', 'd')[0].amount;
+    expect(second).toBeGreaterThan(REPEAT_STEP); // 되풀이도 압력을 탄다
+    expect(book.withdraw('a')[0].amount).toBe(-(first + second));
+    expect(book.get('d')).toBe(0);
+  });
+
+  it('압력이 올라도 몸은 bodyCap 에서 멈춘다 — 더 빨리 닿을 뿐 총량은 그대로다', () => {
+    const book = bookAt({ at: 2 });
+    for (let i = 0; i < 40; i += 1) {
+      book.tell('a', 'still', '부동');
+      book.tell('a', 'backstep', '역방향');
+    }
+    expect(book.get('a')).toBe(SUSPICION.bodyCap);
+    expect(book.get('a')).toBeLessThan(SUSPICION.cut);
+  });
+
+  it('newRound 는 몰이 상한만 비운다 — 되돌릴 빚과 누계는 판이 끝날 때까지 남는다', () => {
+    const book = new SuspicionBook(ids);
+    book.accuse('a', 'd');
+    let bonus = 0;
+    for (let i = 0; i < 40; i += 1) {
+      const m = /몰이 \+(\d+)/.exec(book.accuse(['b', 'c', 'a'][i % 3], 'd')[0].why);
+      if (!m) break;
+      bonus += Number(m[1]);
+    }
+    expect(bonus).toBe(SUSPICION.mobCap); // 이 토론의 몰이는 다 냈다
+    const before = book.get('d');
+    book.newRound();
+    // 새 토론 — 같은 몰이가 다시 값을 낸다
+    expect(/몰이 \+\d+/.test(book.accuse('b', 'd')[0].why)).toBe(true);
+    // 누계는 안 지워졌다: 같은 항목의 두 번째 표식은 여전히 무겁다
+    book.tell('c', 'echo', '되풀이');
+    expect(book.tell('c', 'echo', '되풀이')?.amount).toBe(SUSPICION.echo + SUSPICION.repeatWeight);
+    // 얹은 빚도 그대로다 — 철회하면 토론을 넘어 얹은 것까지 전부 돌아온다
+    book.withdraw('a');
+    book.withdraw('b');
+    book.withdraw('c');
+    expect(book.get('d')).toBe(0);
+    expect(before).toBeGreaterThan(0);
+  });
+
+  it('되살린 눈금은 복구지 판정이 아니다 — 압력도 누계도 안 탄다', () => {
+    const book = bookAt({ at: 2 });
+    book.restore('a', 57);
+    expect(book.get('a')).toBe(57);
+    book.restore('a', 999); // 격리선 위로는 안 간다
+    expect(book.get('a')).toBe(SUSPICION.cut);
+    book.restore('zzz', 40); // 모르는 좌석은 아무 일도 없다
+    expect(book.get('zzz')).toBe(0);
   });
 });
 

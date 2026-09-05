@@ -17,7 +17,7 @@ import { GAME_MAX_HUMANS, GAME_MIN_HUMANS, type GameOutcome, type GameRole, type
 import type { TrialResultWire } from '@/world/mp/protocol';
 import { BODIES, type BodyId } from '@/world/mp/bodies';
 import type { ChatEntry } from '../interrogationSlice';
-import { ResultSummary, ResultTable, TEST_TITLE } from './ResultTable';
+import { ResultSummary, TEST_TITLE } from './ResultTable';
 
 export const ROLE_LABEL: Record<GameRole, string> = { human: '사람', designer: 'AI 설계자', ai: 'AI' };
 
@@ -260,21 +260,10 @@ export function TestOrder({ game, round, fallback }: { game: string; round: numb
 
 /* ─────────────────────────────── 기록 요약 · 결과 모달 ─────────────────────────────── */
 
-export function RecordPanel({ result, nameOf, mySeatId }: { result: TrialResultWire; nameOf: (id: string) => string; mySeatId: string | null }) {
-  return (
-    <div className="ig-record">
-      <div className="hd">
-        <i aria-hidden className="live" />
-        <span className="ttl">
-          RECORD · {TEST_TITLE[result.game]} {result.round}회차
-        </span>
-      </div>
-      <div className="bd">
-        <ResultTable result={result} nameOf={nameOf} mySeatId={mySeatId} />
-      </div>
-    </div>
-  );
-}
+/*
+ * 오른쪽 위에 서던 기록판(RecordPanel — 마지막 시험의 원자료 표)은 걷었다 (2026-09-05 사용자: "1시 방향의 기록 리스트
+ * 없애줘"). 기록은 7초 모달의 요약(ResultSummary)으로만 보고, 눈금은 몸 위 막대가 말한다.
+ */
 
 /**
  * 기록 공개 모달 — 끝 화면(.ig-endpanel)과 같은 모따기 판이다: 머리띠 · 표 · 발치.
@@ -312,8 +301,8 @@ export function ResultModal({
             {TEST_TITLE[result.game]} <span>{result.round}회차</span>
           </p>
           {/*
-            요약만 (2026-09-05 사용자: "간단하게 몇 초 안 맞았냐 · 몇 등 · 발언권 몇 개, 대충 통계만") — 상세 표는
-            모달이 걷힌 뒤 옆에 서는 기록판(RecordPanel)이 그대로 든다. 7초 모달은 읽는 자리가 아니라 보는 자리다.
+            요약만 (2026-09-05 사용자: "간단하게 몇 초 안 맞았냐 · 몇 등 · 발언권 몇 개, 대충 통계만"). 7초 모달은
+            읽는 자리가 아니라 보는 자리다. 상세 표를 들던 오른쪽 위 기록판은 같은 날 걷었다.
           */}
           <ResultSummary result={result} nameOf={nameOf} mySeatId={mySeatId} gained={gained} />
           <p className="ig-note">
@@ -462,7 +451,8 @@ function wasCopula(word: string): string {
  *
  * 머리띠의 시계와 발치의 막대는 서버가 로비로 되돌리는 순간(GAME_ENDED_MS)을 센다 — 판이 걷히면 「소집 대기」가
  * 선다. 재접속이라 game_ended 를 못 받았으면(endsAt null) 시계 없이 선다. 「다시 — 새 판」은 그 전에 먼저
- * 걷고 싶을 때 쓴다 (새로고침 — 판이 끝난 방에 들어오면 서버가 즉시 로비로 되돌린다).
+ * 걷고 싶을 때 쓴다 — **누르면 그 자리에서 새 판이 열린다** (서버는 끝 화면 중에도 방장의 시작을 받는다).
+ * 방장이 아니면 단추가 없다: 눌러도 서버가 거절할 뿐이고, 그 사유는 이 판에 가려 보이지도 않는다.
  */
 export function EndScreen({
   outcome,
@@ -471,6 +461,7 @@ export function EndScreen({
   mySeatId,
   myRole,
   endsAt,
+  canStart,
   onAgain,
 }: {
   outcome: GameOutcome;
@@ -480,6 +471,8 @@ export function EndScreen({
   myRole: GameRole | null;
   /** 서버가 로비로 되돌리는 시각(내 시계) — 없으면 시계·막대 없이 선다 */
   endsAt: number | null;
+  /** 내가 방장인가 — 새 판을 여는 것은 방장뿐이다 (worker 의 runtime.start) */
+  canStart: boolean;
   onAgain: () => void;
 }) {
   const humansWon = outcome.winner === 'humans';
@@ -490,6 +483,16 @@ export function EndScreen({
   const aiName = seats.find((s) => s.id === outcome.aiId)?.name ?? outcome.aiId;
   const mine = myRole === null ? null : iWon ? (myRole === 'designer' && !humansWon ? '개인 승리' : '승리') : '패배';
   const foiled = myRole === 'designer' && !humansWon && !iWon;
+  /*
+   * 눌렀다 — 새 판이 열리면 이 판이 통째로 사라지므로 되돌릴 일이 없다. 그래도 3초 뒤 스스로 푼다:
+   * 서버가 거절하면(방장이 바뀌었다든지) 단추가 영영 잠긴 채로 남는다.
+   */
+  const [asked, setAsked] = useState(false);
+  useEffect(() => {
+    if (!asked) return;
+    const t = setTimeout(() => setAsked(false), 3000);
+    return () => clearTimeout(t);
+  }, [asked]);
 
   return (
     <div
@@ -548,10 +551,20 @@ export function EndScreen({
         </div>
 
         <div className="ft">
-          <span className="ftx">{endsAt !== null ? '판이 걷히면 소집 대기로 돌아간다' : '방장이 새 판을 열 수 있다'}</span>
-          <button type="button" className="again" onClick={onAgain}>
-            다시 — 새 판
-          </button>
+          <span className="ftx">{canStart ? (endsAt !== null ? '판이 걷히면 소집 대기로 돌아간다' : '새 판을 열 수 있다') : '방장이 새 판을 연다'}</span>
+          {canStart ? (
+            <button
+              type="button"
+              className="again"
+              disabled={asked}
+              onClick={() => {
+                setAsked(true);
+                onAgain();
+              }}
+            >
+              {asked ? '여는 중…' : '다시 — 새 판'}
+            </button>
+          ) : null}
           {endsAt !== null ? (
             <span aria-hidden className="prog">
               <i />

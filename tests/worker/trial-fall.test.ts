@@ -7,11 +7,11 @@
  *   ④ 위협이었던 물체가 착지하면 그 순간 얼마나 벗어나 있었는지 잰다 — "딱 20cm" 가 여기 남는다
  */
 import { describe, expect, it, vi } from 'vitest';
-import { FALL_BALLS, FALL_SPAWN_Y, FALL_TICK_MS } from '../../src/world/mp/constants';
+import { FALL_BALLS, FALL_SPAWN_Y, FALL_TICK_MS, JUMP_MAX_Y } from '../../src/world/mp/constants';
 import type { S2CMessage } from '../../src/world/mp/protocol';
 import { BALL_DRAG, BODY_H, HIT_R, gravityForPhase, overlapsBody, spawnObject, stepObject, timeToGround } from '../../worker/src/trial/fall/sim';
 import { METRIC_LABEL } from '../../worker/src/game/agents';
-import { FallEngine } from '../../worker/src/trial/fall/engine';
+import { FALL_JUMP_SCALE, FallEngine } from '../../worker/src/trial/fall/engine';
 import { DodgeStats } from '../../worker/src/trial/fall/stats';
 
 const BOWLING = FALL_BALLS.findIndex((b) => b.id === 'bowling');
@@ -113,12 +113,20 @@ describe('FallEngine — 점프는 서버 것이다 (숨은 중력이 체공을 
       const up = snaps().at(-1)!.air?.find((a) => a.id === 'p1');
       expect(up).toBeDefined();
       expect(up!.y).toBeGreaterThan(0.5);
-      // 기준 중력(9.8)의 체공은 2·5.6/9.8 ≈ 1.14초 — 2초면 확실히 땅이다
+      // 기준 중력(9.8)의 체공은 2·(5.6·√(9.8/15))/9.8 ≈ 0.92초 — 2초면 확실히 땅이다
       vi.advanceTimersByTime(2000);
       expect(snaps().at(-1)!.air ?? []).toHaveLength(0);
       expect(engine.results()[0].metrics.jumps).toBe(1);
       // 체공은 그 구간의 중력이 정한다 — 클라가 쓰던 복도 중력(15, 0.75초)이 아니다
-      expect(engine.results()[0].metrics.meanAirMs).toBeGreaterThan(1000);
+      expect(engine.results()[0].metrics.meanAirMs).toBeGreaterThan(850);
+      expect(engine.results()[0].metrics.meanAirMs).toBeLessThan(1000);
+      // 정점은 홀과 같다 — 이륙 속도를 이 판의 눈금으로 옮겼으니(FALL_JUMP_SCALE) 기준 구간에서 2m 를 뛰지 않는다
+      // (2026-09-05 사용자: "점프하면 엄청 높게 올라가는데"). 50ms 틱의 반암시적 오일러는 정점을 v·dt/2 ≈ 0.11m 낮게
+      // 잡고, 스냅샷도 100ms 간격이라 정점을 살짝 놓친다 — 그래서 아래로 0.15 를 본다. 위로는 홀보다 높으면 안 된다
+      const peak = Math.max(...snaps().flatMap((m) => (m.air ?? []).filter((a) => a.id === 'p1').map((a) => a.y)));
+      expect(peak).toBeGreaterThan(JUMP_MAX_Y - 0.15);
+      expect(peak).toBeLessThan(JUMP_MAX_Y + 0.05);
+      expect(FALL_JUMP_SCALE).toBeCloseTo(Math.sqrt(9.8 / 15), 5);
       engine.stop();
     } finally {
       vi.useRealTimers();
