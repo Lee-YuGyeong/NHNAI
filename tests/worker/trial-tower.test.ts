@@ -13,7 +13,7 @@ import type { S2CMessage } from '../../src/world/mp/protocol';
 import { TOWER_BODY_MASS, TOWER_N, TOWER_SLAB, TOWER_TILT_BREAK, TOWER_TOP, TOWER_WARN_MS, ringOf, slabCenter, slabIndexAt } from '../../src/world/mp/tower';
 import { TowerEngine } from '../../worker/src/trial/tower/engine';
 import { makeTowerBot, makeTowerProfile, stepBot } from '../../worker/src/trial/tower/npc';
-import { makeBody, makeSlabs, respawn, shove, stepBody, stepSlab, type SlabLoad } from '../../worker/src/trial/tower/sim';
+import { impact, jump, makeBody, makeSlabs, respawn, shove, stepBody, stepSlab, type SlabLoad } from '../../worker/src/trial/tower/sim';
 import { TowerStats } from '../../worker/src/trial/tower/stats';
 
 const DT = 0.05;
@@ -30,7 +30,8 @@ function seeded(seed = 7): () => number {
 describe('sim — 발판', () => {
   it('무게가 +x 끝에 서면 그쪽으로 기울어 멎고(하나) · 셋이면 부서진다 · 무거운 몸은 둘 몫이다', () => {
     const one = makeSlabs()[CENTER];
-    const load = (n: number, mass = TOWER_BODY_MASS): SlabLoad[] => Array.from({ length: n }, () => ({ dx: 0.9, dz: 0, mass }));
+    const edge = TOWER_SLAB / 2 - 0.1; // 발판 끝에 선 몸
+    const load = (n: number, mass = TOWER_BODY_MASS): SlabLoad[] => Array.from({ length: n }, () => ({ dx: edge, dz: 0, mass }));
     let broke = false;
     for (let t = 0; t < 4; t += DT) broke = stepSlab(one, load(1), DT) || broke;
     expect(broke).toBe(false);
@@ -116,6 +117,38 @@ describe('sim — 몸', () => {
   });
 });
 
+describe('sim — 점프', () => {
+  it('뛰면 떠서 같은 발판에 내려앉고(착지 충격으로 발판이 기운다), 빈 자리로 뛰면 떨어진다', () => {
+    const slabs = makeSlabs();
+    const c = slabCenter(CENTER);
+    const b = makeBody('a', c.x + 0.8, c.z);
+    respawn(b, slabs, CENTER, 0.8, 0); // 발판 위에 세운다(y 가 윗면)
+    expect(jump(b, 0, 0, 6.8, 0)).toBe(true);
+    expect(b.stance).toBe('air');
+    let down: { slab: number; speed: number } | null = null;
+    let t = 0;
+    for (; t < 3000 && !down; t += DT * 1000) down = stepBody(b, slabs, 0, 0, 0.45, DT, t).touchdown;
+    expect(down?.slab).toBe(CENTER);
+    expect(b.stance).toBe('stand');
+    expect(b.jumps).toBe(1);
+    expect(b.falls).toBe(0);
+    const s = slabs[CENTER];
+    impact(s, b.x - c.x, b.z - c.z, 75, down!.speed);
+    expect(s.vx).toBeGreaterThan(0.5); // +x 쪽에 내려앉았다 → +x 쪽으로 기울기 시작
+
+    // 달리며 빈 자리(오른쪽 발판 없음)로 뛰면 두 칸 너머까지 못 가고 떨어진다
+    slabs[CENTER + 1].state = 3;
+    slabs[CENTER + 2].state = 3;
+    const r = makeBody('r', c.x + 0.8, c.z);
+    respawn(r, slabs, CENTER, 0.8, 0);
+    jump(r, 4.8, 0, 6.8, 0);
+    let fell = false;
+    for (t = 0; t < 4000 && !fell; t += DT * 1000) fell = stepBody(r, slabs, 0, 0, 0.45, DT, t).fell;
+    expect(fell).toBe(true);
+    expect(r.falls).toBe(1);
+  });
+});
+
 describe('TowerStats — 기록', () => {
   it('발판 가운데에서 벗어난 거리 · 경고 뒤 반응 · 미끄러짐 방향', () => {
     const st = new TowerStats();
@@ -195,7 +228,7 @@ describe('TowerEngine — 철거 · 낙하 · 스냅샷', () => {
     for (let i = 40; i <= 200; i += 1) engine.tickAt(t0 + i * 50);
     const warnedOrGone = engine.slabList().filter((s) => s.state >= 1 && ringOf(s.idx) === 2);
     expect(warnedOrGone.length).toBeGreaterThan(0);
-    expect(engine.slabList()[CENTER].state).toBe(0);
+    // 가운데 발판은 철거 차례에는 안 든다 — 다만 그 위에 오래 서 있으면 닳아 무너질 수는 있다(wear). 그래서 여기서는 철거만 본다
     const snaps = sent.filter((m): m is Extract<S2CMessage, { t: 'trial_tower' }> => m.t === 'trial_tower');
     expect(snaps.length).toBeGreaterThan(20);
     const last = snaps.at(-1)!;
@@ -205,6 +238,18 @@ describe('TowerEngine — 철거 · 낙하 · 스냅샷', () => {
     const results = engine.results();
     expect(results).toHaveLength(3);
     expect(results.find((r) => r.id === 'me')!.metrics.falls).toBeGreaterThanOrEqual(1);
+    engine.stop();
+  });
+
+  it('발판이 전부 떨어지면 남은 시간을 기다리지 않고 그 자리에서 닫는다(finish)', () => {
+    const engine = new TowerEngine(seeded(3));
+    let finished = 0;
+    engine.start(1, ['me'], ['SUBJECT_01'], { broadcast: () => {}, finish: () => (finished += 1) });
+    const t0 = Date.now();
+    for (const s of engine.slabList()) engine.warn(s.idx, t0);
+    for (let i = 1; i <= Math.ceil(TOWER_WARN_MS / 50) + 3; i += 1) engine.tickAt(t0 + i * 50);
+    expect(finished).toBe(1);
+    expect(engine.done()).toBe(true);
     engine.stop();
   });
 
@@ -232,7 +277,7 @@ describe('TowerEngine — 철거 · 낙하 · 스냅샷', () => {
     const r = engine.results();
     expect(r.find((x) => x.id === 'me')!.metrics.pushes).toBe(1);
     expect(r.find((x) => x.id === 'you')!.metrics.shoved).toBe(1);
-    expect(TOWER_SLAB).toBe(2);
+    expect(TOWER_SLAB).toBeGreaterThan(2);
     engine.stop();
   });
 });

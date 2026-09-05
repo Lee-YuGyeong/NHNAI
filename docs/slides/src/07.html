@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>LLM 공급자와 런타임</title>
+<meta name="viewport" content="width=1920, height=1080">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg-deep:#05080f;--bg-mid:#0b1220;--cyan:#5fb8e8;--amber:#e8b34a;--line:rgba(95,184,232,0.18);}
+  html,body{background:var(--bg-deep);}
+  .font-mono{font-family:'JetBrains Mono',monospace;}
+  .font-kr{font-family:'Noto Sans KR',sans-serif;}
+  #stage{width:1920px;height:1080px;position:relative;overflow:hidden;
+    background:radial-gradient(ellipse at 20% 0%, rgba(95,184,232,0.08) 0%, transparent 55%),radial-gradient(ellipse at 85% 100%, rgba(232,179,74,0.05) 0%, transparent 50%),linear-gradient(180deg,#05080f 0%, #0b1220 100%);}
+  .grid-overlay{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(95,184,232,0.05) 1px, transparent 1px),linear-gradient(90deg, rgba(95,184,232,0.05) 1px, transparent 1px);background-size:64px 64px;-webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.9) 100%);}
+  .scanlines{position:absolute;inset:0;pointer-events:none;background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 3px);}
+  .vignette{position:absolute;inset:0;pointer-events:none;box-shadow: inset 0 0 220px 40px rgba(0,0,0,0.65);}
+  .chamfer{clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);}
+  .chamfer-sm{clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);}
+  .panel{background: linear-gradient(180deg, rgba(20,35,55,0.55) 0%, rgba(10,18,32,0.55) 100%);border: 1px solid var(--line);}
+  .header-label{font-family:'JetBrains Mono',monospace;letter-spacing:0.12em;}
+  .chip{background:rgba(95,184,232,0.08); border:1px solid rgba(95,184,232,0.3);}
+</style>
+</head>
+<body class="m-0 p-0">
+<div id="stage">
+  <div class="grid-overlay"></div>
+  <div class="scanlines"></div>
+
+  <header id="header" class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
+    <div class="flex items-center gap-3">
+      <span class="header-label text-[20px] text-[#5fb8e8]">07 //</span>
+      <span class="header-label text-[20px] text-white/70">LLM</span>
+    </div>
+    <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
+  </header>
+
+  <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
+    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:68px;">LLM 공급자와 런타임</h1>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">LLM 은 세 곳에 쓰인다. 모두 대화 중에만 호출한다.</p>
+
+    <div class="grid grid-cols-3 gap-6 mt-12">
+      <div class="chip chamfer-sm px-6 py-4">
+        <p class="font-kr font-bold text-white text-[26px] mb-2">대사 생성</p>
+        <p class="font-kr font-semibold text-white/70 text-[21px] leading-[1.5]">AI 참가자가 대화 중 하는 말</p>
+      </div>
+      <div class="chip chamfer-sm px-6 py-4">
+        <p class="font-kr font-bold text-white text-[26px] mb-2">전략 결정</p>
+        <p class="font-kr font-semibold text-white/70 text-[21px] leading-[1.5]">AI 참가자만. 물리 게임 전에 얼마나 정확하게 움직일지를 스스로 정한다</p>
+      </div>
+      <div class="chip chamfer-sm px-6 py-4">
+        <p class="font-kr font-bold text-white text-[26px] mb-2">대화 분석</p>
+        <p class="font-kr font-semibold text-white/70 text-[21px] leading-[1.5]">관리 AI(심판 역할)가 대화를 읽고 각자의 의심도를 올리거나 내린다</p>
+      </div>
+    </div>
+
+    <div class="panel chamfer overflow-hidden mt-12">
+      <div class="grid" style="grid-template-columns: 1.1fr 1.3fr 1.5fr 0.9fr 1.6fr; background:rgba(95,184,232,0.08);">
+        <div class="font-mono text-[#5fb8e8] text-[20px] font-bold px-5 py-4 border-r border-white/10">배포 모델</div>
+        <div class="font-mono text-[#5fb8e8] text-[20px] font-bold px-5 py-4 border-r border-white/10">쓰는 곳</div>
+        <div class="font-mono text-[#5fb8e8] text-[20px] font-bold px-5 py-4 border-r border-white/10">벤치마크</div>
+        <div class="font-mono text-[#5fb8e8] text-[20px] font-bold px-5 py-4 border-r border-white/10">단가</div>
+        <div class="font-mono text-[#5fb8e8] text-[20px] font-bold px-5 py-4">선정 근거</div>
+      </div>
+      <div class="grid border-t border-white/10" style="grid-template-columns: 1.1fr 1.3fr 1.5fr 0.9fr 1.6fr;">
+        <div class="font-mono font-bold text-white text-[22px] px-5 py-7 border-r border-white/10">gpt-6-astra</div>
+        <div class="font-kr font-semibold text-white/85 text-[22px] px-5 py-7 border-r border-white/10 leading-[1.4]">관리 AI 의 대화 분석</div>
+        <div class="font-kr font-semibold text-white/80 text-[21px] px-5 py-7 border-r border-white/10 leading-[1.4]">Artificial Analysis 63 : 61 — opus-5 와 동급</div>
+        <div class="font-mono font-bold text-[#e8b34a] text-[21px] px-5 py-7 border-r border-white/10 leading-[1.4]">$10 / $50<br/><span class="font-kr text-white/50 text-[14px]">백만 토큰당</span></div>
+        <div class="font-kr font-semibold text-white/75 text-[21px] px-5 py-7 leading-[1.4]">한 라운드에 몇 번만 호출. 모순을 찾아야 하는 유일한 추론 자리</div>
+      </div>
+      <div class="grid border-t border-white/10" style="grid-template-columns: 1.1fr 1.3fr 1.5fr 0.9fr 1.6fr;">
+        <div class="font-mono font-bold text-white text-[22px] px-5 py-7 border-r border-white/10">gpt-5.6-terra</div>
+        <div class="font-kr font-semibold text-white/85 text-[22px] px-5 py-7 border-r border-white/10 leading-[1.4]">AI 참가자의 대사</div>
+        <div class="font-kr font-semibold text-white/80 text-[21px] px-5 py-7 border-r border-white/10 leading-[1.4]">공유 벤치마크 35개 중 18 : 17 — sonnet-5 와 동급</div>
+        <div class="font-mono font-bold text-[#5fb8e8] text-[21px] px-5 py-7 border-r border-white/10 leading-[1.4]">astra 의<br/>약 절반</div>
+        <div class="font-kr font-semibold text-white/75 text-[21px] px-5 py-7 leading-[1.4]">몇 초 간격으로 계속 호출. 가장 자주 불려 단가가 낮아야 한다</div>
+      </div>
+    </div>
+
+    <div class="mt-12 chamfer p-7 flex items-center gap-6" style="background:rgba(95,184,232,0.06); border:1px solid rgba(95,184,232,0.35);">
+      <i class="fa-solid fa-circle-check text-[#5fb8e8] text-[26px]"></i>
+      <p class="font-kr font-bold text-white/90 text-[25px] leading-[1.5]">의심도는 LLM 없이도 움직인다. 지목 · 되풀이 · 회피는 규칙으로 계산하고 대화 분석은 그 위의 한 겹 — 호출이 실패해도 게임은 멈추지 않는다.</p>
+    </div>
+  </main>
+
+  <footer id="footer" class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">08 / 13</span>
+  </footer>
+
+  <div class="vignette"></div>
+</div>
+</body>
+</html>

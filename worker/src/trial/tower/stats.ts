@@ -3,7 +3,7 @@
  *   falls           떨어진 횟수 · survivalTime 처음 떨어지기까지(s) — 다른 시험의 같은 이름과 한 눈금 (talkFor)
  *   slabOffset      서 있던 발판의 가운데에서 떨어져 선 거리(m) 평균 — 「중심 이동」. 기계는 0 에 붙고 사람은 흩어진다
  *   centerDist      탑 가운데에서 떨어져 선 거리(m) 평균
- *   pushes · shoved 민 횟수 · 밀린 횟수
+ *   pushes · shoved · jumps 민 횟수 · 밀린 횟수 · 뛴 횟수
  *   reactionMs      발밑 발판에 경고가 뜬 순간 → 걷기 명령이 바뀌기까지(ms) 평균
  *   walked · slideTotal 걸은 거리 · 미끄러진(밀린) 거리
  *   transitionError 마찰이 바뀐 직후 5초 안에 미끄러진 거리(m) — P3
@@ -28,6 +28,7 @@ export class TowerStats {
   slideTotal = 0;
   pushes = 0;
   shoved = 0;
+  jumps = 0;
   private transitionSlide = 0;
   private offAcc = 0;
   private centerAcc = 0;
@@ -75,6 +76,10 @@ export class TowerStats {
     this.pushes += 1;
   }
 
+  jumped(): void {
+    this.jumps += 1;
+  }
+
   gotShoved(): void {
     this.shoved += 1;
   }
@@ -101,6 +106,7 @@ export class TowerStats {
         centerDist: this.n ? this.centerAcc / this.n : Number.NaN,
         pushes: this.pushes,
         shoved: this.shoved,
+        jumps: this.jumps,
         reactionMs: this.reactions.length ? mean(this.reactions) : Number.NaN,
         walked: this.walked,
         slideTotal: this.slideTotal,

@@ -104,6 +104,7 @@ const SPEC: Record<TrialGame, Spec> = {
       { key: 'centerDist', label: '탑 가운데에서 떨어져 선 거리 평균', unit: 'm', digits: 2 },
       { key: 'pushes', label: '밀침', unit: '회', digits: 0 },
       { key: 'shoved', label: '밀림', unit: '회', digits: 0 },
+      { key: 'jumps', label: '점프', unit: '회', digits: 0 },
       { key: 'reactionMs', label: '발판 경고 뒤 반응까지', unit: 'ms', digits: 0 },
       { key: 'transitionError', label: '바닥이 바뀐 직후 미끄러진 거리', unit: 'm', digits: 2 },
       { key: 'walked', label: '이동거리', unit: 'm', digits: 1 },
@@ -111,13 +112,26 @@ const SPEC: Record<TrialGame, Spec> = {
     curveLabel: '미끄러진 거리 추이 (에피소드 1 → 2 → 3 …, m)',
     dirLabel: '미끄러진 뒤 자리 (발판 끝 쪽 + / 가운데 쪽 −)',
   },
+  bar: {
+    primary: { key: 'clearRate', label: '봉을 넘은 비율', unit: '', digits: 2 },
+    rows: [
+      { key: 'leadErrMs', label: '체공 한가운데서 벗어난 타이밍', unit: 'ms', digits: 0 },
+      { key: 'transitionError', label: '조건이 바뀐 직후의 타이밍 오차', unit: '', digits: 2 },
+      { key: 'hits', label: '맞음', unit: '회', digits: 0 },
+      { key: 'unnecessaryJumps', label: '헛점프', unit: '회', digits: 0 },
+      { key: 'slideTotal', label: '명령과 다르게 밀린 거리', unit: 'm', digits: 2 },
+      { key: 'falls', label: '낙하', unit: '회', digits: 0 },
+    ],
+    curveLabel: '타이밍 오차 추이 (스침 1 → 2 → 3 …, 초)',
+    dirLabel: '오차 방향 (이르게 + / 늦게 −)',
+  },
 };
 
 function fmt(v: unknown, unit: string, digits: number): string {
   return typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(digits)}${unit}` : '—';
 }
 
-const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리', tower: '무너지는 타워' };
+const GAME_LABEL: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리', tower: '무너지는 타워', bar: '회전 봉 넘기' };
 
 export function Scoreboard({ result, roster }: { result: TrialResultWire; roster: Record<string, string> }) {
   const spec = SPEC[result.game] ?? SPEC.stopline;

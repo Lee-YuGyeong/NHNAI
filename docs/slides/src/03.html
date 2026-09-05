@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>게임 흐름</title>
+<meta name="viewport" content="width=1920, height=1080">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg-deep:#05080f;--bg-mid:#0b1220;--cyan:#5fb8e8;--amber:#e8b34a;--line:rgba(95,184,232,0.18);}
+  html,body{background:var(--bg-deep);}
+  .font-mono{font-family:'JetBrains Mono',monospace;}
+  .font-kr{font-family:'Noto Sans KR',sans-serif;}
+  #stage{width:1920px;height:1080px;position:relative;overflow:hidden;
+    background:radial-gradient(ellipse at 20% 0%, rgba(95,184,232,0.08) 0%, transparent 55%),radial-gradient(ellipse at 85% 100%, rgba(232,179,74,0.05) 0%, transparent 50%),linear-gradient(180deg,#05080f 0%, #0b1220 100%);}
+  .grid-overlay{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(95,184,232,0.05) 1px, transparent 1px),linear-gradient(90deg, rgba(95,184,232,0.05) 1px, transparent 1px);background-size:64px 64px;-webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.9) 100%);}
+  .scanlines{position:absolute;inset:0;pointer-events:none;background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 3px);}
+  .vignette{position:absolute;inset:0;pointer-events:none;box-shadow: inset 0 0 220px 40px rgba(0,0,0,0.65);}
+  .chamfer{clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);}
+  .chamfer-sm{clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);}
+  .panel{background: linear-gradient(180deg, rgba(20,35,55,0.55) 0%, rgba(10,18,32,0.55) 100%);border: 1px solid var(--line);}
+  .header-label{font-family:'JetBrains Mono',monospace;letter-spacing:0.12em;}
+  .shot{border:1px solid rgba(95,184,232,0.35);background:#060a12;overflow:hidden;position:relative;}
+  .shot img{width:100%;height:100%;object-fit:cover;display:block;}
+  .shot .cap{position:absolute;left:0;right:0;bottom:0;padding:10px 16px;background:linear-gradient(180deg,transparent,rgba(5,8,15,0.9));}
+</style>
+</head>
+<body class="m-0 p-0">
+<div id="stage">
+  <div class="grid-overlay"></div>
+  <div class="scanlines"></div>
+
+  <header id="header" class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
+    <div class="flex items-center gap-3">
+      <span class="header-label text-[20px] text-[#5fb8e8]">03 //</span>
+      <span class="header-label text-[20px] text-white/70">GAME LOOP</span>
+    </div>
+    <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
+  </header>
+
+  <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
+    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">게임 흐름</h1>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">한 판 약 5분 · 고정 차례표.</p>
+
+    <div class="flex gap-8 mt-8">
+      <div style="width:1230px;">
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="panel chamfer-sm px-5 py-4 text-center">
+            <p class="font-kr font-bold text-white text-[19px]">배역 통보</p>
+            <p class="font-mono text-[#5fb8e8] text-[16px] mt-1">7초</p>
+          </div>
+          <i class="fa-solid fa-chevron-right text-white/25 text-[16px]"></i>
+          <div class="panel chamfer-sm px-5 py-4 text-center">
+            <p class="font-kr font-bold text-white text-[19px]">프롤로그 방송</p>
+          </div>
+          <i class="fa-solid fa-chevron-right text-white/25 text-[16px]"></i>
+
+          <div class="chamfer px-5 py-4" style="border:1px solid rgba(232,179,74,0.4); background:rgba(232,179,74,0.06);">
+            <div class="flex items-center gap-2">
+              <div class="text-center px-2">
+                <p class="font-kr font-bold text-white text-[19px]">대화</p>
+                <p class="font-mono text-[#5fb8e8] text-[16px] mt-1">40초</p>
+              </div>
+              <i class="fa-solid fa-chevron-right text-white/25 text-[14px]"></i>
+              <div class="text-center px-2">
+                <p class="font-kr font-bold text-white text-[19px]">시험</p>
+                <p class="font-mono text-[#5fb8e8] text-[16px] mt-1">30초</p>
+              </div>
+              <i class="fa-solid fa-chevron-right text-white/25 text-[14px]"></i>
+              <div class="text-center px-2">
+                <p class="font-kr font-bold text-white text-[19px]">기록 공개</p>
+                <p class="font-mono text-[#5fb8e8] text-[16px] mt-1">7초</p>
+              </div>
+            </div>
+            <p class="font-mono text-[#e8b34a] text-[15px] text-center mt-3">× 3</p>
+          </div>
+
+          <i class="fa-solid fa-chevron-right text-white/25 text-[16px]"></i>
+          <div class="panel chamfer-sm px-5 py-4 text-center">
+            <p class="font-kr font-bold text-white text-[19px]">마지막 대화</p>
+            <p class="font-mono text-[#5fb8e8] text-[16px] mt-1">40초</p>
+          </div>
+          <i class="fa-solid fa-chevron-right text-white/25 text-[16px]"></i>
+          <div class="panel chamfer-sm px-5 py-4 text-center" style="border-color:rgba(232,179,74,0.5);">
+            <p class="font-kr font-bold text-white text-[19px]">판정 종료</p>
+            <p class="font-kr font-semibold text-[#e8b34a] text-[16px] mt-1">정체 공개</p>
+          </div>
+        </div>
+
+        <p class="font-mono text-white/45 text-[17px] mt-5 tracking-wide">후보 넷 중 셋 무작위 — 낙하 생존 · 움직이는 발판 · 회전 원판 · 무게 중심 다리</p>
+
+        <div class="grid grid-cols-3 gap-6 mt-10">
+          <div class="panel chamfer p-6" style="min-height:230px;">
+            <p class="font-kr font-bold text-[#5fb8e8] text-[22px] mb-3">대화</p>
+            <p class="font-kr font-semibold text-white/75 text-[20px] leading-[1.55]">채팅으로 추리하고 지목. 관리 AI 가 말을 읽어 의심도를 움직인다.</p>
+          </div>
+          <div class="panel chamfer p-6" style="min-height:230px;">
+            <p class="font-kr font-bold text-[#5fb8e8] text-[22px] mb-3">시험 · 기록 공개</p>
+            <p class="font-kr font-semibold text-white/75 text-[20px] leading-[1.55]">전원 동시 30초, 채팅 잠금. 이어서 버틴 시간 · 등수 · 발언권을 같은 화면으로.</p>
+          </div>
+          <div class="panel chamfer p-6" style="min-height:230px; border-color:rgba(232,179,74,0.45);">
+            <p class="font-kr font-bold text-[#e8b34a] text-[22px] mb-3">처형</p>
+            <p class="font-kr font-semibold text-white/75 text-[20px] leading-[1.55]">국면과 무관하게 의심도 100% 인 순간 즉시. 처형으로 판이 끝난다.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:450px;">
+        <div class="shot chamfer" style="height:640px;">
+          <img src="img/game-discussion.jpg" alt="대화 국면">
+          <div class="cap"><p class="font-mono text-[#5fb8e8] text-[14px] tracking-[0.2em]">SCREENSHOT</p><p class="font-kr font-bold text-white/85 text-[18px]">대화 국면 — 구역 통신 판 · 발언권 · 머리 위 의심도</p></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer id="footer" class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">04 / 13</span>
+  </footer>
+
+  <div class="vignette"></div>
+</div>
+</body>
+</html>

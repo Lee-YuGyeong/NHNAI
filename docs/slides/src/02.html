@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>배역과 승패</title>
+<meta name="viewport" content="width=1920, height=1080">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg-deep:#05080f;--bg-mid:#0b1220;--cyan:#5fb8e8;--amber:#e8b34a;--line:rgba(95,184,232,0.18);}
+  html,body{background:var(--bg-deep);}
+  .font-mono{font-family:'JetBrains Mono',monospace;}
+  .font-kr{font-family:'Noto Sans KR',sans-serif;}
+  #stage{width:1920px;height:1080px;position:relative;overflow:hidden;
+    background:radial-gradient(ellipse at 20% 0%, rgba(95,184,232,0.08) 0%, transparent 55%),radial-gradient(ellipse at 85% 100%, rgba(232,179,74,0.05) 0%, transparent 50%),linear-gradient(180deg,#05080f 0%, #0b1220 100%);}
+  .grid-overlay{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(95,184,232,0.05) 1px, transparent 1px),linear-gradient(90deg, rgba(95,184,232,0.05) 1px, transparent 1px);background-size:64px 64px;-webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.9) 100%);}
+  .scanlines{position:absolute;inset:0;pointer-events:none;background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 3px);}
+  .vignette{position:absolute;inset:0;pointer-events:none;box-shadow: inset 0 0 220px 40px rgba(0,0,0,0.65);}
+  .chamfer{clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);}
+  .chamfer-sm{clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);}
+  .panel{background: linear-gradient(180deg, rgba(20,35,55,0.55) 0%, rgba(10,18,32,0.55) 100%);border: 1px solid var(--line);}
+  .header-label{font-family:'JetBrains Mono',monospace;letter-spacing:0.12em;}
+</style>
+</head>
+<body class="m-0 p-0">
+<div id="stage">
+  <div class="grid-overlay"></div>
+  <div class="scanlines"></div>
+
+  <header id="header" class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
+    <div class="flex items-center gap-3">
+      <span class="header-label text-[20px] text-[#5fb8e8]">02 //</span>
+      <span class="header-label text-[20px] text-white/70">ROLES</span>
+    </div>
+    <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
+  </header>
+
+  <main class="absolute" style="left:80px;top:160px;width:1760px;height:790px;">
+    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:76px;">배역과 승패</h1>
+    <p class="font-kr font-bold text-white/70 mt-4" style="font-size:27px;">판이 열릴 때 무작위 배정, 본인에게만 통보. 좌석 이름도 다시 섞인다.</p>
+
+    <div class="grid grid-cols-3 gap-8 mt-11">
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:330px; border-color: rgba(232,179,74,0.4);">
+        <div class="flex items-end justify-between mb-4">
+          <span class="font-mono font-bold text-white text-[28px]">AI</span>
+          <span class="font-mono font-black text-[#e8b34a]" style="font-size:56px; line-height:1;">1명</span>
+        </div>
+        <div class="h-px bg-white/10 mb-5"></div>
+        <p class="font-kr font-bold text-white/80 text-[22px] leading-[1.5] mb-4">아는 것 — 자신이 AI 라는 것</p>
+        <p class="font-kr font-semibold text-white/70 text-[22px] leading-[1.6]">목표 — 끝까지 들키지 않는다. 시험마다 「얼마나 사람처럼 틀릴지」를 정한다</p>
+      </div>
+
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:330px;">
+        <div class="flex items-end justify-between mb-1">
+          <span class="font-mono font-bold text-white text-[28px]">AI 설계자</span>
+          <span class="font-mono font-black text-[#5fb8e8]" style="font-size:56px; line-height:1;">1~2명</span>
+        </div>
+        <p class="font-mono text-white/40 text-[16px] text-right mb-4">4~5인 최대 1 · 6인 이상 최대 2</p>
+        <div class="h-px bg-white/10 mb-5"></div>
+        <p class="font-kr font-bold text-white/80 text-[22px] leading-[1.5] mb-4">아는 것 — AI 가 누구인지</p>
+        <p class="font-kr font-semibold text-white/70 text-[22px] leading-[1.6]">목표 — 의심을 돌려 AI 와 자신을 모두 살린다</p>
+      </div>
+
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:330px;">
+        <div class="flex items-end justify-between mb-4">
+          <span class="font-mono font-bold text-white text-[28px]">사람</span>
+          <span class="font-mono font-black text-[#5fb8e8]" style="font-size:56px; line-height:1;">나머지</span>
+        </div>
+        <div class="h-px bg-white/10 mb-5"></div>
+        <p class="font-kr font-bold text-white/80 text-[22px] leading-[1.5] mb-4">아는 것 — 자신이 사람이라는 것뿐</p>
+        <p class="font-kr font-semibold text-white/70 text-[22px] leading-[1.6]">목표 — 기록과 대화로 AI 를 찾아 처형시킨다</p>
+      </div>
+    </div>
+
+    <div class="mt-9 panel chamfer overflow-hidden">
+      <div class="grid grid-cols-2" style="background:rgba(95,184,232,0.08);">
+        <div class="font-mono text-[#5fb8e8] text-[20px] font-bold px-8 py-4 border-r border-white/10">끝나는 순간</div>
+        <div class="font-mono text-[#5fb8e8] text-[20px] font-bold px-8 py-4">결과</div>
+      </div>
+      <div class="grid grid-cols-2 border-t border-white/10">
+        <div class="font-kr font-semibold text-white/85 text-[22px] px-8 py-5 border-r border-white/10">AI 가 100% 에 닿아 격리됐다</div>
+        <div class="font-kr font-bold text-white text-[22px] px-8 py-5">사람 진영 승리 — 설계자는 패배</div>
+      </div>
+      <div class="grid grid-cols-2 border-t border-white/10">
+        <div class="font-kr font-semibold text-white/85 text-[22px] px-8 py-5 border-r border-white/10">사람 또는 설계자가 먼저 격리됐다</div>
+        <div class="font-kr font-bold text-[#e8b34a] text-[22px] px-8 py-5">AI 승리 — 살아남은 설계자는 개인 승리</div>
+      </div>
+      <div class="grid grid-cols-2 border-t border-white/10">
+        <div class="font-kr font-semibold text-white/85 text-[22px] px-8 py-5 border-r border-white/10">끝까지 아무도 격리되지 않았다</div>
+        <div class="font-kr font-bold text-[#e8b34a] text-[22px] px-8 py-5">AI 승리</div>
+      </div>
+    </div>
+  </main>
+
+  <footer id="footer" class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">03 / 13</span>
+  </footer>
+
+  <div class="vignette"></div>
+</div>
+</body>
+</html>
