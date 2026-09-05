@@ -1,26 +1,30 @@
 /**
- * 무너지는 타워 — 홀 가운데 마당에 선 탑. 격자 기둥(Tripo Studio, tower_pylon)이 가운데를 받치고, 그 위에 발판 25장이 **떠 있다** —
+ * 무너지는 타워 — 홀 가운데 마당에 선 탑. 격자 기둥(Pylon — 코드 기하)이 가운데를 받치고, 그 위에 발판 25장이 **떠 있다** —
  * 발판마다 밑에 청록 부양광이 있어 기둥 없이도 붙어 있는 것으로 읽힌다(이 홀의 움직이는 발판과 같은 어법). 처음엔 발판마다 H 기둥을
  * 세웠는데 스물다섯 개의 흰 기둥 숲이 화면을 어지럽혔다 (2026-09-05 사용자: "디자인도 이상하고").
  * 윗면 텍스처(힉스필드, slab_top.webp — 황흑 띠 · 가운데 청록 십자)는 UV 를 조금 당겨 띠를 얇게 쓴다. 경고가 뜬 발판은 갈라진 텍스처
  * (slab_warn.webp)로 바뀌어 천천히 처지며 붉게 숨 쉬고, 떨어지는 발판은 **낮은 쪽 가장자리로 기우뚱 넘어가다 떨어진다**(hinge → 자유 낙하).
  * 고리마다 높이가 계단으로 다르고(ringBaseY), 닳은 발판은 가라앉으며 주황으로 달아오른다(wear), 진동 1초 전부터 전 발판이 떨린다(quakeAmp).
+ * 기둥은 처음 Tripo Studio 로 뽑았는데(tower_pylon) 베이크 텍스처가 줄이며 번져 크롬처럼 얼룩지고 밑판이 접시처럼 튀어나와 「탁자」로 읽혔다
+ * (2026-09-05 사용자: "이거 디자인 좀 이상한데"). 그래서 네 모서리 빔 · 가로 띠 · X 가새를 무광 강재로 코드에서 짠다 — 얼룩도 밑판도 없다.
  * 마찰계수는 여기 없다 — 발판은 어느 구간에도 같아 보인다(P8).
  */
 import { Suspense, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import { GlbPart } from '@/world/map/corridor/part';
 import { GRAVITY } from '@/world/mp/constants';
-import { TOWER_CENTER, TOWER_FALL_KEEP_MS, TOWER_GAP, TOWER_N, TOWER_SLAB, TOWER_SLAB_H, TOWER_STEP, TOWER_TOP, TOWER_WEAR_SINK, ringBaseY, slabCenter } from '@/world/mp/tower';
+import { TOWER_CENTER, TOWER_FALL_KEEP_MS, TOWER_GAP, TOWER_N, TOWER_SLAB, TOWER_SLAB_H, TOWER_TOP, TOWER_WEAR_SINK, ringBaseY, slabCenter } from '@/world/mp/tower';
 import { towerState } from './towerState';
 
 const TOP_URL = '/textures/tower/slab_top.webp';
 const WARN_URL = '/textures/tower/slab_warn.webp';
-const SIDE_MAT = new THREE.MeshStandardMaterial({ color: '#2b313a', metalness: 0.7, roughness: 0.45 });
-const GLOW_MAT = new THREE.MeshBasicMaterial({ color: '#5ff0ff', transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false });
-const PIT_MAT = new THREE.MeshBasicMaterial({ color: '#05070a' });
+const SIDE_MAT = new THREE.MeshStandardMaterial({ color: '#4a525c', metalness: 0.7, roughness: 0.4 });
+/** 부양광 — 밑에서만 보이고(BackSide 는 아래를 향한 면), 옅게. 0.35 양면이었더니 밑에서 청록 판이 하늘을 덮었다 */
+const GLOW_MAT = new THREE.MeshBasicMaterial({ color: '#5ff0ff', transparent: true, opacity: 0.16, side: THREE.BackSide, depthWrite: false });
+const PIT_MAT = new THREE.MeshStandardMaterial({ color: '#0b0f14', metalness: 0.4, roughness: 0.9 });
+const BEAM_MAT = new THREE.MeshStandardMaterial({ color: '#2a2f37', metalness: 0.75, roughness: 0.45 });
+const BEAM_STRIPE = new THREE.MeshStandardMaterial({ color: '#c9a227', metalness: 0.5, roughness: 0.5 });
 /** 기우뚱 — 낮은 쪽 가장자리를 축으로 넘어가는 시간(s)과 그때 도는 각(rad). 그 뒤는 자유 낙하 + 회전 */
 const TIP_S = 0.45;
 const TIP_RAD = 1.1;
@@ -136,18 +140,67 @@ function Slabs() {
     <group ref={group}>
       {Array.from({ length: TOWER_N * TOWER_N }, (_, idx) => (
         <group key={idx}>
-          {/* 몸통 — 계단 한 단만큼 두껍게, 아래 고리와 옆면이 이어 보이게 */}
-          <mesh position={[0, -(TOWER_SLAB_H + TOWER_STEP) / 2, 0]} material={SIDE_MAT} castShadow receiveShadow>
-            <boxGeometry args={[size, TOWER_SLAB_H + TOWER_STEP, size]} />
+          {/* 몸통 — 얇은 강판. 두껍게 했더니 밑에서 검은 덩어리로 보이고 기둥을 가렸다 (2026-09-05 사용자 스크린샷) */}
+          <mesh position={[0, -TOWER_SLAB_H / 2, 0]} material={SIDE_MAT} castShadow receiveShadow>
+            <boxGeometry args={[size, TOWER_SLAB_H, size]} />
           </mesh>
           <mesh rotation-x={-Math.PI / 2} position={[0, 0.002, 0]} material={mats.tops[idx]} receiveShadow>
             <planeGeometry args={[size, size]} />
           </mesh>
           {/* 부양광 — 발판 밑 청록 판. 떨어지는 순간 꺼진다 */}
-          <mesh rotation-x={-Math.PI / 2} position={[0, -TOWER_SLAB_H - TOWER_STEP - 0.04, 0]} material={GLOW_MAT}>
-            <planeGeometry args={[size * 0.8, size * 0.8]} />
+          <mesh rotation-x={-Math.PI / 2} position={[0, -TOWER_SLAB_H - 0.04, 0]} material={GLOW_MAT}>
+            <planeGeometry args={[size * 0.62, size * 0.62]} />
           </mesh>
         </group>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * 격자 기둥 — 네 모서리 빔, 층마다 가로 띠, 면마다 X 가새. 가운데 발판 밑면까지 서고 위에 얇은 갓판 하나.
+ * 폭은 발판 1.6장 — 밑에서 보면 가운데 아홉 장의 안쪽을 받치는 것으로 읽힌다
+ */
+function Pylon() {
+  const parts = useMemo(() => {
+    const w = TOWER_SLAB * 1.6;
+    const h = TOWER_TOP - TOWER_SLAB_H - 0.06; // 가운데 발판 밑면까지
+    const beam = 0.14;
+    const levels = 4;
+    const lh = h / levels;
+    const out: { pos: [number, number, number]; rot: [number, number, number]; size: [number, number, number]; stripe?: boolean }[] = [];
+    // 모서리 빔
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) out.push({ pos: [(sx * w) / 2, h / 2, (sz * w) / 2], rot: [0, 0, 0], size: [beam, h, beam] });
+    for (let l = 0; l <= levels; l += 1) {
+      const y = l * lh;
+      // 가로 띠 — 네 면. 맨 위 띠는 황색(경고 띠)
+      const stripe = l === levels;
+      out.push({ pos: [0, y, w / 2], rot: [0, 0, 0], size: [w, beam * 0.8, beam * 0.8], stripe });
+      out.push({ pos: [0, y, -w / 2], rot: [0, 0, 0], size: [w, beam * 0.8, beam * 0.8], stripe });
+      out.push({ pos: [w / 2, y, 0], rot: [0, 0, 0], size: [beam * 0.8, beam * 0.8, w], stripe });
+      out.push({ pos: [-w / 2, y, 0], rot: [0, 0, 0], size: [beam * 0.8, beam * 0.8, w], stripe });
+      if (l === levels) continue;
+      // X 가새 — 면마다 둘
+      const len = Math.hypot(w, lh);
+      const a = Math.atan2(lh, w);
+      for (const s of [-1, 1]) {
+        out.push({ pos: [0, y + lh / 2, w / 2], rot: [0, 0, s * a], size: [len, beam * 0.55, beam * 0.55] });
+        out.push({ pos: [0, y + lh / 2, -w / 2], rot: [0, 0, s * a], size: [len, beam * 0.55, beam * 0.55] });
+        out.push({ pos: [w / 2, y + lh / 2, 0], rot: [-s * a, 0, 0], size: [beam * 0.55, beam * 0.55, len] });
+        out.push({ pos: [-w / 2, y + lh / 2, 0], rot: [-s * a, 0, 0], size: [beam * 0.55, beam * 0.55, len] });
+      }
+    }
+    // 발판 밑 갓판 · 바닥 발치판 — 얇게, 기둥 폭에 맞춰
+    out.push({ pos: [0, h + 0.03, 0], rot: [0, 0, 0], size: [w + 0.2, 0.06, w + 0.2] });
+    out.push({ pos: [0, 0.04, 0], rot: [0, 0, 0], size: [w + 0.3, 0.08, w + 0.3] });
+    return out;
+  }, []);
+  return (
+    <group position={[TOWER_CENTER.x, 0, TOWER_CENTER.z]}>
+      {parts.map((p, i) => (
+        <mesh key={i} position={p.pos} rotation={p.rot} material={p.stripe ? BEAM_STRIPE : BEAM_MAT} castShadow>
+          <boxGeometry args={p.size} />
+        </mesh>
       ))}
     </group>
   );
@@ -162,10 +215,8 @@ export function TowerStage({ lights = true }: { lights?: boolean } = {}) {
       <mesh rotation-x={-Math.PI / 2} position={[TOWER_CENTER.x, 0.015, TOWER_CENTER.z]} material={PIT_MAT}>
         <planeGeometry args={[half * 2 + 2.4, half * 2 + 2.4]} />
       </mesh>
-      {/* 격자 기둥 — 탑의 몸통. 가운데 발판 세 장 폭으로 넓게, 발판 밑면까지 */}
-      <Suspense fallback={null}>
-        <GlbPart id="tower_pylon" fit={{ x: TOWER_SLAB * 2.2, y: TOWER_TOP - TOWER_SLAB_H - 0.08, z: TOWER_SLAB * 2.2 }} position={[TOWER_CENTER.x, 0, TOWER_CENTER.z]} castShadow />
-      </Suspense>
+      {/* 격자 기둥 — 탑의 몸통 */}
+      <Pylon />
       <Suspense fallback={null}>
         <Slabs />
       </Suspense>
