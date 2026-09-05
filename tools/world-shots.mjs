@@ -3,9 +3,7 @@
 //   --eval 은 카메라를 잡은 뒤 페이지에서 실행한다 (예: window.__leader.play('aim')), --wait 만큼 기다렸다 찍는다
 //   (dev 서버 5173 + 워커 8787 이 떠 있어야 한다. 결과는 현재 폴더. --at 은 카메라를 그 자리에 고정 — 부품을 가까이서 볼 때)
 // 카메라는 앱과 같은 three 인스턴스(vite deps)의 updateMatrixWorld 를 감싸 돌린다 — 포인터 잠금이 필요 없다.
-import { chromium } from '/Users/nowonsang/.npm/_npx/9833c18b2d85bc59/node_modules/playwright/index.mjs';
-import { createRequire } from 'node:module';
-const sharp = createRequire('/Users/nowonsang/Who-is-human/package.json')('sharp');
+import { CHROME, chromium, sharp } from './local-deps.mjs';
 const S = process.cwd();
 const argv = process.argv.slice(2);
 const flag = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : undefined; };
@@ -14,7 +12,7 @@ const at = flag('--at')?.split(',').map(Number) ?? null;
 const only = flag('--views')?.split(',') ?? null;
 const evalJs = flag('--eval') ?? null;
 const waitMs = Number(flag('--wait') ?? 0);
-const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--use-angle=metal', '--headless=new', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ executablePath: CHROME, args: ['--use-angle=metal', '--headless=new', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewportSize: { width: 1280, height: 720 } });
 let threeUrl = null;
 page.on('request', (r) => { const u = r.url(); if (!threeUrl && /\/node_modules\/\.vite\/deps\/three\.js/.test(u)) threeUrl = u; });

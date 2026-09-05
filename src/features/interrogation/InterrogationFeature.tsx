@@ -24,8 +24,8 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { PROLOGUE, prologueLines } from './prologue';
-import { prefetchPrologue, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
+import { PROLOGUE, prologueLineOf, prologueLines } from './prologue';
+import { prefetchPrologue, prologueClipMs, prologueLagMs, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
 import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, RecordPanel, ResultModal, TestOrder } from './hud/Panels';
@@ -377,6 +377,8 @@ export function InterrogationFeature() {
    * 판이 열리고 첫 토론이 시작되면 대본(prologue.ts)이 화면 아래 비주얼 노벨식 대화창(DialogueBox)으로 한 줄씩 흐른다 —
    * 피실험자 셋의 웅성거림과 정부 통제실의 방송, 얼굴은 그 좌석의 군인 클로즈업. 구역 통신(채팅)은 따로 그대로다.
    * **화면에서만** 난다: 서버 · 관리 AI · 의심도 어느 것도 이 줄을 모른다. 같은 판(startedAt)에서는 한 번만.
+   * 서버로 가는 것은 방송이 걷힐 때의 「끝났다」 한 마디뿐이다 (onPrologueShowing) — 그때까지 대역과
+   * AI 참가자는 말하지 않는다 (2026-09-05 사용자: 「프롤로그가 끝나기 전까지는 AI 참가자가 대화 못 치게」).
    * 줄을 한꺼번에 건네면 상자가 제 박자(타자 · 머무름)로 차례로 찍는다 — 클릭하면 넘어간다. 로비로 돌아오면 비운다.
    */
   const [prologue, setPrologue] = useState<ChatLine[]>([]);
@@ -394,6 +396,16 @@ export function InterrogationFeature() {
    * 지나 사라질 때 onShowing(false) 로 온다. 그래야 자막이 남아 있는 동안 판이 도로 서지 않는다.
    */
   const [prologueUp, setPrologueUp] = useState(false);
+  /**
+   * 방송이 한 번 섰다가 사라진 것을 봤나 — 그때 서버에 「끝났다」를 올린다 (game_prologue_done).
+   *
+   * 상자는 마운트 때 한 번 onShowing(false) 로 「안 서 있다」를 알린다. 그것까지 끝으로 치면 판이
+   * 열리기도 전에 대역들이 말문을 연다 — **선 것을 본 뒤의 내려감**만 끝이다. 두 번 올려도 서버는
+   * 같은 좌석으로 한 번만 세지만(prologueSeen), 안 보낸 것과 두 번 보낸 것은 뜻이 다르니 여기서 잠근다.
+   */
+  const prologueReported = useRef(false);
+  /** 소리가 스피커에 닿기까지의 늦음(ms) — 자막을 그만큼 늦게 연다 (prologueVoice 의 prologueLagMs) */
+  const [prologueLag, setPrologueLag] = useState(0);
   const startedAt = wire?.startedAt ?? null;
   const testsDone = wire?.testsDone ?? 0;
   useEffect(() => {
@@ -411,22 +423,50 @@ export function InterrogationFeature() {
      */
     resetPrologueVoice();
     prefetchPrologue(PROLOGUE);
+    /*
+     * 소리가 스피커에 닿기까지의 늦음 — 자막을 그만큼 늦게 연다 (DialogueBox 의 voiceLagMs).
+     * 판이 열릴 때 한 번 잰다: 장치가 판 도중에 바뀌는 일은 드물고, 줄마다 다시 재면 같은
+     * 대본 안에서 자막이 들쭉날쭉해진다.
+     */
+    setPrologueLag(prologueLagMs());
+    prologueReported.current = false;
     setPrologueUp(true);
     setPrologue(prologueLines(seatsRef.current, startedAt));
   }, [phase, testsDone, startedAt]);
 
   /**
+   * 상자가 서고 사라지는 것 — 채팅 판을 올리고 내리는 갈림이자(prologueUp), **서버에 알리는 방송의 끝**이다.
+   *
+   * 대본은 화면에서만 나지만 「끝났다」 한 마디는 서버에 간다 (game-protocol 의 game_prologue_done):
+   * 그때까지 대역과 AI 참가자는 말하지 않고, 첫 토론의 40초도 그때부터 센다 (runtime 의 prologueHold).
+   * 대본을 아예 안 받은 화면(판 도중에 들어온 사람)은 알리지 않는다 — 기다리는 쪽도 그 사람은 안 센다.
+   */
+  const onPrologueShowing = useCallback((showing: boolean) => {
+    setPrologueUp(showing);
+    if (showing || prologuePlayed.current === null || prologueReported.current) return;
+    prologueReported.current = true;
+    connRef.current?.game({ t: 'game_prologue_done' });
+  }, []);
+
+  /**
    * 상자가 한 줄을 띄웠다 — 그 줄을 읽는다.
    *
-   * 줄의 key 가 `prologue-<씨앗>-<번호>` 라(prologue.ts 의 prologueLines) 번호로 대본을 되찾는다.
    * 상자가 넘기는 주인이고 여기는 소리만 얹는다 — 읽는 동안 speaking 을 세워 두면 상자가 기다린다.
    */
   const onPrologueLine = useCallback((key: string) => {
-    const i = Number(key.slice(key.lastIndexOf('-') + 1));
-    const line = Number.isInteger(i) ? PROLOGUE[i] : undefined;
+    const line = prologueLineOf(key);
     if (!line) return;
     setPrologueSpeaking(true);
     void speakPrologueLine(line).finally(() => setPrologueSpeaking(false));
+  }, []);
+
+  /**
+   * 그 줄의 소리가 몇 ms 인가 — 상자가 **타자 속도를 여기 맞춘다** (DialogueBox 의 voiceMsOf).
+   * 미리 받아 둔 것만 안다: 아직이면 null 이고, 그 줄은 글자 기준으로 찍힌다.
+   */
+  const prologueVoiceMs = useCallback((key: string) => {
+    const line = prologueLineOf(key);
+    return line ? prologueClipMs(line) : null;
   }, []);
 
   // 화면을 떠나는데 통제실이 계속 말하고 있으면 안 된다
@@ -547,8 +587,10 @@ export function InterrogationFeature() {
         selfId={null}
         touch={false}
         speaking={prologueSpeaking}
-        onShowing={setPrologueUp}
+        onShowing={onPrologueShowing}
         onLine={onPrologueLine}
+        voiceMsOf={prologueVoiceMs}
+        voiceLagMs={prologueLag}
       />
       <HallScene
         mySeatId={mySeatId}

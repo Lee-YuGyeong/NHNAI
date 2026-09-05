@@ -12,6 +12,8 @@
  * ┌─ 게임 프로세스를 건드리지 않는다 ────────────────────────────────────────┐
  * │ 이 줄들은 **화면에서만** 난다. 서버에 가지 않고, 구역 통신(채팅)에도 안 찍히며, 관리 AI 도 AI 좌석도 │
  * │ 이 말을 못 본다 — 의심도 · 판정 · 대화 기록 어느 것에도 안 실린다.                                  │
+ * │ 서버로 가는 것은 **「끝났다」 한 마디**뿐이다 (game_prologue_done): 그때까지 대역과 AI 참가자가       │
+ * │ 입을 다물고, 첫 토론의 40초도 그때부터 센다 (worker/src/game/runtime.ts 의 prologueHold).           │
  * └──────────────────────────────────────────────────────────────────────────┘
  *
  * 초상: 피실험자는 **그 좌석의 몸**(mp/bodies.ts 군인 넷)의 얼굴 클로즈업, 정부 통제실은 무대 위 처형자의 얼굴 —
@@ -89,6 +91,15 @@ export function castSubjects(seats: readonly GameSeat[], seed: number): GameSeat
 /** 좌석의 얼굴 — 몸(mp/bodies.ts)을 찍은 클로즈업 */
 export function faceOf(seat: GameSeat | undefined): string {
   return seat?.body ? `/interrogation/face-${seat.body}.jpg` : FALLBACK_FACE;
+}
+
+/**
+ * 열쇠로 대본을 되찾는다 — 상자는 줄의 **열쇠만** 돌려주기 때문이다 (DialogueBox 의 onLine).
+ * 열쇠를 만드는 곳(바로 아래 prologueLines)과 읽는 곳이 갈려 있으면 형식이 어긋나는 날이 온다.
+ */
+export function prologueLineOf(key: string): PrologueLine | undefined {
+  const i = Number(key.slice(key.lastIndexOf('-') + 1));
+  return Number.isInteger(i) ? PROLOGUE[i] : undefined;
 }
 
 /**

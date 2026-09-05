@@ -14,5 +14,9 @@
   {
     "id": "gov_wall_lamp",
     "prompt": "Industrial wall-mounted bulkhead lamp: an oval cast-metal fixture with a protective wire cage over a frosted glass lens, mounted on a small rectangular base plate, front facing, simple clean geometry, centered"
+  },
+  {
+    "id": "gov_console",
+    "prompt": "Low long government equipment console cabinet, bench height, three times longer than tall, boxy rectilinear folded sheet steel with crisp chamfered edges. Front face split into three bolted panel bays by vertical seams, a long recessed empty horizontal slot across the middle at two-thirds height, two small round recessed sockets below it, a row of horizontal vent louvres in one bay, a small flush access hatch with hex bolts in another, a recessed kick plate along the bottom. Completely flat plain top deck plate with nothing standing on it. Plain featureless back. Matte painted cold grey steel, unlit, no screens, no lights, no decals. Simple clean geometry, centered, resting on the ground"
   }
 ]

@@ -247,6 +247,8 @@ export const PART_COLORS = { sci_bulkhead: '#2d3744', sci_console: '#2a333f', sc
   hall_fan: '#5a6472', wall_arm: '#5d6879',
   /* 특수인공지능대응센터 홀(map/govcenter.tsx) — 콘크리트 홀이라 부품은 어두운 강철·회색 도장. 랙만 검정에 가깝다 (서버실은 어둡다) */
   gov_server_rack: '#22262d', gov_workstation: '#6a707a', gov_steel_door: '#6c717a', gov_wall_lamp: '#4c515a',
+  /* 옆벽 콘솔 — 복도의 sci_console(#2a333f)보다 밝게. 이 홀은 콘솔에 발광 띠를 안 얹으므로 그 값이면 벽 밑 어둠에 묻힌다 */
+  gov_console: '#5b626c',
   /* 움직이는 플랫폼 — 발판은 바닥보다 밝은 강청색 강철(올라설 자리가 읽혀야 한다), 비콘은 어두운 강철 */
   hover_pad: '#6f7c8c', pad_beacon: '#3a414b' } as const;
 export type ShapedPartId = keyof typeof PART_COLORS;

@@ -34,6 +34,7 @@ import {
   GAME_HARD_CAP_MS,
   GAME_MAX_HUMANS,
   GAME_MIN_HUMANS,
+  GAME_PROLOGUE_MAX_MS,
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
   GAME_TEST_ORDER,
@@ -189,6 +190,22 @@ export class GameRuntime {
   private botBusy = new Set<string>();
   /** 토론이 아닌 국면에 도착한 봇의 한 마디 — 토론이 다시 열리면 내보낸다 */
   private heldLines: { id: string; text: string }[] = [];
+  /**
+   * 화면의 프롤로그 방송이 끝나기를 기다리는 중인가 — 값은 **걷힌 뒤 셀 토론 길이(ms)**, null 이면 안 기다린다.
+   *
+   * 첫 토론이 열리는 순간 화면에서 검문소 대본이 흐른다 (features/interrogation/prologue.ts). 그 동안
+   * 채팅 판은 내려가 있어서 사람은 말할 수 없는데, 대역과 AI 참가자는 그것을 모른 채 떠들었다
+   * (2026-09-05 사용자: 「프롤로그가 끝나기 전까지는 AI 참가자가 대화 못 치게」). 자막 아래로 남의 말이
+   * 쌓이다가 방송이 걷히는 순간 한꺼번에 쏟아졌고, 관리 AI 는 그 말들을 읽어 아무도 못 본 판정을 내렸다.
+   *
+   * 서버가 대본의 길이를 셀 수는 없다 — 줄마다 그 자리에서 합성한 목소리에 자막을 맞추므로(prologueVoice)
+   * 판마다 다르다. 그래서 **화면이 끝났다고 알려 준다**(game_prologue_done). 붙어 있는 사람이 전부
+   * 알려 오면 걷고, 아무도 안 알려 와도 상한(GAME_PROLOGUE_MAX_MS)에서 걷는다 — 마감은 그 상한이라
+   * 타이머를 잃어도 청소 알람(onSweep)이 같은 자리로 민다.
+   */
+  private prologueHold: number | null = null;
+  /** 방송을 다 봤다고 알려 온 좌석 — 나간 사람은 안 기다린다 (releasePrologue) */
+  private prologueSeen = new Set<string>();
   private freshResultTurns = 0;
   private finishing = false;
   /** 판이 끝난 시각 — GAME_ENDED_MS 뒤 로비 복귀의 기준 (타이머를 잃어도 onSweep 이 민다) */
@@ -234,6 +251,8 @@ export class GameRuntime {
       return;
     }
     this.broadcastState();
+    // 방송을 기다리던 마지막 한 사람이 나갔을 수도 있다 — 없는 사람을 기다려 판이 멎으면 안 된다
+    this.releasePrologue();
     void this.maybeFinishTest();
   }
 
@@ -307,6 +326,9 @@ export class GameRuntime {
         return;
       case 'game_tamper':
         this.tamper(playerId, msg.target, msg.direction);
+        return;
+      case 'game_prologue_done':
+        this.prologueDone(playerId);
         return;
       default:
         return;
@@ -495,6 +517,8 @@ export class GameRuntime {
         this.openDiscussion(GAME_FIRST_DISCUSSION_MS, true);
         return;
       case 'discussion':
+        // 아직 프롤로그를 기다리는 중이었다 — 그 마감은 상한이었으니 여기서 걷는다. 토론 40초는 그때부터다
+        if (this.prologueHold !== null) return this.endPrologue();
         // 차례표를 다 돌았다 — 마지막 대화까지 끝났으니 여기서 닫는다 (아직 AI 를 못 찾았으면 AI 의 승리)
         if (this.testsDone >= schedule().length) return void (await this.hardCap());
         await this.openTest();
@@ -511,7 +535,13 @@ export class GameRuntime {
   }
 
   private openDiscussion(ms: number, opening: boolean): void {
-    this.setPhase('discussion', this.now() + ms);
+    /*
+     * 첫 토론은 **화면의 프롤로그 방송을 기다린다** (prologueHold 머리말) — 그 동안 마감은 기다림의
+     * 상한이고, 걷히고 나서야 토론 ms 를 센다. 나머지 토론은 예전 그대로 곧장 마감을 잡는다.
+     */
+    this.prologueHold = opening ? ms : null;
+    this.prologueSeen.clear();
+    this.setPhase('discussion', this.now() + (opening ? GAME_PROLOGUE_MAX_MS : ms));
     this.startIdle();
     // 지난 토론에서 남은 말은 안 읽는다 — 시험을 사이에 두고 온 말은 이미 지난 장면이다 (readRoom)
     this.unread = [];
@@ -519,8 +549,24 @@ export class GameRuntime {
     for (const line of this.heldLines) this.say(line.id, line.text);
     this.heldLines = [];
     this.freshResultTurns = opening ? 0 : 2;
-    this.scheduleTalk(opening ? 2_500 : 2_000);
-    // 토론이 닫히기 전 마지막 읽기 — 국면이 바뀌기 전에 끝나야 방송이 시험 개시 방송을 안 덮는다 (READ_FLUSH_BEFORE_MS)
+    /*
+     * 마지막 읽기의 시계는 **토론이 실제로 열리는 때**부터다. 첫 토론은 프롤로그 방송을 기다리므로
+     * (prologueHold) 여기서 걸면 방송 보는 동안 시간이 흘러 버린다 — 그쪽은 endPrologue 가 건다.
+     */
+    // 기다릴 사람이 아무도 안 붙어 있으면 그 자리에서 걷는다 (봇만 남은 판)
+    if (opening) this.releasePrologue();
+    else {
+      this.scheduleTalk(2_000);
+      this.armReadFlush(ms);
+    }
+    void this.persist();
+  }
+
+  /**
+   * 토론이 닫히기 READ_FLUSH_BEFORE_MS 전에 남은 말을 마지막으로 한 번 읽게 잡는다.
+   * 국면이 바뀌기 전에 끝나야 관리 AI 의 방송이 시험 개시 방송을 안 덮는다.
+   */
+  private armReadFlush(ms: number): void {
     if (this.flushTimer !== null) clearTimeout(this.flushTimer);
     this.flushTimer = setTimeout(
       () => {
@@ -529,6 +575,39 @@ export class GameRuntime {
       },
       Math.max(0, ms - READ_FLUSH_BEFORE_MS),
     );
+  }
+
+  /* ─────────────────────────────── 프롤로그 방송 (화면) ─────────────────────────────── */
+
+  /** 화면이 「방송이 끝났다」고 알려 왔다 (game_prologue_done) — 좌석 없는 구경꾼의 말은 안 센다 */
+  private prologueDone(playerId: string): void {
+    if (this.prologueHold === null) return;
+    const seatId = this.bindings.get(playerId);
+    if (seatId === undefined) return;
+    this.prologueSeen.add(seatId);
+    this.releasePrologue();
+  }
+
+  /** 지금 붙어 있는 사람이 전부 방송을 다 봤으면 걷는다 — 나간 사람은 안 기다린다 */
+  private releasePrologue(): void {
+    if (this.prologueHold === null) return;
+    const waiting = this.deps.roster().some((p) => {
+      const seatId = this.bindings.get(p.id);
+      return seatId !== undefined && !this.prologueSeen.has(seatId);
+    });
+    if (!waiting) this.endPrologue();
+  }
+
+  /** 방송이 걷혔다 — 이제야 토론이 열린다: 마감을 다시 잡고 봇의 첫 차례를 연다 */
+  private endPrologue(): void {
+    const ms = this.prologueHold;
+    if (ms === null || this.phase !== 'discussion') return;
+    this.prologueHold = null;
+    this.prologueSeen.clear();
+    this.setPhase('discussion', this.now() + ms);
+    this.scheduleTalk(2_500);
+    // 마지막 읽기는 **여기서** 잡는다 — 첫 토론의 ms 는 방송이 걷힌 지금부터 흐른다 (openDiscussion 머리말)
+    this.armReadFlush(ms);
     void this.persist();
   }
 
@@ -856,6 +935,8 @@ export class GameRuntime {
     }
     this.phase = 'lobby';
     this.phaseEndsAt = null;
+    this.prologueHold = null;
+    this.prologueSeen.clear();
     this.seats = [];
     this.bindings = new Map();
     this.outcome = null;
@@ -920,7 +1001,8 @@ export class GameRuntime {
   /* ─────────────────────────────── 봇 발화 (AI 참가자 · 대역) ─────────────────────────────── */
 
   private scheduleTalk(delayMs?: number): void {
-    if (this.phase !== 'discussion') return;
+    // 프롤로그 방송이 흐르는 동안은 아무 차례도 안 잡는다 — 판을 여는 말은 대본의 것이다 (prologueHold)
+    if (this.phase !== 'discussion' || this.prologueHold !== null) return;
     const delay = delayMs ?? BOT_TALK_MIN_MS + this.rand() * BOT_TALK_JITTER_MS;
     // 이미 더 이른 차례가 잡혀 있으면 그대로 둔다 — 없거나 이번이 더 이르면 바꾼다
     if (this.talkTimer !== null) {

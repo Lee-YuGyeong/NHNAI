@@ -172,6 +172,139 @@ describe('/interrogation — 소리가 끝날 때까지 붙잡는다', () => {
 });
 
 /*
+ * 검문소 프롤로그 — 바로 위와 **반대쪽**이다.
+ *
+ * 저기(검증실 리더 방송)는 소리가 주인이라 상자가 "지금 읽는 문장"만 받아 쫓아간다. 여기는 상자가
+ * 주인이다: 대본 열세 줄을 한꺼번에 받아 두고(InterrogationFeature 의 setPrologue) 한 줄씩 띄우며
+ * onLine 으로 알리면, 바깥이 그 줄을 읽고 speaking 으로 답한다. 그러니 뒤에 줄이 서 있어도
+ * 지금 나는 소리는 **이 줄**이고, 줄 길이를 보고 넘어가면 안 된다.
+ *
+ * 한 번 이걸로 깨졌다 (2026-09-05 사용자: 「말이 긴 경우에는 끊고 다음 말이 들어와」) — 붙잡는 조건이
+ * 「줄이 비었을 때만」이라 프롤로그는 첫 줄부터 큐가 차 있어 한 번도 안 붙잡혔다.
+ */
+describe('/interrogation 프롤로그 — 상자가 주인이면 줄이 서 있어도 붙잡는다', () => {
+  function paced(speaking: boolean, voiceMs?: number) {
+    const onLine = vi.fn();
+    const props = (messages: ChatLine[], nowSpeaking: boolean) => ({
+      messages,
+      selfId: null,
+      touch: false,
+      speaking: nowSpeaking,
+      onLine,
+      voiceMsOf: voiceMs === undefined ? undefined : () => voiceMs,
+    });
+    const view = render(<DialogueBox {...props([], speaking)} />);
+    const show = (msgs: ChatLine[], nowSpeaking = speaking) =>
+      act(() => { view.rerender(<DialogueBox {...props(msgs, nowSpeaking)} />); });
+    const wait = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
+    const typeOut = (text: string) => { for (let i = 0; i < text.length; i += 1) wait(PER_CHAR); };
+    const onScreen = (text: string) => screen.queryByText(text) !== null;
+    return { show, wait, typeOut, onScreen, onLine };
+  }
+
+  /** 프롤로그가 건네는 모양 — 대본 전체가 한 번에 온다 */
+  const SCRIPT = [line(SHORT), line('다음 줄이다.', 1), line('그 다음 줄이다.', 2)];
+
+  it('뒤에 줄이 서 있어도 다 읽을 때까지 안 넘어간다 — 긴 줄이 잘리던 것', () => {
+    const { show, wait, typeOut, onScreen } = paced(true);
+    show(SCRIPT);
+    typeOut(SHORT);
+    wait(HOLD_MIN * 4); // 글자로 잰 머무름은 진작 지났다 — 그래도 소리가 아직이다
+    expect(onScreen(SHORT)).toBe(true);
+    expect(onScreen('다음 줄이다.')).toBe(false);
+  });
+
+  it('다 읽으면 그때 넘어간다 — 붙잡기만 하면 대본이 영영 멈춘다', () => {
+    const { show, wait, typeOut, onScreen } = paced(true);
+    show(SCRIPT);
+    typeOut(SHORT);
+    wait(HOLD_MIN * 4);
+    show(SCRIPT, false); // 소리가 멎었다
+    wait(TAIL + 100);
+    typeOut('다음 줄이다.');
+    expect(onScreen(SHORT)).toBe(false);
+    expect(onScreen('다음 줄이다.')).toBe(true);
+  });
+
+  it('뜬 줄의 열쇠를 알린다 — 바깥은 이걸로 어느 줄을 읽을지 안다', () => {
+    const { show, onLine } = paced(true);
+    show(SCRIPT);
+    // 붙잡혀 있으니 첫 줄 하나뿐이다 — 한꺼번에 받았다고 세 줄을 다 읽어 버리면 대사가 겹친다
+    expect(onLine.mock.calls.map((c) => c[0])).toEqual(['k0']);
+  });
+
+  it('소리 길이를 알면 그 길이에 맞춰 찍고 머문다 — 다 찍힌 글을 보며 소리만 기다리지 않게', () => {
+    // 글자로만 재면 이 줄은 머무름(2.6초)+여운(1.8초)이면 사라진다. 소리가 8초라고 알려 주면 안 사라진다
+    const { show, wait, typeOut, onScreen } = paced(false, 8_000);
+    show([line(SHORT)]);
+    typeOut(SHORT);
+    wait(HOLD_MIN + LINGER + 200);
+    expect(onScreen(SHORT)).toBe(true);
+  });
+});
+
+/**
+ * 소리가 귀에 닿기까지의 늦음 (2026-09-05 사용자: 「관리자뿐 아니라 다들 조금씩 늦게 시작해」).
+ *
+ * `src.start()` 는 곧바로 돌아오지만 소리는 오디오 장치를 다 지나야 들린다 — 블루투스면 그게
+ * 150~300ms 다. 그동안 자막만 굴러가면 **전부가 조금씩 늦게 시작하는 것처럼** 들린다.
+ * 한 사람만이 아니라 전부라는 것이 이 값의 지문이고, 그래서 줄이 아니라 **첫 글자**에 얹는다.
+ */
+describe('/interrogation 프롤로그 — 자막을 소리가 닿는 때에 연다', () => {
+  const LAG = 300;
+  function lagged(voiceMs: number | undefined, voiceLagMs: number) {
+    const props = (messages: ChatLine[]) => ({
+      messages,
+      selfId: null,
+      touch: false,
+      speaking: true,
+      onLine: () => {},
+      voiceMsOf: voiceMs === undefined ? undefined : () => voiceMs,
+      voiceLagMs,
+    });
+    const view = render(<DialogueBox {...props([])} />);
+    const show = (msgs: ChatLine[]) => act(() => { view.rerender(<DialogueBox {...props(msgs)} />); });
+    const wait = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
+    const onScreen = (text: string) => screen.queryByText(text) !== null;
+    return { show, wait, onScreen };
+  }
+
+  it('첫 글자가 늦음만큼 늦게 찍힌다 — 그 사이에 소리가 스피커까지 간다', () => {
+    const { show, wait, onScreen } = lagged(8_000, LAG);
+    show([line(SHORT)]);
+    // 늦음이 지나기 전에는 한 글자도 안 찍힌다 (글자 간격은 아무리 커도 PER_CHAR 안쪽이다)
+    wait(PER_CHAR);
+    expect(onScreen(SHORT[0])).toBe(false);
+    wait(LAG);
+    expect(onScreen(SHORT[0])).toBe(true);
+  });
+
+  /** 첫 글자에만 얹는다 — 글자마다 얹으면 한 줄이 늦음의 글자 수 배로 늘어난다 */
+  it('둘째 글자부터는 안 늦춘다 — 줄이 통째로 늘어지면 안 된다', () => {
+    const { show, wait, onScreen } = lagged(8_000, LAG);
+    show([line(SHORT)]);
+    wait(LAG + PER_CHAR); // 첫 글자
+    wait(PER_CHAR); // 둘째 글자 — 여기서 또 늦추면 아직 안 나온다
+    expect(onScreen(SHORT.slice(0, 2))).toBe(true);
+  });
+
+  /** 소리가 없는 줄(지문·클립 못 받음)은 기다릴 소리가 없다 — 늦추면 그냥 빈 화면이다 */
+  it('소리 길이를 모르는 줄은 안 늦춘다 — 맞출 소리가 없다', () => {
+    const { show, wait, onScreen } = lagged(undefined, LAG);
+    show([line(SHORT)]);
+    wait(PER_CHAR);
+    expect(onScreen(SHORT[0])).toBe(true);
+  });
+
+  it('안 주면 예전 그대로다 — /world · /lab 의 호출부는 안 늦춰진다', () => {
+    const { show, wait, onScreen } = lagged(8_000, 0);
+    show([line(SHORT)]);
+    wait(PER_CHAR);
+    expect(onScreen(SHORT[0])).toBe(true);
+  });
+});
+
+/*
  * 넘기는 손은 **상자를 누르는 것 하나다.** 찍는 중이면 그 문장을 끝까지 보여주고,
  * 다 찍혔으면 다음 줄로 간다 — 비주얼 노벨이 늘 하던 그것이다.
  *

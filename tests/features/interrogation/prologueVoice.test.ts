@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { PROLOGUE, prologueLines } from '@/features/interrogation/prologue';
-import { voiceOf } from '@/features/interrogation/prologueVoice';
+import { leadingSilenceSec, voiceOf, type ClipSamples } from '@/features/interrogation/prologueVoice';
 import { OPENING_CAST } from '@/features/tts/openingSpeakers';
 import type { GameSeat } from '@/world/mp/game-protocol';
 
@@ -45,6 +45,50 @@ describe('프롤로그 목소리 — 통제실과 지문', () => {
 
   it('지문은 아무도 읽지 않는다 — 「천장 스피커가 켜진다」는 말이 아니라 설명이다', () => {
     expect(voiceOf({ who: 'stage', text: '천장 스피커가 켜진다.' })).toBeNull();
+  });
+});
+
+/**
+ * 앞머리 무음 (2026-09-05 사용자: 「정부 통제실에서 말하는 게 tts 가 시작이 더 늦어. 사람1은
+ * 타이밍 맞게 나오고 있거든」).
+ *
+ * 자막은 소리 길이에 맞춰 찍히므로(DialogueBox 의 paceFor) 클립 앞의 무음까지 「말」로 세면
+ * 글자만 먼저 굴러간다. 재는 쪽이 틀리면 화면은 멀쩡한데 입만 안 맞는다 — 눈으로 못 보는 자리다.
+ */
+describe('프롤로그 목소리 — 앞머리 무음', () => {
+  const RATE = 1000;
+  /** 앞에 무음 leadSec, 뒤에 level 크기의 소리가 이어지는 한 채널짜리 클립 */
+  function clip(leadSec: number, bodySec: number, level = 0.5): ClipSamples {
+    const lead = Math.round(leadSec * RATE);
+    const data = new Float32Array(lead + Math.round(bodySec * RATE));
+    for (let i = lead; i < data.length; i += 1) data[i] = i % 2 ? level : -level;
+    return { sampleRate: RATE, length: data.length, numberOfChannels: 1, getChannelData: () => data };
+  }
+
+  it('앞머리 무음을 재어 낸다 — 여유(30ms)만큼 물러서서', () => {
+    expect(leadingSilenceSec(clip(0.5, 2))).toBeCloseTo(0.47, 3);
+  });
+
+  /** 첫 자음은 서서히 오른다 — 문턱에 닿는 자리에서 바로 자르면 그 자음이 깎인다 */
+  it('찾은 자리보다 **앞에서** 자른다 — 말머리를 깎지 않는다', () => {
+    expect(leadingSilenceSec(clip(0.2, 1))).toBeLessThan(0.2);
+  });
+
+  it('말이 곧바로 시작하면 안 자른다', () => {
+    expect(leadingSilenceSec(clip(0, 2))).toBe(0);
+  });
+
+  /** 문턱을 절대값 하나로 두면 여기서 클립이 통째로 사라진다 — 봉우리에 맞춰 잡는 이유 */
+  it('조용히 녹은 클립도 잰다 — 문턱은 그 클립의 봉우리에 맞춘다', () => {
+    expect(leadingSilenceSec(clip(0.5, 2, 0.01))).toBeCloseTo(0.47, 3);
+  });
+
+  it('통째로 조용한 클립은 안 자른다 — 앞머리가 아니라 소리가 없는 것이다', () => {
+    expect(leadingSilenceSec(clip(1, 0))).toBe(0);
+  });
+
+  it('상한(1초)을 넘는 무음은 안 건드린다 — 앞머리가 아니라 깨진 클립이다', () => {
+    expect(leadingSilenceSec(clip(2, 1))).toBe(0);
   });
 });
 

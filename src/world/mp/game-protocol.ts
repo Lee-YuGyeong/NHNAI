@@ -114,6 +114,14 @@ export type GameC2SMessage =
   | { t: 'game_withdraw' }
   /** 기록에 대한 해명·주장 — 관리 AI 가 공개된 기록과 대조해 판정한다 (P5 · P6) */
   | { t: 'game_claim'; text: string }
+  /**
+   * 화면의 검문소 프롤로그 방송이 끝났다 (features/interrogation/prologue.ts).
+   *
+   * 대본은 **화면에서만** 나지만 그 길이는 서버가 알 수 없다 — 줄마다 그 자리에서 합성한 목소리에
+   * 자막을 맞추므로(prologueVoice) 판마다·기기마다 다르다. 그래서 「끝났다」만 올린다: 그때까지
+   * 대역과 AI 참가자는 입을 다물고, 첫 토론의 40초도 그때부터 센다 (runtime 의 prologueHold).
+   */
+  | { t: 'game_prologue_done' }
   /** AI 설계자의 기록 조작 — 판당 1회 · 대상 1명 (P7). 다음 결과의 공개본이 바뀐다 */
   | { t: 'game_tamper'; target: string; direction: 'suspicious' | 'normal' };
 
@@ -168,8 +176,15 @@ export const GAME_TEST_ORDER: readonly TrialGame[] = ['fall', 'platform', 'disc'
 
 /** 배역 통보 화면이 떠 있는 시간(ms) — RoleBriefing 의 SHOW_MS 와 같은 박자 */
 export const GAME_BRIEFING_MS = 7_000;
-/** 첫 토론 — 판이 열리고 첫 테스트까지 */
+/** 첫 토론 — 프롤로그 방송이 걷힌 뒤 첫 테스트까지 (GAME_PROLOGUE_MAX_MS) */
 export const GAME_FIRST_DISCUSSION_MS = 40_000;
+/**
+ * 프롤로그 방송을 기다려 주는 상한(ms) — 화면이 「끝났다」(game_prologue_done)를 안 보내도 여기서 걷는다.
+ *
+ * 대본 열세 줄은 목소리에 맞춰 흐르므로 45~55초쯤 걸리지만, 소리가 안 뜨거나 화면이 멎으면 그 말이
+ * 영영 안 온다. 판이 사람 하나 때문에 멎지 않게 두는 천장이다 (runtime 머리말의 「폴백」과 같은 규칙).
+ */
+export const GAME_PROLOGUE_MAX_MS = 75_000;
 /** 테스트 사이 · 마지막 테스트 뒤의 토론 길이(ms). 첫 토론과 같은 40초다 — 차례표가 일정한 박자로 돈다 */
 export const GAME_DISCUSSION_MS = 40_000;
 /** 결과 모달 — 항상 고정, 스킵 불가 (§1.2 5~8초) */
