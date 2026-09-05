@@ -168,7 +168,7 @@ function Pylon() {
     const beam = 0.14;
     const levels = 4;
     const lh = h / levels;
-    const out: { pos: [number, number, number]; rot: [number, number, number]; size: [number, number, number]; stripe?: boolean }[] = [];
+    const out: { pos: [number, number, number]; rot: [number, number, number]; size: [number, number, number]; stripe?: boolean; pit?: boolean }[] = [];
     // 모서리 빔
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) out.push({ pos: [(sx * w) / 2, h / 2, (sz * w) / 2], rot: [0, 0, 0], size: [beam, h, beam] });
     for (let l = 0; l <= levels; l += 1) {
@@ -190,15 +190,15 @@ function Pylon() {
         out.push({ pos: [-w / 2, y + lh / 2, 0], rot: [-s * a, 0, 0], size: [beam * 0.55, beam * 0.55, len] });
       }
     }
-    // 발판 밑 갓판 · 바닥 발치판 — 얇게, 기둥 폭에 맞춰
-    out.push({ pos: [0, h + 0.03, 0], rot: [0, 0, 0], size: [w + 0.2, 0.06, w + 0.2] });
-    out.push({ pos: [0, 0.04, 0], rot: [0, 0, 0], size: [w + 0.3, 0.08, w + 0.3] });
+    // 갓판은 없다 — 가운데 발판이 떨어지면 회색 판이 드러나 설 수 있는 발판으로 오해됐다 (2026-09-05 사용자: "가운데 회색 안 보이게").
+    // 위는 맨 위 가로 띠(황색)로 끝나고 그 사이로 아래가 뚫려 보인다. 바닥 발치판만 얇게, 구덩이 색으로
+    out.push({ pos: [0, 0.03, 0], rot: [0, 0, 0], size: [w + 0.3, 0.06, w + 0.3], pit: true });
     return out;
   }, []);
   return (
     <group position={[TOWER_CENTER.x, 0, TOWER_CENTER.z]}>
       {parts.map((p, i) => (
-        <mesh key={i} position={p.pos} rotation={p.rot} material={p.stripe ? BEAM_STRIPE : BEAM_MAT} castShadow>
+        <mesh key={i} position={p.pos} rotation={p.rot} material={p.pit ? PIT_MAT : p.stripe ? BEAM_STRIPE : BEAM_MAT} castShadow>
           <boxGeometry args={p.size} />
         </mesh>
       ))}
