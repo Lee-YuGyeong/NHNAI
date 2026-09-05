@@ -248,12 +248,13 @@ export const GAME_MAX_HUMANS = 8;
  *
  *   입장 → 대화 40초 → ① 시험 30초 → 대화 40초 → ② 시험 30초 → 대화 40초 → ③ 시험 30초 → 대화 40초 → 끝
  *
- * 어느 셋인가는 **판이 열릴 때 후보 여섯(GAME_TEST_POOL: 낙하 생존 · 발판 · 원판 · 무게 중심 다리 · 무너지는 타워 · 회전 봉 넘기)에서 무작위로** 뽑는다 — 겹치지 않게, 순서도 뽑힌 대로
- * (2026-09-05 사용자: "검사판 랜덤 게임에 무게중심다리도 들어갈 수 있도록", 2026-09-06 사용자: "회전 봉 넣기 GAME_TEST_POOL에 넣어줘"). 그 전에는 낙하 생존 → 발판 → 원판으로
+ * 어느 셋인가는 **판이 열릴 때 후보 다섯(GAME_TEST_POOL: 낙하 생존 · 발판 · 원판 · 무게 중심 다리 · 무너지는 타워)에서 무작위로** 뽑는다 — 겹치지 않게, 순서도 뽑힌 대로
+ * (2026-09-05 사용자: "검사판 랜덤 게임에 무게중심다리도 들어갈 수 있도록"). 회전 봉 넘기('bar')는 2026-09-06 에 잠깐 후보에 들었다가 같은 날 뺐다
+ * (사용자: "검문소에 회전봉 게임 빼줘") — 게임 자체는 /trial?game=bar 에 남아 있고, 검문소 판에서만 안 나온다. 그 전에는 낙하 생존 → 발판 → 원판으로
  * 고정이었다 — 판마다 무엇이 나올지 모르지만 「세 번의 시험」이라는 판의 모양은 그대로다. 뽑힌 차례는 판이 열리는 순간
  * 서버가 정해 GameStateWire.tests 로 공개한다(순서는 공개, 조건값만 비밀). 관리 AI 가 매번 고르던 설계(agents.designNext)는 접었다.
  */
-export const GAME_TEST_POOL: readonly TrialGame[] = ['fall', 'platform', 'disc', 'seesaw', 'tower', 'bar'];
+export const GAME_TEST_POOL: readonly TrialGame[] = ['fall', 'platform', 'disc', 'seesaw', 'tower'];
 /** 한 판이 여는 시험 수 */
 export const GAME_TEST_COUNT = 3;
 
