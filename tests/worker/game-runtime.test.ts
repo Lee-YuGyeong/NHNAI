@@ -715,15 +715,14 @@ describe('GameRuntime — 발언권', () => {
     const grant = talks(h).find((m) => m.gained)!;
     expect(grant.game).toBe('fall');
     const [full, eight, instant] = engine.ids;
-    // 30.08초 → 30초로 잘라 10. 시작 지갑 6 에 얹으면 상한(15)에 걸린다 — 실제로 받은 것은 9
-    expect(grant.gained[full]).toBe(TALK.cap - TALK.start);
-    // 잘라내기 자체 — 지갑이 비어 있었다면 딱 10 이다
+    // 30.08초 → 30초로 잘라 10. 지급은 온전히 — 안 쓴 6 중 넘어가는 것은 carry(5)까지라 지갑은 5 + 10
+    expect(grant.gained[full]).toBe(10);
     expect(talkFor('fall', { survivalTime: 30.08 }, GAME_TEST_MS)).toBe(10);
     expect(talkFor('disc', { survivalTime: 31 }, GAME_TEST_MS)).toBe(10);
     expect(grant.gained[eight]).toBe(3); // 8초 → ceil(8/3)
     expect(grant.gained[instant]).toBe(TALK.min); // 0.4초 → 최소
-    expect(h.lastState().talk[full]).toBe(TALK.cap);
-    expect(h.lastState().talk[eight]).toBe(TALK.start + 3);
+    expect(h.lastState().talk[full]).toBe(TALK.carry + 10);
+    expect(h.lastState().talk[eight]).toBe(TALK.carry + 3);
   });
 
   it('발판 — 도착하고 남긴 초로, 못 갔으면 최소만', async () => {
@@ -739,16 +738,21 @@ describe('GameRuntime — 발언권', () => {
     expect(grant.gained[stuck]).toBe(TALK.min);
   });
 
-  it('지갑은 상한을 넘지 않는다 — 아껴 둔 사람도 열다섯이 끝이다', async () => {
+  it('아껴 둔 것은 다섯까지만 넘어가고, 지급은 1등이든 꼴등이든 제 몫을 온전히 받는다', async () => {
     const engine = new TimedEngine('disc', () => ({ survivalTime: 30, falls: 0, transitionError: 0.1 }));
     const h = harness({ engine });
     await h.rt.handle('p1', { t: 'game_start' });
     await openBoard(h);
-    // 아무도 말하지 않고 시험 하나 — 6 + 10 = 16 이지만 상한 15
+    // p1 은 다 쓰고, 나머지는 한 마디도 안 한다 — 시험에서는 전원이 끝까지 버텼다
+    for (let i = 0; i < TALK.start; i += 1) h.rt.onChat('p1', `말 ${i}`);
     await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
     await vi.advanceTimersByTimeAsync(GAME_TEST_MS + 10);
-    for (const id of engine.ids) expect(h.lastState().talk[id]).toBe(TALK.cap);
-    expect(talks(h).find((m) => m.gained)!.gained[engine.ids[0]]).toBe(TALK.cap - TALK.start);
+    const grant = talks(h).find((m) => m.gained)!;
+    const spent = h.roleOf('p1')!.seatId;
+    // 받은 것은 똑같이 10 — 상한이 지급을 깎지 않는다 (예전엔 아낀 쪽이 +9, 다음 시험엔 +0 이었다)
+    for (const id of engine.ids) expect(grant.gained[id]).toBe(10);
+    expect(h.lastState().talk[spent]).toBe(10); // 0 + 10
+    for (const id of engine.ids) if (id !== spent) expect(h.lastState().talk[id]).toBe(TALK.carry + 10); // 6 → 5 + 10
   });
 
   it('주장도 한 마디다 — 지갑이 비면 판정에 안 오른다', async () => {

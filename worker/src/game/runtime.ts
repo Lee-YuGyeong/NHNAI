@@ -1339,6 +1339,7 @@ export class GameRuntime {
   /**
    * 시험이 끝났다 — 기록만큼 지급한다 (TALK · talkFor). 격리된 좌석은 결과에 없으니 자연히 못 받는다.
    * 공개본(조작본)으로 센다: 지갑이 기록과 어긋나면 그 어긋남이 조작을 새게 하는 자리가 된다 (P7).
+   * 안 쓴 것은 TALK.carry 까지만 넘어가고 지급은 온전히 얹는다 — 1등이 「+0」을 받는 일이 없다 (TALK 머리말).
    */
   private grantTalk(game: TrialGame, published: TrialPlayerResult[]): void {
     const gained: Record<string, number> = {};
@@ -1346,9 +1347,8 @@ export class GameRuntime {
       const seat = this.seats.find((s) => s.id === p.id);
       if (!seat || seat.isolated) continue;
       const gain = talkFor(game, p.metrics, GAME_TEST_MS);
-      const next = Math.min(TALK.cap, seat.talk + gain);
-      gained[seat.id] = next - seat.talk;
-      seat.talk = next;
+      seat.talk = Math.min(seat.talk, TALK.carry) + gain;
+      gained[seat.id] = gain;
     }
     this.deps.broadcast({ t: 'game_talk', talk: this.talkSnapshot(), gained, game });
   }
