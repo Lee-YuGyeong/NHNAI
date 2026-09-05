@@ -368,10 +368,13 @@ describe('GameRuntime — 판 한 바퀴', () => {
     expect(ended.outcome.winner).toBe('humans');
     expect(Object.values(ended.roles).filter((r) => r === 'ai')).toHaveLength(1);
     expect(Object.keys(ended.roles)).toHaveLength(4);
+    // 기본 판의 배역은 [AI 설계자 1 · 사람 2 · AI 1] 이다 (roles.designerCount, 2026-09-05 사용자)
+    expect(Object.values(ended.roles).filter((r) => r === 'designer')).toHaveLength(1);
+    expect(Object.values(ended.roles).filter((r) => r === 'human')).toHaveLength(2);
   });
 
   it('설계자 조작은 다음 결과의 공개본을 바꾸고, 원본은 그대로다', async () => {
-    // 6명이면 설계자 상한 2, rand 0.4 → floor(0.4*3)=1 명
+    // 6명이면 설계자는 둘이다 (roles.designerCount)
     const six = [1, 2, 3, 4, 5, 6].map((i) => player(`p${i}`, i));
     const h = harness({ players: six });
     await h.rt.handle('p1', { t: 'game_start' });

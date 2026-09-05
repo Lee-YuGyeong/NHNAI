@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { SUSPICION, SUSPICION_PRESSURE, pressureFor } from '../../src/world/mp/game-protocol';
-import { assignRoles, designerCap, outcomeFor, quotaFor, shuffled } from '../../worker/src/game/roles';
+import { assignRoles, designerCount, outcomeFor, quotaFor, shuffled } from '../../worker/src/game/roles';
 import { REPEAT_STEP, SuspicionBook } from '../../worker/src/game/suspicion';
 import {
   BACK_MAX_MS,
@@ -19,28 +19,32 @@ import {
 } from '../../worker/src/game/tells';
 
 describe('배역 — §1.1', () => {
-  it('설계자 상한은 실제 플레이어 수로 정해진다 (3→0 · 4~5→1 · 6~8→2)', () => {
-    expect(designerCap(3)).toBe(0);
-    expect(designerCap(4)).toBe(1);
-    expect(designerCap(5)).toBe(1);
-    expect(designerCap(6)).toBe(2);
-    expect(designerCap(8)).toBe(2);
+  it('설계자 수는 실제 플레이어 수로 정해진다 (3~5→1 · 6~8→2)', () => {
+    expect(designerCount(3)).toBe(1);
+    expect(designerCount(4)).toBe(1);
+    expect(designerCount(5)).toBe(1);
+    expect(designerCount(6)).toBe(2);
+    expect(designerCount(8)).toBe(2);
   });
 
-  it('AI 는 정확히 하나고, 설계자는 상한 안에서 0부터 뽑힌다', () => {
+  it('AI 는 정확히 하나고, 설계자 수는 rand 와 무관하게 그 수 그대로다', () => {
     const humans = ['a', 'b', 'c', 'd', 'e', 'f'];
-    // rand 가 1 에 가까우면 상한만큼(2), 0 이면 0명
-    const max = assignRoles(humans, 'ai', () => 0.999);
-    expect(max.designers).toHaveLength(2);
-    expect(Object.values(max.roles).filter((r) => r === 'ai')).toHaveLength(1);
-    expect(max.roles.ai).toBe('ai');
-    const none = assignRoles(humans, 'ai', () => 0);
-    expect(none.designers).toHaveLength(0);
-    expect(Object.values(none.roles).filter((r) => r === 'human')).toHaveLength(6);
+    for (const rand of [() => 0, () => 0.5, () => 0.999]) {
+      const a = assignRoles(humans, 'ai', rand);
+      expect(a.designers).toHaveLength(2);
+      expect(Object.values(a.roles).filter((r) => r === 'ai')).toHaveLength(1);
+      expect(Object.values(a.roles).filter((r) => r === 'human')).toHaveLength(4);
+      expect(a.roles.ai).toBe('ai');
+    }
   });
 
-  it('3명이면 설계자는 절대 없다', () => {
-    for (let i = 0; i < 20; i += 1) expect(assignRoles(['a', 'b', 'c'], 'ai').designers).toHaveLength(0);
+  it('기본 판(사람 3 + AI 1)은 설계자 1 · 사람 2 · AI 1 이다 (2026-09-05 사용자)', () => {
+    for (let i = 0; i < 20; i += 1) {
+      const a = assignRoles(['a', 'b', 'c'], 'ai');
+      expect(a.designers).toHaveLength(1);
+      expect(Object.values(a.roles).filter((r) => r === 'human')).toHaveLength(2);
+      expect(Object.values(a.roles).filter((r) => r === 'ai')).toHaveLength(1);
+    }
   });
 
   it('섞기는 원소를 잃지 않는다', () => {

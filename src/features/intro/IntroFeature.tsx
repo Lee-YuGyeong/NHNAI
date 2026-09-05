@@ -18,7 +18,7 @@
  * │ 이 화면이 실제로 걸린 라우트는 이제 features/lobby/Intro.tsx(/intro)다 — 이 파일은      │
  * │ 경로를 잃었지만(features/index.ts) 문서화된 대로 "고칠 일이 있으면 두 화면을 같이       │
  * │ 고친다"를 지킨다. 옛 배역(리더 AI · AI 노드 ×5 · 인간 요원 ×3, 8석 고정, 3라운드)을      │
- * │ PLANNING §1의 새 구성(AI 1 고정 · AI 설계자 0~2 · 사람 3~8, 라운드 없이 연속 진행)으로   │
+ * │ PLANNING §1의 새 구성(AI 1 고정 · AI 설계자 1~2 · 사람 3~8, 라운드 없이 연속 진행)으로   │
  * │ 다시 썼다. 새 이미지 role-ai.jpg · role-designer.jpg 는 lobby/Intro.tsx 와 같은 것을     │
  * │ 쓴다(public/intro/) — 같은 게임이 두 얼굴을 갖지 않게.                                   │
  * └────────────────────────────────────────────────────────────────────────────────────────┘
@@ -227,9 +227,9 @@ export function IntroFeature() {
                 </strong>
               </li>
               <li>
-                {/* 설계자 상한은 사람 수가 정한다 (roles.designerCap: 3명→0 · 4~5명→1 · 6~8명→2) */}
+                {/* 설계자 수는 사람 수가 정한다 (roles.designerCount: 3~5명→1 · 6~8명→2) */}
                 <small>DESIGNERS</small>
-                <strong>0–2</strong>
+                <strong>1–2</strong>
               </li>
               <li>
                 {/* 「7–9 MIN」이었다 — 차례표가 고정되기 전의 어림이다. 이제 더하기로 나온다(ROUND_MS) */}
@@ -285,7 +285,7 @@ export function IntroFeature() {
               </h2>
             </div>
             <p>
-              배역은 게임을 시작하는 순간 다시 섞인다. 사람 수만 실시간으로 보일 뿐, 그 안에 설계자가 몇 있는지는
+              배역은 게임을 시작하는 순간 다시 섞인다. 사람들 틈에는 AI 설계자가 섞여 있지만, 그게 누구인지는
               아무도 모른다.
             </p>
           </div>
@@ -323,7 +323,7 @@ export function IntroFeature() {
               <h3>AI 설계자</h3>
               <p>표식을 붙이지 않은 걸 들켜서는 안 되는 조력자. AI의 정체를 시작부터 정확히 안다. 판당 한 번, 기록을 조작할 수 있다.</p>
               <ul>
-                <li>존재 자체가 비공개</li>
+                <li>누구인지는 비공개</li>
                 <li>AI의 정체를 안다</li>
                 <li>기록 조작 1회</li>
               </ul>
@@ -435,7 +435,7 @@ export function IntroFeature() {
 const STEPS = [
   {
     title: '입장 & 배치',
-    body: `사람 ${GAME_MIN_HUMANS}~${GAME_MAX_HUMANS}명과 AI 1좌석이 뒤섞여 자리를 잡는다. 모자란 자리는 대역이 채우고, 설계자가 몇 있는지는 아무도 모른다.`,
+    body: `사람 ${GAME_MIN_HUMANS}~${GAME_MAX_HUMANS}명과 AI 1좌석이 뒤섞여 자리를 잡는다. 모자란 자리는 대역이 채우고, 그 사람들 틈에 AI 설계자가 섞인다.`,
   },
   {
     title: `물리 테스트 ×${GAME_TEST_ORDER.length}`,

@@ -148,7 +148,7 @@ describe('assignVoices — 작은 판도 명부 전체를 쓴다', () => {
     expect(seen.size).toBe(ROSTER_SIZE);
   });
 
-  it('3인 판(설계자 0명, PLANNING §1.1)에서도 마찬가지다', () => {
+  it('3인 판(설계자 1명, PLANNING §1.1)에서도 마찬가지다', () => {
     const seen = new Set<number>();
     for (let seed = 0; seed < 500; seed++) {
       for (const v of assignVoices([1, 2, 3], seeded(seed)).values()) seen.add(v);
