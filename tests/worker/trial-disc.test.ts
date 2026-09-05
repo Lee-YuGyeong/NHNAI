@@ -174,6 +174,37 @@ describe('npc — precision 이 걸음을 가른다 (P9)', () => {
     expect(machine.radiusStd).toBeLessThan(human.radiusStd);
     expect(machine.falls).toBe(0);
   });
+
+  it('사람 같은 좌석은 원판이 돌면 회전을 거슬러 뛴다 — 미끄러질 때만 반응하는 동상이 아니다 (2026-09-05 사용자)', () => {
+    // 마찰이 좋아서(μ 0.6) 한 번도 안 미끄러지는 판 — 옛 봇은 여기서 걷기 명령이 거의 0 이었다
+    const rand = seeded(5);
+    const profile = makeDiscProfile(1, 0.2, rand);
+    const body = makeBody('bot', 0, profile.targetR);
+    const bot = makeDiscBot(body, profile);
+    const omega = 1.0; // ω²r ≈ 2.5 < μg 5.88 — 서 있어도 안 밀리는 조건
+    let walking = 0;
+    for (let i = 0; i < 400; i += 1) {
+      const out = stepBot(bot, omega, 0, i * 50, DT, rand);
+      stepBody(body, out.w, omega, 0, MU, DT, i * 50);
+      if (Math.hypot(out.w.x, out.w.z) > 0.05) walking += 1;
+      // 뛰는 방향은 실려 가는 방향(ω×p)의 반대쪽 성분이 커야 한다
+      if (i === 200) {
+        const t = cross(omega, { x: body.px, z: body.pz });
+        expect(out.w.x * t.x + out.w.z * t.z).toBeLessThan(0);
+      }
+    }
+    expect(walking / 400).toBeGreaterThan(0.5);
+    // 기계 좌석은 같은 조건에서 여전히 서 있다 — 지문(⑤)은 그대로다
+    const mBody = makeBody('m', 0, MIN_R + 0.15);
+    const mBot = makeDiscBot(mBody, makeDiscProfile(0, 1, rand));
+    let mWalking = 0;
+    for (let i = 0; i < 400; i += 1) {
+      const out = stepBot(mBot, omega, 0, i * 50, DT, rand);
+      stepBody(mBody, out.w, omega, 0, MU, DT, i * 50);
+      if (Math.hypot(out.w.x, out.w.z) > 0.05) mWalking += 1;
+    }
+    expect(mWalking / 400).toBeLessThan(0.05);
+  });
 });
 
 describe('DiscEngine', () => {

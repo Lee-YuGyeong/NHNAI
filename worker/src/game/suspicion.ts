@@ -47,18 +47,21 @@ export interface SuspicionDelta {
  */
 export const REPEAT_STEP = 5;
 
-/** 표식의 종류 — 말 둘(echo · duck)과 몸 둘(still · backstep). 관리 AI 의 말 읽기(read)는 크기를 밖에서 정하므로 따로다 */
-export type TellKind = 'echo' | 'duck' | 'still' | 'backstep';
+/** 표식의 종류 — 말 셋(echo · duck · mention)과 몸 둘(still · backstep). 관리 AI 의 말 읽기(read)는 크기를 밖에서 정하므로 따로다 */
+export type TellKind = 'echo' | 'duck' | 'mention' | 'still' | 'backstep';
 
 const TELL_BASE: Record<TellKind, number> = {
   echo: SUSPICION.echo,
   duck: SUSPICION.duck,
+  mention: SUSPICION.mention,
   still: SUSPICION.still,
   backstep: SUSPICION.backstep,
 };
 
 /** 몸에서 오는 표식 — 이것들만 bodyCap 을 함께 나눠 쓴다 */
 const BODY_TELLS: readonly TellKind[] = ['still', 'backstep'];
+/** 평평한 표식 — 거듭 걸려도 repeatWeight 를 안 탄다. 거론(⑩)은 「스친 이름」과 「몰리는 이름」을 횟수로 가르는 문이라 걸음이 자라면 안 된다 */
+const FLAT_TELLS: readonly TellKind[] = ['mention'];
 
 export class SuspicionBook {
   private readonly value = new Map<string, number>();
@@ -72,6 +75,8 @@ export class SuspicionBook {
   private readonly tellNth = new Map<string, number>();
   /** 좌석 → 몸이 그 좌석에 물린 총량. SUSPICION.bodyCap 에서 멈춘다 */
   private readonly bodyGiven = new Map<string, number>();
+  /** 좌석 → 거론(⑩)으로 물린 총량. SUSPICION.mentionCap 에서 멈춘다 */
+  private readonly mentionGiven = new Map<string, number>();
   private readonly frozen = new Set<string>();
 
   /**
@@ -239,12 +244,18 @@ export class SuspicionBook {
 
     // 누계와 extra 까지 합친 뒤 압력을 한 번 — 몸의 상한(bodyCap)은 **곱해진 값**으로 센다:
     // 후반엔 상한에 더 빨리 닿을 뿐, 몸이 물 수 있는 총량 30 은 그대로다
-    let amount = this.scale(TELL_BASE[kind] + SUSPICION.repeatWeight * nth + extra);
+    let amount = this.scale(TELL_BASE[kind] + (FLAT_TELLS.includes(kind) ? 0 : SUSPICION.repeatWeight * nth) + extra);
     if (BODY_TELLS.includes(kind)) {
       const given = this.bodyGiven.get(id) ?? 0;
       amount = Math.max(0, Math.min(amount, SUSPICION.bodyCap - given));
       if (amount === 0) return null; // 이 좌석의 몸은 이미 물릴 만큼 물렸다
       this.bodyGiven.set(id, given + amount);
+    }
+    if (kind === 'mention') {
+      const given = this.mentionGiven.get(id) ?? 0;
+      amount = Math.max(0, Math.min(amount, SUSPICION.mentionCap - given));
+      if (amount === 0) return null; // 거론으로는 이만큼만 — 이름만으로 격리되지 않는다
+      this.mentionGiven.set(id, given + amount);
     }
     this.bump(id, amount);
     return { target: id, amount, by: 'LEADER', why };

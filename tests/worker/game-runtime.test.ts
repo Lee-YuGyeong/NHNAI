@@ -26,7 +26,7 @@ import type { PlayerSnapshot, S2CMessage, TrialGame, TrialPlayerResult } from '.
 import type { Brain } from '../../worker/src/game/brain';
 import { GameRuntime } from '../../worker/src/game/runtime';
 import { REPEAT_STEP } from '../../worker/src/game/suspicion';
-import { DUCK_WINDOW_MS, STILL_MS } from '../../worker/src/game/tells';
+import { DUCK_WINDOW_MS, MENTION_GAP_MS, STILL_MS } from '../../worker/src/game/tells';
 import type { EngineContext, GameEngine } from '../../worker/src/trial/engine';
 
 type Out = S2CMessage | GameS2CMessage;
@@ -828,7 +828,7 @@ describe('GameRuntime — 표식', () => {
     expect(h.lastState().suspicion[p2Seat]).toBe(0);
   });
 
-  it('첫 회피는 안 문다 — 말수는 성격이다. 안 불렸으면 아무리 조용해도 0 이다', async () => {
+  it('첫 회피부터 문다 — 불렀는데 15초 안에 답이 없으면. 안 불렸으면 아무리 조용해도 0 이다', async () => {
     const h = harness();
     await h.rt.handle('p1', { t: 'game_start' });
     await openBoard(h);
@@ -836,9 +836,10 @@ describe('GameRuntime — 표식', () => {
     const nn = String(h.lastState().seats.find((s) => s.id === p3Seat)!.seat).padStart(2, '0');
 
     h.rt.onChat('p1', `${nn} 너는 어땠어`);
-    await vi.advanceTimersByTimeAsync(21_000);
-    expect(h.lastState().suspicion[p3Seat]).toBe(0); // 한 번 못 들은 것과 피하는 것은 다르다
-    // p2 는 아예 불린 적이 없다 — 판 내내 조용해도 눈금은 안 움직인다
+    await vi.advanceTimersByTimeAsync(DUCK_WINDOW_MS + 1_000);
+    // 2026-09-05 사용자: "대답을 회피하는 상대 · 대답을 안 하는 상대 위주로" — 첫 번을 봐주면 40초 토론에서 한 번도 안 물린다
+    expect(h.lastState().suspicion[p3Seat]).toBe(SUSPICION.duck);
+    // p2 는 아예 불린 적이 없다 — 판 내내 조용해도 눈금은 안 움직인다 (침묵은 벌하지 않는다)
     expect(h.lastState().suspicion[h.roleOf('p2')!.seatId]).toBe(0);
   });
 
@@ -849,10 +850,10 @@ describe('GameRuntime — 표식', () => {
     const p3Seat = h.roleOf('p3')!.seatId;
     const nn = String(h.lastState().seats.find((s) => s.id === p3Seat)!.seat).padStart(2, '0');
 
-    // 1차 토론에서 첫 회피를 쓴다 (DUCK_FREE) — 한 번 못 들은 것과 피하는 것은 다르다
+    // 1차 토론의 첫 회피 — 첫 번부터 문다 (DUCK_FREE 0, 2026-09-05)
     h.rt.onChat('p1', `${nn} 너는 어땠어`);
     await vi.advanceTimersByTimeAsync(DUCK_WINDOW_MS + 1_000);
-    expect(h.lastState().suspicion[p3Seat]).toBe(0);
+    expect(h.lastState().suspicion[p3Seat]).toBe(SUSPICION.duck);
 
     // 2차 토론이 **열리는 자리**까지 — 호명은 토론마다 새로 센다 (openDiscussion 의 called.clear)
     for (const p of ['test', 'result', 'discussion'] as const) {
@@ -861,17 +862,71 @@ describe('GameRuntime — 표식', () => {
     }
 
     /*
-     * 둘이 이어서 묻는다 — 방의 박자(3.5~10초)가 회피의 문턱(20초)보다 짧으니, 불릴 때마다 시계가
+     * 둘이 이어서 묻는다 — 방의 박자(3.5~10초)가 회피의 문턱(15초)보다 짧으니, 불릴 때마다 시계가
      * 0 으로 돌아가면 아무리 물어도 영영 안 물린다. 세는 것은 「처음 불린 뒤 여태 대답이 없다」다.
      */
+    const before = h.lastState().suspicion[p3Seat];
     h.rt.onChat('p1', `${nn} 아까 기록 얘기 좀 해봐`);
-    await vi.advanceTimersByTimeAsync(15_000);
+    await vi.advanceTimersByTimeAsync(DUCK_WINDOW_MS - 5_000);
     h.rt.onChat('p2', `${nn} 왜 대답을 안 해`);
-    expect(h.lastState().suspicion[p3Seat]).toBe(0);
+    // 아직 회피는 아니다 — 다만 이 줄이 그 좌석의 **세 번째 거론**이라 ⑩ 이 한 번 문다 (압력이 붙는다)
+    const mentioned = before + Math.round(SUSPICION.mention * pressureFor(1));
+    expect(h.lastState().suspicion[p3Seat]).toBe(mentioned);
 
-    // 처음 불린 때부터 20초 — 되묻기가 유예를 늘리지 않는다
+    // 처음 불린 때부터 15초 — 되묻기가 유예를 늘리지 않는다. 두 번째 회피라 누계(+5)에 2차 토론의 압력이 붙는다
     await vi.advanceTimersByTimeAsync(6_000);
-    expect(h.lastState().suspicion[p3Seat]).toBe(Math.round(SUSPICION.duck * pressureFor(1)));
+    expect(h.lastState().suspicion[p3Seat]).toBe(mentioned + Math.round((SUSPICION.duck + SUSPICION.repeatWeight) * pressureFor(1)));
+  });
+
+  it('죄목의 말은 「AI」만이 아니다 — 「이상해」·「로봇 같아」·「가짜」·「사람 아니야」도 지목이다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const p1Seat = h.roleOf('p1')!.seatId;
+    const other = h.lastState().seats.find((s) => s.id !== p1Seat)!;
+    const given = other.name.slice(1);
+    h.rt.onChat('p1', `${given}이 좀 이상해`);
+    expect(h.lastState().accusations[p1Seat]).toBe(other.id);
+    await h.rt.handle('p1', { t: 'game_withdraw' });
+    await vi.advanceTimersByTimeAsync(5_100);
+    h.rt.onChat('p1', `${given} 완전 로봇 같은데`);
+    expect(h.lastState().accusations[p1Seat]).toBe(other.id);
+    await h.rt.handle('p1', { t: 'game_withdraw' });
+    await vi.advanceTimersByTimeAsync(5_100);
+    // 「그 이상」은 아니다 — 활용형만 잡는다
+    h.rt.onChat('p1', `${given} 기록은 3초 이상이었나`);
+    expect(h.lastState().accusations[p1Seat]).toBeUndefined();
+  });
+
+  /*
+   * ⑩ 거듭 거론 (2026-09-05 사용자: "명칭으로 계속 얘기해도 의심도가 안 올라가" / "짧게 몇 번 언급됐는데 확 올리진 말고").
+   * 지목의 말 없이 이름만 오르내리면 — 두 번까지는 0, 세 번째에 +4, 다섯 번째에 +4 … 한 좌석에 12 까지.
+   */
+  it('이름이 자꾸 오르내리면 천천히 오른다 — 두 번은 0, 세 번째부터 두 번에 한 번 +4, 상한 12', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    // 거론되는 쪽은 말하는 셋이 아닌 넷째 좌석(AI) — 제 이름을 제가 부르는 것은 안 센다
+    const mine = new Set(['p1', 'p2', 'p3'].map((p) => h.roleOf(p)!.seatId));
+    const other = h.lastState().seats.find((s) => !mine.has(s.id))!;
+    const given = other.name.slice(1);
+    // 같은 사람의 연타는 10초 안이면 한 번이다
+    h.rt.onChat('p1', `${given} 아까 뭐 했어`);
+    h.rt.onChat('p1', `${given} 말이야`);
+    expect(h.lastState().suspicion[other.id] ?? 0).toBe(0);
+    await vi.advanceTimersByTimeAsync(MENTION_GAP_MS + 100);
+    h.rt.onChat('p2', `${given} 기록 봤어?`);
+    expect(h.lastState().suspicion[other.id] ?? 0).toBe(0); // 두 번 — 아직
+    h.rt.onChat('p3', `${given} 그때 늦지 않았나`);
+    expect(h.lastState().suspicion[other.id]).toBe(SUSPICION.mention); // 세 번째
+    // 처음 불린 지 15초가 지나면 그 좌석(대답 없는 AI)은 회피(⑦)로도 한 번 물린다 — 거론과 별개의 문이다
+    await vi.advanceTimersByTimeAsync(MENTION_GAP_MS + 100);
+    const ducked = SUSPICION.duck;
+    h.rt.onChat('p1', `${given} 얘기 좀 해 봐`);
+    expect(h.lastState().suspicion[other.id]).toBe(SUSPICION.mention + ducked); // 네 번째 — 두 번에 한 번이라 거론은 그대로
+    h.rt.onChat('p2', `${given} 대답이 없네`);
+    expect(h.lastState().suspicion[other.id]).toBe(SUSPICION.mention * 2 + ducked); // 다섯 번째
+    // 상한(mentionCap)은 장부 시험(game-rules)이 잠근다 — 여기서 더 부르면 회피가 거듭 걸려 거론만 못 잰다
   });
 
   it('프롤로그 방송 동안은 아무것도 안 잰다 — 못 움직이게 해 놓고 안 움직였다고 물면 안 된다', async () => {

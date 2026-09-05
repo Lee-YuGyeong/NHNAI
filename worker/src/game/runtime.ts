@@ -73,6 +73,9 @@ import {
   BodyWatch,
   DUCK_FREE,
   DUCK_WINDOW_MS,
+  MENTION_AFTER,
+  MENTION_EVERY,
+  MENTION_GAP_MS,
   ECHO_GAP_MS,
   ECHO_LOOKBACK,
   MENTION_MIN_SCORE,
@@ -234,8 +237,10 @@ export class GameRuntime {
   private bodyWatch = new BodyWatch();
   /** 불린 좌석 → 불린 시각. 그 좌석이 말하면 지운다 (DUCK_WINDOW_MS 안에 안 말하면 회피) */
   private called = new Map<string, number>();
-  /** 좌석 → 회피 횟수. 첫 번은 안 문다 (DUCK_FREE) */
+  /** 좌석 → 회피 횟수. DUCK_FREE 번까지는 안 문다 */
   private ducked = new Map<string, number>();
+  /** 거론(⑩) — 대상 좌석 → 센 횟수와 「누가 언제 마지막으로 불렀나」 (MENTION_GAP_MS 안의 연타는 한 번) */
+  private mentions = new Map<string, { n: number; lastBy: Map<string, number> }>();
   /** 좌석 → 마지막 되풀이 판정 시각 (ECHO_GAP_MS) */
   private lastEchoAt = new Map<string, number>();
   /** 지금 말을 짓고 있는 좌석들 — 방 전체가 아니라 **좌석마다**의 잠금이다 (BOT_TALK_CONCURRENCY) */
@@ -889,7 +894,12 @@ export class GameRuntime {
    * 애먼 사람을 격리하면 AI 가 이긴다 (roles.outcomeFor) — 그래서 애매하면 **안 잡는 쪽**으로 기운다.
    */
   private accusationIn(text: string, bySeatId: string): string | null {
-    if (!/AI|에이아이|의심|수상|지목|범인|너지|너잖|쟤야|걔야|아니야\s*\?|아냐\s*\?/i.test(text)) return null;
+    /*
+     * 죄목의 말 — 2026-09-05 사용자: "이름을 불러도 의심도가 안 오른다". 한국어 채팅의 몰이는 「AI」보다 「이상해」·
+     * 「로봇 같아」·「가짜」·「티 나」·「사람 아니야」로 온다. 일상어를 잡던 조각(「몰」·「같아」·「찍」)은 여전히 안 넣는다 —
+     * 「이상」은 활용형(이상해·이상하다·이상한·이상함)으로만 잡아 「그 이상」을 피한다
+     */
+    if (!/AI|에이아이|의심|수상|지목|범인|너지|너잖|쟤야|걔야|아니야\s*\?|아냐\s*\?|이상(해|하|한|함)|어색|로봇|기계|봇\b|가짜|거짓말|구라|티\s*나|(사람|인간)\s*(이|은|는)?\s*아니/i.test(text)) return null;
     // 번호와 이름을 세는 눈은 tells.seatMentions 한 곳이다 — 지목과 호명(calledIn)이 같은 것을 봐야 판이 안 어긋난다.
     // 좌석은 한국인 이름으로 불리므로(mp/koreanNames) 「지훈」·「김지훈」이 첫째 단서고, 「SUBJECT 03」·「03」·「3번」이 그다음이다
     let best: Mention | null = null;
@@ -1158,6 +1168,8 @@ export class GameRuntime {
      */
     const called = calledIn(text, this.seats, seat.id);
     if (called && this.judging() && !this.called.has(called)) this.called.set(called, now);
+    // 이 말에 누가 거론됐나 — 자꾸 입에 오르내리는 이름은 천천히 오른다 (⑩ noteMentions)
+    if (this.judging()) this.noteMentions(text, seat.id, now);
 
     // 사람의 말이든 봇의 말이든 같은 문으로 들어간다 — 관리 AI 는 누가 사람인지 모른다 (P5)
     this.unread.push({ name: seat.name, text });
@@ -1187,10 +1199,33 @@ export class GameRuntime {
   }
 
   /**
+   * 거듭 거론 (docs/SUSPICION.md ⑩) — 지목의 말이 없어도 이름·번호가 **자꾸** 오르내리는 사람은 천천히 오른다
+   * (2026-09-05 사용자: "명칭으로 계속 얘기해도 의심도가 안 올라가" — 그렇다고 "짧게 몇 번 언급됐는데 확 올리진 말고").
+   *
+   *   · 같은 사람이 MENTION_GAP_MS 안에 같은 이름을 또 불러도 한 번으로 센다 — 한 화제로 이어 말하는 것은 연타가 아니다
+   *   · MENTION_AFTER 번째부터 MENTION_EVERY 번마다 SUSPICION.mention 씩, 좌석당 mentionCap 까지 (book.tell 이 막는다)
+   *   · 자기 이름 · 격리된 좌석은 안 센다. 지목의 말이 든 줄도 센다 — 지목은 지목대로(①), 거론은 거론대로(⑩)
+   */
+  private noteMentions(text: string, bySeatId: string, now: number): void {
+    for (const m of seatMentions(text, this.seats, bySeatId)) {
+      if (m.score < MENTION_MIN_SCORE) continue;
+      const rec = this.mentions.get(m.id) ?? { n: 0, lastBy: new Map<string, number>() };
+      const last = rec.lastBy.get(bySeatId) ?? -Infinity;
+      if (now - last < MENTION_GAP_MS) continue;
+      rec.lastBy.set(bySeatId, now);
+      rec.n += 1;
+      this.mentions.set(m.id, rec);
+      if (rec.n < MENTION_AFTER || (rec.n - MENTION_AFTER) % MENTION_EVERY !== 0) continue;
+      const d = this.book.tell(m.id, 'mention', `거듭 거론됨 (${rec.n}회)`);
+      if (d) this.applyDeltas([d]);
+    }
+  }
+
+  /**
    * 말 회피 (docs/SUSPICION.md ⑦) — **불렀는데 대답 없이 넘긴** 것만 문다.
    *
    * 침묵 자체는 벌하지 않는다. 말수는 성격이고, 그걸 벌하면 입 다무는 것이 최적 전략이 된다.
-   * 첫 번은 그냥 넘어간다(DUCK_FREE) — 한 번 못 들은 것과 피하는 것은 다르다.
+   * DUCK_FREE 번까지는 넘어간다 — 지금은 0, 첫 번부터 문다 (2026-09-05 사용자).
    */
   private watchDucks(now: number): void {
     for (const [id, at] of [...this.called]) {
