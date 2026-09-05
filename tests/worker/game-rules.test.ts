@@ -56,34 +56,44 @@ describe('배역 — §1.1', () => {
 describe('승패 — §1.3', () => {
   const roles = { h1: 'human', h2: 'human', d1: 'designer', ai: 'ai' } as const;
 
-  it('격리 목표는 총원 절반 내림 (4→2 · 9→4)', () => {
+  it('격리 목표는 총원 절반 내림 (4→2 · 9→4) — 와이어에 남는 수일 뿐, 이제 판을 끝내는 문턱은 아니다', () => {
     expect(quotaFor(4)).toBe(2);
     expect(quotaFor(9)).toBe(4);
   });
 
   it('아무 일도 없으면 계속된다', () => {
-    expect(outcomeFor(roles, new Set(), 2, false)).toBeNull();
-    expect(outcomeFor(roles, new Set(['h1']), 2, false)).toBeNull();
+    expect(outcomeFor(roles, new Set(), false)).toBeNull();
   });
 
   it('AI 가 격리되면 그 자리에서 사람 승리 — 설계자는 전원 패배', () => {
-    const o = outcomeFor(roles, new Set(['ai']), 2, false)!;
+    const o = outcomeFor(roles, new Set(['ai']), false)!;
     expect(o.winner).toBe('humans');
     expect(o.designersLost).toEqual(['d1']);
     expect(o.designersWon).toEqual([]);
   });
 
-  it('목표 인원이 격리됐는데 AI 가 없으면 AI 승리 — 살아 있는 설계자만 개인 승리', () => {
-    const o = outcomeFor(roles, new Set(['h1', 'd1']), 2, false)!;
+  /*
+   * 2026-09-05 사용자: "처형되면 그 순간 게임이 끝나고 … 승리 조건이 다르게" — 예전엔 격리 수가 목표(절반)에
+   * 닿아야 끝나서 사람 하나가 격리돼도 판이 남은 시간을 다 돌았다. 이제 첫 격리가 곧 끝이다.
+   */
+  it('사람이 격리되면 그 자리에서 AI 승리 — 살아 있는 설계자는 개인 승리', () => {
+    const o = outcomeFor(roles, new Set(['h1']), false)!;
     expect(o.winner).toBe('ai');
+    expect(o.reason).toContain('사람이 격리');
+    expect(o.designersWon).toEqual(['d1']);
+    expect(o.designersLost).toEqual([]);
+  });
+
+  it('AI 설계자가 격리되면 AI 승리지만 그 설계자 본인은 진다', () => {
+    const o = outcomeFor(roles, new Set(['d1']), false)!;
+    expect(o.winner).toBe('ai');
+    expect(o.reason).toContain('설계자');
     expect(o.designersWon).toEqual([]);
     expect(o.designersLost).toEqual(['d1']);
-    const o2 = outcomeFor(roles, new Set(['h1', 'h2']), 2, false)!;
-    expect(o2.designersWon).toEqual(['d1']);
   });
 
   it('하드캡이면 AI 승리', () => {
-    expect(outcomeFor(roles, new Set(), 2, true)?.winner).toBe('ai');
+    expect(outcomeFor(roles, new Set(), true)?.winner).toBe('ai');
   });
 });
 
