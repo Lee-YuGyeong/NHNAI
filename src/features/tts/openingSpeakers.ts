@@ -66,6 +66,24 @@ export const OPENING_CAST: OpeningSpeaker[] = [
 ];
 
 /**
+ * 일반 남군(sol_fit_m)의 목소리 — **비만 남군과 겹치면 안 된다** (2026-09-05 사용자:
+ * 「일반 남군 tts 남자 음성 아무거나, 비만 남군이랑 겹치지 않게」).
+ *
+ * OPENING_CAST 에 넣지 않는 이유: 저 셋은 「피실험자 01·02·03」이라는 **번호 배역**이고
+ * (/tts 화면의 카드도 셋이다), 이건 번호가 아니라 **몸에 붙는** 목소리다 — 배역이 무작위라
+ * 몇 번이 이 몸을 입을지 판마다 다르다 (prologueVoice 의 voicesForCast).
+ *
+ * 관리 AI(Ethan)와도 겹치면 안 된다 — 프롤로그에서 통제실이 그 목소리로 말한다.
+ *
+ * Roger 는 2026-09-05 사용자가 계정 목소리 목록에서 직접 골랐다. premade(영어) 보이스라
+ * multilingual_v2 로 한국어를 읽어도 억양이 조금 섞일 수 있다 — 알고 고른 것이다.
+ */
+export const FIT_MALE_VOICE = {
+  voiceId: 'CwhRBWXzGAHq8TQ4Fs17',
+  voiceName: 'Roger - Laid-Back, Casual, Resonant',
+} as const;
+
+/**
  * 발성 — 셋이 같은 한 벌이다.
  *
  * 좌석 아홉과 **같은 이유가 아니다.** 저쪽은 「자리마다 다르면 그게 단서가 된다」라서

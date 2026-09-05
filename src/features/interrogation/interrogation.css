@@ -52,7 +52,7 @@
   letter-spacing: 0.1em;
 }
 
-/* ── 위 가운데 기둥 (시험 국면에만) — 시계 · 안내판 · 목표색이 이 안에 쌓인다 ──
+/* ── 위 가운데 기둥 (시험 국면과 마지막 대화) — 시계 · 안내판 · 목표색이 이 안에 쌓인다 ──
    예전엔 셋이 저마다 top(50 · 104 · 142)으로 서서, 하나가 커지면 아래와 겹쳤다. 이제 기둥 하나다 */
 .ig-testcol {
   position: absolute;
@@ -86,6 +86,16 @@
 }
 .ig-clock.urgent {
   color: var(--signal);
+}
+
+/* 마지막 대화 — 시계 밑 예고 한 줄. 이 40초가 다 가면 판이 닫힌다 (InterrogationFeature 의 마지막 대화 시계) */
+.ig-lastcall {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--dust);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
 }
 
 /* ── 시험 안내판 (시계 아래) — 이름 · 목표 한 줄 · 키캡 (TestOrder) ──────────
