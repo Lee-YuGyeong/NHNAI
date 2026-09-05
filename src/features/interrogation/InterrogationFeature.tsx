@@ -21,7 +21,7 @@ import { broadcastAnnounce } from '@/shared/broadcast';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { GAME_DISCUSSION_MS, GAME_MAX_HUMANS, GAME_TEST_MS, GAME_TEST_COUNT, type GameSeat } from '@/world/mp/game-protocol';
-import type { AnimState, PlayerSnapshot } from '@/world/mp/protocol';
+import type { AnimState, PlayerSnapshot, TrialGame } from '@/world/mp/protocol';
 import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
@@ -642,9 +642,11 @@ export function InterrogationFeature() {
   const onStart = useCallback(
     (fillTo: number) => {
       dispatch(gameActions.clearReject());
-      conn.game({ t: 'game_start', fillTo });
+      // ?tests=tower,fall — 차례표를 미리 고른다(시연 · 설명서 스크린샷용, game-protocol 의 game_start.tests). 없으면 서버가 뽑는다
+      const picked = (params.get('tests') ?? '').split(',').map((t) => t.trim()).filter(Boolean) as TrialGame[];
+      conn.game({ t: 'game_start', fillTo, ...(picked.length ? { tests: picked } : {}) });
     },
-    [conn, dispatch],
+    [conn, dispatch, params],
   );
 
   /*

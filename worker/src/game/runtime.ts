@@ -445,7 +445,7 @@ export class GameRuntime {
     await this.restoreIfNeeded();
     switch (msg.t) {
       case 'game_start':
-        await this.start(playerId, msg.fillTo);
+        await this.start(playerId, msg.fillTo, Array.isArray(msg.tests) ? msg.tests : undefined);
         return;
       case 'game_sync':
         this.deps.sendTo(playerId, { t: 'game_state', state: this.stateWire() });
@@ -509,7 +509,7 @@ export class GameRuntime {
 
   /* ─────────────────────────────── 시작 ─────────────────────────────── */
 
-  private async start(playerId: string, fillTo?: number): Promise<void> {
+  private async start(playerId: string, fillTo?: number, tests?: readonly unknown[]): Promise<void> {
     const roster = this.deps.roster();
     const host = this.hostOf(roster);
     if (!host || host.id !== playerId) return this.reject(playerId, '방장만 시작할 수 있다');
@@ -605,7 +605,7 @@ export class GameRuntime {
     this.quota = quotaFor(this.seats.length);
     this.startedAt = this.now();
     this.testsDone = 0;
-    this.tests = drawTests(this.rand);
+    this.tests = drawTests(this.rand, tests ?? []);
     this.history = [];
     this.testRuns = new Map();
     this.latestResult = null;

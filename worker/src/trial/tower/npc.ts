@@ -82,9 +82,13 @@ export function stepBot(bot: TowerBot, slabs: readonly Slab[], bodies: readonly 
   const here = slabs[b.slab];
   const warned = !here || here.state !== 0;
 
-  // 경고 — 알아채고(반응 지연) 가장 안전한 이웃으로
+  // 경고 — 알아채고(반응 지연) 가장 안전한 이웃으로. 딴 목표(제 자리 · 어슬렁)가 있어도 **덮어쓴다** — 그걸 안 덮어써서 경고 발판에 서서
+  // 되돌아가려다 같이 떨어졌다 (2026-09-05 헤드리스 검문소: 봇 전원이 첫 마모 경고에 떨어졌다)
   if (warned) {
-    if (bot.warnedAt === null) bot.warnedAt = now;
+    if (bot.warnedAt === null) {
+      bot.warnedAt = now;
+      bot.goal = null;
+    }
     if (now - bot.warnedAt >= p.reactionMs && !bot.goal) {
       const cands = neighborsOf(b.slab).filter((i) => slabs[i]?.state === 0);
       if (cands.length) {
