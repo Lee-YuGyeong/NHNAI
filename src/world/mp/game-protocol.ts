@@ -81,6 +81,8 @@ export interface GameStateWire {
   phaseEndsAt: number | null;
   /** 지금까지 열린 테스트 수 */
   testsDone: number;
+  /** 이 판이 여는 시험들 — 판이 열릴 때 뽑힌 순서 그대로(drawTests). 로비(아직 안 뽑았다)나 옛 워커면 없다 */
+  tests?: TrialGame[];
   currentTest: GameTestInfo | null;
   /** 마지막 결과 — 모달과 HUD 요약 패널이 그린다 (§3) */
   latestResult: TrialResultWire | null;
@@ -229,14 +231,28 @@ export const GAME_MIN_HUMANS = 3;
 export const GAME_MAX_HUMANS = 8;
 
 /**
- * 검문소 한 판의 **차례표** (2026-09-05 사용자):
+ * 검문소 한 판의 **차례표** — 대화 40초 ⇄ 시험 30초가 **세 번**(GAME_TEST_COUNT) 번갈아 돈다:
  *
- *   입장 → 대화 40초 → ① 낙하 생존 30초 → 대화 40초 → ② 발판 30초 → 대화 40초 → ③ 원판 30초 → 대화 40초 → 끝
+ *   입장 → 대화 40초 → ① 시험 30초 → 대화 40초 → ② 시험 30초 → 대화 40초 → ③ 시험 30초 → 대화 40초 → 끝
  *
- * 종류도 순서도 고정이다 — 예전엔 관리 AI 가 매번 골랐지만(agents.designNext), 그러면 한 판에 무엇을
- * 몇 번 하는지가 판마다 달라져 「세 번의 시험」이라는 판의 모양이 안 선다. 순서를 바꾸려면 여기 한 줄이다.
+ * 어느 셋인가는 **판이 열릴 때 후보(GAME_TEST_POOL)에서 무작위로** 뽑는다 — 겹치지 않게, 순서도 뽑힌 대로
+ * (2026-09-05 사용자: "검사판 랜덤 게임에 무게중심다리도 들어갈 수 있도록"). 그 전에는 낙하 생존 → 발판 → 원판으로
+ * 고정이었다 — 판마다 무엇이 나올지 모르지만 「세 번의 시험」이라는 판의 모양은 그대로다. 뽑힌 차례는 판이 열리는 순간
+ * 서버가 정해 GameStateWire.tests 로 공개한다(순서는 공개, 조건값만 비밀). 관리 AI 가 매번 고르던 설계(agents.designNext)는 접었다.
  */
-export const GAME_TEST_ORDER: readonly TrialGame[] = ['fall', 'platform', 'disc'];
+export const GAME_TEST_POOL: readonly TrialGame[] = ['fall', 'platform', 'disc', 'seesaw'];
+/** 한 판이 여는 시험 수 */
+export const GAME_TEST_COUNT = 3;
+
+/** 이 판의 차례표를 뽑는다 — 후보를 섞어 앞 GAME_TEST_COUNT 개. rand 는 [0,1) (워커는 판의 난수, 시험은 고정값) */
+export function drawTests(rand: () => number = Math.random): TrialGame[] {
+  const pool = [...GAME_TEST_POOL];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.min(i, Math.floor(rand() * (i + 1)));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, GAME_TEST_COUNT);
+}
 
 /** 배역 통보 화면이 떠 있는 시간(ms) — RoleBriefing 의 SHOW_MS 와 같은 박자 */
 export const GAME_BRIEFING_MS = 7_000;

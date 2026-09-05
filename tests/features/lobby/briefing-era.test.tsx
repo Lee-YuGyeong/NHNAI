@@ -37,7 +37,7 @@ import {
   GAME_MIN_HUMANS,
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
-  GAME_TEST_ORDER,
+  GAME_TEST_COUNT,
 } from '@/world/mp/game-protocol';
 import { rootReducer } from '@/store';
 
@@ -45,7 +45,7 @@ import { rootReducer } from '@/store';
 const ROUND_MS =
   GAME_BRIEFING_MS +
   GAME_FIRST_DISCUSSION_MS +
-  GAME_TEST_ORDER.length * (GAME_TEST_MS + GAME_RESULT_MODAL_MS + GAME_DISCUSSION_MS);
+  GAME_TEST_COUNT * (GAME_TEST_MS + GAME_RESULT_MODAL_MS + GAME_DISCUSSION_MS);
 
 /** 계정 동기화가 한 번 돌고 나서 본다 — 안 기다리면 그 갱신이 단언 뒤에 떨어진다 */
 async function show() {
@@ -75,7 +75,7 @@ describe('브리핑의 계기', () => {
     const era = screen.getByText(/한 판/);
     expect(era).toHaveTextContent('4분 38초');
     expect(era).toHaveTextContent('대화 40초 ⇄ 시험 30초');
-    expect(era).toHaveTextContent(`× ${GAME_TEST_ORDER.length}`);
+    expect(era).toHaveTextContent(`× ${GAME_TEST_COUNT}`);
   });
 
   it('적는 수치는 상수에서 온다 — 화면과 서버가 갈라지지 않게', async () => {

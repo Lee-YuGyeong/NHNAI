@@ -10,7 +10,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IntroFeature } from '@/features/intro/IntroFeature';
 import { introActions, introSlice } from '@/features/intro/introSlice';
-import { GAME_DISCUSSION_MS, GAME_TEST_MS, GAME_TEST_ORDER } from '@/world/mp/game-protocol';
+import { GAME_DISCUSSION_MS, GAME_TEST_MS, GAME_TEST_COUNT } from '@/world/mp/game-protocol';
 import { rootReducer } from '@/store';
 
 function renderIntro() {
@@ -73,7 +73,7 @@ describe('인트로 — 특수인공지능대응센터', () => {
   // 본다. 수는 game-protocol 에서 와야 한다 — 손으로 박은 수였던 것이 어긋난 원인이다.
   it('브리핑의 계기가 고정 차례표와 의심도 격리선을 세운다', () => {
     renderIntro();
-    const order = screen.getByText(`고정 차례표 ×${GAME_TEST_ORDER.length}`).closest('li')!;
+    const order = screen.getByText(`차례표 ×${GAME_TEST_COUNT}`).closest('li')!;
     expect(order).toHaveTextContent(`${GAME_DISCUSSION_MS / 1000}s ⇄ ${GAME_TEST_MS / 1000}s`);
     const gate = screen.getByText('의심도 격리선').closest('li')!;
     expect(gate).toHaveTextContent('100%');

@@ -3,8 +3,9 @@
  *
  *   lobby → (방장 시작) → briefing → discussion ⇄ test → result → discussion … → ended
  *
- *   차례표는 **고정**이다 (2026-09-05 사용자, game-protocol 의 GAME_TEST_ORDER · GAME_TEST_MS):
- *     입장 → 대화 40초 → ① 낙하 생존 30초 → 대화 40초 → ② 발판 30초 → 대화 40초 → ③ 원판 30초 → 대화 40초 → 끝
+ *   차례표는 대화 40초 ⇄ 시험 30초 × 3 (game-protocol 의 GAME_TEST_COUNT · GAME_TEST_MS). **어느 셋인가는 판이 열릴 때 후보
+ *   (GAME_TEST_POOL: 낙하 생존 · 발판 · 원판 · 무게 중심 다리)에서 무작위로** 뽑는다 (drawTests, 2026-09-05 사용자):
+ *     입장 → 대화 40초 → ① 시험 30초 → 대화 40초 → ② 시험 30초 → 대화 40초 → ③ 시험 30초 → 대화 40초 → 끝
  *   그 사이 언제든 의심도가 100 에 닿은 좌석은 그 자리에서 격리되고(무대 위 처형자가 쏜다), 격리 수가
  *   목표(총원의 절반, roles.quotaFor)에 닿으면 차례표가 남아 있어도 판은 거기서 끝난다.
  *
@@ -38,7 +39,7 @@ import {
   GAME_TEST_MS,
   TALK,
   talkFor,
-  GAME_TEST_ORDER,
+  drawTests,
   READ_EVERY_MS,
   READ_MAX_LINES,
   READ_MIN_LINES,
@@ -216,6 +217,8 @@ export class GameRuntime {
   private startedAt = 0;
   private phaseEndsAt: number | null = null;
   private testsDone = 0;
+  /** 이 판이 여는 시험들 — 판이 열릴 때 뽑는다 (drawTests). 되살린 판은 저장본에서 */
+  private tests: TrialGame[] = [];
   private history: TrialResultWire[] = [];
   private currentTest: GameTestInfo | null = null;
   /** 지금 테스트의 조건 강도(1~3) — 엔진의 round 인자. 와이어에는 안 실린다 (P8) */
@@ -596,6 +599,7 @@ export class GameRuntime {
     this.quota = quotaFor(this.seats.length);
     this.startedAt = this.now();
     this.testsDone = 0;
+    this.tests = drawTests(this.rand);
     this.history = [];
     this.testRuns = new Map();
     this.latestResult = null;
@@ -656,7 +660,7 @@ export class GameRuntime {
         // 아직 프롤로그를 기다리는 중이었다 — 그 마감은 상한이었으니 여기서 걷는다. 토론 40초는 그때부터다
         if (this.prologueHold !== null) return this.endPrologue();
         // 차례표를 다 돌았다 — 마지막 대화까지 끝났으니 여기서 닫는다 (아직 AI 를 못 찾았으면 AI 의 승리)
-        if (this.testsDone >= schedule().length) return void (await this.hardCap());
+        if (this.testsDone >= this.schedule().length) return void (await this.hardCap());
         await this.openTest();
         return;
       case 'test':
@@ -767,9 +771,23 @@ export class GameRuntime {
 
   /* ─────────────────────────────── 테스트 ─────────────────────────────── */
 
+  /**
+   * 이 판이 실제로 여는 시험들 — 뽑힌 차례표(tests) 중 엔진이 꽂혀 있는 것만.
+   * 엔진이 빠진 종류는 조용히 건너뛴다: 차례가 비었다고 판이 멎는 것보다 한 판이 두 시험으로 도는 편이 낫다.
+   */
+  private schedule(): TrialGame[] {
+    const have = new Set(availableGames());
+    return this.tests.filter((g) => have.has(g));
+  }
+
+  /** 시험용 — 뽑힌 차례표 */
+  drawnTests(): readonly TrialGame[] {
+    return this.tests;
+  }
+
   private async openTest(): Promise<void> {
     if (this.phase !== 'discussion') return;
-    const order = schedule();
+    const order = this.schedule();
     const step = this.testsDone + 1;
     const game = order[this.testsDone];
     if (!game) return void (await this.hardCap());
@@ -1758,6 +1776,7 @@ export class GameRuntime {
       accusations: this.book.accusationsSnapshot(),
       phaseEndsAt: this.phaseEndsAt,
       testsDone: this.testsDone,
+      tests: [...this.tests],
       currentTest: this.currentTest,
       latestResult: this.latestResult,
       quota: this.quota,
@@ -1829,6 +1848,7 @@ export class GameRuntime {
         startedAt: this.startedAt,
         phaseEndsAt: this.phaseEndsAt,
         testsDone: this.testsDone,
+        tests: this.tests,
         testRuns: [...this.testRuns],
         latestResult: this.latestResult,
         outcome: this.outcome,
@@ -1864,6 +1884,9 @@ export class GameRuntime {
     this.startedAt = Number(saved.startedAt) || this.now();
     // 국면 압력이 여기서 나오므로 **책을 만들기 전에** 되살린다 (pressureFor)
     this.testsDone = Number(saved.testsDone) || 0;
+    // 뽑혀 있던 차례표 — 없으면(옛 저장본) 새로 뽑는다. 이미 지난 시험은 testsDone 이 가리키므로 그 뒤만 열린다
+    const savedTests = Array.isArray(saved.tests) ? (saved.tests as TrialGame[]) : null;
+    this.tests = savedTests && savedTests.length ? savedTests : drawTests(this.rand);
     this.book = new SuspicionBook(
       seats.map((s) => s.id),
       () => this.pressure(),
@@ -1889,11 +1912,4 @@ function finite(v: number | undefined, fallback: number): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
 }
 
-/**
- * 이 판이 실제로 여는 시험들 — 차례표(GAME_TEST_ORDER) 중 엔진이 꽂혀 있는 것만.
- * 엔진이 빠진 종류는 조용히 건너뛴다: 차례가 비었다고 판이 멎는 것보다 한 판이 두 시험으로 도는 편이 낫다.
- */
-function schedule(): TrialGame[] {
-  const have = new Set(availableGames());
-  return GAME_TEST_ORDER.filter((g) => have.has(g));
-}
+

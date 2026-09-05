@@ -7,6 +7,7 @@
  *                              떨어지고, 색 사냥은 마당(HUNT_ARENA)에서 구슬을 줍는다(E, PickKey)
  *   움직이는 플랫폼             FreeRig + PlatformCourse (발판 열)
  *   회전 원판                   DiscRig (걷기 명령만 올리고 자리는 서버 것) + DiscStage — 마당 한가운데 원판이 선다
+ *   무게 중심 다리              SeesawRig (같은 규칙) + SeesawStage — 마당에 길이 14m 판자가 축 하나로 얹힌다
  *   정지선                      StopRig (레일) + TrackDressing, 남의 몸은 runnerState 타임라인으로 움직인다
  *
  * 남의 몸은 전부 remotePlayers(좌석 id 로 키) → SeatBodies 가 그린다 — **머리 위에 이름표와 의심도 막대**가 붙는다
@@ -34,13 +35,16 @@ import { selfPose } from './selfPose';
 import { ARENA_WORK_LIGHTS, FallStage } from './FallStage';
 import { PlatformCourse } from './PlatformCourse';
 import { PADS, PLATFORM_ARENA } from '@/world/mp/platform';
-import { DISC_CENTER } from '@/world/mp/constants';
+import { DISC_CENTER, SEESAW_CENTER } from '@/world/mp/constants';
 // 색 사냥의 구슬 · 견본판 · E 키는 /trial 과 같은 부품이다 — 상태(huntState)가 하나라 화면도 하나로 그린다
 import { HuntOrbs, SampleBoard } from '@/features/trial/games/color-hunt/HuntObjects';
 import { PickKey } from '@/features/trial/games/color-hunt/PickKey';
 // 회전 원판도 같은 이유로 /trial 의 부품 그대로다 — 원판(무대)과 다리(예측 보정)는 서버 물리와 짝이라 베낄 수 없다
 import { DiscRig } from '@/features/trial/games/disc/DiscRig';
 import { DiscStage } from '@/features/trial/games/disc/DiscStage';
+// 무게 중심 다리도 같다 — 판자(무대)와 다리(예측 보정)는 서버 물리와 짝이다
+import { SeesawRig } from '@/features/trial/games/seesaw/SeesawRig';
+import { SeesawStage } from '@/features/trial/games/seesaw/SeesawStage';
 import { FreeRig, type Teleport } from './FreeRig';
 import { StopRig } from './stopline/StopRig';
 import { TrackDressing } from './stopline/TrackDressing';
@@ -115,6 +119,7 @@ export function HallScene(p: HallSceneProps) {
   const hunt = p.test?.game === 'colorhunt';
   const platform = p.test?.game === 'platform';
   const disc = p.test?.game === 'disc';
+  const seesaw = p.test?.game === 'seesaw';
 
   return (
     <WorldCanvas
@@ -176,6 +181,15 @@ export function HallScene(p: HallSceneProps) {
           </Suspense>
         </group>
       ) : null}
+      {/* 무게 중심 다리 — 판자는 서버가 준 기울기로 기울고(seesawState), 그 위의 몸은 스냅샷으로 온다 (InterrogationFeature 의 trial_seesaw).
+          작업등은 ArenaWorkLights 가 든다 — 여기서는 안 켠다. 원판과 같은 이유로 미리 세워 두고 안 보이게 */}
+      {seesaw || stageReady ? (
+        <group visible={seesaw}>
+          <Suspense fallback={null}>
+            <SeesawStage lights={false} />
+          </Suspense>
+        </group>
+      ) : null}
       {hunt ? (
         <group>
           <HuntOrbs />
@@ -196,6 +210,9 @@ export function HallScene(p: HallSceneProps) {
       ) : disc ? (
         /* 원판 위에서는 자리를 안 보낸다 — 서버가 적분해서 스냅샷으로 돌려준다 (DiscRig 머리말) */
         <DiscRig selfId={p.mySeatId} body={p.myBody} sendWalk={p.onWalk} />
+      ) : seesaw ? (
+        /* 판자 위도 같다 (SeesawRig 머리말) */
+        <SeesawRig selfId={p.mySeatId} body={p.myBody} sendWalk={p.onWalk} />
       ) : (
         <FreeRig
           spawn={p.spawn}
@@ -241,7 +258,7 @@ export function HallScene(p: HallSceneProps) {
 /**
  * 시험 무대의 작업등 — **광원 둘**로 모든 시험을 비춘다 (2026-09-05 최적화, 넷 → 둘).
  *
- *   main   마당 위 큰 등. 낙하·색 사냥이면 마당 가운데, 발판이면 발판 열 가운데, 원판이면 원판 위로 **자리를 옮긴다.**
+ *   main   마당 위 큰 등. 낙하·색 사냥이면 마당 가운데, 발판이면 발판 열 가운데, 원판·판자면 그 위로 **자리를 옮긴다.**
  *          광원의 자리·세기·색은 유니폼이라 바꿔도 셰이더가 다시 링크되지 않는다 — 개수만 안 바뀌면 된다.
  *   upper  천장 밑 등. 낙하에서만 켠다 (배출구에서 나오는 공이 보의 그늘에 묻히지 않게).
  *
@@ -256,7 +273,9 @@ function ArenaWorkLights({ test }: { test: TrialGame | null }) {
       ? { position: [0, 7.5, PLATFORM_LIGHT_Z] as const, color: '#dfe9ff', intensity: 55, distance: 24 }
       : test === 'disc'
         ? { position: [DISC_CENTER.x, 7.5, DISC_CENTER.z] as const, color: '#dfe9ff', intensity: 70, distance: 24 }
-        : { position: base.position, color: base.color, intensity: test === 'fall' || test === 'colorhunt' ? base.intensity : 0, distance: base.distance };
+        : test === 'seesaw'
+          ? { position: [SEESAW_CENTER.x, 8.5, SEESAW_CENTER.z] as const, color: '#dfe9ff', intensity: 45, distance: 26 }
+          : { position: base.position, color: base.color, intensity: test === 'fall' || test === 'colorhunt' ? base.intensity : 0, distance: base.distance };
   const upper = ARENA_WORK_LIGHTS[1];
   return (
     <>

@@ -447,7 +447,7 @@ function clamp01(v: number): number {
 }
 
 /*
- * 관리 AI 의 「테스트 설계」는 없어졌다 — 종류도 순서도 차례표(game-protocol 의 GAME_TEST_ORDER)가 정한다
+ * 관리 AI 의 「테스트 설계」는 없어졌다 — 종류는 판이 열릴 때 후보에서 뽑힌 차례표(game-protocol 의 GAME_TEST_POOL · drawTests)가 정한다
  * (2026-09-05 사용자: 낙하 생존 → 발판 → 원판). 강도는 몇 번째 시험인가로 오른다 (runtime.openTest).
  */
 
@@ -726,7 +726,7 @@ export const LINES = {
    * 오프닝 문장은 없다 — 판을 여는 말은 화면의 검문소 프롤로그가 한다
    * (features/interrogation/prologue.ts, runtime 의 advance/'briefing').
    */
-  /** 차례표의 몇 번째인지를 앞에 붙인다 — 「세 번의 시험」이라는 판의 모양이 첫 방송부터 보이게 (GAME_TEST_ORDER) */
+  /** 차례표의 몇 번째인지를 앞에 붙인다 — 「세 번의 시험」이라는 판의 모양이 첫 방송부터 보이게 (GAME_TEST_COUNT) */
   testOpen: (game: TrialGame, round: number, instruction: string, step?: number, total?: number) =>
     `${step && total ? `[시험 ${step}/${total}] ` : ''}${TEST_NAME[game]} 테스트 ${round}회차를 연다. ${instruction}`,
   isolated: (name: string, role: 'human' | 'designer' | 'ai') =>

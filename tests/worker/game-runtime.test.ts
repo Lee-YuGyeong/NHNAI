@@ -17,7 +17,8 @@ import {
   type CardItem,
   GAME_RESULT_MODAL_MS,
   GAME_TEST_MS,
-  GAME_TEST_ORDER,
+  GAME_TEST_COUNT,
+  GAME_TEST_POOL,
   SUSPICION,
   TALK,
   pressureFor,
@@ -531,19 +532,34 @@ describe('GameRuntime — 프롤로그 방송이 끝나야 판이 열린다', ()
 });
 
 /**
- * 차례표 (2026-09-05 사용자: "입장 · 40초 대화 · 낙하생존 30초 · 40초 대화 · 발판 30초 · 40초 대화 · 원판 30초").
- * 관리 AI 가 매번 종류를 고르던 것을 그만두었으므로, **무엇이 몇 번째로 몇 초 열리는가**가 이제 판의 규칙이다.
+ * 차례표 (2026-09-05 사용자: "입장 · 40초 대화 · 시험 30초 · 40초 대화 · 시험 30초 · 40초 대화 · 시험 30초").
+ * 관리 AI 가 매번 종류를 고르던 것을 그만두었으므로, **몇 번째로 몇 초 열리는가**가 판의 규칙이다. 어느 셋인가는 판이 열릴 때
+ * 후보 넷에서 뽑는다 (2026-09-05 사용자: "검사판 랜덤 게임에 무게중심다리도") — 뽑힌 차례는 game_state 의 tests 로 공개된다.
  */
-describe('GameRuntime — 고정 차례표', () => {
+describe('GameRuntime — 차례표', () => {
   const rounds = (h: ReturnType<typeof harness>) => h.sent.filter((m): m is Extract<S2CMessage, { t: 'trial_round_start' }> => m.t === 'trial_round_start');
 
-  it('낙하 생존 → 발판 → 원판 을 30초씩, 사이사이 40초 대화로 연다', async () => {
+  it('판이 열리면 후보 넷에서 겹치지 않는 셋을 뽑아 공개하고, 난수가 다르면 다른 셋이 나온다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    const tests = h.lastState().tests!;
+    expect(tests).toHaveLength(GAME_TEST_COUNT);
+    expect(new Set(tests).size).toBe(GAME_TEST_COUNT);
+    for (const g of tests) expect(GAME_TEST_POOL).toContain(g);
+    // 다른 난수 → 다른 차례. 후보가 넷이라 셋을 뽑으면 하나가 빠진다 — 어느 것이 빠지는지가 난수에 달렸다
+    const h2 = harness({ rand: () => 0.9 });
+    await h2.rt.handle('p1', { t: 'game_start' });
+    expect(h2.lastState().tests).not.toEqual(tests);
+  });
+
+  it('뽑힌 셋을 30초씩, 사이사이 40초 대화로 연다', async () => {
     const h = harness();
     await h.rt.handle('p1', { t: 'game_start' });
     await openBoard(h);
     expect(h.lastState().phase).toBe('discussion');
+    const order = h.lastState().tests!;
 
-    for (const game of GAME_TEST_ORDER) {
+    for (const game of order) {
       // 대화가 끝나야 시험이 열린다 — 첫 대화도 그 뒤의 대화도 40초다
       await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
       expect(h.lastState().phase).toBe('test');
@@ -559,8 +575,8 @@ describe('GameRuntime — 고정 차례표', () => {
       expect(h.lastState().phase).toBe('discussion');
     }
 
-    expect(rounds(h).map((r) => r.game)).toEqual([...GAME_TEST_ORDER]);
-    expect(h.lastState().testsDone).toBe(3);
+    expect(rounds(h).map((r) => r.game)).toEqual([...order]);
+    expect(h.lastState().testsDone).toBe(GAME_TEST_COUNT);
     // 마지막 대화 40초까지 끝나면 판이 닫힌다 — 그때까지 AI 를 못 찾았으면 AI 의 승리
     await vi.advanceTimersByTimeAsync(GAME_DISCUSSION_MS + 10);
     expect(h.lastState().phase).toBe('ended');

@@ -250,6 +250,7 @@ const TEST_GUIDE: Record<string, { goal: string; keys: [string, string][] }> = {
   colorhunt: { goal: '목표색 구슬만 주워라 — 조명이 색을 속인다', keys: [['E', '줍기'], ['WASD', '이동']] },
   platform: { goal: '발판을 건너 도착까지 — 떨어지면 출발로', keys: [['W', '전진'], ['Space', '점프']] },
   disc: { goal: '도는 원판 위에서 밀려나지 말고 버텨라', keys: [['WASD', '걷기'], ['Shift', '달리기']] },
+  seesaw: { goal: '판자의 무게중심을 축에 맞춰라 — 상자가 놓이면 반대쪽으로', keys: [['WASD', '걷기'], ['Shift', '달리기']] },
 };
 
 /**
