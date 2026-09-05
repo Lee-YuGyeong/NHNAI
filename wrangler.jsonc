@@ -8,6 +8,10 @@
 // (별도 워커를 가리키고 싶을 때만 빌드 환경변수로 준다)
 //
 // 비밀은 없다 — 이 워커는 인증을 하지 않는다 (방 번호 + 닉네임만).
+//
+// 문지기 (worker/src/guard.ts): 남의 Origin 은 403, /api 본문 1MB 초과는 413, 요금 경로(LLM·TTS)는
+// IP 당 분당 천장(아래 ratelimits)을 넘으면 429. 프론트를 **다른 호스트**에 둘 때만 변수 ALLOWED_ORIGINS
+// 에 그 주소를 적는다 (같은 워커에서 dist 를 서빙하는 지금은 비워 둔다).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   // 대시보드에 떠 있는 워커 이름과 **글자 하나까지 같아야 한다** — 이 이름이 곧 배포 대상이다.
@@ -36,6 +40,14 @@
       { "name": "LOBBY_DO", "class_name": "LobbyDO" }
     ]
   },
+  /*
+   * 요금 경로(/api/lab/* · /api/world/* · /api/world2/* · /api/tts)의 IP 당 속도 제한 (worker/src/guard.ts).
+   * 300/분 — 정상 플레이는 한 판에 수십 번이라 닿지 않고, 스크립트로 퍼붓는 쪽만 429 를 본다.
+   * 같은 공인 IP 뒤에 여럿이 앉는 교실·사무실을 생각해 넉넉하게 잡았다. 무료 플랜에서도 된다.
+   * ★ namespace_id 는 이 계정 안에서 제한기를 구별하는 번호일 뿐이다 (아무 정수). 바꾸면 카운터가 새로 선다.
+   * ★ 바인딩을 지우면 속도 제한만 조용히 꺼진다 — 코드는 API_RATE_LIMIT 이 없으면 통과시킨다.
+   */
+  "ratelimits": [{ "name": "API_RATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 300, "period": 60 } }],
   // SQLite 백엔드 DO. 무료 플랜에서는 이 형태만 만들 수 있다.
   // ★ tag 를 바꾸거나 지우지 않는다. 마이그레이션 이력이라 되돌릴 수 없다.
   "migrations": [

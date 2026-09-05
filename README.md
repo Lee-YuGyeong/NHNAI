@@ -298,6 +298,12 @@ npx wrangler secret put OPENAI_API_KEY   # sk-proj- 로 시작하는 프로젝�
 안 넣어도 배포는 되고 오류도 안 난다 — AI 가 조용히 폴백 문장으로 떨어질 뿐이다.
 [개발 문서](docs/DEVELOPMENT.md#배포본의-ai-키--openai-하나).
 
+워커 앞에는 문지기가 하나 서 있다 (`worker/src/guard.ts`): 남의 사이트에서 부르는 요청(Origin 불일치)은 403,
+`/api` 본문 1MB 초과는 413, LLM·TTS 경로는 IP 당 분당 300회를 넘으면 429 다. 모든 응답에 보안 헤더
+(nosniff · referrer-policy · 프레임 금지)가 붙는다 — API 는 워커가, 정적 파일은 `public/_headers` 가 맡는다.
+정상 플레이는 어느 것에도 닿지 않는다.
+프론트를 워커와 **다른 호스트**에 둘 때만 변수 `ALLOWED_ORIGINS` 에 그 주소를 적는다.
+
 ---
 
 ## 🗺 화면
