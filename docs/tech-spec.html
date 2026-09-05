@@ -36,6 +36,26 @@ figcaption{font-size:.85rem;color:var(--dim);margin-top:6px}
 .box{border:1px solid var(--line);padding:12px 14px;background:#fafafa;font-size:.92rem}
 .box b{display:block;margin-bottom:4px}
 footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);font-size:.8rem;color:var(--dim)}
+/* ── 읽어 주기(TTS) ──────────────────────────────────────────────────────
+   브라우저 Web Speech 로 읽는다. 게임의 폴백 엔진(src/features/tts/engine.ts)과 같은
+   규칙 — 한국어 목소리를 고르고, 목소리 목록이 늦게 오는 것과 Chrome 이 15초쯤에
+   저 혼자 멈추는 것을 함께 막는다. 열쇠도 서버도 필요 없고 인쇄에는 안 나온다. */
+#tts{
+  position:fixed;right:20px;bottom:20px;z-index:20;display:flex;align-items:center;gap:8px;
+  padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:6px;
+  box-shadow:0 2px 10px rgba(0,0,0,.09);font-size:.82rem;color:var(--dim);
+}
+#tts button{
+  font:inherit;font-size:.82rem;padding:5px 11px;border:1px solid var(--line);border-radius:4px;
+  background:#fff;color:var(--ink);cursor:pointer;line-height:1.2;
+}
+#tts button:hover{border-color:var(--key);color:var(--key)}
+#tts button.main{border-color:var(--key);color:var(--key);font-weight:700;min-width:92px}
+#tts .at{font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;font-size:.76rem}
+.tts-now{background:#fdf6ea;box-shadow:-10px 0 0 #fdf6ea,10px 0 0 #fdf6ea;border-radius:2px}
+tr.tts-now{background:#fdf6ea;box-shadow:none}
+@media print{#tts{display:none!important}.tts-now{background:transparent!important;box-shadow:none!important}}
+
 @page{size:A4;margin:16mm 14mm}
 @media print{html{font-size:12.5px}.page{max-width:none;padding:0}h1.sec{break-before:page;border-top:0;margin-top:0}header.cover{break-after:page;min-height:60vh}a{color:inherit;text-decoration:none}figure img{max-height:105mm;object-fit:contain}tr,figure,.callout,.step,.box{break-inside:avoid}}
 </style>
@@ -148,5 +168,124 @@ footer.end{margin-top:50px;padding-top:14px;border-top:1px solid var(--line);fon
 
 <footer class="end">who-is-human · AI 활용 기술 문서 · 2026-09-05</footer>
 </div>
+
+<div id="tts">
+  <button class="main" id="tp">▶ 읽어 주기</button>
+  <button id="tprev" title="이전 문단">‹</button>
+  <button id="tnext" title="다음 문단">›</button>
+  <span class="at" id="tat">— / —</span>
+</div>
+
+<script>
+(function(){
+  /* 읽을 덩이 — 문단 · 목록 · 제목 · 표의 줄. 표는 칸을 쉼표로 이어 한 줄로 읽는다 */
+  var blocks = Array.prototype.slice.call(
+    document.querySelectorAll('.page h1, .page h2, .page p, .page li, .page tr, .page .callout')
+  ).filter(function(el){ return el.textContent.trim().length > 1; });
+
+  var btn = document.getElementById('tp'), at = document.getElementById('tat');
+  var i = -1, playing = false, gen = 0, wake = null;
+
+  function textOf(el){
+    if (el.tagName === 'TR'){
+      return Array.prototype.slice.call(el.children)
+        .map(function(c){ return c.textContent.trim(); }).filter(Boolean).join(', ');
+    }
+    /* innerText 는 <br> 를 줄바꿈으로 준다 — textContent 로 읽으면 앞뒤 낱말이 붙는다 */
+    return (el.innerText || el.textContent).replace(/\s+/g, ' ').trim();
+  }
+  function pickVoice(vs){
+    var ko = vs.filter(function(v){ return v.lang.replace('_','-').toLowerCase().indexOf('ko') === 0; });
+    if (!ko.length) return null;
+    var g = ko.filter(function(v){ return v.name.indexOf('Google') >= 0; })[0];
+    var remote = ko.filter(function(v){ return !v.localService; })[0];
+    return g || remote || ko[0];
+  }
+  /* Chrome 은 첫 getVoices() 가 빈 배열이고 나중에 voiceschanged 로 온다. 1초만 기다린다 */
+  function voicesReady(cb){
+    var now = speechSynthesis.getVoices();
+    if (now.length){ cb(now); return; }
+    var done = function(){
+      clearTimeout(t); speechSynthesis.removeEventListener('voiceschanged', done);
+      cb(speechSynthesis.getVoices());
+    };
+    var t = setTimeout(done, 1000);
+    speechSynthesis.addEventListener('voiceschanged', done);
+  }
+  /* 한 문장씩 끊어 읽는다 — 길게 한 덩이로 주면 Chrome 이 중간에 멎고, 멈추기도 굼뜨다 */
+  function sentences(text){
+    return text.replace(/([.!?…])\s+/g, '$1\n').split('\n')
+               .map(function(x){ return x.trim(); }).filter(Boolean);
+  }
+  function mark(n){
+    blocks.forEach(function(el){ el.classList.remove('tts-now'); });
+    if (n >= 0 && blocks[n]){
+      blocks[n].classList.add('tts-now');
+      blocks[n].scrollIntoView({ block:'center', behavior:'smooth' });
+    }
+    at.textContent = (n >= 0 ? (n + 1) : '—') + ' / ' + blocks.length;
+  }
+  /* 화면 한가운데에 가장 가까운 덩이 — 「보고 있던 곳부터」 읽기 위해 */
+  function nearest(){
+    var mid = window.innerHeight / 2, best = 0, gap = Infinity;
+    blocks.forEach(function(el, n){
+      var r = el.getBoundingClientRect(), d = Math.abs(r.top + r.height / 2 - mid);
+      if (r.bottom > 0 && d < gap){ gap = d; best = n; }
+    });
+    return best;
+  }
+  function stop(){
+    gen += 1; playing = false;
+    if (wake){ clearInterval(wake); wake = null; }
+    try { speechSynthesis.cancel(); } catch (e) {}
+    btn.textContent = '▶ 읽어 주기';
+    blocks.forEach(function(el){ el.classList.remove('tts-now'); });
+  }
+  function play(from){
+    var mine = ++gen;
+    i = from; playing = true;
+    btn.textContent = '■ 멈춤';
+    voicesReady(function(vs){
+      if (mine !== gen) return;
+      var v = pickVoice(vs);
+      /* Chrome 은 15초쯤 지나면 합성기가 저 혼자 멈춘다. 주기적으로 깨워 둔다 */
+      if (wake) clearInterval(wake);
+      wake = setInterval(function(){ try { speechSynthesis.resume(); } catch (e) {} }, 5000);
+      (function block(){
+        if (mine !== gen) return;
+        if (i >= blocks.length){ stop(); at.textContent = '— / ' + blocks.length; return; }
+        mark(i);
+        var queue = sentences(textOf(blocks[i])), k = 0;
+        (function line(){
+          if (mine !== gen) return;
+          if (k >= queue.length){ i += 1; block(); return; }
+          var u = new SpeechSynthesisUtterance(queue[k++]);
+          u.lang = 'ko-KR'; if (v) u.voice = v;
+          u.rate = 1.0; u.pitch = 0.95;
+          u.onend = line; u.onerror = line;
+          speechSynthesis.speak(u);
+        })();
+      })();
+    });
+  }
+  function jump(step){
+    var n = Math.min(blocks.length - 1, Math.max(0, (i < 0 ? nearest() : i) + step));
+    if (playing){ gen += 1; try { speechSynthesis.cancel(); } catch (e) {} play(n); }
+    else { i = n; mark(n); }
+  }
+
+  btn.onclick = function(){ if (playing) stop(); else play(i < 0 ? nearest() : i); };
+  document.getElementById('tprev').onclick = function(){ jump(-1); };
+  document.getElementById('tnext').onclick = function(){ jump(1); };
+  document.addEventListener('keydown', function(e){
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (/^(INPUT|TEXTAREA)$/.test((e.target.tagName || ''))) return;
+    if (e.key === 's' || e.key === 'S' || e.key === 'ㄴ'){ e.preventDefault(); btn.click(); }
+    else if (e.key === 'Escape'){ stop(); }
+  });
+  window.addEventListener('pagehide', stop);
+  at.textContent = '— / ' + blocks.length;
+})();
+</script>
 </body>
 </html>
