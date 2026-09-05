@@ -61,6 +61,7 @@ for n in range(13):
 
 script2 = script.replace('window.innerWidth / 1280, h / 720', 'window.innerWidth / 1920, h / 1080')
 assert script2 != script, 'fit() 식을 못 찾음'
+script2 = script2.replace("'세 가지 시험'", "'시험 — 후보 넷 중 셋'")  # 목차 제목
 chrome_markup = '''<div id="stage">
 %s
   <div class="brand">WHO IS HUMAN · 특수인공지능대응센터</div>
