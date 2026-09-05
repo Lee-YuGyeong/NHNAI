@@ -153,7 +153,7 @@ describe('EndScreen', () => {
         seats={WIRE.seats}
         mySeatId="s1"
         myRole="human"
-        endsAt={Date.now() + 15_000}
+        endsAt={Date.now() + 10_000}
         onLeave={onLeave}
       />,
     );

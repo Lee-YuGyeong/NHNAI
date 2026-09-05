@@ -69,7 +69,7 @@ function seatSpot(seat: GameSeat, total: number): { x: number; z: number } {
  */
 const AUTO_SEATS = 4;
 /** 끝 화면이 서 있는 시간 — 다 가면 스스로 방을 나간다 (onLeave). 정체표를 읽을 만큼만 */
-const END_LEAVE_MS = 15_000;
+const END_LEAVE_MS = 10_000;
 
 /**
  * 일행을 여기까지만 기다린다 (ms). 대기방의 「게임 시작」은 전원을 같은 순간에 보내므로 소켓은 몇 초 안에
@@ -669,7 +669,7 @@ export function InterrogationFeature() {
   }, [phase, status, selfId, hostId, keepLobby, party, humansOnline, onStart]);
   /*
    * 판이 끝나면 **방을 나간다** (2026-09-05 사용자: "게임 승리하거나 패배하면 방 나가게 해줘"). 끝 화면이
-   * END_LEAVE_MS 서고 나면 스스로 나가고, 「방 나가기」 단추는 그걸 앞당긴다. 예전의 「다시 — 새 판」(방장이 그
+   * END_LEAVE_MS(10초) 서고 나면 스스로 나가고, 「방 나가기」 단추는 그걸 앞당긴다. 예전의 「다시 — 새 판」(방장이 그
    * 자리에서 새 판을 청하던 것)은 걷었다 — 판이 끝난 방에 남아 다음 판을 기다리는 길은 이제 없다. 돌아가는 곳은
    * 대기방에서 왔으면 방 목록(/lobby), 이야기(/interrogation?from=central)로 왔으면 메인(/main)이다.
    * 서버는 GAME_ENDED_MS 뒤 스스로 로비로 접는다 (runtime 의 resetToLobby) — 나간 뒤의 일이라 여기선 안 본다.
