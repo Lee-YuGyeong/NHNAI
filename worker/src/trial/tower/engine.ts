@@ -8,7 +8,7 @@
  * 발판은 셋 가운데 하나로 무너진다 — 무게가 몰려 기울기가 상한을 넘거나(sim.stepSlab), 철거 차례가 와서 경고 뒤 떨어지거나. 그 위의 몸은 같이
  * 떨어진다(trial_fell). 밀쳐 떨어뜨린 것도 같은 낙하다. 밀린 몸에는 trial_hit(objectId = 미친 몸의 좌석 번호 대신 순번)을 보내 화면이 번쩍인다.
  */
-import { massOf, runCapOf } from '../../../../src/world/mp/bodies';
+import { jumpOf, massOf, runCapOf } from '../../../../src/world/mp/bodies';
 import { TRIAL_GAME_MS } from '../../../../src/world/mp/constants';
 import type { TrialPlayerResult } from '../../../../src/world/mp/protocol';
 import {
@@ -17,6 +17,7 @@ import {
   TOWER_DEMOLISH_EVERY_MS,
   TOWER_DEMOLISH_FROM_MS,
   TOWER_FALL_KEEP_MS,
+  TOWER_JUMP_GAP_MS,
   TOWER_N,
   TOWER_PUSH_COOLDOWN_MS,
   TOWER_QUAKE_EVERY_MS,
@@ -39,7 +40,7 @@ import type { EngineContext, GameEngine, SeatTuning } from '../engine';
 import { phaseAt, phaseStarts } from '../phase';
 import type { TrialCondition } from '../types';
 import { makeTowerBot, makeTowerProfile, stepBot, type TowerBot, type TowerProfile } from './npc';
-import { clampWalk, fall, gripForPhase, makeBody, makeSlabs, respawn, separate, shove, standable, stepBody, stepSlab, type Slab, type SlabLoad, type TowerBody } from './sim';
+import { clampWalk, fall, gripForPhase, impact, jump, makeBody, makeSlabs, respawn, separate, shove, standable, stepBody, stepSlab, type Slab, type SlabLoad, type TowerBody } from './sim';
 import { TowerStats } from './stats';
 
 export class TowerEngine implements GameEngine {
@@ -174,6 +175,15 @@ export class TowerEngine implements GameEngine {
     this.doPush(me, hx, hz, now);
   }
 
+  /** 점프(Space) — 몸의 점프 속도(mp/bodies.ts)로 뜬다. 뜬 동안은 조작이 없다 */
+  onJump(id: string, now: number): void {
+    this.join(id);
+    const b = this.bodies.get(id)!;
+    if (now - b.jumpAt < TOWER_JUMP_GAP_MS) return;
+    const stale = now - b.wAt > TOWER_WALK_STALE_MS;
+    if (jump(b, stale ? 0 : b.wx, stale ? 0 : b.wz, jumpOf(this.ctx?.bodyOf?.(id), 6.8), now)) this.stats.get(id)?.jumped();
+  }
+
   private doPush(me: TowerBody, hx: number, hz: number, now: number): void {
     if (now - me.pushAt < TOWER_PUSH_COOLDOWN_MS || me.stance !== 'stand') return;
     me.pushAt = now;
@@ -240,7 +250,7 @@ export class TowerEngine implements GameEngine {
 
   private step(now: number): void {
     const ctx = this.ctx;
-    if (!ctx) return;
+    if (!ctx || this.endedAt !== 0) return;
     const dt = Math.min(0.1, (now - this.lastTick) / 1000);
     this.lastTick = now;
 
@@ -252,6 +262,14 @@ export class TowerEngine implements GameEngine {
     }
     const mu = gripForPhase(phaseAt(now - this.startedAt));
     const starts = phaseStarts(this.startedAt);
+
+    // 발판이 전부 떨어졌다 — 기다릴 것이 없다. 그 자리에서 닫고 기록을 띄운다
+    if (this.slabs.every((s) => s.state >= 2)) {
+      this.endedAt = now;
+      this.stop();
+      ctx.finish();
+      return;
+    }
 
     // 철거 — 바깥 고리에서 하나씩. 가운데(고리 0)는 남긴다. 경고가 익으면 떨어진다, 떨어진 것은 잠시 뒤 없어진다
     if (now >= this.nextDemolishAt) {
@@ -328,10 +346,17 @@ export class TowerEngine implements GameEngine {
       }
       const wasStanding = b.stance === 'stand';
       const out = stepBody(b, this.slabs, cmd.wx, cmd.wz, mu * gripOf(ctx.bodyOf?.(b.id)), dt, now);
-      if (out.fell && wasStanding) {
+      if (out.fell && (wasStanding || b.stance === 'air')) {
         st?.fell(now);
         ctx.broadcast({ t: 'trial_fell', id: b.id });
-      } else if (b.stance === 'stand') {
+      }
+      if (out.touchdown) {
+        // 착지 충격 — 내려앉은 자리만큼 발판이 기운다. 닳은 발판 끝에 뛰어내리면 여기서 무너진다
+        const s = this.slabs[out.touchdown.slab];
+        const c = slabCenter(s.idx);
+        impact(s, b.x - c.x, b.z - c.z, b.mass * TOWER_BODY_MASS, out.touchdown.speed);
+      }
+      if (b.stance === 'stand') {
         const c = slabCenter(b.slab);
         st?.tick(Math.hypot(b.x - c.x, b.z - c.z), Math.hypot(b.x - TOWER_CENTER.x, b.z - TOWER_CENTER.z), out.slide, out.walked, dt, now, starts);
       }

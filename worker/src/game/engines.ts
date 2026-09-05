@@ -35,7 +35,7 @@ export const INSTRUCTION: Record<TrialGame, string> = {
   platform: '움직이는 발판을 점프로 건너라. W 로 나아가고 Space 로 뛴다. 발판 한가운데에 내려라. 떨어지면 출발로 돌아간다. 30초.',
   disc: '도는 원판 위에서 버텨라. WASD 로 걷고 Shift 로 달린다. 밖으로 밀려나면 떨어진다.',
   seesaw: '축 하나로 선 판자 위에서 무리의 무게중심을 축에 맞춰라. 상자가 떨어지면 반대쪽으로 옮겨 가라. 기울면 미끄러지고, 끝을 넘으면 떨어진다.',
-  tower: '탑 위 발판에서 버텨라. 무게가 몰린 발판은 기울어 무너지고, 바깥 발판은 차례로 철거된다. Space 로 남을 밀 수 있다. 떨어지지 마라.',
+  tower: '탑 위 발판에서 버텨라. 무게가 몰린 발판은 기울어 무너지고, 바깥 발판은 차례로 철거된다. Space 로 뛰고 E 로 남을 밀 수 있다. 떨어지지 마라.',
 };
 
 export function availableGames(): TrialGame[] {

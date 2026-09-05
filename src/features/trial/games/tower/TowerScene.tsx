@@ -28,9 +28,10 @@ export interface TowerSceneProps {
   aiIds: readonly string[];
   sendWalk: (x: number, z: number) => void;
   sendPush: (hx: number, hz: number) => void;
+  sendJump: () => void;
 }
 
-export function TowerScene({ selfId, myBody, roster, aiIds, sendWalk, sendPush }: TowerSceneProps) {
+export function TowerScene({ selfId, myBody, roster, aiIds, sendWalk, sendPush, sendJump }: TowerSceneProps) {
   return (
     <WorldCanvas
       quality="high"
@@ -61,7 +62,7 @@ export function TowerScene({ selfId, myBody, roster, aiIds, sendWalk, sendPush }
         <TowerAvatar key={id} id={id} label={id} />
       ))}
 
-      <TowerRig selfId={selfId} body={myBody} sendWalk={sendWalk} sendPush={sendPush} />
+      <TowerRig selfId={selfId} body={myBody} sendWalk={sendWalk} sendPush={sendPush} sendJump={sendJump} />
       {/* 발밑 「땅」은 서 있는 발판의 윗면 — 서 있는 동안 발 높이가 곧 땅이고, 떨어지는 중(f=1)에만 공중이다. 바닥에 누우면(f=2) 눕는다 */}
       <SelfAvatar body={myBody} groundY={() => (towerState.selfStance === 1 ? -100 : selfPose.y)} pose={() => ({ lie: towerState.selfStance === 2, scaleY: 1 })} />
       <MouseLook />
