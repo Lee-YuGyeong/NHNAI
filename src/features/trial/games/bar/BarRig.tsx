@@ -14,7 +14,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { LOOK_SENSITIVITY, attachKeyboard, input, resetInput } from '@/world/input/input';
 import { jumpOf, runCapOf, type BodyId } from '@/world/mp/bodies';
-import { BAR_CENTER, BAR_GRAVITY, BAR_JUMP_SCALE, BAR_RUN_SPEED, BAR_STAND_R, BAR_TOP, BAR_WALK_SPEED, JUMP_SPEED, MOVE_THROTTLE_MS } from '@/world/mp/constants';
+import { BAR_CENTER, BAR_GRAVITY, BAR_JUMP_K, BAR_JUMP_SCALE, BAR_RUN_SPEED, BAR_STAND_R, BAR_TOP, BAR_WALK_SPEED, JUMP_SPEED, MOVE_THROTTLE_MS } from '@/world/mp/constants';
 import type { AnimState } from '@/world/mp/protocol';
 import { CHASE_DIST, CHASE_LOOK_Y, PITCH_DEFAULT, PITCH_MAX, PITCH_MIN, forwardOf } from '../common/chase';
 import { selfPose } from '../common/selfPose';
@@ -29,7 +29,7 @@ export function BarRig({ selfId, body = null, sendWalk, sendJump }: { selfId: st
   const { camera } = useThree();
   const runSpeed = runCapOf(body, BAR_RUN_SPEED);
   /** 이륙 속도 — 이 몸의 것(공개)을 이 판의 눈금으로. 서버도 같은 값으로 적분한다 */
-  const jumpV0 = jumpOf(body, JUMP_SPEED) * BAR_JUMP_SCALE;
+  const jumpV0 = jumpOf(body, JUMP_SPEED) * BAR_JUMP_SCALE * BAR_JUMP_K;
   /** 예측 자리(월드) — BAR_CENTER 가 as const 라 리터럴로 좁혀지지 않게 타입을 편다 */
   const p = useRef<{ x: number; z: number }>({ x: BAR_CENTER.x, z: BAR_CENTER.z + BAR_STAND_R });
   /** 명령과 다른 몫(서버가 준 것, 월드) */

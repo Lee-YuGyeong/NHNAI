@@ -3,21 +3,21 @@
  *
  *   ① 발밑 μ 가 견인 상한이다 — 같은 명령이라도 미끄러운 바닥에서는 늦게 붙고 늦게 선다
  *   ② 공중에서는 발이 없다 — 이륙 순간의 속도가 얼어붙고, 명령을 바꿔도 안 먹는다
- *   ③ 점프 포물선 — 기준 몸의 정점 ≈ 1.05m, 봉 높이(0.42) 위 체공 창이 넉넉하다
+ *   ③ 점프 포물선 — 기준 몸의 정점 ≈ 0.67m(BAR_JUMP_K 반영), 봉 높이(0.36) 위 체공 창이 넉넉하다
  *   ④ 스침 검출 — 봉이 몸의 각도를 지나는 틱에서만 잡히고, ±π 접힘은 크로싱이 아니다
  *   ⑤ 맞으면 봉이 쓸어 가는 쪽으로 밀리고, 미끄러운 바닥에서 더 멀리 간다 · 가장자리 밖은 낙하 → 제자리 부활
  *   ⑥ 엔진 — 뛰어넘으면 안 맞고, 서 있으면 trial_hit. 스냅샷(trial_bar)에 θ·ω·전원이 실리고 마찰계수는 어디에도 없다 (P8)
  *   ⑦ 봇 — 기계 좌석(precision 1)은 봉을 넘는다. 점프는 사람과 같은 통로다 (P9)
  */
 import { describe, expect, it } from 'vitest';
-import { BAR_DOWN_MS, BAR_HEIGHT, BAR_JUMP_SCALE, BAR_OMEGA_MAX, BAR_R, BAR_RESPAWN_MS, BAR_RESPAWN_R, JUMP_SPEED } from '../../src/world/mp/constants';
+import { BAR_DOWN_MS, BAR_HEIGHT, BAR_JUMP_K, BAR_JUMP_SCALE, BAR_OMEGA_MAX, BAR_R, BAR_RESPAWN_MS, BAR_RESPAWN_R, JUMP_SPEED } from '../../src/world/mp/constants';
 import type { S2CMessage } from '../../src/world/mp/protocol';
 import { BarEngine } from '../../worker/src/trial/bar/engine';
 import { G, clampWalk, crossed, jump, knockDown, makeBarBody, makeSpin, relOf, respawn, stepBarBody, stepSpin, timeToCross, wrap } from '../../worker/src/trial/bar/sim';
 import { BarStats } from '../../worker/src/trial/bar/stats';
 
 const DT = 0.05;
-const V0 = JUMP_SPEED * BAR_JUMP_SCALE;
+const V0 = JUMP_SPEED * BAR_JUMP_SCALE * BAR_JUMP_K;
 
 /** 결정적 난수 — 판마다 같은 배치 */
 function seeded(seed = 7): () => number {
@@ -67,10 +67,10 @@ describe('sim — 무대 위 몸', () => {
       apex = Math.max(apex, b.y);
       if (b.y > BAR_HEIGHT) above += DT;
     }
-    // 이상적 정점은 v0²/2g ≈ 1.05 — 50ms 오일러 적분은 그보다 한 발짝(≈ v0·dt/2) 아래에 선다
-    expect(apex).toBeGreaterThan(0.85);
+    // 이상적 정점은 v0²/2g ≈ 0.67 (BAR_JUMP_K 반영) — 50ms 오일러 적분은 그보다 한 발짝(≈ v0·dt/2) 아래에 선다
+    expect(apex).toBeGreaterThan(0.5);
     expect(apex).toBeLessThan((V0 * V0) / (2 * G) + 0.01);
-    expect(above).toBeGreaterThan(0.55); // 기준 몸도 반 초 넘게 봉 위에 있다
+    expect(above).toBeGreaterThan(0.4); // 기준 몸도 봉 위에 0.4초 넘게 떠 있다
     expect(b.y).toBe(0); // 내려와 섰다
   });
 

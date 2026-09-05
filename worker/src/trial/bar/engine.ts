@@ -15,6 +15,7 @@ import {
   BAR_CENTER,
   BAR_DOWN_MS,
   BAR_HEIGHT,
+  BAR_JUMP_K,
   BAR_JUMP_SCALE,
   BAR_RUN_SPEED,
   BAR_SHOVE,
@@ -107,8 +108,8 @@ export class BarEngine implements GameEngine {
   }
 
   private place(id: string, angle: number): void {
-    // 이륙 속도는 그 몸의 것을 이 판의 눈금으로 (fall/engine.ts freshAir 와 같은 수법)
-    const v0 = jumpOf(this.ctx?.bodyOf?.(id), JUMP_SPEED) * BAR_JUMP_SCALE;
+    // 이륙 속도는 그 몸의 것을 이 판의 눈금으로 (fall/engine.ts freshAir 와 같은 수법) — 이 판만 낮게 뛴다 (BAR_JUMP_K)
+    const v0 = jumpOf(this.ctx?.bodyOf?.(id), JUMP_SPEED) * BAR_JUMP_SCALE * BAR_JUMP_K;
     this.bodies.set(id, makeBarBody(id, angle, v0, BAR_STAND_R));
     this.stats.set(id, new BarStats());
   }
