@@ -4,7 +4,7 @@
  * 읽는 유일한 물리적 단서다(진짜 그림자는 여럿이면 비싸다). 수직 낙하라 그림자 = 착지점. 공이 떨어지기 시작하는
  * 순간부터 옅게 있다가 내려올수록 진해진다 — 그래서 위를 안 봐도 "곧 온다"를 안다.
  */
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { fitScale, usePartSource, type PartId } from '@/world/map/corridor/part';
@@ -32,6 +32,18 @@ function BallKind({ kind, frames }: { kind: number; frames: React.RefObject<PodF
   const scale = useMemo(() => fitScale(src.size, { y: spec.r * 2 }), [src.size, spec.r]);
   const balls = useRef<THREE.InstancedMesh>(null);
   const shadows = useRef<THREE.InstancedMesh>(null);
+
+  /*
+   * 그림자 원반의 **인스턴스 색 자리를 미리 만든다.** three 는 `instanceColor` 가 있고 없고를 셰이더 프로그램의
+   * 열쇠에 넣는다 — 아래 useFrame 의 `setColorAt` 이 그 자리를 처음 만들므로, 그대로 두면 **첫 공이 떨어지는
+   * 그 프레임에** 열쇠가 바뀌어 프로그램을 새로 링크한다. 그 링크를 기다리느라 화면이 멎는 자리다
+   * (검문소에서는 무대를 미리 세워 두고 링크시키는데 — FallStage 의 Precompile — 이 자리 하나가 그걸 빠져나갔다).
+   * 값은 아무래도 좋다: 어차피 공이 있는 프레임에 다시 칠한다.
+   */
+  useEffect(() => {
+    const sm = shadows.current;
+    if (sm && !sm.instanceColor) sm.setColorAt(0, _c.setScalar(0));
+  }, []);
 
   useFrame(() => {
     const bm = balls.current;
