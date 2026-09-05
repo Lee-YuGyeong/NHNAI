@@ -10,7 +10,11 @@
 // 비밀은 없다 — 이 워커는 인증을 하지 않는다 (방 번호 + 닉네임만).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "who-is-human",
+  // 대시보드에 떠 있는 워커 이름과 **글자 하나까지 같아야 한다** — 이 이름이 곧 배포 대상이다.
+  // (https://nhnai.lyg6452620.workers.dev). 여기를 바꾸면 `wrangler deploy` 도 `wrangler secret put` 도
+  // 그 이름의 **새 워커**로 가고, 시크릿은 아무도 안 읽는 곳에 들어가 앉는다. 옛 이름은 who-is-human 이었다.
+  // (R2 버킷 이름 who-is-human 은 별개다 — 그건 그대로 둔다)
+  "name": "nhnai",
   "main": "worker/src/index.ts",
   "compatibility_date": "2025-09-01",
   "observability": { "enabled": true },
