@@ -49,6 +49,8 @@ export interface GameEngine {
    * 클라는 눌렀다는 것만 올리고 y 는 스냅샷의 `air` 로 돌려받는다. 이 게임만 구현한다
    */
   onJump?(id: string, now: number): void;
+  /** 무너지는 타워: 밀친다(Space). hx·hz 는 카메라가 보는 쪽. 이 게임만 구현한다 */
+  onPush?(id: string, hx: number, hz: number, now: number): void;
   /** 이 라운드를 닫아도 되나. waiting(id) 는 "그 사람을 아직 기다려야 하는가"(AI 이거나 방에 붙어 있다) */
   /** 라운드 시작 메시지에 공개로 실을 배속 — 움직이는 플랫폼만 (mp/platform.ts). 없는 엔진은 안 싣는다 */
   paceFor?(intensity: number): number;

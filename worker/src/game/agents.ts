@@ -24,7 +24,7 @@ export const WORLD = `2026년. 정부가 AI 식별 표식 부착을 의무화했
 움직이는 것은 사람들의 말과 실시간 지목뿐이고, 100%에 닿는 사람은 그 자리에서 격리된다.
 이 방에는 표식 없는 AI 가 **정확히 하나** 있다.`;
 
-export const TEST_NAME: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리' };
+export const TEST_NAME: Record<TrialGame, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리', tower: '무너지는 타워' };
 
 /** 테스트마다 기록의 열 이름 — 해설·판정 프롬프트와 화면이 같은 말을 쓴다 */
 export const METRIC_LABEL: Record<string, string> = {

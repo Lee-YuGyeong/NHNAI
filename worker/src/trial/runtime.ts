@@ -1,7 +1,7 @@
 /**
  * 물리 미니게임의 방 하나치 라운드 흐름 — RoomDO 생성자에서 한 번 만들어져 그 방의 트라이얼 전부를 맡는다.
  * 게임 규칙은 엔진(engine.ts)이 안다: 정지선(stopline-engine.ts) · 낙하 생존(fall/engine.ts) · 색 사냥(colorhunt/engine.ts) ·
- * 움직이는 플랫폼(platform/engine.ts) · 회전 원판(disc/engine.ts) · 무게 중심 다리(seesaw/engine.ts).
+ * 움직이는 플랫폼(platform/engine.ts) · 회전 원판(disc/engine.ts) · 무게 중심 다리(seesaw/engine.ts) · 무너지는 타워(tower/engine.ts).
  *
  * ★ 소켓을 직접 쥐지 않는다. roster/broadcast/send 는 전부 RoomDO 가 콜백으로 넘긴다 —
  *   room-do.test.ts 와 같은 방식(가짜 소켓 쌍 + 가짜 storage)으로 이 파일도 단위 시험이 된다.
@@ -21,6 +21,7 @@ import { DiscEngine } from './disc/engine';
 import { FallEngine } from './fall/engine';
 import { PlatformEngine } from './platform/engine';
 import { SeesawEngine } from './seesaw/engine';
+import { TowerEngine } from './tower/engine';
 import { appendHistory, readHistory } from './history';
 import { groupStats } from './scoring';
 import { StoplineEngine } from './stopline-engine';
@@ -68,6 +69,10 @@ export class TrialRuntime {
       case 'trial_walk':
         // 회전 원판 · 무게 중심 다리 — 걷기 명령. 크기는 엔진이 자른다 (disc/engine.ts · seesaw/engine.ts onWalk)
         if (this.active() && this.isConnected(snap.id)) this.engine?.onWalk?.(snap.id, msg.x, msg.z, Date.now());
+        return;
+      case 'trial_push':
+        // 무너지는 타워 — 밀치기. 누구를 얼마나 미는지는 엔진이 정한다 (tower/engine.ts onPush)
+        if (this.active() && this.isConnected(snap.id)) this.engine?.onPush?.(snap.id, Number(msg.hx), Number(msg.hz), Date.now());
         return;
       case 'trial_jump':
         // 낙하 생존 — 눌린 시각은 서버가 찍는다. 포물선은 서버가 적분한다 (fall/engine.ts onJump)
@@ -126,7 +131,9 @@ export class TrialRuntime {
               ? new DiscEngine()
               : game === 'seesaw'
                 ? new SeesawEngine()
-                : new StoplineEngine();
+                : game === 'tower'
+                  ? new TowerEngine()
+                  : new StoplineEngine();
     this.round = 0;
     this.finished = false;
     this.aiIds = [];

@@ -108,7 +108,12 @@ export type C2SMessage =
    * 쪽도 서버여야 하기 때문이다(fall/engine.ts 머리말). 클라는 「눌렀다」만 올리고 y 는 스냅샷으로 돌려받는다
    * (회전 원판이 걷기 명령만 올리는 것과 같은 수법). 시각은 서버가 수신 시점으로 찍는다
    */
-  | { t: 'trial_jump' };
+  | { t: 'trial_jump' }
+  /**
+   * 무너지는 타워: 밀친다(Space). 방향은 카메라가 보는 쪽(월드 단위 벡터) — 서 있는 몸의 「앞」은 서버가 모른다. 누구를 미는지 · 얼마나
+   * 미는지는 서버가 정한다(worker/src/trial/tower/engine.ts onPush — 거리 · 질량비 · 쿨다운)
+   */
+  | { t: 'trial_push'; hx: number; hz: number };
 
 /**
  * 접속이 끊기는 이유.
@@ -120,9 +125,10 @@ export type ErrorCode = 'version_mismatch' | 'room_full' | 'bad_request' | 'kick
 
 /**
  * 물리 미니게임의 식별자. 'platform' 은 움직이는 플랫폼(2026-09-05, mp/platform.ts) — 넷째 게임.
- * 'seesaw' 는 무게 중심 다리(2026-09-05, worker/src/trial/seesaw/) — 여섯째. /trial 에서만 열린다 (검문소 차례표에는 없다)
+ * 'seesaw' 는 무게 중심 다리(2026-09-05, worker/src/trial/seesaw/) — 여섯째, 검문소 차례표 후보에도 든다.
+ * 'tower' 는 무너지는 타워 생존(2026-09-05, worker/src/trial/tower/) — 일곱째. /trial 에서만 열린다
  */
-export type TrialGame = 'stopline' | 'colorhunt' | 'fall' | 'platform' | 'disc' | 'seesaw';
+export type TrialGame = 'stopline' | 'colorhunt' | 'fall' | 'platform' | 'disc' | 'seesaw' | 'tower';
 
 /** 판정 대상 한 명의 결과 한 라운드치. 게임마다 metrics 의 키가 다르다 (PLANNING P1~P4). */
 export interface TrialPlayerResult {
@@ -248,7 +254,7 @@ export type S2CMessage =
       omega: number;
       players: { id: string; x: number; z: number; y: number; h: number; m: number; f: number; sx: number; sz: number }[];
     }
-  /** 회전 원판 · 무게 중심 다리 — 누가 떨어졌다. 떨어진 사람 화면의 연출용. 기록은 서버가 이미 했다 */
+  /** 회전 원판 · 무게 중심 다리 · 무너지는 타워 — 누가 떨어졌다. 떨어진 사람 화면의 연출용. 기록은 서버가 이미 했다 */
   | { t: 'trial_fell'; id: string }
   /**
    * 무게 중심 다리 — 서버 물리 스냅샷(~10Hz). `phi` 는 판자의 기울기(rad, x 축 둘레, +u 끝이 올라가면 양수), `omega` 는 각속도 —
@@ -264,6 +270,18 @@ export type S2CMessage =
       omega: number;
       players: { id: string; u: number; v: number; h: number; m: number; f: number; s: number }[];
       crates: { id: number; u: number; v: number; at: number }[];
+    }
+  /**
+   * 무너지는 타워 — 서버 물리 스냅샷(~10Hz). `slabs` 는 아직 있는 발판(없는 것은 안 실린다): 번호 `i`, 기울기 벡터 `tx · tz`(낮은 쪽, tan),
+   * 상태 `s`(0 성함 · 1 경고 · 2 떨어지는 중)와 그 상태가 된 시각 `at`. `players` 는 전원의 월드 자리(사람의 자리도 서버가 적분한다):
+   * `y` 는 발 높이, `f` 는 0 서 있음 · 1 떨어지는 중 · 2 바닥에 누움, `m` 은 걷기(1) · 달리기(2), `h` 는 보는 방향,
+   * `sx · sz` 는 미끄러짐·밀림 속도(자기 몸의 예측용). 마찰계수는 없다(P8)
+   */
+  | {
+      t: 'trial_tower';
+      at: number;
+      slabs: { i: number; tx: number; tz: number; s: number; at: number }[];
+      players: { id: string; x: number; z: number; y: number; h: number; m: number; f: number; sx: number; sz: number }[];
     }
   | { t: 'trial_result'; result: TrialResultWire }
   /** (재)입장 시 지금까지의 전체 기록을 백필한다 — 로그 탭은 이걸로 채운다 */
