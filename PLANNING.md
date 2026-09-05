@@ -47,12 +47,12 @@
 | ✅ | 물리 미니게임 **회전 원판 생존** — 회전 좌표계 물리, 이동거리 판별(§2.4) | `worker/src/trial/disc/` · `src/features/trial/games/disc/` |
 | ✅ | 물리 미니게임 **움직이는 발판** — 점프 정확도 · 착지 미끄러짐(§2.5) | `worker/src/trial/platform/` · `src/world/mp/platform.ts` |
 | ✅ | 물리 미니게임 **무게 중심 다리** — 축 하나로 선 판자, 무게중심 · 토크 · 경사 마찰. 검문소 차례표 후보에도 든다 | `worker/src/trial/seesaw/` · `src/features/trial/games/seesaw/` |
-| ✅ | 물리 미니게임 **무너지는 타워 생존** — 5×5 발판 탑, 무게가 몰리면 기울어 무너진다 · 바깥부터 철거 · 밀치기. **/trial 전용** | `worker/src/trial/tower/` · `src/world/mp/tower.ts` · `src/features/trial/games/tower/` |
+| ✅ | 물리 미니게임 **무너지는 타워 생존** — 5×5 계단식 발판 탑, 무게가 몰리면 기울어 무너진다 · 마모 · 진동 · 철거 · 점프 · 밀치기. 검문소 차례표 후보에도 든다 | `worker/src/trial/tower/` · `src/world/mp/tower.ts` · `src/features/trial/games/tower/` |
 | ✅ | **의심도**(§1.2) — 지목 · 동조 · 몰이 · 철회 · 주장 판정 | `worker/src/game/suspicion.ts` |
 | ✅ | **지목 · 격리 · 승패**(§1.2 · §1.3) | `worker/src/game/runtime.ts` · `roles.ts`. 격리는 무대 위 처형자가 쏜다 |
 | ✅ | **AI 설계자**(§1.1) | `roles.assignRoles`. 아는 것이 전부다 — 기록 조작은 걷었다(P7) |
 | ✅ | **관리 AI** — 기록 해설 · 주장 판정(§4.2) | `worker/src/game/agents.ts`. **테스트 설계는 접었다** — 고정 차례표다(§1.2) |
-| ✅ | **차례표**(§1.2) — 대화 40초 ⇄ 시험 30초 × 3. 어느 셋인가는 판이 열릴 때 후보 넷(낙하 생존 · 발판 · 원판 · 무게 중심 다리)에서 **무작위**로 뽑는다 (2026-09-05) | `GAME_TEST_POOL` · `GAME_TEST_COUNT` · `drawTests` · `GAME_TEST_MS` (`src/world/mp/game-protocol.ts`) |
+| ✅ | **차례표**(§1.2) — 대화 40초 ⇄ 시험 30초 × 3. 어느 셋인가는 판이 열릴 때 후보 다섯(낙하 생존 · 발판 · 원판 · 무게 중심 다리 · 무너지는 타워)에서 **무작위**로 뽑는다 (2026-09-05) | `GAME_TEST_POOL` · `GAME_TEST_COUNT` · `drawTests` · `GAME_TEST_MS` (`src/world/mp/game-protocol.ts`) |
 
 ---
 
@@ -109,8 +109,8 @@ AI 하나였다. 이제 3명부터 하나다.
 
 #### 본판 — 검문소의 차례표 (2026-09-05, 박자는 고정 · 종류는 무작위)
 
-**박자가 고정**이다. 대화 40초와 물리 테스트 30초가 번갈아 **세 번** 돈다. 어느 세 시험인가는 판이 열릴 때 후보 넷
-(낙하 생존 · 움직이는 발판 · 회전 원판 · 무게 중심 다리)에서 겹치지 않게 **무작위로** 뽑는다(`drawTests`) — 뽑힌 차례는
+**박자가 고정**이다. 대화 40초와 물리 테스트 30초가 번갈아 **세 번** 돈다. 어느 세 시험인가는 판이 열릴 때 후보 다섯
+(낙하 생존 · 움직이는 발판 · 회전 원판 · 무게 중심 다리 · 무너지는 타워)에서 겹치지 않게 **무작위로** 뽑는다(`drawTests`) — 뽑힌 차례는
 `GameStateWire.tests` 로 공개된다. 아래는 그 한 예다:
 
 ```

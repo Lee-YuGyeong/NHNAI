@@ -10,7 +10,7 @@ import { GAME_TEST_MS, heldSecondsFor } from '@/world/mp/game-protocol';
 import type { TrialResultWire } from '@/world/mp/protocol';
 
 
-export const TEST_TITLE: Record<string, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리' };
+export const TEST_TITLE: Record<string, string> = { stopline: '정지선', fall: '낙하 생존', colorhunt: '색 사냥', platform: '움직이는 플랫폼', disc: '회전 원판', seesaw: '무게 중심 다리', tower: '무너지는 타워' };
 
 
 
@@ -22,6 +22,7 @@ const SUMMARY: Record<string, { held: string; extra?: { metric: string; label: s
   platform: { held: '도착하고 남긴 시간', extra: { metric: 'finishMs', label: '도착', fmt: (v) => `${(v / 1000).toFixed(1)}초` } },
   disc: { held: '안 떨어지고 버틴 시간', extra: { metric: 'falls', label: '낙하', fmt: (v) => `${v.toFixed(0)}회` } },
   seesaw: { held: '안 떨어지고 버틴 시간', extra: { metric: 'falls', label: '낙하', fmt: (v) => `${v.toFixed(0)}회` } },
+  tower: { held: '안 떨어지고 버틴 시간', extra: { metric: 'falls', label: '낙하', fmt: (v) => `${v.toFixed(0)}회` } },
 };
 
 /**

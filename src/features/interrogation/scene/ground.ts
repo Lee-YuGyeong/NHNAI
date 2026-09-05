@@ -1,5 +1,5 @@
 /**
- * 발밑 바닥 높이 — 홀에는 바닥이 넷이다: 홀 바닥(0) · 움직이는 발판(PAD_TOP) · 회전 원판 윗면(DISC_TOP) · 기울어진 판자 윗면(무게 중심 다리).
+ * 발밑 바닥 높이 — 홀에는 바닥이 다섯이다: 홀 바닥(0) · 움직이는 발판(PAD_TOP) · 회전 원판 윗면(DISC_TOP) · 기울어진 판자 윗면(무게 중심 다리) · 탑의 발판(무너지는 타워).
  *
  * 아바타는 이 값으로 「공중인가」를 가린다. 이게 없으면 원판 위에 선 몸(y = 0.75)이 전부 **점프 중**으로
  * 읽혀 서 있는 내내 뛰는 클립이 돈다 — 발판 때 이미 겪은 문제라(SeatAvatar 의 getAirborne) 같은 자리에서
@@ -8,6 +8,8 @@
 import { DISC_CENTER, DISC_R, DISC_TOP, SEESAW_CENTER, SEESAW_HALF, SEESAW_HALF_W, SEESAW_TOP } from '@/world/mp/constants';
 import { discState } from '@/features/trial/games/disc/discState';
 import { seesawState } from '@/features/trial/games/seesaw/seesawState';
+import { towerState } from '@/features/trial/games/tower/towerState';
+import { slabIndexAt } from '@/world/mp/tower';
 import { platformState } from './platformState';
 
 /** 원판이 서 있고 (x, z) 가 원판 위면 그 윗면, 아니면 0 */
@@ -26,6 +28,13 @@ function seesawGroundAt(x: number, z: number, now: number): number {
   return SEESAW_TOP + u * Math.sin(phi);
 }
 
+/** 탑이 서 있고 (x, z) 밑에 발판이 있으면 그 윗면(기울기 · 마모 포함), 아니면 0 */
+function towerGroundAt(x: number, z: number, now: number): number {
+  if (!towerState.has()) return 0;
+  const idx = slabIndexAt(x, z);
+  return idx >= 0 ? (towerState.surfaceAt(idx, x, z, now) ?? 0) : 0;
+}
+
 export function hallGroundAt(x: number, z: number, feetY: number, now = Date.now()): number {
-  return Math.max(platformState.groundAt(x, z, feetY, now), discGroundAt(x, z), seesawGroundAt(x, z, now));
+  return Math.max(platformState.groundAt(x, z, feetY, now), discGroundAt(x, z), seesawGroundAt(x, z, now), towerGroundAt(x, z, now));
 }

@@ -21,7 +21,7 @@ import { broadcastAnnounce } from '@/shared/broadcast';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { GAME_DISCUSSION_MS, GAME_MAX_HUMANS, GAME_TEST_MS, GAME_TEST_COUNT, type GameSeat } from '@/world/mp/game-protocol';
-import type { AnimState, PlayerSnapshot } from '@/world/mp/protocol';
+import type { AnimState, PlayerSnapshot, TrialGame } from '@/world/mp/protocol';
 import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
@@ -51,6 +51,8 @@ import { huntState, softLight } from '@/features/trial/games/color-hunt/huntStat
 import { discState } from '@/features/trial/games/disc/discState';
 // 무게 중심 다리도 같다 — 판자 기울기와 몸의 판자 좌표가 여기 들어간다 (seesawState 머리말)
 import { seesawState, worldOf as seesawWorldOf } from '@/features/trial/games/seesaw/seesawState';
+// 무너지는 타워도 같다 — 발판 기울기·상태와 몸의 자리가 여기 들어간다 (towerState 머리말)
+import { towerState } from '@/features/trial/games/tower/towerState';
 import './interrogation.css';
 
 /** 좌석의 기본 자리 — 홀 가운데 좌석 원 위 (spawn.ts). 판이 열릴 때 전원이 여기서 시작한다 */
@@ -179,6 +181,7 @@ export function InterrogationFeature() {
     huntState.clear();
     discState.clear();
     seesawState.clear();
+    towerState.clear();
     dispatch(gameActions.connecting());
 
     const conn = connRef.current!;
@@ -285,6 +288,7 @@ export function InterrogationFeature() {
           huntState.clear();
           discState.clear();
           seesawState.clear();
+          towerState.clear();
           // 움직이는 플랫폼 — 발판 열이 서고(platformState), 전원이 출발 발판 위 2×2 자리에서 시작한다 (좌석 번호로, platform.ts startSlot)
           if (msg.game === 'platform') {
             const seat = seatsRef.current.find((s) => s.id === meRef.current?.seatId);
@@ -361,6 +365,21 @@ export function InterrogationFeature() {
           }
           return;
         }
+        case 'trial_tower': {
+          // 무너지는 타워 — 같은 규칙: 사람의 자리도 서버가 적분한다(기울어진 발판 위의 미끄러짐 · 밀린 거리가 숨은 μ 에서 나온다, P8).
+          // 자리는 월드 좌표 그대로. 남의 몸은 remotePlayers 로 — 떨어지는 중(f=1)이면 y 가 내려간다
+          towerState.push(msg);
+          const at = now();
+          for (const b of msg.players) {
+            if (b.id === meRef.current?.seatId) {
+              myPos.current.x = b.x;
+              myPos.current.z = b.z;
+              continue;
+            }
+            remotePlayers.move(b.id, b.x, b.z, b.y, b.h, b.m === 2 ? 'run' : b.m === 1 ? 'walk' : 'idle', at);
+          }
+          return;
+        }
         case 'trial_fell':
           dispatch(gameActions.fellRecorded(msg.id));
           return;
@@ -384,6 +403,7 @@ export function InterrogationFeature() {
           platformState.clear();
           discState.clear();
           seesawState.clear();
+          towerState.clear();
           // 무대가 걷혔다 — 원판(0.75m)·발판(0.5m) 위에 있던 남의 몸을 바닥에 내려놓는다. 안 그러면 다음 샘플이 올 때까지
           // 허공에 서 있다 (remotePlayers.settle 머리말, 2026-09-05 사용자)
           remotePlayers.settle(now());
@@ -418,7 +438,7 @@ export function InterrogationFeature() {
       },
       onMoved: (id, x, z, y, heading, anim) => {
         // 정지선은 레일 타임라인이, 회전 원판 · 무게 중심 다리는 서버 스냅샷이 그린다 — 두 출처로 그리면 몸이 두 자리를 오간다
-        if (testRef.current?.game === 'stopline' || testRef.current?.game === 'disc' || testRef.current?.game === 'seesaw') return;
+        if (testRef.current?.game === 'stopline' || testRef.current?.game === 'disc' || testRef.current?.game === 'seesaw' || testRef.current?.game === 'tower') return;
         remotePlayers.move(id, x, z, y, heading, anim, now());
       },
       onMessage,
@@ -602,6 +622,8 @@ export function InterrogationFeature() {
   const onWalk = useCallback((x: number, z: number) => conn.sendWalk(x, z), [conn]);
   /** 낙하 생존 — Space. 몸의 높이는 서버가 적분한다 (FreeRig sendJump) */
   const onJump = useCallback(() => conn.sendJump(), [conn]);
+  /** 무너지는 타워 — 밀치기(E). 카메라가 보는 방향 (TowerRig) */
+  const onPush = useCallback((hx: number, hz: number) => conn.sendPush(hx, hz), [conn]);
   const onSend = useCallback((text: string) => conn.sendChat(text), [conn]);
   const onCardPick = useCallback((index: number) => conn.sendCardPick(index), [conn]);
   const onCardUse = useCallback((item: CardItem, target?: string) => conn.sendCardUse(item, target), [conn]);
@@ -620,9 +642,11 @@ export function InterrogationFeature() {
   const onStart = useCallback(
     (fillTo: number) => {
       dispatch(gameActions.clearReject());
-      conn.game({ t: 'game_start', fillTo });
+      // ?tests=tower,fall — 차례표를 미리 고른다(시연 · 설명서 스크린샷용, game-protocol 의 game_start.tests). 없으면 서버가 뽑는다
+      const picked = (params.get('tests') ?? '').split(',').map((t) => t.trim()).filter(Boolean) as TrialGame[];
+      conn.game({ t: 'game_start', fillTo, ...(picked.length ? { tests: picked } : {}) });
     },
-    [conn, dispatch],
+    [conn, dispatch, params],
   );
 
   /*
@@ -745,6 +769,8 @@ export function InterrogationFeature() {
                   ? myLand.finished
                     ? `완주 — 도착 발판에서 대기 · 착지 ${myLand.landings} · 정중앙 ${myLand.centers}`
                     : `착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses}`
+                  : test.game === 'tower'
+                    ? `낙하 ${myFalls}회 · 밀림 ${myHits}회`
                   : test.game === 'disc' || test.game === 'seesaw'
                     ? `낙하 ${myFalls}회`
                     : `주움 ${myPicks}`
@@ -794,6 +820,7 @@ export function InterrogationFeature() {
         onPick={onPick}
         onWalk={onWalk}
         onJump={onJump}
+        onPush={onPush}
         sendMove={sendMove}
       />
 

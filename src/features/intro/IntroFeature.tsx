@@ -255,7 +255,7 @@ export function IntroFeature() {
                   {GAME_DISCUSSION_MS / 1000}s ⇄ {GAME_TEST_MS / 1000}s
                 </span>
                 <b>차례표 ×{GAME_TEST_COUNT}</b>
-                <small>후보 넷 가운데 셋이 판마다 무작위로 뽑힌다</small>
+                <small>후보 다섯 가운데 셋이 판마다 무작위로 뽑힌다</small>
               </li>
               <li className="now">
                 <span>100%</span>
@@ -438,7 +438,7 @@ const STEPS = [
   },
   {
     title: `물리 테스트 ×${GAME_TEST_COUNT}`,
-    body: `대화 ${GAME_DISCUSSION_MS / 1000}초와 시험 ${GAME_TEST_MS / 1000}초가 번갈아 ${GAME_TEST_COUNT}번 — 낙하 생존 · 움직이는 발판 · 회전 원판 · 무게 중심 다리 가운데 셋이 판마다 무작위로 뽑힌다. 순서는 판이 열릴 때 공개되고, 조건값은 공개되지 않는다.`,
+    body: `대화 ${GAME_DISCUSSION_MS / 1000}초와 시험 ${GAME_TEST_MS / 1000}초가 번갈아 ${GAME_TEST_COUNT}번 — 낙하 생존 · 움직이는 발판 · 회전 원판 · 무게 중심 다리 · 무너지는 타워 가운데 셋이 판마다 무작위로 뽑힌다. 순서는 판이 열릴 때 공개되고, 조건값은 공개되지 않는다.`,
   },
   {
     title: '기록 공개',

@@ -55,7 +55,8 @@ export const TOWER_TILT_BREAK = 0.4;
 /** 계단 — 고리 하나 바깥으로 갈 때 낮아지는 높이(m). 가운데(고리 0)가 TOWER_TOP */
 export const TOWER_STEP = 0.45;
 /** 마모 — 사람 하나(기준 질량)가 이만큼(s) 서 있으면 발판이 다 닳아 경고가 뜬다. 닳을수록 이만큼(m)까지 가라앉는다 */
-export const TOWER_WEAR_S = 9;
+/** 9 였는데 무거운 몸(×1.8)은 5초에 발판을 다 닳게 해 봇도 사람도 첫 경고에 쏠려 떨어졌다 — 12 (무거운 몸 6.7초) */
+export const TOWER_WEAR_S = 12;
 export const TOWER_WEAR_SINK = 0.18;
 /** 진동 — 첫 진동 · 간격(ms, 최소·최대) · 예고(ms) · 발판 각속도 kick(rad/s) · 발의 미끄러짐 kick(m/s) */
 export const TOWER_QUAKE_FROM_MS = 6000;

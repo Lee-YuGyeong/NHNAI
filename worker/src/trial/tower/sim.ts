@@ -332,7 +332,10 @@ export function respawn(b: TowerBody, slabs: readonly Slab[], idx: number, dx = 
   b.y = slabSurfaceY(idx, slabs[idx].tx, slabs[idx].tz, b.x, b.z, slabs[idx].wear);
 }
 
-/** 몸끼리 겹치면 질량 반비례로 밀어낸다 — 서 있는 몸끼리만 */
+/** 한 틱에 겹침의 이만큼만 푼다 — 다 풀면 걸어오는 몸이 서 있는 몸을 발판 밖으로 밀어냈다(헤드리스 검문소: 가만히 선 사람이 7초에 떨어졌다) */
+const SEPARATE_K = 0.3;
+
+/** 몸끼리 겹치면 질량 반비례로 밀어낸다 — 서 있는 몸끼리만, 한 틱에 겹침의 SEPARATE_K 만큼 */
 export function separate(bodies: readonly TowerBody[]): void {
   for (let i = 0; i < bodies.length; i += 1) {
     for (let j = i + 1; j < bodies.length; j += 1) {
@@ -344,7 +347,7 @@ export function separate(bodies: readonly TowerBody[]): void {
       const d = Math.hypot(dx, dz);
       const min = TOWER_BODY_R * 2;
       if (d >= min || d < 1e-6) continue;
-      const push = (min - d) / (a.mass + b.mass);
+      const push = ((min - d) * SEPARATE_K) / (a.mass + b.mass);
       const nx = dx / d;
       const nz = dz / d;
       a.x -= nx * push * b.mass;

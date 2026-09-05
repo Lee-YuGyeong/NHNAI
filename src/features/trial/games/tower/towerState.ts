@@ -17,6 +17,16 @@ const DELAY_MS = TOWER_SNAPSHOT_MS + 30;
 let prev: Snapshot | null = null;
 let next: Snapshot | null = null;
 let clockOffset = 0;
+/** 발판 번호 → 스냅샷의 발판 — 프레임마다 25 × find 를 돌지 않게 push 때 한 번 색인한다 (2026-09-05 최적화) */
+let prevSlabs: (TowerSlabWire | undefined)[] = [];
+let nextSlabs: (TowerSlabWire | undefined)[] = [];
+
+function indexSlabs(s: Snapshot): (TowerSlabWire | undefined)[] {
+  const out = new Array<TowerSlabWire | undefined>(TOWER_N * TOWER_N);
+  for (const sl of s.slabs) out[sl.i] = sl;
+  return out;
+}
+
 /** 내 좌석 — 리그가 warpSelf 로 알려 준다. 스냅샷 쪽은 이 좌석을 건너뛴다 (push 안의 주석) */
 let selfSeat: string | null = null;
 
@@ -61,7 +71,9 @@ export const towerState = {
     const nowLocal = Date.now();
     if (!prev && !next) clockOffset = s.at - nowLocal;
     prev = next;
+    prevSlabs = nextSlabs;
     next = s;
+    nextSlabs = indexSlabs(s);
     /*
      * 순간이동 — 바닥에 떨어져 발판에 다시 서는 그 3초 (common/fallWarp.ts). **떨어지는 중(f=1)은 아직 아니다** —
      * 서버의 다시서기 시계는 바닥에 닿은 그 순간(f=2)부터 돈다 (worker/src/trial/tower/sim.ts 의 upAt).
@@ -83,6 +95,8 @@ export const towerState = {
   clear(): void {
     prev = null;
     next = null;
+    prevSlabs = [];
+    nextSlabs = [];
     towerState.selfStance = 0;
     othersWarp.clear();
     selfWarp.clear();
@@ -101,9 +115,9 @@ export const towerState = {
   },
   /** 발판 하나 — 기울기는 한 스냅샷 늦게 보간. 스냅샷에 없으면 「없다」 */
   slabAt(idx: number, nowLocal: number): SlabFrame {
-    const b = next?.slabs.find((s) => s.i === idx);
+    const b = nextSlabs[idx];
     if (!next || !b) return { idx, tx: 0, tz: 0, state: 3, atLocal: 0, wear: 0 };
-    const a = prev?.slabs.find((s) => s.i === idx);
+    const a = prevSlabs[idx];
     const t = nowLocal + clockOffset - DELAY_MS;
     let tx = b.tx;
     let tz = b.tz;

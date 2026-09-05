@@ -161,8 +161,12 @@ export type ClaimVerdict = 'match' | 'mismatch' | 'unclear';
 
 /** 클라이언트 → 서버 */
 export type GameC2SMessage =
-  /** 방장이 판을 연다. fillTo 는 실제 사람이 모자랄 때 대역으로 채울 총 인원(3~8) — 서버가 잘라 쓴다 */
-  | { t: 'game_start'; fillTo?: number }
+  /**
+   * 방장이 판을 연다. fillTo 는 실제 사람이 모자랄 때 대역으로 채울 총 인원(3~8) — 서버가 잘라 쓴다.
+   * tests 는 **차례표를 방장이 미리 고른 것**(시연 · 설명서 스크린샷용, /interrogation?tests=tower,fall) — 후보(GAME_TEST_POOL)에 있는 것만,
+   * 모자란 자리는 서버가 뽑아 채운다. 순서는 원래 공개라 잃는 것이 없다
+   */
+  | { t: 'game_start'; fillTo?: number; tests?: TrialGame[] }
   /** 상태 전체를 다시 달라 (재접속 · 화면 복구) */
   | { t: 'game_sync' }
   /** 실시간 지목 — 같은 사람을 다시 지목하면 무시, 다른 사람으로 바꾸면 앞의 것은 철회된다 */
@@ -237,23 +241,28 @@ export const GAME_MAX_HUMANS = 8;
  *
  *   입장 → 대화 40초 → ① 시험 30초 → 대화 40초 → ② 시험 30초 → 대화 40초 → ③ 시험 30초 → 대화 40초 → 끝
  *
- * 어느 셋인가는 **판이 열릴 때 후보(GAME_TEST_POOL)에서 무작위로** 뽑는다 — 겹치지 않게, 순서도 뽑힌 대로
+ * 어느 셋인가는 **판이 열릴 때 후보 다섯(GAME_TEST_POOL: 낙하 생존 · 발판 · 원판 · 무게 중심 다리 · 무너지는 타워)에서 무작위로** 뽑는다 — 겹치지 않게, 순서도 뽑힌 대로
  * (2026-09-05 사용자: "검사판 랜덤 게임에 무게중심다리도 들어갈 수 있도록"). 그 전에는 낙하 생존 → 발판 → 원판으로
  * 고정이었다 — 판마다 무엇이 나올지 모르지만 「세 번의 시험」이라는 판의 모양은 그대로다. 뽑힌 차례는 판이 열리는 순간
  * 서버가 정해 GameStateWire.tests 로 공개한다(순서는 공개, 조건값만 비밀). 관리 AI 가 매번 고르던 설계(agents.designNext)는 접었다.
  */
-export const GAME_TEST_POOL: readonly TrialGame[] = ['fall', 'platform', 'disc', 'seesaw'];
+export const GAME_TEST_POOL: readonly TrialGame[] = ['fall', 'platform', 'disc', 'seesaw', 'tower'];
 /** 한 판이 여는 시험 수 */
 export const GAME_TEST_COUNT = 3;
 
-/** 이 판의 차례표를 뽑는다 — 후보를 섞어 앞 GAME_TEST_COUNT 개. rand 는 [0,1) (워커는 판의 난수, 시험은 고정값) */
-export function drawTests(rand: () => number = Math.random): TrialGame[] {
-  const pool = [...GAME_TEST_POOL];
+/**
+ * 이 판의 차례표를 뽑는다 — 후보를 섞어 앞 GAME_TEST_COUNT 개. rand 는 [0,1) (워커는 판의 난수, 시험은 고정값).
+ * @param pick 방장이 미리 고른 것(game_start.tests) — 후보에 있는 것만 앞에 세우고, 모자란 자리를 나머지에서 뽑아 채운다
+ */
+export function drawTests(rand: () => number = Math.random, pick: readonly unknown[] = []): TrialGame[] {
+  const chosen: TrialGame[] = [];
+  for (const g of pick) if (typeof g === 'string' && (GAME_TEST_POOL as readonly string[]).includes(g) && !chosen.includes(g as TrialGame)) chosen.push(g as TrialGame);
+  const pool = GAME_TEST_POOL.filter((g) => !chosen.includes(g));
   for (let i = pool.length - 1; i > 0; i -= 1) {
     const j = Math.min(i, Math.floor(rand() * (i + 1)));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  return pool.slice(0, GAME_TEST_COUNT);
+  return [...chosen, ...pool].slice(0, GAME_TEST_COUNT);
 }
 
 /** 배역 통보 화면이 떠 있는 시간(ms) — RoleBriefing 의 SHOW_MS 와 같은 박자 */
