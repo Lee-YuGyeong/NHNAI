@@ -1,15 +1,14 @@
 // 맵 GLB 부품을 dev 서버(5173)의 three 로 4방향 렌더해 한 장(glb-preview.jpg)으로 붙이고 치수·바닥 y 를 찍는다.
 //   node tools/glb-preview.mjs [--dir world/corridor] <id> [id...]   (dev 서버가 떠 있어야 한다. 결과는 현재 폴더)
 //   --dir 로 다른 폴더도 본다 — 예: --dir world/cast2 (시나리오 2 의 개체들)
-// playwright 는 npx 캐시 경로를 직접 가리킨다 — 프로젝트 의존성이 아니다.
-import { chromium } from '/Users/nowonsang/.npm/_npx/9833c18b2d85bc59/node_modules/playwright/index.mjs';
-import { createRequire } from 'node:module'; const sharp = createRequire('/Users/nowonsang/Who-is-human/package.json')('sharp');
+// playwright·sharp 는 tools/local-deps.mjs 가 머신에 상관없이 찾아 준다 (playwright 는 프로젝트 의존성이 아니다).
+import { CHROME, chromium, sharp } from './local-deps.mjs';
 const S = process.cwd();
 const argv = process.argv.slice(2);
 const di = argv.indexOf('--dir');
 const DIR = di >= 0 ? argv.splice(di, 2)[1] : 'world/corridor';
 const ids = argv;
-const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--use-angle=metal', '--headless=new'] });
+const browser = await chromium.launch({ executablePath: CHROME, args: ['--use-angle=metal', '--headless=new'] });
 const page = await browser.newPage({ viewportSize: { width: 512, height: 512 } });
 await page.goto('http://localhost:5173/');
 const shots = await page.evaluate(async ([ids, dir]) => {
