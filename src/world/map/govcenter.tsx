@@ -32,8 +32,8 @@ import { GlbPart, type Fit, type InstanceItem } from './corridor/part';
 import { Instanced, Parts, useTiled, type Item } from './parts';
 import { CONSOLE_FIT, hdr, useShapedMaterial } from './scifi';
 import {
-  BAY_CENTERS,
   BAY_LIGHT,
+  BAY_LIGHT_ZS,
   BOARD,
   BOARD_CENTER_W,
   BOARD_LIGHT,
@@ -529,11 +529,16 @@ export function Govcenter(_props: GovcenterProps) {
     return {
       /** 광택 콘크리트 — 거칠기를 낮춰 형광등·상황판이 바닥에 비친다 (참고 이미지의 젖은 듯한 바닥) */
       floor: new THREE.MeshStandardMaterial({ map: floorMap, color: '#61666d', roughness: 0.3, metalness: 0.12 }),
-      wall: new THREE.MeshStandardMaterial({ map: wallMap, color: '#787e86', roughness: 0.92, metalness: 0.02 }),
-      ceiling: new THREE.MeshStandardMaterial({ map: wallMap, color: '#4b5057', roughness: 0.95, metalness: 0.02 }),
-      pilaster: new THREE.MeshStandardMaterial({ map: wallMap, color: '#6a7078', roughness: 0.92, metalness: 0.02 }),
+      /*
+       * 벽 · 천장 · 기둥 · 방 안은 **Lambert** 다 (2026-09-05 최적화). 거칠기 0.92~0.95 의 콘크리트는 PBR 로 그려도 반사 하이라이트가
+       * 사실상 0 이라 보이는 것은 같은데, MeshStandardMaterial 은 광원마다 GGX 반사식을 픽셀마다 돈다 — 화면을 채우는 면에서 광원
+       * 아홉 개면 그 계산이 프레임의 큰 몫이었다. 바닥만 Standard 로 남긴다 — 광택 바닥에 형광등이 비치는 것이 이 홀의 얼굴이다.
+       */
+      wall: new THREE.MeshLambertMaterial({ map: wallMap, color: '#787e86' }),
+      ceiling: new THREE.MeshLambertMaterial({ map: wallMap, color: '#4b5057' }),
+      pilaster: new THREE.MeshLambertMaterial({ map: wallMap, color: '#6a7078' }),
       /** 방 안 콘크리트 — 홀보다 어둡다 (안이 어두워야 유리가 유리로 읽힌다) */
-      roomShell: new THREE.MeshStandardMaterial({ map: wallMap, color: '#3a3f46', roughness: 0.95, metalness: 0.02 }),
+      roomShell: new THREE.MeshLambertMaterial({ map: wallMap, color: '#3a3f46' }),
       boardLeft: screen(boardLeft, 0.9),
       boardCenter: screen(boardCenter, 0.95),
       boardRight: screen(boardRight, 0.9),
@@ -665,8 +670,12 @@ function WatchDrone({ material }: { material: THREE.Material }) {
 /* ─────────────────────────────── 조명 ─────────────────────────────── */
 
 /**
- * 실제 광원 14개 — 형광등 점광원 8(bay) · 상황판 점광원 3 · 무대 스포트 1 · 끝벽 벽등 2. 그림자·깜빡임 없음.
- * 옆벽 벽등 넷은 렌즈 발광만 (예산).
+ * 실제 광원 9개 — 형광등 점광원 4(bay 둘에 하나, layout.BAY_LIGHT_ZS) · 상황판 점광원 1 · 스포트 1 · 벽등 3(끝벽 둘 · 등 뒤 하나).
+ * 그림자·깜빡임 없음. 옆벽 벽등 넷은 렌즈 발광만 (예산).
+ *
+ * 2026-09-05 최적화 — 14 → 9. 광원은 개수만큼 **모든 픽셀**의 셰이더 루프를 늘린다(세기 0 이어도). 큰 콘크리트 면이 화면을
+ * 채우는 이 홀에서는 광원 수와 픽셀 수(dpr)가 곧 GPU 시간이었다. 시험 무대의 등(HallScene ArenaWorkLights)까지 더해 열아홉이던
+ * 것이 열셋이다. 밝기 분포는 겹쳐 있던 형광등을 절반으로 줄이고 세기를 두 배로 해서 맞췄다.
  */
 export function GovcenterLights(_props: { flicker: boolean }) {
   const spot = useRef<THREE.SpotLight>(null);
@@ -678,13 +687,11 @@ export function GovcenterLights(_props: { flicker: boolean }) {
   return (
     <>
       <hemisphereLight args={['#c9d3e2', '#2e3238', 0.7]} />
-      {BAY_CENTERS.map((z) => (
+      {BAY_LIGHT_ZS.map((z) => (
         <pointLight key={z} position={[0, BAY_LIGHT.y, z]} intensity={BAY_LIGHT.intensity} distance={BAY_LIGHT.distance} decay={1.7} color="#dfe8f7" />
       ))}
-      {/* 상황판의 푸른 빛 — 무대와 홀 앞쪽으로 */}
-      {[BOARD_XS.left, 0, BOARD_XS.right].map((x) => (
-        <pointLight key={x} position={[x, BOARD_LIGHT.y, FAR_Z + BOARD_LIGHT.off]} intensity={BOARD_LIGHT.intensity} distance={BOARD_LIGHT.distance} decay={1.7} color="#86b4ff" />
-      ))}
+      {/* 상황판의 푸른 빛 — 무대와 홀 앞쪽으로. 세 판에 하나 */}
+      <pointLight position={[0, BOARD_LIGHT.y, FAR_Z + BOARD_LIGHT.off]} intensity={BOARD_LIGHT.intensity} distance={BOARD_LIGHT.distance} decay={1.7} color="#86b4ff" />
       {/* 스포트 → 끝벽 앞 바닥, 처형자가 서는 자리 */}
       <object3D ref={target} position={[0, 0, STAGE_CENTER_Z]} />
       <spotLight ref={spot} position={[0, STAGE_SPOT.y, STAGE_CENTER_Z]} angle={STAGE_SPOT.angle} penumbra={0.6} intensity={STAGE_SPOT.intensity} distance={STAGE_SPOT.distance} decay={1.6} color="#eef3ff" />
