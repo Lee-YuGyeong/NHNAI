@@ -20,7 +20,7 @@ import { BackToRoot } from '@/shared/BackToRoot';
 import { broadcastAnnounce } from '@/shared/broadcast';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { GAME_DISCUSSION_MS, GAME_ENDED_MS, GAME_TEST_MS, GAME_TEST_ORDER, type GameSeat } from '@/world/mp/game-protocol';
+import { GAME_DISCUSSION_MS, GAME_ENDED_MS, GAME_MAX_HUMANS, GAME_TEST_MS, GAME_TEST_ORDER, type GameSeat } from '@/world/mp/game-protocol';
 import type { AnimState, PlayerSnapshot } from '@/world/mp/protocol';
 import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
@@ -75,6 +75,15 @@ export function InterrogationFeature() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+
+  /**
+   * 같이 넘어온 사람 수 — 대기방의 「게임 시작」이 주소에 실어 보낸다 (lobby/Waitroom 의 startHref).
+   * 판이 열릴 때 **사람 자리를 그만큼 연다**: 소켓은 한 사람씩 붙는데 판은 첫 사람이 붙는 그 순간
+   * 열려서(AUTO_SEATS 자동 시작), 자리가 셋뿐이면 넷째부터는 앉을 곳이 없다. 아직 안 붙은 자리는
+   * 대역이 지키고 있다가 그 사람이 도착하면 내준다 (worker/src/game/runtime.ts 의 rebind).
+   * 없으면 1 — /play 나 주소로 혼자 들어온 길이다.
+   */
+  const party = Math.min(GAME_MAX_HUMANS, Math.max(1, Number(params.get('party')) || 1));
 
   const status = useAppSelector(gameSelectors.selectStatus);
   const errorText = useAppSelector(gameSelectors.selectErrorText);
@@ -512,6 +521,17 @@ export function InterrogationFeature() {
    * 서버는 이미 내 이동을 안 받고(runtime 의 onMove), 화면에서만 걷는 시체가 남으면 총알이 빈자리를 쏜다.
    */
   const iAmOut = !!mySeat?.isolated;
+  /*
+   * 배역 카드는 통보 국면(briefing)에만 선다 — 국면이 지나면 내린다.
+   *
+   * 카드가 **뜰 수 없었을 때**가 갇히던 자리다: 좌석을 못 받은 사람은 me 가 없어 카드가 아예 안
+   * 그려지는데(아래 렌더의 me && role !== 'ai'), showRole 은 켜진 채로 남았다. 그 값이 modalUp →
+   * paused 로 이어져 판이 끝날 때까지 몸도 시야도 얼어 있었다 — 화면엔 아무 판도 없이, 이유도 없이
+   * (2026-09-05 사용자: "움직여지는 사람이 있고 안움직여지는 방이 있어").
+   */
+  useEffect(() => {
+    if (phase !== 'briefing') setShowRole(false);
+  }, [phase]);
   // 판이 떠 있는 동안은 잠금을 푼다 — 결과 모달 · 끝 화면 · 역할 카드 · 대기
   const modalUp = phase === 'result' || phase === 'ended' || phase === 'lobby' || showRole;
   useEffect(() => {
@@ -562,8 +582,8 @@ export function InterrogationFeature() {
     }
     if (keepLobby || status !== 'connected' || !selfId || hostId !== selfId || autoSent.current) return;
     autoSent.current = true;
-    onStart(AUTO_SEATS - 1);
-  }, [phase, status, selfId, hostId, keepLobby, onStart]);
+    onStart(Math.max(AUTO_SEATS - 1, party));
+  }, [phase, status, selfId, hostId, keepLobby, party, onStart]);
   /*
    * 끝 화면의 「다시 — 새 판」 — 서버에 **곧바로** 시작을 청한다. 예전엔 새로고침이었는데, 다시 붙어도 서버는
    * 아직 끝난 판(ended)이라 같은 끝 화면이 시계도 없이 한 번 더 섰다: GAME_ENDED_MS 가 다 지나 서버가 스스로
@@ -576,8 +596,8 @@ export function InterrogationFeature() {
    */
   const onAgain = useCallback(() => {
     autoSent.current = true;
-    onStart(AUTO_SEATS - 1);
-  }, [onStart]);
+    onStart(Math.max(AUTO_SEATS - 1, party));
+  }, [onStart, party]);
   const onTamper = useCallback((target: string, direction: 'suspicious' | 'normal') => conn.game({ t: 'game_tamper', target, direction }), [conn]);
 
   /* ─────────────────────────────── 피격 번쩍임 ─────────────────────────────── */
@@ -623,27 +643,30 @@ export function InterrogationFeature() {
    * 것을 걷었고, 원판의 rad/s·회전 방향처럼 눈으로 이미 보이는 값도 뺐다 (discOmega 는 이제 여기 안 선다).
    */
   const hud =
-    status === 'connecting'
-      ? '연결하는 중…'
-      : status === 'error'
-        ? `연결 실패: ${errorText} — 워커(npm run worker:dev)가 떠 있어야 한다`
-        : phase === 'test' && test
-          ? test.game === 'stopline'
-            ? `시행 ${myAttempts} / 3`
-            : test.game === 'fall'
-              ? `피격 ${myHits}`
-              : test.game === 'platform'
-                ? myLand.finished
-                  ? `완주 — 도착 발판에서 대기 · 착지 ${myLand.landings} · 정중앙 ${myLand.centers}`
-                  : `착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses}`
-                : test.game === 'disc'
-                  ? `낙하 ${myFalls}회`
-                  : `주움 ${myPicks}`
-          : phase === 'discussion'
-            ? 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
-            : phase === 'lobby' && !keepLobby && !reject
-              ? '판을 여는 중 — 좌석을 섞고 대역이 앉는다…'
-              : '';
+    // 좌석을 못 받은 사람 — 판이 열린 뒤에 왔다 (worker 의 rebind). 왜 아무것도 안 되는지 한 줄로는 말해 준다
+    status === 'connected' && inGame && !mySeatId
+      ? '이 판엔 자리가 없다 — 구경 중. 다음 판은 처음부터 앉는다'
+      : status === 'connecting'
+        ? '연결하는 중…'
+        : status === 'error'
+          ? `연결 실패: ${errorText} — 워커(npm run worker:dev)가 떠 있어야 한다`
+          : phase === 'test' && test
+            ? test.game === 'stopline'
+              ? `시행 ${myAttempts} / 3`
+              : test.game === 'fall'
+                ? `피격 ${myHits}`
+                : test.game === 'platform'
+                  ? myLand.finished
+                    ? `완주 — 도착 발판에서 대기 · 착지 ${myLand.landings} · 정중앙 ${myLand.centers}`
+                    : `착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses}`
+                  : test.game === 'disc'
+                    ? `낙하 ${myFalls}회`
+                    : `주움 ${myPicks}`
+            : phase === 'discussion'
+              ? 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
+              : phase === 'lobby' && !keepLobby && !reject
+                ? '판을 여는 중 — 좌석을 섞고 대역이 앉는다…'
+                : '';
 
   return (
     <div ref={rootRef} className="ig-root" onClick={lock}>

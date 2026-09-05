@@ -137,7 +137,16 @@ export function FreeRig({
   }, [composing]);
 
   useFrame((_, delta) => {
-    const active = !composing && !paused && document.pointerLockElement !== null;
+    /*
+     * **걷기는 마우스 잠금을 안 기다린다.** 시야(마우스)만 잠겨 있어야 돈다.
+     *
+     * 여태 둘 다 잠금에 걸려 있었다 — 화면을 한 번도 안 누른 사람은 WASD 가 통째로 죽어 있었고, 그 사실을
+     * 말해 주는 줄(.ig-foot 의 「화면을 클릭하면…」)은 하필 판이 열리는 그 몇 분(프롤로그 방송) 동안 안 뜬다.
+     * 그래서 한 방에서도 누구는 걷고 누구는 못 걸었다 (2026-09-05 사용자: "나는 움직이는데 다른사람들은
+     * 안움직여"). 잠금을 청하는 쪽(InterrogationFeature 의 lock)도 「거절돼도 시야만 못 돌릴 뿐 키는 된다」로
+     * 적혀 있었으니, 여기가 그 말과 어긋나 있던 자리다. 잠금은 마우스의 사정이지 발의 사정이 아니다.
+     */
+    const active = !composing && !paused;
     const lookActive = !paused && document.pointerLockElement !== null;
 
     if (input.lookX !== 0 || input.lookY !== 0) {

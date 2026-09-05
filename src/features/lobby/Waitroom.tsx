@@ -92,8 +92,12 @@ const START_LINE = ROOM_START_LINE;
  *   여기는 이미 모인 방이 있다 — 같은 번호로 들어가야 대기방에서 만난 사람들이 같은 판에 앉는다.
  * ★ 닉네임도 들고 간다. 검문소는 ?nick= 이 없으면 저장된 게스트 이름으로 떨어지는데, 대기방에서
  *   쓰던 이름과 다를 수 있다 — 좌석에 앉는 순간 이름이 바뀌면 옆자리가 딴 사람으로 본다.
+ * ★ **몇 명이 같이 가는지도 들고 간다** (?party=). 검문소는 첫 사람이 붙는 순간 판을 여는데,
+ *   그때 명부에 있는 사람만 좌석을 받는다 — 수를 모르면 사람 자리를 셋만 열어 넷째부터는 앉을
+ *   곳이 없었다 (2026-09-05, InterrogationFeature 의 party). 늦게 붙는 자리는 대역이 지킨다.
  */
-const startHref = (code: string, nick: string) => `/interrogation?code=${code}&nick=${encodeURIComponent(nick)}`;
+const startHref = (code: string, nick: string, party: number) =>
+  `/interrogation?code=${code}&nick=${encodeURIComponent(nick)}&party=${party}`;
 
 /**
  * 고를 수 있는 말. 원작은 서버에서 목록을 받았지만(cfg.lines) 여기서는 화면이 들고 있다.
@@ -565,7 +569,7 @@ export function Waitroom({ code, nickname }: { code: string; nickname: string })
           「참가자 0/3」을 먼저 읽게 된다 — 지금 벌어지는 일은 접속이지 빈 좌석이 아니다.
       */}
       <LinkBoot code={code} status={status} seat={mine?.seat ?? null} onCancel={leave} />
-      {launching ? <Launch onDone={() => navigate(startHref(code, nickname))} /> : null}
+      {launching ? <Launch onDone={() => navigate(startHref(code, nickname, Math.max(1, seats.length)))} /> : null}
     </div>
   );
 }
