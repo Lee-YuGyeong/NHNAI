@@ -130,7 +130,9 @@ export interface GameStateWire {
  *           조금 올리고, 진실이면 내려 준다. 상대(사람이든 봇이든)의 전략은 둘 — 진실을 말하거나, 교묘하게 피하거나.
  *   accuse  지목권 — 겨눈 상대의 의심도를 CARD.accuseBoost 만큼 올린다.
  *   calm    진정권 — 내 의심도를 CARD.calmDrop 만큼 내린다.
- * 카드는 가진 사람만 안다(game_cards 는 본인에게만). 쓰면 전원이 본다(game_card_used). 봇은 카드를 안 받는다 — 1등이 봇이면 카드 없는 시험이다.
+ * 카드는 가진 사람만 안다(game_cards 는 본인에게만). 쓰면 전원이 본다(game_card_used). **봇도 받는다** — 1등이 AI 참가자·대역이면
+ * 엎어진 셋 중 하나를 그 자리에서 쥐고(뭔지는 봇도 모른다 — 무작위), 토론에서 제 처지에 맞게 쓴다 (runtime 의 botCards,
+ * 2026-09-05 사용자: "AI 가 우승했을 때 아이템을 얻으면 아이템을 적절하게 사용할 수 있도록").
  */
 export type CardItem = 'truth' | 'accuse' | 'calm';
 export const CARD_ITEMS: readonly CardItem[] = ['truth', 'accuse', 'calm'];
