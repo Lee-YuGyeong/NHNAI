@@ -20,7 +20,7 @@ import { BackToRoot } from '@/shared/BackToRoot';
 import { broadcastAnnounce } from '@/shared/broadcast';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { GAME_DISCUSSION_MS, GAME_ENDED_MS, GAME_TEST_MS, GAME_TEST_ORDER, type GameSeat } from '@/world/mp/game-protocol';
+import { GAME_DISCUSSION_MS, GAME_ENDED_MS, GAME_MAX_HUMANS, GAME_TEST_MS, GAME_TEST_ORDER, type GameSeat } from '@/world/mp/game-protocol';
 import type { AnimState, PlayerSnapshot } from '@/world/mp/protocol';
 import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
@@ -59,8 +59,18 @@ function seatSpot(seat: GameSeat, total: number): { x: number; z: number } {
  * 바로 플레이되게"). 몸이 넷(mp/bodies.ts 의 BODY_IDS)이라 넷이면 전원이 서로 다른 몸을 입는다.
  * 서버의 fillTo 는 **사람 쪽 좌석 수**다(runtime.start — AI 는 그 위에 얹힌다). 그래서 보낼 때 하나를 뺀다.
  * 둘이 같이 들어오면 사람이 대역 자리를 차지한다 — 넷은 그대로다. 예전처럼 소집 대기를 보려면 ?lobby.
+ *
+ * ★ 여럿이 같이 넘어왔으면(?party=) **다 붙을 때까지 기다렸다가** 연다 — 자리 수도 그 수만큼이다
+ *   (아래 party · PARTY_WAIT_MS). 혼자 들어온 길은 예전 그대로 곧장 열린다.
  */
 const AUTO_SEATS = 4;
+
+/**
+ * 일행을 여기까지만 기다린다 (ms). 대기방의 「게임 시작」은 전원을 같은 순간에 보내므로 소켓은 몇 초 안에
+ * 다 붙는다 — 이 시간은 **안 오는 사람**을 위한 것이다 (창을 닫았거나 길을 잃었거나). 다 지나면 있는
+ * 사람끼리 열고, 빈자리는 대역이 앉는다 (§9 "일부 참가자를 NPC 로 대체하는 폴백").
+ */
+const PARTY_WAIT_MS = 10_000;
 
 
 export function InterrogationFeature() {
@@ -75,6 +85,15 @@ export function InterrogationFeature() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+
+  /**
+   * 같이 넘어온 사람 수 — 대기방의 「게임 시작」이 주소에 실어 보낸다 (lobby/Waitroom 의 startHref).
+   * 판이 열릴 때 **사람 자리를 그만큼 연다**: 소켓은 한 사람씩 붙는데 판은 첫 사람이 붙는 그 순간
+   * 열려서(AUTO_SEATS 자동 시작), 자리가 셋뿐이면 넷째부터는 앉을 곳이 없다. 아직 안 붙은 자리는
+   * 대역이 지키고 있다가 그 사람이 도착하면 내준다 (worker/src/game/runtime.ts 의 rebind).
+   * 없으면 1 — /play 나 주소로 혼자 들어온 길이다.
+   */
+  const party = Math.min(GAME_MAX_HUMANS, Math.max(1, Number(params.get('party')) || 1));
 
   const status = useAppSelector(gameSelectors.selectStatus);
   const errorText = useAppSelector(gameSelectors.selectErrorText);
@@ -512,6 +531,17 @@ export function InterrogationFeature() {
    * 서버는 이미 내 이동을 안 받고(runtime 의 onMove), 화면에서만 걷는 시체가 남으면 총알이 빈자리를 쏜다.
    */
   const iAmOut = !!mySeat?.isolated;
+  /*
+   * 배역 카드는 통보 국면(briefing)에만 선다 — 국면이 지나면 내린다.
+   *
+   * 카드가 **뜰 수 없었을 때**가 갇히던 자리다: 좌석을 못 받은 사람은 me 가 없어 카드가 아예 안
+   * 그려지는데(아래 렌더의 me && role !== 'ai'), showRole 은 켜진 채로 남았다. 그 값이 modalUp →
+   * paused 로 이어져 판이 끝날 때까지 몸도 시야도 얼어 있었다 — 화면엔 아무 판도 없이, 이유도 없이
+   * (2026-09-05 사용자: "움직여지는 사람이 있고 안움직여지는 방이 있어").
+   */
+  useEffect(() => {
+    if (phase !== 'briefing') setShowRole(false);
+  }, [phase]);
   // 판이 떠 있는 동안은 잠금을 푼다 — 결과 모달 · 끝 화면 · 역할 카드 · 대기
   const modalUp = phase === 'result' || phase === 'ended' || phase === 'lobby' || showRole;
   useEffect(() => {
@@ -547,23 +577,47 @@ export function InterrogationFeature() {
   );
 
   /*
-   * 소집 대기 없이 바로 연다 (AUTO_SEATS 머리말). 서버가 방장이라 한 사람(wire.hostId)만 보낸다 — 둘이 같이
-   * 들어와도 판은 하나만 열리고, 그때 방에 있는 사람은 전원 좌석을 받는다 (runtime.start 의 roster).
+   * 소집 대기 없이 연다 (AUTO_SEATS 머리말) — 다만 **일행이 다 붙은 뒤에**. 서버가 방장이라 한 사람
+   * (wire.hostId)만 보낸다: 둘이 같이 들어와도 판은 하나만 열리고, 그때 방에 있는 사람은 전원 좌석을 받는다
+   * (runtime.start 의 roster).
+   *
+   * 「다 붙은 뒤에」가 이 효과의 전부다 (2026-09-05 사용자: "다 들어오면 배역 통보를 하게 하면 되는거아니야?").
+   * 예전엔 첫 사람이 붙는 그 순간 열었다 — 대기방의 전원이 같은 순간에 넘어와도 소켓은 한 사람씩 붙으므로,
+   * 1초 늦은 사람은 시작 명부에 없어 좌석을 못 받았다. 늦은 사람을 뒤에서 끼워 넣는 길(worker 의 rebind)도
+   * 그대로 두지만, 애초에 **기다렸다 열면 그 경주가 없다.** 기다리는 수는 대기방이 실어 보낸 party 다.
+   *
+   * 안 오는 사람이 하나 있다고 판이 영영 안 열리면 안 된다 — 첫 사람이 붙은 뒤 PARTY_WAIT_MS 가 지나면
+   * 있는 사람끼리 연다 (그 빈자리는 대역이 앉는다, §9). 기다리는 동안 화면은 몇 명이 왔는지 말해 준다(hud).
+   *
    * 로비에 들어설 때마다 **한 번**이다: 거절되면(reject) 소집 대기 판이 그대로 서고, 판이 끝나 로비로
    * 돌아오면(GAME_ENDED_MS 뒤) 다시 한 번 연다 — 끝 화면의 「다시 — 새 판」도 결국 여기로 온다.
    */
   const keepLobby = params.get('lobby') !== null;
   const hostId = wire?.hostId ?? null;
   const autoSent = useRef(false);
+  /** 일행을 그만 기다리고 열 시각 — 로비에 처음 선 순간부터 센다 */
+  const waitUntil = useRef<number | null>(null);
+  const humansOnline = wire?.humansOnline ?? 0;
+  /** 아직 안 온 사람이 있어 기다리는 중인가 — 발치 줄이 이 값을 읽는다 */
+  const waitingParty = phase === 'lobby' && !keepLobby && !reject && humansOnline > 0 && humansOnline < party;
   useEffect(() => {
     if (phase !== 'lobby') {
       autoSent.current = false;
+      waitUntil.current = null;
       return;
     }
     if (keepLobby || status !== 'connected' || !selfId || hostId !== selfId || autoSent.current) return;
-    autoSent.current = true;
-    onStart(AUTO_SEATS - 1);
-  }, [phase, status, selfId, hostId, keepLobby, onStart]);
+    const open = () => {
+      autoSent.current = true;
+      onStart(Math.max(AUTO_SEATS - 1, party));
+    };
+    if (waitUntil.current === null) waitUntil.current = Date.now() + PARTY_WAIT_MS;
+    const left = waitUntil.current - Date.now();
+    if (humansOnline >= party || left <= 0) return open();
+    // 아직 덜 왔다 — 남은 시간만큼만 기다린다. 그 사이 누가 더 붙으면 이 효과가 다시 돌며 위에서 걸린다
+    const t = setTimeout(open, left);
+    return () => clearTimeout(t);
+  }, [phase, status, selfId, hostId, keepLobby, party, humansOnline, onStart]);
   /*
    * 끝 화면의 「다시 — 새 판」 — 서버에 **곧바로** 시작을 청한다. 예전엔 새로고침이었는데, 다시 붙어도 서버는
    * 아직 끝난 판(ended)이라 같은 끝 화면이 시계도 없이 한 번 더 섰다: GAME_ENDED_MS 가 다 지나 서버가 스스로
@@ -576,8 +630,8 @@ export function InterrogationFeature() {
    */
   const onAgain = useCallback(() => {
     autoSent.current = true;
-    onStart(AUTO_SEATS - 1);
-  }, [onStart]);
+    onStart(Math.max(AUTO_SEATS - 1, party));
+  }, [onStart, party]);
   const onTamper = useCallback((target: string, direction: 'suspicious' | 'normal') => conn.game({ t: 'game_tamper', target, direction }), [conn]);
 
   /* ─────────────────────────────── 피격 번쩍임 ─────────────────────────────── */
@@ -623,27 +677,32 @@ export function InterrogationFeature() {
    * 것을 걷었고, 원판의 rad/s·회전 방향처럼 눈으로 이미 보이는 값도 뺐다 (discOmega 는 이제 여기 안 선다).
    */
   const hud =
-    status === 'connecting'
-      ? '연결하는 중…'
-      : status === 'error'
-        ? `연결 실패: ${errorText} — 워커(npm run worker:dev)가 떠 있어야 한다`
-        : phase === 'test' && test
-          ? test.game === 'stopline'
-            ? `시행 ${myAttempts} / 3`
-            : test.game === 'fall'
-              ? `피격 ${myHits}`
-              : test.game === 'platform'
-                ? myLand.finished
-                  ? `완주 — 도착 발판에서 대기 · 착지 ${myLand.landings} · 정중앙 ${myLand.centers}`
-                  : `착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses}`
-                : test.game === 'disc'
-                  ? `낙하 ${myFalls}회`
-                  : `주움 ${myPicks}`
-          : phase === 'discussion'
-            ? 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
-            : phase === 'lobby' && !keepLobby && !reject
-              ? '판을 여는 중 — 좌석을 섞고 대역이 앉는다…'
-              : '';
+    // 좌석을 못 받은 사람 — 판이 열린 뒤에 왔다 (worker 의 rebind). 왜 아무것도 안 되는지 한 줄로는 말해 준다
+    status === 'connected' && inGame && !mySeatId
+      ? '이 판엔 자리가 없다 — 구경 중. 다음 판은 처음부터 앉는다'
+      : status === 'connecting'
+        ? '연결하는 중…'
+        : status === 'error'
+          ? `연결 실패: ${errorText} — 워커(npm run worker:dev)가 떠 있어야 한다`
+          : phase === 'test' && test
+            ? test.game === 'stopline'
+              ? `시행 ${myAttempts} / 3`
+              : test.game === 'fall'
+                ? `피격 ${myHits}`
+                : test.game === 'platform'
+                  ? myLand.finished
+                    ? `완주 — 도착 발판에서 대기 · 착지 ${myLand.landings} · 정중앙 ${myLand.centers}`
+                    : `착지 ${myLand.landings} · 정중앙 ${myLand.centers} · 실패 ${myLand.misses}`
+                  : test.game === 'disc'
+                    ? `낙하 ${myFalls}회`
+                    : `주움 ${myPicks}`
+            : phase === 'discussion'
+              ? 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
+              : waitingParty
+                ? `일행을 기다리는 중 — ${humansOnline} / ${party} 도착. 다 오면 배역이 통보된다`
+                : phase === 'lobby' && !keepLobby && !reject
+                  ? '판을 여는 중 — 좌석을 섞고 대역이 앉는다…'
+                  : '';
 
   return (
     <div ref={rootRef} className="ig-root" onClick={lock}>

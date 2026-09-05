@@ -1509,7 +1509,27 @@ export class GameRuntime {
         return;
       }
     }
-    // 이름이 같은 빈 좌석이 없으면 — 판 도중 처음 온 사람이다. 앉을 자리가 없다 (구경만 한다)
+    /*
+     * 아직 배역 통보(briefing) 중이면 **대역의 자리에 앉힌다** — 판이 열린 지 몇 초, 아무 일도 일어나지 않았다.
+     *
+     * 「게임 시작」은 대기방 전원을 같은 순간에 여기로 보내는데, 소켓은 한 사람씩 순서대로 붙는다. 판은
+     * 첫 사람이 붙는 그 순간 열리므로(InterrogationFeature 의 AUTO_SEATS 자동 시작), 1초 늦게 붙은 사람은
+     * 시작 명부(start 의 roster)에 없어 좌석을 못 받았다 — 판이 끝날 때까지 말도 못 하고 몸도 안 움직였다
+     * (2026-09-05 사용자: "게임 시작 되면 움직여지는 사람이 있고 안움직여지는 방이 있어").
+     *
+     * 몸(body)·이름·배역은 **그 대역의 것을 그대로 물려받는다.** 몸은 한 판에서 겹치지 않게 뽑혔고
+     * (start 의 usedBodies), 이름도 그 자리의 이름으로 이미 남들 화면에 서 있다 — 앉는 사람만 바뀐다.
+     */
+    if (this.phase !== 'briefing') return; // 토론이 시작된 뒤에 온 사람은 그대로 구경한다
+    const taken = new Set(this.bindings.values());
+    const stand = this.seats.find((s) => s.kind === 'npc' && !s.isolated && !taken.has(s.id));
+    if (!stand) return;
+    stand.kind = 'real';
+    stand.persona = null; // 대역의 입을 뗀다 — scheduleTalk 는 persona 가 있는 좌석만 고른다
+    this.botPos.delete(stand.id); // 몸도 사람 것이다 — idleTick 이 더는 이 좌석을 걷게 하지 않는다
+    this.bindings.set(snap.id, stand.id);
+    this.nicks.set(snap.id, snap.nickname);
+    void this.persist(); // 좌석의 주인이 바뀌었다 — DO 가 잠들었다 깨도 이 사람이 그 자리다
   }
 
   private nicks = new Map<string, string>();
