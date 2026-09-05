@@ -1,5 +1,5 @@
 /**
- * 판 위의 판들 — 시계 · 채팅 · 기록 요약 · 결과 모달 · 대기 · 설계자 조작 · 끝 화면.
+ * 판 위의 판들 — 시계 · 채팅 · 기록 요약 · 결과 모달 · 대기 · 끝 화면.
  * 전부 서버가 준 상태(gameSlice)를 그리기만 한다. 값을 만들지 않는다.
  *
  * ★ **상단 줄(방 번호 · 국면 · 남은 초 · 테스트 n/3 · 격리 n/2)과 좌석판(SUBJECTS 카드)은 걷었다**
@@ -67,6 +67,16 @@ export function chatOnly(feed: readonly ChatEntry[]): ChatEntry[] {
 }
 
 /**
+ * 「지훈으로」·「시우로」·「소율로」 — 이름 끝 글자에 받침이 있으면 「으로」, 없거나 ㄹ 이면 「로」.
+ * 좌석 이름은 늘 한글 세 글자지만(koreanNames), 로비 닉네임이 들어와도 안 깨지게 한글이 아니면 「로」로 둔다.
+ */
+export function withRo(name: string): string {
+  const code = name.charCodeAt(name.length - 1);
+  const tail = code >= 0xac00 && code <= 0xd7a3 ? (code - 0xac00) % 28 : 0;
+  return `${name}${tail > 0 && tail !== 8 ? '으로' : '로'}`;
+}
+
+/**
  * 방의 대화 「구역 통신」 — 판 하나에 머리띠 · 로그 · 입력줄.
  *
  * 생김새는 /arena 의 통신판(ArenaFeature 의 .comms)을 그대로 옮긴 것이다
@@ -83,6 +93,7 @@ export function chatOnly(feed: readonly ChatEntry[]): ChatEntry[] {
 export function Chat({
   feed,
   mySeatId,
+  myName,
   markId,
   disabled,
   talk,
@@ -91,6 +102,13 @@ export function Chat({
 }: {
   feed: ChatEntry[];
   mySeatId: string | null;
+  /**
+   * 이 판에서 내가 쓰는 이름 — 입력칸이 「지훈으로 말하기」로 선다 (2026-09-05 사용자: "내 이름을 몰라서
+   * 엔터로 말하기 말고 (내이름)으로 말하기로"). 좌석 이름은 판이 열릴 때 서버가 지어 주는데
+   * (worker 의 pickKoreanNames), 1인칭이라 내 머리 위 이름표는 나만 못 본다 — 내가 누구로 말하는지
+   * 알 곳이 여기밖에 없었다. 좌석이 없으면(로비) null 이고, 그때는 예전대로 키를 안내한다.
+   */
+  myName: string | null;
   /** 내가 겨누고 있는 좌석 — 그 좌석의 말에는 색점이 호박으로 켜진다 (몸 위 이름표와 같은 규칙) */
   markId: string | null;
   disabled: boolean;
@@ -204,7 +222,7 @@ export function Chat({
           onKeyDown={(e) => {
             if (e.key === 'Escape') (e.target as HTMLInputElement).blur();
           }}
-          placeholder={disabled ? '기록 공개 중 — 입력이 잠긴다' : broke ? '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다' : 'Enter 로 말하기'}
+          placeholder={disabled ? '기록 공개 중 — 입력이 잠긴다' : broke ? '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다' : myName ? `${withRo(myName)} 말하기` : 'Enter 로 말하기'}
           disabled={locked}
           maxLength={200}
         />
@@ -391,36 +409,6 @@ export function LobbyPanel({
       </div>
       {reject ? <p className="ig-err">{reject}</p> : null}
       <p>같은 방 번호(?code=)로 들어오면 같은 판이다. 화면을 클릭하면 마우스로 둘러본다.</p>
-    </div>
-  );
-}
-
-/* ─────────────────────────────── 설계자 조작 ─────────────────────────────── */
-
-export function DesignerPanel({ seats, mySeatId, tamperLeft, phase, onTamper }: { seats: GameSeat[]; mySeatId: string | null; tamperLeft: number; phase: GameStateWire['phase']; onTamper: (target: string, direction: 'suspicious' | 'normal') => void }) {
-  const [target, setTarget] = useState('');
-  const alive = seats.filter((s) => !s.isolated);
-  const can = tamperLeft > 0 && phase !== 'result' && phase !== 'ended' && !!target;
-  return (
-    <div className="ig-designer">
-      {/* 머리글은 남은 횟수뿐이다 — 「기록 조작」 이름표와 사용법 문장은 걷었다 (2026-09-05 사용자: "기록 조작 사용법 라벨 없애줘").
-          무엇을 하는 단추인지는 단추의 title 이 말한다 */}
-      <h3>DESIGNER · {tamperLeft > 0 ? '1회 남음' : '사용함'}</h3>
-      <select value={target} onChange={(e) => setTarget(e.target.value)} disabled={tamperLeft <= 0}>
-        <option value="">대상…</option>
-        {alive.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name}
-            {s.id === mySeatId ? ' (나)' : ''}
-          </option>
-        ))}
-      </select>
-      <button type="button" disabled={!can} onClick={() => onTamper(target, 'suspicious')} title="기계처럼 보이게 — 전환 직후 오차가 사라지고 곡선이 평평해진다">
-        튀게
-      </button>
-      <button type="button" disabled={!can} onClick={() => onTamper(target, 'normal')} title="사람처럼 보이게 — 무리 평균 근처로 당긴다">
-        평범하게
-      </button>
     </div>
   );
 }

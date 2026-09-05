@@ -724,40 +724,6 @@
   color: var(--signal);
 }
 
-/* ── 설계자 조작판 ── 왼쪽 아래는 통신판이 가져갔다 (2026-09-04 사용자). 비어 있는 오른쪽 아래로 선다 */
-.ig-designer {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width: 268px;
-  padding: 8px 10px;
-  background: rgba(8, 6, 4, 0.78);
-  border: 1px solid rgba(255, 202, 142, 0.45);
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
-.ig-designer h3 {
-  margin: 0 0 6px;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  color: var(--amber);
-}
-.ig-designer select,
-.ig-designer button {
-  font: inherit;
-  font-size: 11px;
-  padding: 4px 8px;
-  border: 1px solid rgba(232, 221, 205, 0.3);
-  background: transparent;
-  color: var(--linen);
-  cursor: pointer;
-  margin-right: 6px;
-}
-.ig-designer button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
 /* ── 끝 화면 「판정 종료」 ─────────────────────────────────────────────────
    역할 카드(role-card.module.css, 「배정 통보」)와 **같은 판이 하나 더 켜지는 것**이다 — 머리띠 · 본문 · 발치가
    한 장의 모따기 판으로 서고, 스캔라인 한 겹이 그 위를 덮는다. 값의 출처는 위의 .ig-chat 한 벌이다.

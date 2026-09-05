@@ -28,7 +28,7 @@ export interface GameState {
   /** 서버가 준 판 상태. 연결 직후엔 null */
   wire: GameStateWire | null;
   /** 내 배역 (game_role) */
-  me: { seatId: string; role: GameRole; aiId: string | null; tamperLeft: number } | null;
+  me: { seatId: string; role: GameRole; aiId: string | null } | null;
   feed: ChatEntry[];
   /** 테스트 진행 중 화면용 — 서버의 trial_round_start */
   test: { game: TrialGame; round: number; startAt: number; durationMs?: number } | null;
@@ -145,8 +145,8 @@ export const interrogationSlice = createSlice({
         s.hunt = null;
       }
     },
-    roleReceived(s, a: PayloadAction<{ seatId: string; role: GameRole; aiId?: string; tamperLeft: number }>) {
-      s.me = { seatId: a.payload.seatId, role: a.payload.role, aiId: a.payload.aiId ?? null, tamperLeft: a.payload.tamperLeft };
+    roleReceived(s, a: PayloadAction<{ seatId: string; role: GameRole; aiId?: string }>) {
+      s.me = { seatId: a.payload.seatId, role: a.payload.role, aiId: a.payload.aiId ?? null };
     },
     chatReceived(s, a: PayloadAction<ChatEntry>) {
       push(s, { ...a.payload, kind: a.payload.kind ?? 'chat' });
@@ -211,9 +211,6 @@ export const interrogationSlice = createSlice({
     },
     clearReject(s) {
       s.reject = null;
-    },
-    tamperOk(s, a: PayloadAction<number>) {
-      if (s.me) s.me.tamperLeft = a.payload;
     },
     testStarted(s, a: PayloadAction<{ game: TrialGame; round: number; startAt: number; durationMs?: number }>) {
       s.test = a.payload;

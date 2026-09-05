@@ -321,11 +321,10 @@ export function IntroFeature() {
                 <span>×?</span>
               </div>
               <h3>AI 설계자</h3>
-              <p>표식을 붙이지 않은 걸 들켜서는 안 되는 조력자. AI의 정체를 시작부터 정확히 안다. 판당 한 번, 기록을 조작할 수 있다.</p>
+              <p>표식을 붙이지 않은 걸 들켜서는 안 되는 조력자. AI의 정체를 시작부터 정확히 안다.</p>
               <ul>
                 <li>누구인지는 비공개</li>
                 <li>AI의 정체를 안다</li>
-                <li>기록 조작 1회</li>
               </ul>
             </li>
             <li className="intro-role intro-role--human">

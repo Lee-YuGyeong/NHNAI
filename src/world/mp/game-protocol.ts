@@ -82,7 +82,7 @@ export interface GameStateWire {
   /** 지금까지 열린 테스트 수 */
   testsDone: number;
   currentTest: GameTestInfo | null;
-  /** 마지막 결과 — 모달과 HUD 요약 패널이 그린다 (§3). 설계자가 조작했으면 조작본이다 (P7) */
+  /** 마지막 결과 — 모달과 HUD 요약 패널이 그린다 (§3) */
   latestResult: TrialResultWire | null;
   /** 격리 목표 수 = 총원 절반(내림). 여기 닿으면 끝 (§1.3) */
   quota: number;
@@ -141,9 +141,7 @@ export type GameC2SMessage =
    * 자막을 맞추므로(prologueVoice) 판마다·기기마다 다르다. 그래서 「끝났다」만 올린다: 그때까지
    * 대역과 AI 참가자는 입을 다물고, 첫 토론의 40초도 그때부터 센다 (runtime 의 prologueHold).
    */
-  | { t: 'game_prologue_done' }
-  /** AI 설계자의 기록 조작 — 판당 1회 · 대상 1명 (P7). 다음 결과의 공개본이 바뀐다 */
-  | { t: 'game_tamper'; target: string; direction: 'suspicious' | 'normal' };
+  | { t: 'game_prologue_done' };
 
 /** 서버 → 클라이언트 */
 export type GameS2CMessage =
@@ -151,9 +149,8 @@ export type GameS2CMessage =
   /**
    * 내 배역 — **이 소켓에만** 온다. 설계자에게만 aiId 가 실린다 (§1.1 "브리핑에서 AI 의 좌석도 함께 통보").
    * seatId 는 내 좌석 — 판이 도는 동안 채팅 · 이동은 전부 좌석 id 로 오간다 (플레이어 id 는 와이어에서 사라진다).
-   * tamperLeft 는 남은 조작 횟수 (설계자만 1, 나머지 0).
    */
-  | { t: 'game_role'; seatId: string; role: GameRole; aiId?: string; tamperLeft: number }
+  | { t: 'game_role'; seatId: string; role: GameRole; aiId?: string }
   /** 의심도가 움직였다. delta 는 방금의 한 걸음 — 로그 한 줄로 그린다 */
   | {
       t: 'game_suspicion';
@@ -167,8 +164,6 @@ export type GameS2CMessage =
   | { t: 'game_leader'; text: string; kind: LeaderKind; ts: number }
   /** 주장 판정이 났다 — 전원 공개 */
   | { t: 'game_verdict'; by: string; verdict: ClaimVerdict; text: string; delta: number }
-  /** 설계자의 조작이 접수됐다 — 그 소켓에만 */
-  | { t: 'game_tamper_ok'; left: number }
   /** 판이 끝났다 — 정체표 전부 공개 */
   | { t: 'game_ended'; outcome: GameOutcome; roles: Record<string, GameRole> }
   /**
@@ -392,7 +387,7 @@ export const TALK = {
 
 /**
  * 시험 기록 → 그 시험이 주는 발언권. 서버가 부르고(runtime.finishTest), 화면은 받은 값을 보여 줄 뿐이다.
- * @param metrics 결과의 metrics (공개본 — 조작이 있었으면 조작본. 지갑이 기록과 어긋나면 조작이 새는 자리가 된다)
+ * @param metrics 결과의 metrics
  * @param testMs  시험 길이 — 발판의 「남긴 초」를 셀 기준
  */
 export function talkFor(game: TrialGame, metrics: Record<string, number>, testMs: number): number {

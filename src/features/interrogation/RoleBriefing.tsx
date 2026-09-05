@@ -48,7 +48,7 @@ const ROLE_CARD: Record<MyRole, { name: string; tagline: string; lines: string[]
   designer: {
     name: 'AI 설계자',
     tagline: '표식을 붙이지 않은 걸 들켜서는 안 된다',
-    lines: ['AI의 정체를 시작부터 정확히 안다.', '판당 한 번, 누군가의 기록을 조작할 수 있다.', '들키면 그 자리에서 패배가 확정된다.'],
+    lines: ['AI의 정체를 시작부터 정확히 안다.', '들키면 그 자리에서 패배가 확정된다.'],
     color: 'var(--signal)',
   },
 };

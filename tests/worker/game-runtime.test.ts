@@ -26,7 +26,7 @@ import type { PlayerSnapshot, S2CMessage, TrialGame, TrialPlayerResult } from '.
 import type { Brain } from '../../worker/src/game/brain';
 import { GameRuntime } from '../../worker/src/game/runtime';
 import { REPEAT_STEP } from '../../worker/src/game/suspicion';
-import { STILL_MS } from '../../worker/src/game/tells';
+import { DUCK_WINDOW_MS, STILL_MS } from '../../worker/src/game/tells';
 import type { EngineContext, GameEngine } from '../../worker/src/trial/engine';
 
 type Out = S2CMessage | GameS2CMessage;
@@ -376,7 +376,7 @@ describe('GameRuntime — 판 한 바퀴', () => {
     expect(Object.values(ended.roles).filter((r) => r === 'human')).toHaveLength(2);
   });
 
-  it('설계자 조작은 다음 결과의 공개본을 바꾸고, 원본은 그대로다', async () => {
+  it('설계자는 AI 의 좌석만 안다 — 기록에는 손을 못 댄다 (공개본 = 엔진의 원본)', async () => {
     // 6명이면 설계자는 둘이다 (roles.designerCount)
     const six = [1, 2, 3, 4, 5, 6].map((i) => player(`p${i}`, i));
     const h = harness({ players: six });
@@ -385,26 +385,17 @@ describe('GameRuntime — 판 한 바퀴', () => {
     expect(designer).toBeDefined();
     const role = h.roleOf(designer!)!;
     expect(role.aiId).toBeDefined();
-    expect(role.tamperLeft).toBe(1);
 
     await openBoard(h);
-    await h.rt.handle(designer!, { t: 'game_tamper', target: role.aiId!, direction: 'suspicious' });
-    expect(h.direct.at(-1)?.msg).toMatchObject({ t: 'game_tamper_ok', left: 0 });
-    await h.rt.handle(designer!, { t: 'game_tamper', target: role.aiId!, direction: 'suspicious' });
-    expect(h.direct.at(-1)?.msg.t).toBe('game_reject');
-
     await vi.advanceTimersByTimeAsync(GAME_FIRST_DISCUSSION_MS + 10);
     await h.rt.handleTrial('p1', { t: 'trial_brake' });
     const result = h.sent.find((m): m is Extract<S2CMessage, { t: 'trial_result' }> => m.t === 'trial_result')!.result;
-    const raw = h.engine.results().find((p) => p.id === role.aiId)!;
-    const pub = result.players.find((p) => p.id === role.aiId)!;
-    // 「튀게」 — 기계처럼: 오차 방향이 한쪽으로, 전환 직후 오차가 거의 0
-    expect(pub.errorDirection).toEqual([1, 1]);
-    expect(pub.transitionError).toBeLessThan(0.2);
-    expect(raw.errorDirection).toEqual([1, -1]);
-    // 다른 사람의 공개본은 그대로다
-    const other = result.players.find((p) => p.id !== role.aiId)!;
-    expect(other.errorDirection).toEqual([1, -1]);
+    // 공개본은 엔진이 낸 그대로다 — 사이에 아무도 끼어들지 않는다
+    for (const raw of h.engine.results()) {
+      const pub = result.players.find((p) => p.id === raw.id)!;
+      expect(pub.errorDirection).toEqual(raw.errorDirection);
+      expect(pub.transitionError).toBe(raw.transitionError);
+    }
   });
 });
 
@@ -849,6 +840,38 @@ describe('GameRuntime — 표식', () => {
     expect(h.lastState().suspicion[p3Seat]).toBe(0); // 한 번 못 들은 것과 피하는 것은 다르다
     // p2 는 아예 불린 적이 없다 — 판 내내 조용해도 눈금은 안 움직인다
     expect(h.lastState().suspicion[h.roleOf('p2')!.seatId]).toBe(0);
+  });
+
+  it('거듭 불러도 유예는 처음 불린 때부터다 — 부를수록 봐주면 침묵이 최적 전략이 된다', async () => {
+    const h = harness();
+    await h.rt.handle('p1', { t: 'game_start' });
+    await openBoard(h);
+    const p3Seat = h.roleOf('p3')!.seatId;
+    const nn = String(h.lastState().seats.find((s) => s.id === p3Seat)!.seat).padStart(2, '0');
+
+    // 1차 토론에서 첫 회피를 쓴다 (DUCK_FREE) — 한 번 못 들은 것과 피하는 것은 다르다
+    h.rt.onChat('p1', `${nn} 너는 어땠어`);
+    await vi.advanceTimersByTimeAsync(DUCK_WINDOW_MS + 1_000);
+    expect(h.lastState().suspicion[p3Seat]).toBe(0);
+
+    // 2차 토론이 **열리는 자리**까지 — 호명은 토론마다 새로 센다 (openDiscussion 의 called.clear)
+    for (const p of ['test', 'result', 'discussion'] as const) {
+      for (let i = 0; i < 120 && h.lastState().phase !== p; i += 1) await vi.advanceTimersByTimeAsync(1_000);
+      expect(h.lastState().phase).toBe(p);
+    }
+
+    /*
+     * 둘이 이어서 묻는다 — 방의 박자(3.5~10초)가 회피의 문턱(20초)보다 짧으니, 불릴 때마다 시계가
+     * 0 으로 돌아가면 아무리 물어도 영영 안 물린다. 세는 것은 「처음 불린 뒤 여태 대답이 없다」다.
+     */
+    h.rt.onChat('p1', `${nn} 아까 기록 얘기 좀 해봐`);
+    await vi.advanceTimersByTimeAsync(15_000);
+    h.rt.onChat('p2', `${nn} 왜 대답을 안 해`);
+    expect(h.lastState().suspicion[p3Seat]).toBe(0);
+
+    // 처음 불린 때부터 20초 — 되묻기가 유예를 늘리지 않는다
+    await vi.advanceTimersByTimeAsync(6_000);
+    expect(h.lastState().suspicion[p3Seat]).toBe(Math.round(SUSPICION.duck * pressureFor(1)));
   });
 
   it('프롤로그 방송 동안은 아무것도 안 잰다 — 못 움직이게 해 놓고 안 움직였다고 물면 안 된다', async () => {

@@ -7,7 +7,7 @@
  *   → 의심도 100% 는 즉시 격리 → 격리가 총원 절반이면 끝.
  *
  * 판의 진실은 전부 서버(worker/src/game/runtime.ts)에 있다. 이 화면은 방(RoomDO)에 붙어 상태를 받아 그리고,
- * 사람의 입력(지목 · 채팅 · 주장 · 조작 · 물리 테스트 키)을 보낼 뿐이다. 누가 AI 인지 이 화면은 모른다 —
+ * 사람의 입력(지목 · 채팅 · 주장 · 물리 테스트 키)을 보낼 뿐이다. 누가 AI 인지 이 화면은 모른다 —
  * 좌석은 전부 SUBJECT nn 이고 채팅 · 이동도 좌석 id 로 온다 (src/world/mp/game-protocol.ts 머리말).
  *
  * 방 번호는 ?code= (없으면 '1234' — /world · /trial 과 같은 개발 편의 기본값). 같은 번호면 같은 판이다.
@@ -30,7 +30,7 @@ import { PROLOGUE, castSubjects, prologueLineOf, prologueLines } from './prologu
 import { prefetchPrologue, prologueClipMs, prologueLagMs, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
-import { BigClock, Chat, DesignerPanel, EndScreen, LobbyPanel, ResultModal, TestOrder } from './hud/Panels';
+import { BigClock, Chat, EndScreen, LobbyPanel, ResultModal, TestOrder, withRo } from './hud/Panels';
 import { SelfSuspicion } from './hud/SelfSuspicion';
 import { GameConnection, worldWsBase, type GameIncoming } from './net/GameConnection';
 import { HallScene } from './scene/HallScene';
@@ -257,9 +257,6 @@ export function InterrogationFeature() {
           return;
         case 'game_talk':
           dispatch(gameActions.talkReceived(msg));
-          return;
-        case 'game_tamper_ok':
-          dispatch(gameActions.tamperOk(msg.left));
           return;
         case 'trial_round_start': {
           dispatch(gameActions.testStarted({ game: msg.game, round: msg.round, startAt: msg.startAt, durationMs: msg.durationMs }));
@@ -632,7 +629,6 @@ export function InterrogationFeature() {
     autoSent.current = true;
     onStart(Math.max(AUTO_SEATS - 1, party));
   }, [onStart, party]);
-  const onTamper = useCallback((target: string, direction: 'suspicious' | 'normal') => conn.game({ t: 'game_tamper', target, direction }), [conn]);
 
   /* ─────────────────────────────── 피격 번쩍임 ─────────────────────────────── */
   const [flashKey, setFlashKey] = useState(0);
@@ -697,7 +693,9 @@ export function InterrogationFeature() {
                     ? `낙하 ${myFalls}회`
                     : `주움 ${myPicks}`
             : phase === 'discussion'
-              ? 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
+              ? mySeat
+                ? `WASD 이동 · Enter — ${withRo(mySeat.name)} 말하기 · 관리 AI 가 그 말을 읽는다`
+                : 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
               : waitingParty
                 ? `일행을 기다리는 중 — ${humansOnline} / ${party} 도착. 다 오면 배역이 통보된다`
                 : phase === 'lobby' && !keepLobby && !reject
@@ -789,10 +787,6 @@ export function InterrogationFeature() {
           * "카드는 안보여도돼. 머리위에 의심도만 보이면 돼"). 단추로 지목하는 짓도 같이 사라졌다:
           * 눈금을 움직이는 것은 **관리 AI 가 사람들의 말을 읽는 것**이다 (worker/src/game/agents.ts 의 readTalk).
           */}
-        {me?.role === 'designer' && wire && inGame && phase !== 'ended' ? (
-          <DesignerPanel seats={seats} mySeatId={mySeatId} tamperLeft={me.tamperLeft} phase={phase} onTamper={onTamper} />
-        ) : null}
-
         {/*
          * 미니 게임이 도는 동안은 판이 **통째로 내려간다** (2026-09-04 사용자: "미니 게임할때는
          * 채팅창 안보이게 · 끝나면 다시 채팅할수있게"). 흐리게만 두던 것으로는 모자랐다 —
@@ -809,6 +803,7 @@ export function InterrogationFeature() {
           <Chat
             feed={feed}
             mySeatId={mySeatId}
+            myName={mySeat?.name ?? null}
             markId={markId}
             disabled={status !== 'connected' || phase === 'result' || phase === 'ended' || (inGame && !mySeatId)}
             talk={inGame ? myTalk : null}

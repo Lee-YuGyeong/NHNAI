@@ -16,7 +16,6 @@
  *   · 격리: 100 에 닿는 순간, 정체 공개. 격리 수가 총원 절반이면 끝 (§1.3)
  *   · 관리 AI: 소집 · 테스트 개시 · 결과 해설 · 주장 판정 방송 · **오간 말 읽기** (§4)
  *   · AI 참가자 · 대역: 토론 단계에만 LLM 으로 말한다 (P6 · P10) — 물리는 엔진 프로파일이 대신 움직인다 (P9)
- *   · 설계자 조작: 판당 1회, 다음 결과의 공개본을 바꾼다 (P7). 원본은 storage 에만 남는다
  *
  * ★ 소켓을 직접 쥐지 않는다 — RoomDO 가 roster/broadcast/sendTo 를 콜백으로 준다 (trial/runtime.ts 와 같은 규칙).
  *   시험도 같은 방식이다 (tests/worker/game-runtime.test.ts).
@@ -109,7 +108,6 @@ interface Seat {
   role: GameRole;
   persona: Persona | null;
   isolated: boolean;
-  tamperLeft: number;
   /** 마지막으로 말한 시각 — 봇 차례 뽑기용 */
   lastSpokeAt: number;
   /** 몸 (mp/bodies.ts) — 사람은 입장 때 받은 것, 대역·AI 는 판이 열릴 때 남은 몸에서 */
@@ -121,11 +119,6 @@ interface Seat {
 interface ChatLine {
   id: string;
   text: string;
-}
-
-interface Tamper {
-  target: string;
-  direction: 'suspicious' | 'normal';
 }
 
 const LOG_KEEP = 40;
@@ -214,7 +207,6 @@ export class GameRuntime {
   private latestResult: TrialResultWire | null = null;
   private outcome: GameOutcome | null = null;
   private log: ChatLine[] = [];
-  private tampers: Tamper[] = [];
   private lastClaimAt = new Map<string, number>();
   private claimInFlight = new Set<string>();
   private lastAccuseAt = new Map<string, number>();
@@ -431,9 +423,6 @@ export class GameRuntime {
       case 'game_claim':
         await this.claim(playerId, msg.text);
         return;
-      case 'game_tamper':
-        this.tamper(playerId, msg.target, msg.direction);
-        return;
       case 'game_prologue_done':
         this.prologueDone(playerId);
         return;
@@ -505,7 +494,6 @@ export class GameRuntime {
       role: 'human' as const,
       persona: null,
       isolated: false,
-      tamperLeft: 0,
       lastSpokeAt: 0,
       body: p.body,
       talk: TALK.start,
@@ -521,7 +509,6 @@ export class GameRuntime {
         role: 'human',
         persona: personas[i % personas.length],
         isolated: false,
-        tamperLeft: 0,
         lastSpokeAt: 0,
         body,
         talk: TALK.start,
@@ -535,7 +522,6 @@ export class GameRuntime {
       role: 'ai',
       persona: personas[npcCount % personas.length],
       isolated: false,
-      tamperLeft: 0,
       lastSpokeAt: 0,
       body: pickBody(usedBodies, this.rand),
       talk: TALK.start,
@@ -546,10 +532,7 @@ export class GameRuntime {
       ai.id,
       this.rand,
     );
-    for (const s of humans) {
-      s.role = assignment.roles[s.id];
-      if (s.role === 'designer') s.tamperLeft = 1;
-    }
+    for (const s of humans) s.role = assignment.roles[s.id];
 
     // 좌석을 섞는다 — AI 와 설계자도 순열에 든다 (§1.1). 이름은 「SUBJECT 01」이 아니라 한국인 이름이다 — 한 판 안에서
     // 성도 이름도 겹치지 않고, 몸의 성별을 따른다: 남군은 남자 이름, 여군은 여자 이름 (mp/koreanNames, 2026-09-05 사용자).
@@ -581,7 +564,6 @@ export class GameRuntime {
     this.latestResult = null;
     this.outcome = null;
     this.log = [];
-    this.tampers = [];
     this.heldLines = [];
     this.lastClaimAt = new Map();
 
@@ -840,18 +822,17 @@ export class GameRuntime {
     this.engine = null;
 
     const raw = engine.results();
-    const published = this.applyTampers(raw);
-    const stats = groupStats(published);
+    const stats = groupStats(raw);
     const wire: TrialResultWire = {
       game: engine.game,
       round: test?.round ?? 1,
-      players: published,
+      players: raw,
       groupMean: stats.mean,
       groupStdDev: stats.stdDev,
       endedAt: this.now(),
     };
-    // 원본(조작 전)과 조건값은 storage 에만 남는다 (P7 · P8)
-    const original: TrialResult = { ...wire, players: raw, condition: engine.condition(this.currentIntensity) };
+    // 조건값은 storage 에만 남는다 (P8)
+    const original: TrialResult = { ...wire, condition: engine.condition(this.currentIntensity) };
     await appendHistory(this.deps.storage, original);
 
     this.history.push(wire);
@@ -859,54 +840,12 @@ export class GameRuntime {
     this.testsDone += 1;
     this.currentTest = null;
     this.deps.broadcast({ t: 'trial_result', result: wire });
-    this.grantTalk(engine.game, published);
+    this.grantTalk(engine.game, raw);
     this.setPhase('result', this.now() + GAME_RESULT_MODAL_MS);
     void this.persist();
 
     // 결과 방송 — 등수만 부른다 (agents.leaderComment). LLM 을 안 거치므로 모달과 같은 순간에 나간다
     this.leader(leaderComment(wire, (id) => this.nameOf(id)), 'readout');
-  }
-
-  /**
-   * 설계자의 조작을 공개본에 적용한다 (P7). 원본은 건드리지 않는다.
-   *   suspicious  기계처럼 보이게 — 전환 직후 오차가 거의 없고, 적응 곡선이 평평하고, 오차 방향이 한쪽이다
-   *   normal      사람처럼 보이게 — 무리 평균 근처로 당기고, 곡선이 내려가고, 방향이 섞인다
-   */
-  private applyTampers(raw: TrialPlayerResult[]): TrialPlayerResult[] {
-    if (!this.tampers.length) return raw;
-    const stats = groupStats(raw);
-    const out = raw.map((p) => ({ ...p, metrics: { ...p.metrics }, errorDirection: [...p.errorDirection], adaptationCurve: [...p.adaptationCurve] }));
-    const used: Tamper[] = [];
-    for (const t of this.tampers) {
-      const p = out.find((r) => r.id === t.target);
-      if (!p) continue;
-      used.push(t);
-      const meanT = finite(stats.mean.transitionError, 1);
-      if (t.direction === 'suspicious') {
-        p.transitionError = Math.max(0.02, meanT * 0.12);
-        p.adaptationCurve = p.adaptationCurve.map(() => Math.max(0.02, meanT * 0.1));
-        p.errorDirection = p.errorDirection.map(() => 1);
-        for (const k of Object.keys(p.metrics)) {
-          const m = finite(stats.mean[k], 0);
-          const sd = finite(stats.stdDev[k], Math.abs(m) * 0.3 + 0.1);
-          const v = finite(p.metrics[k], m);
-          const sign = v >= m ? 1 : -1;
-          p.metrics[k] = k === 'transitionError' ? p.transitionError : m + sign * Math.max(Math.abs(v - m), 2 * sd + Math.abs(m) * 0.15);
-        }
-      } else {
-        p.transitionError = meanT * (0.9 + this.rand() * 0.2);
-        const n = Math.max(2, p.adaptationCurve.length);
-        p.adaptationCurve = Array.from({ length: n }, (_, i) => meanT * (1.3 - (0.8 * i) / (n - 1)) * (0.9 + this.rand() * 0.2));
-        p.errorDirection = p.errorDirection.map((_, i) => (i % 2 === 0 ? 1 : -1));
-        for (const k of Object.keys(p.metrics)) {
-          const m = finite(stats.mean[k], 0);
-          const v = finite(p.metrics[k], m);
-          p.metrics[k] = k === 'transitionError' ? p.transitionError : m + (v - m) * 0.2;
-        }
-      }
-    }
-    this.tampers = this.tampers.filter((t) => !used.includes(t));
-    return out;
   }
 
   /* ─────────────────────────────── 의심도 · 격리 · 끝 ─────────────────────────────── */
@@ -1085,7 +1024,7 @@ export class GameRuntime {
     this.broadcastState();
   }
 
-  /* ─────────────────────────────── 주장 판정 · 조작 ─────────────────────────────── */
+  /* ─────────────────────────────── 주장 판정 ─────────────────────────────── */
 
   private async claim(playerId: string, raw: string): Promise<void> {
     if (this.phase !== 'discussion') return this.reject(playerId, '주장은 토론 중에만 판정한다');
@@ -1119,19 +1058,6 @@ export class GameRuntime {
     } finally {
       this.claimInFlight.delete(me.id);
     }
-  }
-
-  private tamper(playerId: string, targetId: string, direction: 'suspicious' | 'normal'): void {
-    if (!this.active() || this.phase === 'result') return;
-    const me = this.seatOfPlayer(playerId);
-    if (!me || me.role !== 'designer' || me.tamperLeft <= 0) return this.reject(playerId, '조작 권한이 없다');
-    const target = this.seats.find((s) => s.id === targetId);
-    if (!target || target.isolated) return this.reject(playerId, '살아 있는 좌석만 조작할 수 있다');
-    if (direction !== 'suspicious' && direction !== 'normal') return;
-    me.tamperLeft -= 1;
-    this.tampers.push({ target: targetId, direction });
-    this.deps.sendTo(playerId, { t: 'game_tamper_ok', left: me.tamperLeft });
-    void this.persist();
   }
 
   /* ─────────────────────────────── 봇 발화 (AI 참가자 · 대역) ─────────────────────────────── */
@@ -1221,9 +1147,17 @@ export class GameRuntime {
     this.deps.broadcast({ t: 'chat', id: seat.id, nickname: seat.name, text, ts: now });
     this.pushLog(seat.id, text);
 
-    // 이 말이 누구에게 말을 건 것인가 — 그 사람이 DUCK_WINDOW_MS 안에 안 답하면 회피다 (watchDucks)
+    /*
+     * 이 말이 누구에게 말을 건 것인가 — 그 사람이 DUCK_WINDOW_MS 안에 안 답하면 회피다 (watchDucks).
+     *
+     * **이미 불려 있으면 시각을 안 덮는다** (2026-09-05 사용자: "가만히 있어도 의심도 5퍼밖에 안 차").
+     * 덮었을 때는 부를수록 유예가 길어졌다: 봇의 박자는 3.5~10초인데 회피의 문턱은 20초라,
+     * 방이 「너는 왜 말을 안 해」를 일곱 번 물어도 그때마다 시계가 0 으로 돌아가 **한 번도 안 물었다**
+     * (계측: 끝까지 침묵한 좌석의 눈금이 몸의 상한 30 에서 멈췄다 — 회피분 0).
+     * 세는 것은 「마지막으로 불린 뒤」가 아니라 **「처음 불린 뒤 여태 대답이 없다」**다.
+     */
     const called = calledIn(text, this.seats, seat.id);
-    if (called && this.judging()) this.called.set(called, now);
+    if (called && this.judging() && !this.called.has(called)) this.called.set(called, now);
 
     // 사람의 말이든 봇의 말이든 같은 문으로 들어간다 — 관리 AI 는 누가 사람인지 모른다 (P5)
     this.unread.push({ name: seat.name, text });
@@ -1559,7 +1493,7 @@ export class GameRuntime {
     const seat = this.seatOfPlayer(playerId);
     if (!seat || !this.active()) return;
     const aiId = seat.role === 'designer' ? this.seats.find((s) => s.role === 'ai')?.id : undefined;
-    this.deps.sendTo(playerId, { t: 'game_role', seatId: seat.id, role: seat.role, ...(aiId ? { aiId } : {}), tamperLeft: seat.tamperLeft });
+    this.deps.sendTo(playerId, { t: 'game_role', seatId: seat.id, role: seat.role, ...(aiId ? { aiId } : {}) });
   }
 
   stateWire(): GameStateWire {
@@ -1607,7 +1541,6 @@ export class GameRuntime {
 
   /**
    * 시험이 끝났다 — 기록만큼 지급한다 (TALK · talkFor). 격리된 좌석은 결과에 없으니 자연히 못 받는다.
-   * 공개본(조작본)으로 센다: 지갑이 기록과 어긋나면 그 어긋남이 조작을 새게 하는 자리가 된다 (P7).
    * 안 쓴 것은 TALK.carry 까지만 넘어가고 지급은 온전히 얹는다 — 1등이 「+0」을 받는 일이 없다 (TALK 머리말).
    */
   private grantTalk(game: TrialGame, published: TrialPlayerResult[]): void {
@@ -1647,7 +1580,6 @@ export class GameRuntime {
         latestResult: this.latestResult,
         outcome: this.outcome,
         log: this.log,
-        tampers: this.tampers,
       });
     } catch {
       /* 저장 실패는 판을 멈출 이유가 못 된다 */
@@ -1692,7 +1624,6 @@ export class GameRuntime {
     this.testRuns = new Map((saved.testRuns as [TrialGame, number][]) ?? []);
     this.latestResult = (saved.latestResult as TrialResultWire | null) ?? null;
     this.log = (saved.log as ChatLine[]) ?? [];
-    this.tampers = (saved.tampers as Tamper[]) ?? [];
     this.history = (await readHistory(this.deps.storage)).map(({ condition: _c, ...w }) => w);
     // 테스트 도중이었으면 엔진도 잃었다 — 토론으로 되돌린다. 결과 모달 중이었으면 토론으로 간다
     const remaining = Math.max(0, this.startedAt + GAME_HARD_CAP_MS - this.now());
