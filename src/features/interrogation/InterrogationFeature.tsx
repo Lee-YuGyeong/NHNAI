@@ -24,7 +24,7 @@ import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
 import { RoleBriefing } from './RoleBriefing';
 import { gameActions, gameSelectors } from './interrogationSlice';
-import { PROLOGUE, prologueLineOf, prologueLines } from './prologue';
+import { PROLOGUE, castSubjects, prologueLineOf, prologueLines } from './prologue';
 import { prefetchPrologue, prologueClipMs, prologueLagMs, resetPrologueVoice, speakPrologueLine, stopPrologue } from './prologueVoice';
 import { DialogueBox } from '@/features/world/DialogueBox';
 import type { ChatLine } from '@/features/world/worldSlice';
@@ -438,7 +438,11 @@ export function InterrogationFeature() {
      * 소리는 미리 받아 둔다 — 합성 왕복이 300~800ms 라, 줄이 뜬 뒤에 받기 시작하면 첫 줄만
      * 자막이 먼저 뜨고 소리가 뒤늦게 붙는다 (prologueVoice 머리말).
      */
-    resetPrologueVoice();
+    /*
+     * 배역(몸)을 먼저 적는다 — 목소리가 얼굴(몸)을 따르기 때문이다 (prologueVoice 의 BODY_VOICE).
+     * 아래 prologueLines 와 같은 씨앗이라 얼굴과 목소리가 같은 배역을 본다.
+     */
+    resetPrologueVoice(castSubjects(seatsRef.current, startedAt));
     prefetchPrologue(PROLOGUE);
     /*
      * 소리가 스피커에 닿기까지의 늦음 — 자막을 그만큼 늦게 연다 (DialogueBox 의 voiceLagMs).

@@ -6,9 +6,9 @@
  *  ② 통제실은 목소리를 여기서 정하지 않나 — 관리 AI 목소리는 워커 한 곳에서만 정해야 한다
  *  ③ 자막과 소리의 **짝이 어긋나지 않나** — 이게 조용히 깨지는 자리다
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { PROLOGUE, prologueLines } from '@/features/interrogation/prologue';
-import { leadingSilenceSec, voiceOf, type ClipSamples } from '@/features/interrogation/prologueVoice';
+import { leadingSilenceSec, resetPrologueVoice, voiceOf, type ClipSamples } from '@/features/interrogation/prologueVoice';
 import { OPENING_CAST } from '@/features/tts/openingSpeakers';
 import type { GameSeat } from '@/world/mp/game-protocol';
 
@@ -28,6 +28,33 @@ describe('프롤로그 목소리 — 피실험자 셋', () => {
 
   it('피실험자는 원음이다 — 방에 선 사람이지 스피커가 아니다', () => {
     expect(voiceOf({ who: 'subject', n: 1, text: 'x' }).pa).toBe(false);
+  });
+});
+
+/**
+ * 몸 → 목소리 (2026-09-05 사용자: 「비만 남군은 셋 중 남자 목소리로」).
+ * 초상이 좌석의 몸이라(prologue.ts 의 faceOf), 번호로만 주면 남자 얼굴에서 여자 목소리가 난다.
+ */
+describe('프롤로그 목소리 — 몸을 따라간다 (얼굴과 성별을 맞춘다)', () => {
+  const seat = (body?: string) => ({ id: 'x', seat: 1, name: '이름', isolated: false, body }) as unknown as GameSeat;
+  const MALE = OPENING_CAST.find((s) => s.gender === '남')!.voiceId;
+
+  // 배역은 모듈의 상태다 — 여기서 적은 것이 다른 벌레잡이(위 「피실험자 셋」)로 새면 안 된다
+  afterEach(() => resetPrologueVoice());
+
+  it('비만 남군 몸이면 남자 목소리다 — 번호(여자 목소리)가 아니라 얼굴을 따른다', () => {
+    resetPrologueVoice([seat('sol_fit_f'), seat('sol_heavy_m'), seat('sol_fit_f')]);
+    expect(voiceOf({ who: 'subject', n: 2, text: 'x' }).voiceId).toBe(MALE);
+  });
+
+  it('짝이 없는 몸은 번호 배정 그대로다', () => {
+    resetPrologueVoice([seat('sol_fit_f'), seat('sol_fit_f'), seat('sol_fit_f')]);
+    expect(voiceOf({ who: 'subject', n: 2, text: 'x' }).voiceId).toBe(ASSIGNED[1]);
+  });
+
+  it('배역을 모르는 화면(판 도중 합류)도 번호 배정으로 소리는 난다', () => {
+    resetPrologueVoice();
+    expect(voiceOf({ who: 'subject', n: 3, text: 'x' }).voiceId).toBe(ASSIGNED[2]);
   });
 });
 
