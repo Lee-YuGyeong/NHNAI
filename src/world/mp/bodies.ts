@@ -22,6 +22,8 @@ export const BODY_IDS: readonly BodyId[] = ['sol_fit_m', 'sol_fit_f', 'sol_heavy
 export interface BodySpec {
   /** 화면에 부르는 이름 */
   name: string;
+  /** 성별 — 좌석 이름을 몸에 맞추는 데 쓴다 (mp/koreanNames, 2026-09-05 사용자: "남군은 남자 이름, 여군은 여자 이름으로") */
+  gender: 'm' | 'f';
   /** 달리기(Shift+W) 속도 m/s. 걷기는 WALK_SPEED(2.6) 로 넷이 같다 */
   run: number;
   /** 점프 초기 속도 m/s */
@@ -42,10 +44,10 @@ export interface BodySpec {
 }
 
 export const BODIES: Record<BodyId, BodySpec> = {
-  sol_fit_m: { name: '남군', run: 5.2, jump: 6.4, heavy: false, grip: 1, mass: 1 },
-  sol_fit_f: { name: '여군', run: 5.2, jump: 6.4, heavy: false, grip: 1, mass: 1 },
-  sol_heavy_m: { name: '비만 남군', run: 3.9, jump: 5.2, heavy: true, grip: 0.7, mass: 1.8 },
-  sol_heavy_f: { name: '비만 여군', run: 3.9, jump: 5.2, heavy: true, grip: 0.7, mass: 1.8 },
+  sol_fit_m: { name: '남군', gender: 'm', run: 5.2, jump: 6.4, heavy: false, grip: 1, mass: 1 },
+  sol_fit_f: { name: '여군', gender: 'f', run: 5.2, jump: 6.4, heavy: false, grip: 1, mass: 1 },
+  sol_heavy_m: { name: '비만 남군', gender: 'm', run: 3.9, jump: 5.2, heavy: true, grip: 0.7, mass: 1.8 },
+  sol_heavy_f: { name: '비만 여군', gender: 'f', run: 3.9, jump: 5.2, heavy: true, grip: 0.7, mass: 1.8 },
 };
 
 export const isBodyId = (v: unknown): v is BodyId => typeof v === 'string' && (BODY_IDS as readonly string[]).includes(v);
@@ -60,6 +62,11 @@ export function pickBody(taken: Iterable<BodyId | undefined>, rand: () => number
   const free = BODY_IDS.filter((b) => !used.has(b));
   const pool = free.length > 0 ? free : BODY_IDS;
   return pool[Math.min(pool.length - 1, Math.floor(rand() * pool.length))];
+}
+
+/** 몸의 성별 — 몸을 모르면(옛 워커) null, 이름은 동전을 던진다 (mp/koreanNames) */
+export function genderOf(body: BodyId | undefined | null): 'm' | 'f' | null {
+  return body ? BODIES[body].gender : null;
 }
 
 /** 몸의 원판 마찰 배율 — 몸을 모르면(옛 워커 · AI 좌석에 몸이 없을 때) 기준 1 */
