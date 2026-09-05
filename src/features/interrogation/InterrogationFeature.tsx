@@ -59,8 +59,18 @@ function seatSpot(seat: GameSeat, total: number): { x: number; z: number } {
  * 바로 플레이되게"). 몸이 넷(mp/bodies.ts 의 BODY_IDS)이라 넷이면 전원이 서로 다른 몸을 입는다.
  * 서버의 fillTo 는 **사람 쪽 좌석 수**다(runtime.start — AI 는 그 위에 얹힌다). 그래서 보낼 때 하나를 뺀다.
  * 둘이 같이 들어오면 사람이 대역 자리를 차지한다 — 넷은 그대로다. 예전처럼 소집 대기를 보려면 ?lobby.
+ *
+ * ★ 여럿이 같이 넘어왔으면(?party=) **다 붙을 때까지 기다렸다가** 연다 — 자리 수도 그 수만큼이다
+ *   (아래 party · PARTY_WAIT_MS). 혼자 들어온 길은 예전 그대로 곧장 열린다.
  */
 const AUTO_SEATS = 4;
+
+/**
+ * 일행을 여기까지만 기다린다 (ms). 대기방의 「게임 시작」은 전원을 같은 순간에 보내므로 소켓은 몇 초 안에
+ * 다 붙는다 — 이 시간은 **안 오는 사람**을 위한 것이다 (창을 닫았거나 길을 잃었거나). 다 지나면 있는
+ * 사람끼리 열고, 빈자리는 대역이 앉는다 (§9 "일부 참가자를 NPC 로 대체하는 폴백").
+ */
+const PARTY_WAIT_MS = 10_000;
 
 
 export function InterrogationFeature() {
@@ -567,23 +577,47 @@ export function InterrogationFeature() {
   );
 
   /*
-   * 소집 대기 없이 바로 연다 (AUTO_SEATS 머리말). 서버가 방장이라 한 사람(wire.hostId)만 보낸다 — 둘이 같이
-   * 들어와도 판은 하나만 열리고, 그때 방에 있는 사람은 전원 좌석을 받는다 (runtime.start 의 roster).
+   * 소집 대기 없이 연다 (AUTO_SEATS 머리말) — 다만 **일행이 다 붙은 뒤에**. 서버가 방장이라 한 사람
+   * (wire.hostId)만 보낸다: 둘이 같이 들어와도 판은 하나만 열리고, 그때 방에 있는 사람은 전원 좌석을 받는다
+   * (runtime.start 의 roster).
+   *
+   * 「다 붙은 뒤에」가 이 효과의 전부다 (2026-09-05 사용자: "다 들어오면 배역 통보를 하게 하면 되는거아니야?").
+   * 예전엔 첫 사람이 붙는 그 순간 열었다 — 대기방의 전원이 같은 순간에 넘어와도 소켓은 한 사람씩 붙으므로,
+   * 1초 늦은 사람은 시작 명부에 없어 좌석을 못 받았다. 늦은 사람을 뒤에서 끼워 넣는 길(worker 의 rebind)도
+   * 그대로 두지만, 애초에 **기다렸다 열면 그 경주가 없다.** 기다리는 수는 대기방이 실어 보낸 party 다.
+   *
+   * 안 오는 사람이 하나 있다고 판이 영영 안 열리면 안 된다 — 첫 사람이 붙은 뒤 PARTY_WAIT_MS 가 지나면
+   * 있는 사람끼리 연다 (그 빈자리는 대역이 앉는다, §9). 기다리는 동안 화면은 몇 명이 왔는지 말해 준다(hud).
+   *
    * 로비에 들어설 때마다 **한 번**이다: 거절되면(reject) 소집 대기 판이 그대로 서고, 판이 끝나 로비로
    * 돌아오면(GAME_ENDED_MS 뒤) 다시 한 번 연다 — 끝 화면의 「다시 — 새 판」도 결국 여기로 온다.
    */
   const keepLobby = params.get('lobby') !== null;
   const hostId = wire?.hostId ?? null;
   const autoSent = useRef(false);
+  /** 일행을 그만 기다리고 열 시각 — 로비에 처음 선 순간부터 센다 */
+  const waitUntil = useRef<number | null>(null);
+  const humansOnline = wire?.humansOnline ?? 0;
+  /** 아직 안 온 사람이 있어 기다리는 중인가 — 발치 줄이 이 값을 읽는다 */
+  const waitingParty = phase === 'lobby' && !keepLobby && !reject && humansOnline > 0 && humansOnline < party;
   useEffect(() => {
     if (phase !== 'lobby') {
       autoSent.current = false;
+      waitUntil.current = null;
       return;
     }
     if (keepLobby || status !== 'connected' || !selfId || hostId !== selfId || autoSent.current) return;
-    autoSent.current = true;
-    onStart(Math.max(AUTO_SEATS - 1, party));
-  }, [phase, status, selfId, hostId, keepLobby, party, onStart]);
+    const open = () => {
+      autoSent.current = true;
+      onStart(Math.max(AUTO_SEATS - 1, party));
+    };
+    if (waitUntil.current === null) waitUntil.current = Date.now() + PARTY_WAIT_MS;
+    const left = waitUntil.current - Date.now();
+    if (humansOnline >= party || left <= 0) return open();
+    // 아직 덜 왔다 — 남은 시간만큼만 기다린다. 그 사이 누가 더 붙으면 이 효과가 다시 돌며 위에서 걸린다
+    const t = setTimeout(open, left);
+    return () => clearTimeout(t);
+  }, [phase, status, selfId, hostId, keepLobby, party, humansOnline, onStart]);
   /*
    * 끝 화면의 「다시 — 새 판」 — 서버에 **곧바로** 시작을 청한다. 예전엔 새로고침이었는데, 다시 붙어도 서버는
    * 아직 끝난 판(ended)이라 같은 끝 화면이 시계도 없이 한 번 더 섰다: GAME_ENDED_MS 가 다 지나 서버가 스스로
@@ -664,9 +698,11 @@ export function InterrogationFeature() {
                     : `주움 ${myPicks}`
             : phase === 'discussion'
               ? 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'
-              : phase === 'lobby' && !keepLobby && !reject
-                ? '판을 여는 중 — 좌석을 섞고 대역이 앉는다…'
-                : '';
+              : waitingParty
+                ? `일행을 기다리는 중 — ${humansOnline} / ${party} 도착. 다 오면 배역이 통보된다`
+                : phase === 'lobby' && !keepLobby && !reject
+                  ? '판을 여는 중 — 좌석을 섞고 대역이 앉는다…'
+                  : '';
 
   return (
     <div ref={rootRef} className="ig-root" onClick={lock}>
