@@ -21,6 +21,8 @@ export interface TrialState {
   discOmega: number;
   /** 무게 중심 다리 — 지금 판자 기울기(rad, 0.01 단위). HUD 의 기울기 계기 — 눈에 보이는 값이라 비밀이 아니다 */
   seesawTilt: number;
+  /** 회전 봉 넘기 — 지금 봉 각속도(rad/s). HUD 의 회전 표시 — 눈에 보이는 값이라 비밀이 아니다 */
+  barOmega: number;
   /** 이번 라운드에 내가 마친 시행 수(0~3) — StopLineScene 이 다음 W 를 언제 받을지 여기로 안다 */
   myAttemptsThisRound: number;
   /** 색 사냥 — 이번 라운드에 내가 주운 횟수. 정오는 여기 없다 — 서버만 알고, 전원이 결과에서 처음 본다 */
@@ -46,6 +48,7 @@ const initialState: TrialState = {
   myFallsThisRound: 0,
   discOmega: 0,
   seesawTilt: 0,
+  barOmega: 0,
   myAttemptsThisRound: 0,
   myPicksThisRound: 0,
   hunt: null,
@@ -85,6 +88,7 @@ export const trialSlice = createSlice({
       s.myFallsThisRound = 0;
       s.discOmega = 0;
       s.seesawTilt = 0;
+      s.barOmega = 0;
       s.myPicksThisRound = 0;
       s.hunt = null;
       s.liveResult = null;
@@ -114,6 +118,11 @@ export const trialSlice = createSlice({
     seesawSynced(s, a: PayloadAction<number>) {
       const v = Math.round(a.payload * 100) / 100;
       if (v !== s.seesawTilt) s.seesawTilt = v;
+    },
+    /** 회전 봉 넘기 — 스냅샷의 각속도. 0.1 단위로만 받아 리렌더를 줄인다 (자리는 barState 가 든다) */
+    barSynced(s, a: PayloadAction<number>) {
+      const v = Math.round(a.payload * 10) / 10;
+      if (v !== s.barOmega) s.barOmega = v;
     },
     /** 시행 하나가 서버 판정을 받았다(trial_stopline_waypoints) — 그게 내 id일 때만 센다 */
     attemptRecorded(s, a: PayloadAction<string>) {
@@ -146,6 +155,7 @@ export const trialSlice = createSlice({
     selectMyFalls: (s) => s.myFallsThisRound,
     selectDiscOmega: (s) => s.discOmega,
     selectSeesawTilt: (s) => s.seesawTilt,
+    selectBarOmega: (s) => s.barOmega,
     selectMyPicks: (s) => s.myPicksThisRound,
     selectHunt: (s) => s.hunt,
     selectRoundStartAt: (s) => s.roundStartAt,

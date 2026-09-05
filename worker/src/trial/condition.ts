@@ -54,3 +54,12 @@ export const PLATFORM_GRIP: readonly number[] = [0.85, 0.3, 1.15];
  */
 export const SEESAW_GRIP: readonly number[] = [0.3, 0.12, 0.5];
 
+/**
+ * 회전 봉 넘기 3구간의 **무대 바닥 마찰계수** — 도장 강판(기준) → 젖은 강판 → 고무 깔개. 이 판의 수직축(중력 · 이륙 속도)은
+ * 전부 공개라(mp/constants BAR_GRAVITY) 숨은 값은 발밑 하나다: 발이 낼 수 있는 가속도의 상한이 μg 다 — 0.85 면 8.3 m/s² 로
+ * 걷기(2.6 m/s)까지 0.3초, 0.3 이면 2.9 m/s² 로 0.9초가 걸리고 **제동도 똑같이 늦는다**. 착지한 발은 공중에서 갖고 온 속도를
+ * μg 로만 죽이고, 봉에 맞아 넘어진 몸(BAR_SHOVE 2.6 m/s)은 0.3 구간에서 1.2m 를 미끄러져 가장자리까지 실려 갈 수 있다.
+ * P8: μ 는 와이어로 안 나간다 — 미끄러진 결과(자리 · s)만 스냅샷에 실린다 (worker/src/trial/bar/sim.ts).
+ */
+export const BAR_GRIP: readonly number[] = [0.85, 0.3, 1.15];
+

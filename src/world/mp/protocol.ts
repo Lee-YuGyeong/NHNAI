@@ -121,8 +121,9 @@ export type ErrorCode = 'version_mismatch' | 'room_full' | 'bad_request' | 'kick
 /**
  * 물리 미니게임의 식별자. 'platform' 은 움직이는 플랫폼(2026-09-05, mp/platform.ts) — 넷째 게임.
  * 'seesaw' 는 무게 중심 다리(2026-09-05, worker/src/trial/seesaw/) — 여섯째. /trial 에서만 열린다 (검문소 차례표에는 없다)
+ * 'bar' 는 회전 봉 넘기(2026-09-05, worker/src/trial/bar/) — 일곱째. /trial 에서만 열린다
  */
-export type TrialGame = 'stopline' | 'colorhunt' | 'fall' | 'platform' | 'disc' | 'seesaw';
+export type TrialGame = 'stopline' | 'colorhunt' | 'fall' | 'platform' | 'disc' | 'seesaw' | 'bar';
 
 /** 판정 대상 한 명의 결과 한 라운드치. 게임마다 metrics 의 키가 다르다 (PLANNING P1~P4). */
 export interface TrialPlayerResult {
@@ -264,6 +265,20 @@ export type S2CMessage =
       omega: number;
       players: { id: string; u: number; v: number; h: number; m: number; f: number; s: number }[];
       crates: { id: number; u: number; v: number; at: number }[];
+    }
+  /**
+   * 회전 봉 넘기 — 서버 물리 스냅샷(~10Hz). `theta` 는 봉의 각도(rad, +y 축) · `omega` 는 각속도 — 클라는 다음 스냅샷까지
+   * 이 둘로 봉을 돌린다(무대 바닥은 돌지 않는다). `players` 는 전원의 **월드 자리**다 — 발밑 마찰이 숨은 값이라 사람의 자리도
+   * 서버가 적분한다(회전 원판과 같은 수법). `y` 는 발 높이(무대 위 = BAR_TOP + 체공) — 점프도 서버가 적분한다(판정 대상이다).
+   * `s` 는 명령과 다른 몫의 속도(월드, m/s = 실제 속도 − 걷기 명령) — 자기 몸의 예측에만 쓴다. 마찰계수는 없다(P8).
+   * `f` 는 누운 상태(1: 봉에 맞았거나 떨어졌다) · `m` 은 걷기(1) · 달리기(2). 맞으면 trial_hit(objectId 0), 떨어지면 trial_fell 이 따로 온다
+   */
+  | {
+      t: 'trial_bar';
+      at: number;
+      theta: number;
+      omega: number;
+      players: { id: string; x: number; z: number; y: number; h: number; m: number; f: number; sx: number; sz: number }[];
     }
   | { t: 'trial_result'; result: TrialResultWire }
   /** (재)입장 시 지금까지의 전체 기록을 백필한다 — 로그 탭은 이걸로 채운다 */

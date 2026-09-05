@@ -1,6 +1,6 @@
 /**
  * 물리 미니게임 방 — /trial. 정지선(?game=stopline, 기본) · 낙하 생존(?game=fall) · 색 사냥(?game=colorhunt) · 움직이는 플랫폼(?game=platform) ·
- * 회전 원판(?game=disc) · 무게 중심 다리(?game=seesaw).
+ * 회전 원판(?game=disc) · 무게 중심 다리(?game=seesaw) · 회전 봉 넘기(?game=bar).
  * 방 번호는 ?code= 로 받는다(없으면 '1234' — /world 와 같은 개발 편의 기본값). 복도의 살아있는
  * WS 를 이어받지 않고 새로 연다(TrialConnection 머리말) — `idFromName(roomCode)`가 같은
  * RoomDO 로 보내주므로 로스터는 그대로 이어진다.
@@ -17,6 +17,8 @@ import type { BodyId } from '@/world/mp/bodies';
 import { HUNT_LIGHT_RAMP_MS, SEESAW_TILT_MAX, STOPLINE_MAX_ATTEMPTS, TRIAL_PHASE_MS, TRIAL_SUMMARY_MS } from '@/world/mp/constants';
 import type { AnimState, PlayerSnapshot, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
+import { BarScene } from './games/bar/BarScene';
+import { barState } from './games/bar/barState';
 import { ColorHuntScene } from './games/color-hunt/ColorHuntScene';
 import { huntState, softLight } from './games/color-hunt/huntState';
 import { DiscScene } from './games/disc/DiscScene';
@@ -51,7 +53,9 @@ export function TrialFeature() {
             ? 'disc'
             : params.get('game') === 'seesaw'
               ? 'seesaw'
-              : 'stopline';
+              : params.get('game') === 'bar'
+                ? 'bar'
+                : 'stopline';
   const nickname = useMemo(() => loadGuestNick() || `테스터${Math.floor(100 + Math.random() * 900)}`, []);
 
   const status = useAppSelector(trialSelectors.selectStatus);
@@ -66,6 +70,7 @@ export function TrialFeature() {
   const myFalls = useAppSelector(trialSelectors.selectMyFalls);
   const discOmega = useAppSelector(trialSelectors.selectDiscOmega);
   const seesawTilt = useAppSelector(trialSelectors.selectSeesawTilt);
+  const barOmega = useAppSelector(trialSelectors.selectBarOmega);
   const myAttempts = useAppSelector(trialSelectors.selectMyAttempts);
   const myPicks = useAppSelector(trialSelectors.selectMyPicks);
   const hunt = useAppSelector(trialSelectors.selectHunt);
@@ -105,6 +110,7 @@ export function TrialFeature() {
     huntState.clear();
     discState.clear();
     seesawState.clear();
+    barState.clear();
     remotePlayers.clear();
     setAiIds([]);
     setMyBody(null);
@@ -141,6 +147,7 @@ export function TrialFeature() {
         huntState.clear();
         discState.clear();
         seesawState.clear();
+        barState.clear();
         // 움직이는 플랫폼 — 발판 열은 platformState 가 서버와 같은 함수로 그린다 (interrogation/scene/platformState)
         if (g === 'platform') platformState.start(startAt, pace);
         else platformState.clear();
@@ -186,6 +193,12 @@ export function TrialFeature() {
         for (const p of msg.players) if (p.id.startsWith('SUBJECT_')) seeParticipant(p.id);
         seesawState.push(msg);
         dispatch(trialActions.seesawSynced(msg.phi));
+      },
+      onBar: (msg) => {
+        // 회전 봉 넘기 — AI 좌석은 여기 처음 등장한다. 자리는 barState(가변), 각속도만 슬라이스(HUD)
+        for (const p of msg.players) if (p.id.startsWith('SUBJECT_')) seeParticipant(p.id);
+        barState.push(msg);
+        dispatch(trialActions.barSynced(msg.omega));
       },
       onSlip: (id, vx, vz, ms) => {
         // 움직이는 플랫폼 — 내 발이 밀린 것만 내 몸에 건다. 남의 미끄러짐은 그 사람 화면이 그린다
@@ -274,6 +287,8 @@ export function TrialFeature() {
                 ? '움직이는 발판을 건너라 — W 앞으로 · Space 점프 · 발판 한가운데에 내려라. 떨어지면 출발로 돌아간다'
               : game === 'seesaw'
                 ? `낙하 ${myFalls}회 · 기울기 ${Math.abs((seesawTilt * 180) / Math.PI).toFixed(0)}° — 무리의 무게중심을 축에 맞춰라. 상자가 떨어지면 반대쪽으로. WASD 걷기 · Shift 달리기`
+              : game === 'bar'
+                ? `맞음 ${myHits}회 · 회전 ${Math.abs(barOmega).toFixed(1)} rad/s ${barOmega > 0 ? '↻' : barOmega < 0 ? '↺' : ''} — 봉이 오면 Space 로 뛰어넘어라. WASD 걷기 · Shift 달리기`
               : game === 'disc'
                 ? `낙하 ${myFalls}회 · 회전 ${Math.abs(discOmega).toFixed(1)} rad/s ${discOmega > 0 ? '↻' : discOmega < 0 ? '↺' : ''} — 원판 위에서 버텨라. WASD 걷기 · Shift 달리기`
               : game === 'colorhunt'
@@ -295,7 +310,9 @@ export function TrialFeature() {
             ? '회전 원판 생존'
             : shownGame === 'seesaw'
               ? '무게 중심 다리'
-              : '정지선';
+              : shownGame === 'bar'
+                ? '회전 봉 넘기'
+                : '정지선';
   const flashing = Date.now() - flash < 350;
 
   return (
@@ -310,6 +327,8 @@ export function TrialFeature() {
         <DiscScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} />
       ) : shownGame === 'seesaw' ? (
         <SeesawScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} />
+      ) : shownGame === 'bar' ? (
+        <BarScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} sendJump={onJump} />
       ) : (
         <StopLineScene
           myId={selfId}
