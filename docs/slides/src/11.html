@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Claude Code 개발 도구</title>
+<title>성격 설정</title>
 <meta name="viewport" content="width=1920, height=1080">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -18,10 +18,9 @@
   .scanlines{position:absolute;inset:0;pointer-events:none;background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 3px);}
   .vignette{position:absolute;inset:0;pointer-events:none;box-shadow: inset 0 0 220px 40px rgba(0,0,0,0.65);}
   .chamfer{clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);}
+  .chamfer-sm{clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);}
   .panel{background: linear-gradient(180deg, rgba(20,35,55,0.55) 0%, rgba(10,18,32,0.55) 100%);border: 1px solid var(--line);}
   .header-label{font-family:'JetBrains Mono',monospace;letter-spacing:0.12em;}
-  .bar{height:34px;background:linear-gradient(90deg,#5fb8e8,rgba(95,184,232,0.55));}
-  .bar.amber{background:linear-gradient(90deg,#e8b34a,rgba(232,179,74,0.55));}
 </style>
 </head>
 <body class="m-0 p-0">
@@ -32,51 +31,60 @@
   <header id="header" class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
     <div class="flex items-center gap-3">
       <span class="header-label text-[20px] text-[#5fb8e8]">11 //</span>
-      <span class="header-label text-[20px] text-white/70">CLAUDE CODE</span>
+      <span class="header-label text-[20px] text-white/70">PERSONA</span>
     </div>
     <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
   </header>
 
-  <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
-    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:66px;">Claude Code — 개발 도구</h1>
-    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:25px; line-height:1.5;">구현 · 문서화 · 반복 개선. 병합 제외 172커밋 중 170건(99%) 이 공동 작성.</p>
+  <main class="absolute" style="left:80px;top:150px;width:1375px;height:800px;transform:scale(1.28);transform-origin:0 0;">
+    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:72px;">성격 설정</h1>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:24px; line-height:1.5;">여섯 성격 중 하나로만 말한다. 80자 안쪽 · 3.5~10초 간격 · 같은 발언권 — 통신 내용만으로는 사람과 구분되지 않는다.</p>
 
-    <div class="flex gap-8 mt-9">
-      <div class="panel chamfer p-9 flex flex-col items-center justify-center" style="width:680px; min-height:600px;">
-        <p class="font-kr font-black text-[#5fb8e8] text-[26px] mb-8">루프 자동화</p>
-        <div class="relative" style="width:440px;height:440px;">
-          <svg width="440" height="440" viewBox="0 0 440 440" fill="none">
-            <circle cx="220" cy="220" r="170" stroke="#5fb8e8" stroke-opacity="0.25" stroke-width="2" stroke-dasharray="8 8"/>
-            <circle cx="220" cy="50" r="6" fill="#5fb8e8"/>
-            <circle cx="390" cy="220" r="6" fill="#5fb8e8"/>
-            <circle cx="220" cy="390" r="6" fill="#e8b34a"/>
-            <circle cx="50" cy="220" r="6" fill="#5fb8e8"/>
-          </svg>
-          <div class="absolute font-kr font-bold text-white text-[21px] text-center" style="top:6px; left:50%; transform:translateX(-50%); width:160px;">테스트</div>
-          <div class="absolute font-kr font-bold text-white text-[21px] text-center" style="top:50%; right:-10px; transform:translateY(-50%); width:210px;">실패와 측정값을 읽고</div>
-          <div class="absolute font-kr font-bold text-[#e8b34a] text-[21px] text-center" style="bottom:6px; left:50%; transform:translateX(-50%); width:160px;">수정</div>
-          <div class="absolute font-kr font-bold text-white text-[21px] text-center" style="top:50%; left:-10px; transform:translateY(-50%); width:160px;">다시 실행</div>
-        </div>
-        <p class="font-kr font-semibold text-white/75 text-[21px] leading-[1.6] text-center mt-8">이 과정을 루프로 묶어<br/>한 명령으로 이어지게 했다.</p>
+    <div class="grid grid-cols-3 gap-6 mt-8">
+      <div class="panel chamfer p-6">
+        <p class="font-kr font-black text-white text-[23px] mb-3">따지는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">어긋나면 바로 짚는다</p>
+        <span class="font-mono text-[#5fb8e8] text-[15px]">반말</span>
       </div>
+      <div class="panel chamfer p-6">
+        <p class="font-kr font-black text-white text-[23px] mb-3">기억력 좋은 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">순서와 시간을 정확히</p>
+        <span class="font-mono text-[#5fb8e8] text-[15px]">존댓말</span>
+      </div>
+      <div class="panel chamfer p-6">
+        <p class="font-kr font-black text-white text-[23px] mb-3">말수 적은 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">짧게 답하고 안 나선다</p>
+        <span class="font-mono text-[#5fb8e8] text-[15px]">반말</span>
+      </div>
+      <div class="panel chamfer p-6">
+        <p class="font-kr font-black text-white text-[23px] mb-3">분위기 맞추는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">남 말에 잘 얹는다</p>
+        <span class="font-mono text-[#5fb8e8] text-[15px]">반말</span>
+      </div>
+      <div class="panel chamfer p-6">
+        <p class="font-kr font-black text-white text-[23px] mb-3">재는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">단정 안 하고 길게 본다</p>
+        <span class="font-mono text-[#5fb8e8] text-[15px]">존댓말</span>
+      </div>
+      <div class="panel chamfer p-6" style="border-color: rgba(232,179,74,0.55); background: linear-gradient(180deg, rgba(232,179,74,0.1) 0%, rgba(10,18,32,0.55) 100%);">
+        <p class="font-kr font-black text-white text-[23px] mb-3">대화를 주도하는 사람</p>
+        <p class="font-kr font-semibold text-white/75 text-[19px] leading-[1.5] mb-3">화제를 돌리고 콕 집어 묻는다</p>
+        <div class="flex gap-2">
+          <span class="font-mono text-[#e8b34a] text-[15px]">반말</span>
+          <span class="font-mono text-[#e8b34a] text-[15px]">· 상위 모델</span>
+        </div>
+      </div>
+    </div>
 
-      <div class="flex-1 panel chamfer p-9">
-        <p class="font-mono text-[#5fb8e8] text-[20px] font-bold mb-8 tracking-wide">모델 / 커밋 수</p>
-        <div class="flex flex-col gap-6">
-          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Opus 4.8</span><div class="bar" style="width:100%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">64</span></div>
-          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Fable 5.1</span><div class="bar" style="width:95%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">61</span></div>
-          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Opus 5 (1M context)</span><div class="bar" style="width:58%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">37</span></div>
-          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Sonnet 5</span><div class="bar" style="width:16%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">10</span></div>
-          <div class="flex items-center gap-6"><span class="font-kr font-bold text-white text-[21px]" style="width:300px;">Claude Fable 5</span><div class="bar amber" style="width:11%;"></div><span class="font-mono font-bold text-white text-[22px]" style="width:56px;">7</span></div>
-        </div>
-        <p class="font-mono text-white/40 text-[15px] mt-8 tracking-wide">병합 커밋 제외 · 커밋 메시지의 Co-Authored-By 기준</p>
-      </div>
+    <div class="mt-7 chamfer p-6 flex items-center gap-6" style="background:rgba(95,184,232,0.06); border:1px solid rgba(95,184,232,0.35);">
+      <i class="fa-solid fa-sliders text-[#5fb8e8] text-[26px]"></i>
+      <p class="font-kr font-bold text-white/90 text-[22px] leading-[1.5]">AI 참가자는 라운드마다 얼마나 정확하게 움직일지를 스스로 정한다. 너무 정확하면 의심의 근거가 되고, 너무 부정확하면 순위에서 밀린다.</p>
     </div>
   </main>
 
   <footer id="footer" class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
     <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
-    <span class="font-mono text-white/40 text-[16px] tracking-wider">12 / 13</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">12 / 15</span>
   </footer>
 
   <div class="vignette"></div>
