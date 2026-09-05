@@ -18,7 +18,7 @@ import { BackToRoot } from '@/shared/BackToRoot';
 import { broadcastAnnounce } from '@/shared/broadcast';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { GAME_ENDED_MS, GAME_TEST_MS, type GameSeat } from '@/world/mp/game-protocol';
+import { GAME_DISCUSSION_MS, GAME_ENDED_MS, GAME_TEST_MS, GAME_TEST_ORDER, type GameSeat } from '@/world/mp/game-protocol';
 import type { AnimState, PlayerSnapshot } from '@/world/mp/protocol';
 import { spawnFor } from '@/world/mp/spawn';
 import { remotePlayers } from '@/world/net/remote-players';
@@ -673,7 +673,7 @@ export function InterrogationFeature() {
         {/*
           * 위 가운데 기둥 — 시계 · 시험 안내판 · (색 사냥의) 목표색이 **한 기둥(.ig-testcol)으로 쌓인다**.
           * 저마다 top 값으로 서던 것을 걷었다 — 하나가 커지면 아래가 겹치던 자리다 (예전 .ig-clock 머리말의 50→104→142).
-          * 시계는 미니 게임 30초만 큰 숫자로 — 토론은 시계 없이 간다 (사용자, BigClock 머리말).
+          * 시계는 미니 게임 30초와 **마지막 대화 40초**만 큰 숫자로 — 나머지 토론은 시계 없이 간다 (사용자, BigClock 머리말).
           * 안내판은 서버 지시문 전체가 아니라 요약이다 (TestOrder 머리말). key=startAt: 시험마다 흐려짐이 처음부터 돈다.
           */}
         {phase === 'test' ? (
@@ -687,6 +687,18 @@ export function InterrogationFeature() {
                 목표 「{hunt.target}」
               </div>
             ) : null}
+          </div>
+        ) : phase === 'discussion' && wire && wire.testsDone >= GAME_TEST_ORDER.length ? (
+          /*
+           * 마지막 대화 — 토론 중 **여기만** 큰 시계가 선다 (2026-09-05 사용자: "마지막 대화 때에는 남은 시간을
+           * 보여줘. 위쪽 가운데에 크게" · "의심도 100인 대상이 없으면 갑자기 끝나는 것처럼 느껴지니까").
+           * 이 40초가 다 가면 서버가 그 자리에서 판을 닫는다(runtime 의 advance → hardCap) — 앞의 토론들은
+           * 시험이 이어받아 끝나는 느낌이 없지만, 마지막은 예고 없이 닫히면 끝이 아니라 고장으로 읽힌다.
+           * 시계 밑 한 줄이 그 예고다.
+           */
+          <div className="ig-testcol">
+            <BigClock endsAt={wire.phaseEndsAt} maxSeconds={GAME_DISCUSSION_MS / 1000} />
+            <div className="ig-lastcall">마지막 대화 — 시간이 다 되면 판정</div>
           </div>
         ) : null}
 

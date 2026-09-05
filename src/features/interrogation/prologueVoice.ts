@@ -1,9 +1,10 @@
 /**
  * 프롤로그 목소리 — 대본(prologue.ts)의 줄을 소리로 낸다 (2026-09-05 사용자).
  *
- *   피실험자 01 · 02 · 03  → 지정된 세 목소리 (features/tts/openingSpeakers.ts), **원음**
- *                            — 몸의 성별을 따른다: 남자 몸은 남자 목소리, 여자 몸은 여자 목소리 둘을
- *                              씨앗으로 섞어 나눠 갖는다 (voicesForCast: 얼굴과 성별을 맞춘다)
+ *   피실험자 01 · 02 · 03  → 지정된 목소리 (features/tts/openingSpeakers.ts), **원음**
+ *                            — 몸을 따른다: 남자 몸은 몸대로(비만 Yohan · 일반 FIT_MALE_VOICE),
+ *                              여자 몸은 여자 목소리 둘을 씨앗으로 섞어 나눠 갖는다
+ *                              (voicesForCast: 얼굴과 목소리를 맞춘다)
  *   정부 통제실            → 관리 AI 목소리 (worker 의 LEADER_VOICE = Ethan), **시설 방송 음색**
  *
  * ┌─ 왜 방송 큐(TtsPlayer)를 안 타나 ─────────────────────────────────────────┐
@@ -27,7 +28,7 @@
  */
 
 import { audioContext, masterOut, paOut } from '@/features/tts/engine';
-import { OPENING_CAST, OPENING_SETTINGS } from '@/features/tts/openingSpeakers';
+import { FIT_MALE_VOICE, OPENING_CAST, OPENING_SETTINGS } from '@/features/tts/openingSpeakers';
 import type { GameSeat } from '@/world/mp/game-protocol';
 import { mulberry32, type PrologueLine } from './prologue';
 
@@ -59,15 +60,16 @@ let castVoices: (string | undefined)[] = [];
  * (prologue.ts 의 faceOf), 번호로만 목소리를 주면 남자 얼굴에서 여자 목소리가 나는 판이
  * 선다 — 배역(castSubjects)이 무작위이기 때문이다.
  *
- *   남자 몸(_m)  → 남자 목소리 하나 (Yohan). 배역에 남자 몸이 둘이면 둘 다 이 목소리다 —
- *                  남자 얼굴에 여자 목소리를 얹는 것보다 낫다.
+ *   비만 남군(sol_heavy_m) → 셋 중 남자 목소리 (Yohan).
+ *   일반 남군(sol_fit_m)   → 제 목소리 (FIT_MALE_VOICE) — 비만 남군과 겹치면 안 된다
+ *                            (2026-09-05 사용자: 「남자 음성 아무거나, 비만 남군이랑 겹치지 않게」).
  *   여자 몸(_f)  → 여자 목소리 둘을 씨앗으로 섞어 나눠 갖는다 — 판마다 갈리고, 네 화면이 같다.
- *   몸을 모르면  → 남자 목소리 — 얼굴도 같은 이유로 남군이다 (prologue.ts 의 FALLBACK_FACE).
+ *   몸을 모르면  → 일반 남군 목소리 — 얼굴도 같은 이유로 일반 남군이다 (prologue.ts 의 FALLBACK_FACE).
  *
  * 성별로 찾는다(id 를 또 적으면 배역표와 두 군데가 된다).
  */
 function voicesForCast(cast: readonly GameSeat[], seed: number): (string | undefined)[] {
-  const male = OPENING_CAST.find((s) => s.gender === '남')?.voiceId;
+  const heavy = OPENING_CAST.find((s) => s.gender === '남')?.voiceId;
   const fem = OPENING_CAST.filter((s) => s.gender === '여').map((s) => s.voiceId);
   const rand = mulberry32(seed);
   for (let i = fem.length - 1; i > 0; i--) {
@@ -76,7 +78,10 @@ function voicesForCast(cast: readonly GameSeat[], seed: number): (string | undef
   }
   let f = 0;
   // 여자 몸이 목소리보다 많으면(좌석 다섯부터 몸이 겹친다) 처음으로 돌아간다 — 무음보다 겹침이 낫다
-  return cast.map((s) => (s.body?.endsWith('_f') ? fem[f++ % fem.length] : male));
+  return cast.map((s) => {
+    if (s.body?.endsWith('_f')) return fem[f++ % fem.length];
+    return s.body === 'sol_heavy_m' ? heavy : FIT_MALE_VOICE.voiceId;
+  });
 }
 
 /**
