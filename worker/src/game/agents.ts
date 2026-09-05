@@ -12,7 +12,7 @@
 
 import type { Effort, ToolSpec } from '../../../src/lab/agent';
 import { EXTRA_PERSONAS, PERSONAS, type Persona } from '../../../src/lab/personas';
-import { CARD, GAME_TEST_MS, SUSPICION, heldSecondsFor, type CardItem, type ClaimVerdict, type CompelledVerdict, type GameSeat } from '../../../src/world/mp/game-protocol';
+import { CARD, SUSPICION, type CardItem, type ClaimVerdict, type CompelledVerdict, type GameSeat } from '../../../src/world/mp/game-protocol';
 import type { TrialGame, TrialResultWire } from '../../../src/world/mp/protocol';
 import type { Brain } from './brain';
 
@@ -224,7 +224,7 @@ export interface RoomFacts {
 /**
  * 참가자가 보는 공개 사실 — **숫자가 하나도 없다.**
  * 기록은 resultWords 로 말이 되고(위 머리말), 의심도는 suspicionWord 로 말이 된다.
- * 이 함수를 쓰는 곳은 sayAs 와 aiStrategy 뿐이다 — 관리 AI 셋(leaderComment · judgeClaim · readTalk)은
+ * 이 함수를 쓰는 곳은 sayAs 와 aiStrategy 뿐이다 — 관리 AI 둘(judgeClaim · readTalk)은
  * resultText 를 직접 써서 계속 숫자로 본다.
  */
 function factsText(f: RoomFacts): string {
@@ -466,25 +466,16 @@ function clamp01(v: number): number {
  * (2026-09-05 사용자: 낙하 생존 → 발판 → 원판). 강도는 몇 번째 시험인가로 오른다 (runtime.openTest).
  */
 
-/* ───────────────────────────── 관리 AI — 결과 방송 ───────────────────────────── */
-
-/**
- * 결과 공개 직후 방송 — **등수만 부른다** (2026-09-05 사용자: 「그렇게 자세하게 하지 말고, 누가 몇등인지만」).
+/*
+ * ───────────────────────────── 관리 AI — 결과 방송: 없다 ─────────────────────────────
  *
- * 원자료를 LLM 이 읽고 편차를 짚던 해설(COMMENT_TOOL)은 걷었다 — 방송이 수치를 늘어놓는 동안
- * 결과 모달이 이미 같은 표를 그리고 있었다. 등수는 그 모달과 같은 셈이다 (hud/ResultTable 의
- * ResultSummary — 버틴 시간으로, 같으면 같은 등수 1·1·3): 목소리와 표가 다른 등수를 부르면 안 된다.
- * LLM 을 안 거치므로 폴백도 없고, 모달과 같은 순간에 나간다.
+ * 결과 방송이 두 번에 걸쳐 줄다가 없어졌다.
+ *   · LLM 해설(COMMENT_TOOL) → 등수 호명(leaderComment)으로 (2026-09-05 사용자: 「그렇게 자세하게 하지 말고, 누가 몇등인지만」)
+ *   · 등수 호명 → 침묵 (2026-09-05 사용자: 「미니게임 결과 보여줄 때 등수도 그렇고 미니게임결과 말 안해도 돼」).
+ *     등수는 결과 모달의 표(hud/ResultTable 의 ResultSummary)가 이미 그리고 있었고, 호명이 길어
+ *     1등의 카드 고르는 장면까지 목소리가 밀려 들어갔다.
+ * 결과는 이제 화면만 말한다 (runtime.finishTest).
  */
-export function leaderComment(r: TrialResultWire, nameOf: (id: string) => string): string {
-  const rows = r.players.map((p) => ({ id: p.id, held: heldSecondsFor(r.game, p.metrics, GAME_TEST_MS) }));
-  rows.sort((a, b) => (b.held ?? -1) - (a.held ?? -1));
-  const called = rows.map((row) => {
-    const rank = rows.findIndex((x) => (x.held ?? null) === (row.held ?? null)) + 1;
-    return `${rank}등 ${nameOf(row.id)}`;
-  });
-  return `${TEST_NAME[r.game]} ${r.round}회차 종료. ${called.join(' · ')}.`;
-}
 
 /* ───────────────────────────── 관리 AI — 주장 판정 (§4.2) ───────────────────────────── */
 

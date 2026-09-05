@@ -70,7 +70,7 @@ import type { GameEngine, SeatTuning } from '../trial/engine';
 import { appendHistory, readHistory } from '../trial/history';
 import { groupStats } from '../trial/scoring';
 import type { TrialResult } from '../trial/types';
-import { LINES, aiStrategy, judgeClaim, judgeCompelled, leaderComment, personaPool, readTalk, sayAs, type RoomFacts } from './agents';
+import { LINES, aiStrategy, judgeClaim, judgeCompelled, personaPool, readTalk, sayAs, type RoomFacts } from './agents';
 import type { Brain } from './brain';
 import { ENGINES, INSTRUCTION, availableGames } from './engines';
 import { assignRoles, outcomeFor, quotaFor, shuffled } from './roles';
@@ -906,8 +906,11 @@ export class GameRuntime {
     this.setPhase('result', this.now() + GAME_RESULT_MODAL_MS);
     void this.persist();
 
-    // 결과 방송 — 등수만 부른다 (agents.leaderComment). LLM 을 안 거치므로 모달과 같은 순간에 나간다
-    this.leader(leaderComment(wire, (id) => this.nameOf(id)), 'readout');
+    /*
+     * 결과 방송(agents.leaderComment — 등수 호명)이 여기 있었다 — 걷었다 (2026-09-05 사용자: 「미니게임 결과
+     * 보여줄 때 등수도 그렇고 미니게임결과 말 안해도 돼」). 등수는 결과 모달의 표가 이미 그리고 있고,
+     * 호명이 길어서 1등의 카드 고르는 장면까지 목소리가 밀려 들어갔다. 결과는 이제 화면만 말한다.
+     */
   }
 
   /* ─────────────────────────────── 의심도 · 격리 · 끝 ─────────────────────────────── */
