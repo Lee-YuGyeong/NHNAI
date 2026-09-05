@@ -1189,7 +1189,7 @@ describe('GameRuntime — 카드', () => {
     expect(h.lastState().suspicion[winner]).toBe(Math.max(0, before - CARD.calmDrop));
   });
 
-  it('답변 강제권 — 내 다음 말이 질문, 상대의 다음 말이 답. 거짓이면 +25, 진실이면 −10, 마감까지 답이 없으면 회피 +12', async () => {
+  it('답변 강제권 — 내 다음 말이 질문, 상대의 다음 말이 답. 거짓이면 +25, 진실이면 −10, 회피면 +12', async () => {
     const liar: Brain = { mode: 'api', ask: async () => ({ verdict: 'false', reason: '기록은 6초라 했다' }) };
     const { h, winner } = await winFirstTest(liar);
     await pick(h, 'p1', 'truth');
@@ -1257,7 +1257,9 @@ describe('GameRuntime — 카드', () => {
     expect(h.lastState().suspicion[p2Seat]).toBe(before + Math.min(SUSPICION.stepCap, Math.round(CARD.truthLie * pressureFor(1))));
   });
 
-  it('답변 강제권 — 질문이 나왔는데 마감까지 답이 없으면 회피로 문다', async () => {
+  it('답변 강제권 — 질문이 나왔는데 15초까지 답이 없으면 무응답으로 문다 (+25 · 거짓과 같은 상한). 14초까지는 아무 일도 없다', async () => {
+    expect(CARD.answerMs).toBe(15_000);
+    expect(CARD.truthSilent).toBe(25); // 헌법 13 — 단일 증가 상한
     const { h } = await winFirstTest();
     await pick(h, 'p1', 'truth');
     await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
@@ -1265,10 +1267,39 @@ describe('GameRuntime — 카드', () => {
     await h.rt.handle('p1', { t: 'game_card_use', item: 'truth', target: p2Seat });
     h.rt.onChat('p1', '너 낙하에서 몇 초 버텼어?');
     const before = h.lastState().suspicion[p2Seat] ?? 0;
-    await vi.advanceTimersByTimeAsync(CARD.answerMs + 1_000);
+    await vi.advanceTimersByTimeAsync(14_000);
+    expect(h.lastState().compelled).not.toBeNull();
+    expect(h.lastState().suspicion[p2Seat] ?? 0).toBe(before);
+    await vi.advanceTimersByTimeAsync(2_000);
     expect(h.lastState().compelled).toBeNull();
-    expect(h.lastState().suspicion[p2Seat]).toBe(before + Math.round(CARD.truthEvade * pressureFor(1)));
+    expect(h.lastState().suspicion[p2Seat]).toBe(before + Math.min(SUSPICION.stepCap, Math.round(CARD.truthSilent * pressureFor(1))));
     const judged = h.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_compelled' }> => m.t === 'game_compelled')!;
-    expect(judged.verdict).toBe('evasive');
+    expect(judged.verdict).toBe('silent');
+    expect(judged.text).toContain('답하지 않았다');
+  });
+
+  it('답변 강제권 — 강제된 답은 발언권을 안 쓴다. 지갑이 빈 사람도 답할 수 있고, 무응답 +25 의 함정에 안 걸린다', async () => {
+    const honest: Brain = { mode: 'api', ask: async () => ({ verdict: 'truthful', reason: '기록과 맞는다' }) };
+    const { h } = await winFirstTest(honest);
+    await pick(h, 'p1', 'truth');
+    await vi.advanceTimersByTimeAsync(GAME_RESULT_MODAL_MS + 10);
+    const p2Seat = h.roleOf('p2')!.seatId;
+    // p2 의 지갑을 비운다 — 차감은 game_talk 로만 나간다 (game_state 는 말마다 안 쏜다)
+    const talkOf = (id: string) =>
+      h.sent.filter((m): m is Extract<GameS2CMessage, { t: 'game_talk' }> => m.t === 'game_talk').at(-1)?.talk[id] ?? h.lastState().talk[id];
+    for (let i = 0; i < TALK.start + TALK.carry + 20 && (talkOf(p2Seat) ?? 0) > 0; i++) h.rt.onChat('p2', '나는 사람이다');
+    expect(talkOf(p2Seat)).toBe(0);
+    h.rt.onChat('p2', '한 마디 더');
+    expect(h.direct.at(-1)?.msg).toMatchObject({ t: 'game_reject' });
+    await h.rt.handle('p1', { t: 'game_card_use', item: 'truth', target: p2Seat });
+    h.rt.onChat('p1', '너 낙하에서 몇 초 버텼어?');
+    const rejects = h.direct.filter((d) => d.msg.t === 'game_reject').length;
+    h.rt.onChat('p2', '6초쯤 버텼어'); // 지갑이 비었지만 강제된 답이라 나간다
+    await vi.advanceTimersByTimeAsync(10);
+    expect(h.direct.filter((d) => d.msg.t === 'game_reject').length).toBe(rejects);
+    expect(talkOf(p2Seat)).toBe(0);
+    expect(h.lastState().compelled).toBeNull();
+    const judged = h.sent.find((m): m is Extract<GameS2CMessage, { t: 'game_compelled' }> => m.t === 'game_compelled')!;
+    expect(judged.verdict).toBe('truthful');
   });
 });
