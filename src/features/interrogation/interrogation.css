@@ -249,6 +249,19 @@
   color: var(--amber);
   font-weight: 700;
 }
+/* 모달의 요약 표 — 상세 표보다 한 단 크다. 7초 안에 세 값(버틴 시간 · 등수 · 발언권)만 보면 된다 */
+.ig-table.ig-summary th,
+.ig-table.ig-summary td {
+  font-size: 14px;
+  padding: 7px 14px;
+}
+.ig-table.ig-summary td.full {
+  color: var(--linen);
+}
+.ig-table.ig-summary td.top {
+  color: var(--linen);
+  font-weight: 700;
+}
 /* 지난 말을 보는 중 — 머리띠 오른쪽 끝에 이것만 선다 (2026-09-04 사용자: 「개체 N」은 뺀다 —
    좌석판이 이미 세고 있다). 이것만이 **지금 뭔가 어긋나 있다**는 표시다: 새 말이 오는데 안 보고
    있다. 그래서 이 화면의 조명색으로 혼자 켜진다 */

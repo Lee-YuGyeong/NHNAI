@@ -17,7 +17,7 @@ import { GAME_MAX_HUMANS, GAME_MIN_HUMANS, type GameOutcome, type GameRole, type
 import type { TrialResultWire } from '@/world/mp/protocol';
 import { BODIES, type BodyId } from '@/world/mp/bodies';
 import type { ChatEntry } from '../interrogationSlice';
-import { ResultTable, TEST_TITLE } from './ResultTable';
+import { ResultSummary, ResultTable, TEST_TITLE } from './ResultTable';
 
 export const ROLE_LABEL: Record<GameRole, string> = { human: '사람', designer: 'AI 설계자', ai: 'AI' };
 
@@ -312,15 +312,14 @@ export function ResultModal({
           <p className="ig-title">
             {TEST_TITLE[result.game]} <span>{result.round}회차</span>
           </p>
-          <ResultTable result={result} nameOf={nameOf} mySeatId={mySeatId} gained={gained} />
+          {/*
+            요약만 (2026-09-05 사용자: "간단하게 몇 초 안 맞았냐 · 몇 등 · 발언권 몇 개, 대충 통계만") — 상세 표는
+            모달이 걷힌 뒤 옆에 서는 기록판(RecordPanel)이 그대로 든다. 7초 모달은 읽는 자리가 아니라 보는 자리다.
+          */}
+          <ResultSummary result={result} nameOf={nameOf} mySeatId={mySeatId} gained={gained} />
           <p className="ig-note">
-            <span className="k hi">붉은 값</span>무리 평균에서 크게 벗어난 기록
-            <span className="k">적응 곡선</span>시행별 오차 — 사람은 회를 거듭할수록 줄어든다
-            {gained ? (
-              <>
-                <span className="k">발언권</span>버틴 3초마다 하나 — 다음 대화에서 쓴다
-              </>
-            ) : null}
+            <span className="k">발언권</span>버틴 3초마다 하나 — 다음 대화에서 쓴다
+            <span className="k">상세 기록</span>모달이 걷히면 오른쪽 기록판에
           </p>
         </div>
         <div className="ft">

@@ -304,27 +304,35 @@ export const TALK = {
  * @param testMs  시험 길이 — 발판의 「남긴 초」를 셀 기준
  */
 export function talkFor(game: TrialGame, metrics: Record<string, number>, testMs: number): number {
+  const seconds = heldSecondsFor(game, metrics, testMs);
+  if (seconds === null || seconds <= 0) return TALK.min;
+  return Math.max(TALK.min, Math.ceil(seconds / TALK.secondsPer));
+}
+
+/**
+ * 시험에서 **지킨 초** — 발언권의 밑값이자 결과 모달의 「버틴 시간」(features/interrogation/hud/ResultTable 의 요약).
+ *   낙하 생존  첫 피격까지(안 맞았으면 시험 길이)     발판  도착하고 남긴 초(못 갔으면 0)     원판  첫 낙하까지
+ * 시간을 안 재는 시험(정지선 · 색 사냥)이나 값이 없으면 null. 시험 길이로 자른다 — 엔진이 마감을 틱 하나 넘겨
+ * 닫으므로 30초를 다 버틴 기록이 30.08초로 오는데, 그러면 올림이 한 칸 더 간다.
+ */
+export function heldSecondsFor(game: TrialGame, metrics: Record<string, number>, testMs: number): number | null {
   const num = (v: number | undefined) => (typeof v === 'number' && Number.isFinite(v) ? v : Number.NaN);
   let seconds: number;
   switch (game) {
     case 'fall':
-      seconds = num(metrics.survivalTime); // 첫 피격까지(s) — 안 맞았으면 시험 길이
+    case 'disc':
+      seconds = num(metrics.survivalTime);
       break;
     case 'platform': {
-      const finish = num(metrics.finishMs); // 도착 발판에 처음 내리기까지(ms) — 못 갔으면 NaN
-      seconds = Number.isFinite(finish) ? Math.max(0, testMs - finish) / 1000 : Number.NaN;
+      const finish = num(metrics.finishMs);
+      seconds = Number.isFinite(finish) ? Math.max(0, testMs - finish) / 1000 : 0;
       break;
     }
-    case 'disc':
-      seconds = num(metrics.survivalTime); // 첫 낙하까지(s) — 안 떨어졌으면 시험 길이
-      break;
     default:
-      seconds = Number.NaN; // 정지선 · 색 사냥은 시간을 재는 시험이 아니다 — 최소만
+      return null;
   }
-  if (!Number.isFinite(seconds) || seconds <= 0) return TALK.min;
-  // 엔진은 마감을 몇십 ms 넘겨 닫으므로(틱 간격) 30초를 다 버틴 기록이 30.1초로 온다 — 시험 길이에서 자른다. 그래야 최대가 10이다
-  const clamped = Math.min(seconds, testMs / 1000);
-  return Math.max(TALK.min, Math.ceil(clamped / TALK.secondsPer));
+  if (!Number.isFinite(seconds)) return null;
+  return Math.max(0, Math.min(seconds, testMs / 1000));
 }
 
 /*

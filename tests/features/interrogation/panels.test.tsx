@@ -51,13 +51,21 @@ const WIRE: GameStateWire = {
 };
 
 describe('ResultModal', () => {
-  it('무리 평균이 참가자 줄과 같이 서고 판정 낱말이 없다', () => {
+  it('요약만 — 버틴 시간 · 등수 · 발언권. 무리 평균도 상세 지표도 판정 낱말도 없다', () => {
     render(<ResultModal result={RESULT} nameOf={(id) => (id === 's1' ? 'SUBJECT 01' : 'SUBJECT 02')} mySeatId="s1" endsAt={null} />);
-    expect(screen.getByText('무리 평균')).toBeInTheDocument();
+    expect(screen.queryByText('무리 평균')).toBeNull();
+    expect(screen.queryByText('전환 직후 오차')).toBeNull();
     expect(screen.getByText('SUBJECT 01')).toBeInTheDocument();
     expect(screen.getByText('SUBJECT 02')).toBeInTheDocument();
     expect(screen.queryByText(/정상|이상치/)).toBeNull();
     expect(screen.getByText(/낙하 생존/)).toBeInTheDocument();
+    // 등수는 버틴 시간순 — s2(60 → 시험 길이로 잘려 「끝까지」)가 1등, s1(12.4초)이 2등
+    expect(screen.getByText(/끝까지/)).toBeInTheDocument();
+    expect(screen.getByText('12.4초')).toBeInTheDocument();
+    const rows = screen.getAllByRole('row').slice(1);
+    expect(rows[0].textContent).toContain('SUBJECT 02');
+    expect(rows[0].textContent).toContain('1등');
+    expect(rows[1].textContent).toContain('2등');
   });
 });
 
