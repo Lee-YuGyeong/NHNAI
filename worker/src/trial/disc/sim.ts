@@ -14,11 +14,15 @@
  *   동안에는 걷기 견인력이 따로 남지 않는다: 발을 굴러도 마찰은 실제로 움직이는 방향을 되돌리는 데 다 쓰인다.
  *   (예전에는 s 반대로만 걸어서, 미끄러지면서도 걷기가 100% 그대로 먹었다 — 빙판 구간이 하나도 안 무서웠다.)
  *
+ * 가운데는 **매끈한 캡**이다 (mp/constants DISC_CAP_R · DISC_CAP_GRIP, 2026-09-05): 캡 안에서는 μ 가 4분의 1 이라 ω²r 이 작아도
+ * 발이 못 잡고 천천히 밀려난다. 가운데 가만히 서 있는 것이 정답이 되면 판이 죽는다 — 서 있을 수 있는 자리는 캡 밖의 링이고,
+ * 그 링은 ω 와 숨은 μ 가 정한다.
+ *
  * 숨은 값은 **μ 하나**(condition.ts 의 DISC_GRIP, 20초 구간마다 바뀐다). 각속도 스케줄은 눈에 보이는 것이라 비밀이 아니고 (스냅샷에
  * θ·ω 가 그대로 실린다), 사람의 자리도 서버가 적분해 내려 보낸다 — 클라는 걷기 명령(월드 기준 속도)만 올린다. 미끄러짐은 μ 없이는
  * 계산할 수 없으므로 클라는 서버가 준 s 로 다음 스냅샷까지 제 몸을 예측할 뿐이다 (features/trial/games/disc/DiscRig).
  */
-import { DISC_BODY_R, DISC_HUB_R, DISC_OMEGA_MAX, DISC_R, DISC_RESPAWN_MS, DISC_RESPAWN_R, DISC_RUN_SPEED, DISC_TOP } from '../../../../src/world/mp/constants';
+import { DISC_BODY_R, DISC_CAP_GRIP, DISC_CAP_R, DISC_HUB_R, DISC_OMEGA_MAX, DISC_R, DISC_RESPAWN_MS, DISC_RESPAWN_R, DISC_RUN_SPEED, DISC_TOP } from '../../../../src/world/mp/constants';
 import { DISC_GRIP } from '../condition';
 
 export const G = 9.8;
@@ -136,7 +140,8 @@ export function stepBody(b: DiscBody, wDisc: Vec2, omega: number, alpha: number,
   const fx = -cw.x - apx;
   const fz = -cw.z - apz;
   const need = Math.hypot(fx, fz);
-  const grip = mu * G;
+  // 캡 위면 발이 잡는 마찰이 준다 — 가운데 가만히 서 있는 것이 안전지대가 안 되게 (파일 머리말)
+  const grip = mu * G * (Math.hypot(b.px, b.pz) < DISC_CAP_R ? DISC_CAP_GRIP : 1);
 
   const slide = Math.hypot(b.sx, b.sz);
   if (slide < SLIDE_OFF) {
