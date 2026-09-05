@@ -13,8 +13,8 @@
  *
  * 어느 좌석이 어느 쪽인지 서버는 말하지 않는다 — 기록(이동거리 · 반지름 편차 · 반응 시간)에만 남는다.
  */
-import { DISC_R, DISC_RUN_SPEED, DISC_WALK_SPEED } from '../../../../src/world/mp/constants';
-import { G, MIN_R, cross, type DiscBody, type Vec2 } from './sim';
+import { DISC_CAP_R, DISC_R, DISC_RUN_SPEED, DISC_WALK_SPEED } from '../../../../src/world/mp/constants';
+import { G, cross, type DiscBody, type Vec2 } from './sim';
 
 export interface DiscProfile {
   /** 밀리기 시작한 것을 알아채고 움직이기까지(ms) */
@@ -38,7 +38,7 @@ export function makeDiscProfile(index: number, precision?: number, rand: () => n
   const r = precision === undefined ? rand : () => 0.5;
   return {
     reactionMs: 60 + (1 - p) * (380 + r() * 300),
-    targetR: MIN_R + 0.15 + (1 - p) * (0.8 + r() * 1.6),
+    targetR: DISC_CAP_R + 0.15 + (1 - p) * (0.8 + r() * 1.6), // 캡(매끈한 가운데) 바로 밖부터 — 캡 위에서는 누구도 못 선다
     overcorrect: 1 + (1 - p) * (0.6 + r() * 1.2),
     wanderPerSec: (1 - p) * (0.08 + r() * 0.15),
     wrongWayP: (1 - p) * (0.2 + r() * 0.3),
@@ -134,7 +134,7 @@ export function stepBot(bot: DiscBot, omega: number, need: number, now: number, 
 
   // 이유 없는 이동 (사람 같은 좌석) — 잠깐 다른 반지름으로 갔다 온다
   if (bot.wanderR === null && rand() < p.wanderPerSec * dtSec) {
-    bot.wanderR = Math.min(DISC_R - 1, Math.max(MIN_R, p.targetR + (rand() - 0.5) * 2.4));
+    bot.wanderR = Math.min(DISC_R - 1, Math.max(DISC_CAP_R + 0.15, p.targetR + (rand() - 0.5) * 2.4));
     bot.wanderUntil = now + 1500 + rand() * 2000;
   }
   if (bot.wanderR !== null && now > bot.wanderUntil) bot.wanderR = null;

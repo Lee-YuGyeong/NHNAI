@@ -9,7 +9,7 @@
  *   ⑥ 엔진 — 스냅샷(trial_disc)에 전원의 자리와 θ·ω 가 실리고, 마찰계수는 어디에도 없다 (P8)
  */
 import { describe, expect, it } from 'vitest';
-import { DISC_R, DISC_RESPAWN_MS, DISC_RESPAWN_R, DISC_TOP } from '../../src/world/mp/constants';
+import { DISC_CAP_GRIP, DISC_CAP_R, DISC_R, DISC_RESPAWN_MS, DISC_RESPAWN_R, DISC_TOP } from '../../src/world/mp/constants';
 import type { S2CMessage } from '../../src/world/mp/protocol';
 import { DiscEngine } from '../../worker/src/trial/disc/engine';
 import { botSpinEvent, makeDiscBot, makeDiscProfile, stepBot } from '../../worker/src/trial/disc/npc';
@@ -31,13 +31,13 @@ function seeded(seed = 7): () => number {
 describe('sim — 원판 위 몸', () => {
   it('가만히 서면 ω²r 가 μg 아래인 반지름에서는 안 미끄러지고, 넘는 반지름에서는 바깥으로 미끄러진다', () => {
     const omega = 1.4; // ω² = 1.96 → 한계 반지름 μg/ω² = 5.88/1.96 = 3.0m
-    const inner = makeBody('a', 0, 2.0);
+    const inner = makeBody('a', 0, 2.5); // 캡(2.2) 밖 — 캡 위라면 마찰이 4분의 1이라 여기서도 밀린다
     const outer = makeBody('b', 0, 4.0);
     for (let t = 0; t < 2; t += DT) {
       stepBody(inner, { x: 0, z: 0 }, omega, 0, MU, DT, t * 1000);
       stepBody(outer, { x: 0, z: 0 }, omega, 0, MU, DT, t * 1000);
     }
-    expect(Math.hypot(inner.px, inner.pz)).toBeCloseTo(2.0, 3);
+    expect(Math.hypot(inner.px, inner.pz)).toBeCloseTo(2.5, 3);
     expect(Math.hypot(outer.px, outer.pz)).toBeGreaterThan(4.3);
     expect(outer.px).toBeGreaterThan(4.0); // 바깥(+x) 으로
   });
@@ -100,6 +100,30 @@ describe('sim — 원판 위 몸', () => {
     const c = makeBody('c', 0, 2.0);
     for (let t = 0; t < 3; t += DT) stepBody(c, { x: -2.6, z: 0 }, 0, 0, MU, DT, t * 1000);
     expect(Math.hypot(c.px, c.pz)).toBeCloseTo(MIN_R, 6);
+  });
+});
+
+describe('매끈한 캡 — 가운데 가만히 서면 밀려난다 (2026-09-05 사용자)', () => {
+  it('기둥 옆에 가만히 서면 캡 밖으로 밀려나고, 기준 μ 면 캡 밖 링에서 선다', () => {
+    const omega = 1.2; // ω²r 이 캡 밖(2.2)에서 3.2 — 기준 μ(0.6·g = 5.9)가 잡는다. 캡 안에서는 예산이 1.5 뿐이라 못 잡는다
+    const b = makeBody('a', 0, MIN_R + 0.1);
+    const r0 = Math.hypot(b.px, b.pz);
+    let maxNeed = 0;
+    for (let t = 0; t < 8; t += DT) maxNeed = Math.max(maxNeed, stepBody(b, { x: 0, z: 0 }, omega, 0, 0.6, DT, t * 1000).need);
+    const r = Math.hypot(b.px, b.pz);
+    expect(r).toBeGreaterThan(DISC_CAP_R); // 캡을 벗어났다
+    expect(b.on).toBe(true); // 기준 μ(0.6) 면 캡 밖 링에서 발이 잡는다 — 떨어지지는 않는다
+    expect(r).toBeLessThan(DISC_R);
+    expect(r0).toBeLessThan(DISC_CAP_R);
+    // 캡 안에서 필요했던 마찰은 캡의 예산(μ·g·DISC_CAP_GRIP)을 넘었다 — 그래서 밀려났다
+    expect(maxNeed).toBeGreaterThan(0.6 * G * DISC_CAP_GRIP);
+  });
+
+  it('빙판 구간(μ 0.35)이면 캡 밖에서도 못 잡아 끝내 떨어진다 — 반대로 달리지 않으면', () => {
+    const b = makeBody('a', 0, MIN_R + 0.1);
+    let fell = false;
+    for (let t = 0; t < 20 && !fell; t += DT) fell = stepBody(b, { x: 0, z: 0 }, 1.6, 0, 0.35, DT, t * 1000).fell;
+    expect(fell).toBe(true);
   });
 });
 
@@ -195,7 +219,7 @@ describe('npc — precision 이 걸음을 가른다 (P9)', () => {
     }
     expect(walking / 400).toBeGreaterThan(0.5);
     // 기계 좌석은 같은 조건에서 여전히 서 있다 — 지문(⑤)은 그대로다
-    const mBody = makeBody('m', 0, MIN_R + 0.15);
+    const mBody = makeBody('m', 0, DISC_CAP_R + 0.15); // 캡 바로 밖 — 캡 위에서는 기계도 못 선다
     const mBot = makeDiscBot(mBody, makeDiscProfile(0, 1, rand));
     let mWalking = 0;
     for (let i = 0; i < 400; i += 1) {
