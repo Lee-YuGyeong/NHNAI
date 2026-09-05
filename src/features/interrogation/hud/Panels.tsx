@@ -403,8 +403,9 @@ export function DesignerPanel({ seats, mySeatId, tamperLeft, phase, onTamper }: 
   const can = tamperLeft > 0 && phase !== 'result' && phase !== 'ended' && !!target;
   return (
     <div className="ig-designer">
-      <h3>DESIGNER · 기록 조작 {tamperLeft > 0 ? '1회 남음' : '사용함'}</h3>
-      <p>다음 테스트 결과의 공개본 하나를 바꾼다. 조작 여부는 아무도 모른다 — 대상 본인도.</p>
+      {/* 머리글은 남은 횟수뿐이다 — 「기록 조작」 이름표와 사용법 문장은 걷었다 (2026-09-05 사용자: "기록 조작 사용법 라벨 없애줘").
+          무엇을 하는 단추인지는 단추의 title 이 말한다 */}
+      <h3>DESIGNER · {tamperLeft > 0 ? '1회 남음' : '사용함'}</h3>
       <select value={target} onChange={(e) => setTarget(e.target.value)} disabled={tamperLeft <= 0}>
         <option value="">대상…</option>
         {alive.map((s) => (
