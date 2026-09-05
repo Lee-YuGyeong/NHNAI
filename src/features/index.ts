@@ -56,9 +56,16 @@ export interface FeatureDef {
   owner: string;      // 담당자
   Component: ComponentType;
   /**
-   * 루트 목록(Launcher)에 세우지 않는다. 라우트는 살아 있다.
-   * **흐름 중간에만 들르는 화면**을 위한 것이다 — 메뉴에서 직접 누를 일이 없고,
-   * 눌러 봐야 조건이 안 맞으면 곧바로 되돌아 나온다.
+   * 루트 목록(Launcher)에 세우지 않는다. 라우트는 살아 있다 — 주소를 직접 걸면 그대로 열린다.
+   *
+   * 두 종류가 여기 붙는다.
+   *  1. **흐름 중간에만 들르는 화면** — 메뉴에서 직접 누를 일이 없고, 눌러 봐야 조건이 안 맞으면
+   *     곧바로 되돌아 나온다 (닉네임 등록).
+   *  2. **목록에서 내린 개발용 화면** — 2026-09-05 사용자가 루트에 남길 문을 둘로 줄였다:
+   *     검문소(본판)와 물리 미니게임. 나머지 열일곱 줄은 지우지 않고 이 표시만 달았다.
+   *     그 화면들은 인트로 → 로비 → 본판 흐름이 지금도 지나다니는 길이라, 줄을 빼면 라우트가
+   *     같이 사라져 App 의 `path="*"` 로 튕긴다 (아래 /lobby 줄의 사고 기록이 그것이다).
+   *     목록에 도로 세우려면 그 줄의 `hidden: true` 만 지운다.
    */
   hidden?: boolean;
   /**
@@ -71,7 +78,7 @@ export interface FeatureDef {
 /** 서비스 등록부 — 폴더 만들고 여기 한 줄 추가하면 인트로 버튼 + 라우트가 생긴다 */
 export const FEATURES: FeatureDef[] = [
   { id: 'intro', title: '인트로',  path: '/intro', owner: 'TBD', Component: IntroFeature },
-  { id: 'main',  title: '메인',    path: '/main',  owner: 'TBD', Component: MainFeature },
+  { id: 'main',  title: '메인',    path: '/main',  owner: 'TBD', hidden: true, Component: MainFeature },
   /*
    * 인트로에서 넘어오는 칸 — 방 목록과 대기방이다 (브리핑은 위의 /intro 로 갔다).
    *
@@ -79,27 +86,27 @@ export const FEATURES: FeatureDef[] = [
    *   재검실 두 줄이 로비 두 줄을 그대로 덮었다. 그동안 /lobby 는 라우트가 없어서
    *   App 의 `path="*"` 에 걸려 루트로 튕겼다. 되살린다.
    */
-  { id: 'lobby', title: '방 목록 · 대기방', path: '/lobby', owner: 'TBD', Component: LobbyFeature },
+  { id: 'lobby', title: '방 목록 · 대기방', path: '/lobby', owner: 'TBD', hidden: true, Component: LobbyFeature },
   /*
    * 로그인 — **관문이 아니다.** 아무 화면도 이걸 강제로 거치지 않는다 (RequireLogin 없음).
-   * 목록에 세우는 이유는 하나다: 찾을 수 있어야 해서. 머리말의 계정 단추는 키가 없으면
-   * 조용히 사라지는데, 그것만 있으면 "로그인이 어디 있냐" 가 된다 (2026-08-31 사용자).
+   * 한동안 목록에 세워 뒀던 이유는 하나였다: 찾을 수 있어야 해서 (2026-08-31 사용자). 머리말의
+   * 계정 단추가 키 없을 때 조용히 사라져서다. 2026-09-05 에 목록에서 내렸고, 주소(/login)는 그대로다.
    */
-  { id: 'login', title: '로그인 (선택)', path: '/login', owner: 'TBD', Component: LoginFeature },
+  { id: 'login', title: '로그인 (선택)', path: '/login', owner: 'TBD', hidden: true, Component: LoginFeature },
   // 흐름 중간 칸이라 목록에는 없다. 이름이 이미 있으면 스스로 되돌아 나간다
   { id: 'nickname', title: '닉네임 등록', path: '/account/nickname', owner: 'TBD', hidden: true, Component: NicknameFeature },
-  { id: 'world',   title: '3D 월드',       path: '/world',   owner: 'TBD', Component: WorldFeature },
-  { id: 'warehouse', title: '창고 3D 맵',  path: '/warehouse', owner: 'TBD', Component: WarehouseFeature },
-  { id: 'central', title: '중앙 시설',  path: '/central', owner: 'TBD', Component: CentralFeature },
+  { id: 'world',   title: '3D 월드',       path: '/world',   owner: 'TBD', hidden: true, Component: WorldFeature },
+  { id: 'warehouse', title: '창고 3D 맵',  path: '/warehouse', owner: 'TBD', hidden: true, Component: WarehouseFeature },
+  { id: 'central', title: '중앙 시설',  path: '/central', owner: 'TBD', hidden: true, Component: CentralFeature },
   // 챕터 3 — 검문에서 감독이 끌고 왔을 때만 열린다 (chapter2 의 detain). 여기 문답에는 대본이 없다
-  { id: 'recheck', title: '재검실 (대본 없음)', path: '/recheck', owner: 'TBD', Component: RecheckFeature },
-  // 본판 — 복도부터 검문소까지 한 줄로 이어진 길의 입구 (shared/start.ts). 로비의 붉은 케이스가 이것이다
-  { id: 'play',  title: '게임 시작 테스트', path: '/play', owner: 'TBD', Component: PlayFeature },
+  { id: 'recheck', title: '재검실 (대본 없음)', path: '/recheck', owner: 'TBD', hidden: true, Component: RecheckFeature },
+  // 이야기를 건너뛰고 판만 여는 개발용 지름길 (shared/start.ts). 루트에 붉은 케이스로 서 있었다 — 2026-09-05 에 내렸다
+  { id: 'play',  title: '게임 시작 테스트', path: '/play', owner: 'TBD', hidden: true, Component: PlayFeature },
   /*
    * 두 번째 판 — 「짓지 않은 방들」. 복도 → 휴게 구역 → 작업 구역 → 기록 복도 → 창이 있는 방 → **검문소 아레나**.
    * 싸움이 없고, 계량기가 둘(의심도 · 경보도)이고, 먼저 말을 걸 수 있다. 위의 「게임 시작 테스트」와는 길이 아예 다르다.
    */
-  { id: 'scenario2', title: '시나리오 2 (짓지 않은 방들)', path: '/scenario2', owner: 'TBD', Component: Scenario2Feature },
+  { id: 'scenario2', title: '시나리오 2 (짓지 않은 방들)', path: '/scenario2', owner: 'TBD', hidden: true, Component: Scenario2Feature },
   /*
    * 본판 「인간인 척」 (PLANNING.md) — 방에 붙어 도는 판. ?code= 가 방 번호, 방장이 시작한다 (features/interrogation).
    *
@@ -121,16 +128,16 @@ export const FEATURES: FeatureDef[] = [
     owner: 'TBD',
     Component: InterrogationFeature,
   },
-  { id: 'game',    title: '라운드 진행',    path: '/game',    owner: 'TBD', Component: GameFeature },
-  { id: 'profile', title: '프로필',        path: '/profile', owner: 'TBD', Component: ProfileFeature },
-  { id: 'llm',     title: 'LLM 테스트',    path: '/llm',     owner: 'TBD', Component: LlmFeature },
+  { id: 'game',    title: '라운드 진행',    path: '/game',    owner: 'TBD', hidden: true, Component: GameFeature },
+  { id: 'profile', title: '프로필',        path: '/profile', owner: 'TBD', hidden: true, Component: ProfileFeature },
+  { id: 'llm',     title: 'LLM 테스트',    path: '/llm',     owner: 'TBD', hidden: true, Component: LlmFeature },
   // 「리더 방송」은 옛 판 이름이다 — 이 기획의 방송자는 관리 AI 고, 이 화면은 좌석 아홉을 고르는 자리이기도 하다
-  { id: 'tts',     title: 'TTS 관리 AI · 좌석 캐스팅', path: '/tts', owner: 'hbkim507', Component: TtsFeature },
-  { id: 'voice',   title: '좌석별 목소리 (방 울림)',   path: '/voice', owner: 'hbkim507', Component: VoiceFeature },
+  { id: 'tts',     title: 'TTS 관리 AI · 좌석 캐스팅', path: '/tts', owner: 'hbkim507', hidden: true, Component: TtsFeature },
+  { id: 'voice',   title: '좌석별 목소리 (방 울림)',   path: '/voice', owner: 'hbkim507', hidden: true, Component: VoiceFeature },
   // 폴더와 경로가 어긋나 있다: features/talk → /lab (이게 지금 쓰는 판), features/lab → /rules (규정·검사 실험판)
-  { id: 'lab',     title: '구역 (AI 5 + 나)',      path: '/lab',   owner: 'TBD', Component: TalkFeature },
-  { id: 'rules',   title: '규정·검사판',            path: '/rules', owner: 'TBD', Component: LabFeature },
-  { id: 'arena',   title: '검사 (리더가 좌표를 짠다)', path: '/arena', owner: 'TBD', Component: ArenaFeature },
+  { id: 'lab',     title: '구역 (AI 5 + 나)',      path: '/lab',   owner: 'TBD', hidden: true, Component: TalkFeature },
+  { id: 'rules',   title: '규정·검사판',            path: '/rules', owner: 'TBD', hidden: true, Component: LabFeature },
+  { id: 'arena',   title: '검사 (리더가 좌표를 짠다)', path: '/arena', owner: 'TBD', hidden: true, Component: ArenaFeature },
   {
     id: 'trial',
     title: '물리 미니게임',

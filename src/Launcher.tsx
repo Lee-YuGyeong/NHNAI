@@ -1,25 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FEATURES } from '@/features';
 import { OpeningVideo } from '@/shared/OpeningVideo';
-import { storyStartHref } from '@/shared/start';
 
 /**
  * 루트(/): 서비스 선택 — 등록된 서비스마다 케이스(버튼) 하나.
  * 겉모습은 humanish 로비의 문법을 따른다: 강판에 새긴 제목(.engraved),
  * 물건에 적힌 라벨(.stencil), 눌러도 되는 플라이트 케이스(button 기본 재질).
  */
-/**
- * 「게임 시작 테스트」가 본판이다 — 이 케이스만 **붉은 경보등**(--signal) 아래 켜져 있다. 나머지는 꺼진 창고 재질 그대로.
- * (2026-08-29 사용자 지정. 그 전엔 호박색 다운라이트였다)
- *
- * 2026-08-30: 이 케이스는 **복도부터** 열었다 — 복도(/world) → 중앙 시설(/central) → 검문소(/interrogation)가
- * 한 줄로 이어진 길이었다.
- * 2026-09-05: 이제 **검문소를 곧장 연다** (사용자: "게임 시작하기 누르면 /interrogation 여기로 바로 가야해.
- * 중간에 다 필요없어 이제"). 앞의 세 방은 아래 목록에 문이 그대로 있다 — 끊은 것은 이 케이스의 행선지뿐이다.
- * /play 를 거치지 않고 주소를 직접 거는 것은 그대로다 (shared/start.ts 머리말).
+/*
+ * 「게임 시작 테스트」(/play)의 붉은 케이스는 **없앴다** (2026-09-05 사용자: 루트 메뉴 지워줘).
+ * 여기 있던 이야기: 2026-08-29 에 저 케이스만 붉게 켜 두었고, 2026-08-30 에는 복도(/world) →
+ * 중앙 시설(/central) → 검문소(/interrogation) 한 줄을 복도부터 열었고, 2026-09-05 에 검문소를
+ * 곧장 열게 바꿨다. 이제 그 지름길은 목록에서 내려갔다 — 주소(/play)는 그대로 열린다.
+ * 붉은 케이스는 맨 위의 「인트로 시작」 하나만 남는다.
  */
-const PLAY_ID = 'play';
 /** 인트로는 케이스 목록에 또 서지 않는다 — 맨 위의 붉은 문이 그 자리다 (아래 IntroDoor) */
 const INTRO_ID = 'intro';
 const LIT_CASE = {
@@ -32,8 +27,6 @@ const LIT_CASE = {
 } as const;
 
 export function Launcher() {
-  /** 이 화면이 사는 동안 한 방 — 다시 눌러도 같은 방으로 들어간다 (새 방은 새로고침) */
-  const startHref = useMemo(() => storyStartHref(), []);
   /**
    * 오프닝 영상을 여기서 켜 본다 (2026-09-03 사용자: "/에서 영상테스트 버튼하나 만들어주고").
    *
@@ -69,15 +62,15 @@ export function Launcher() {
 
       {/*
         ── 제일 위의 붉은 문 (2026-08-30 사용자: "제일 위에 인트로 시작버튼으로 하고 빨간색으로") ──
-        아래 케이스 목록은 **개발용 문 열다섯 개**다. 그중 하나로 서 있으면 이 게임을 처음 여는
-        사람이 어디로 들어가야 하는지 알 길이 없다 — 이름 순서도, 크기도 다 같아서다.
-        그래서 목록 위로 꺼내 크게 세우고, 이 판에서 「켜져 있다」를 뜻하는 붉은 신호를 준다.
+        열여덟 개가 이름도 크기도 다 같은 케이스로 늘어서 있어서, 이 게임을 처음 여는 사람이
+        어디로 들어가야 하는지 알 길이 없었다. 그래서 목록 위로 꺼내 크게 세우고, 이 판에서
+        「켜져 있다」를 뜻하는 붉은 신호를 준다.
 
         ★ 인트로는 아래 목록에서 뺀다 (INTRO_ID). 같은 문이 한 화면에 두 번 있으면 둘 중
           하나는 다른 데로 가는 줄 안다.
-        ★ 「게임 시작 테스트」(/play)의 붉은 케이스는 **그대로 둔다.** 그건 2026-08-29 에
-          따로 정한 자리이고, 이야기를 건너뛰고 판만 여는 개발용 지름길이라 여기와 하는 일이
-          다르다. 붉은 것이 둘이라 헷갈리면 그쪽을 꺼야 한다 — 이 문이 아니라.
+        ★ 2026-09-05 에 아래 목록을 **검문소(본판)와 물리 미니게임 여섯**으로 줄였다
+          (사용자가 지울 줄을 직접 적어 왔다). 나머지 열일곱은 등록부에서 hidden 이 됐을 뿐
+          라우트는 살아 있다 — 도로 세우려면 features/index.ts 의 그 줄이다.
       */}
       <Link to="/intro" style={{ textDecoration: 'none' }}>
         <button
@@ -99,24 +92,14 @@ export function Launcher() {
         </button>
       </Link>
 
-      {/* hidden 은 흐름 중간에만 들르는 화면이라 목록에 안 세운다. doors 가 있으면 문을 여럿 세운다 (features/index.ts) */}
+      {/* hidden 인 줄은 목록에 안 세운다 — 라우트는 산다. doors 가 있으면 문을 여럿 세운다 (features/index.ts) */}
       {FEATURES.filter((f) => f.id !== INTRO_ID && !f.hidden)
-        .flatMap((f) => (f.doors ? f.doors.map((d) => ({ key: `${f.id}:${d.to}`, id: f.id, title: d.title, to: d.to })) : [{ key: f.id, id: f.id, title: f.title, to: f.id === PLAY_ID ? startHref : f.path }]))
-        /*
-         * 붉은 케이스에 걸려 있던 성격 미리 짓기(warmCast)는 뺐다 (2026-09-05) — 그 값을 받아 가는
-         * 화면은 /arena 인데 이 문은 이제 검문소로 곧장 간다. 안 쓸 값에 크레딧을 쓰지 않는다.
-         */
+        .flatMap((f) => (f.doors ? f.doors.map((d) => ({ key: `${f.id}:${d.to}`, title: d.title, to: d.to })) : [{ key: f.id, title: f.title, to: f.path }]))
         .map((d) => (
           <Link key={d.key} to={d.to}>
             <button
               className="stencil"
-              style={{
-                width: '100%',
-                padding: '14px 12px',
-                fontSize: 13,
-                textAlign: 'center',
-                ...(d.id === PLAY_ID ? LIT_CASE : undefined),
-              }}
+              style={{ width: '100%', padding: '14px 12px', fontSize: 13, textAlign: 'center' }}
             >
               {d.title}
             </button>

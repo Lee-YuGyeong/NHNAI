@@ -7,7 +7,8 @@
  * 다리(FreeRig)는 여기서 바닥 높이와 발판이 나를 실어 나르는 이동분을 묻고, 아바타는 「공중인가」를 여기서 묻는다.
  * world/core/WorldState 와 같은 가변 싱글턴 규칙.
  */
-import { PAD_FINISH, PAD_START_Z, PAD_TOP, padAt, padUnder, platformGroundAt, type PadPose } from '@/world/mp/platform';
+import { PAD_FINISH, PAD_START_Z, PAD_TOP, PLATFORM_TELEPORT_M, padAt, padUnder, platformGroundAt, type PadPose } from '@/world/mp/platform';
+import { warp } from './warp';
 
 interface PlatformRound {
   startAt: number;
@@ -55,8 +56,22 @@ export const platformState = {
       const s: BotSample = { t: at, x: a.x, z: a.z, y: a.y ?? 0 };
       const cur = bots.get(a.id);
       if (cur) {
-        cur.prev = cur.next;
-        cur.next = s;
+        /*
+         * 스냅샷 두 장 사이(100ms)에 이만큼 넘게 옮겨졌으면 걸은 게 아니라 **돌아간 것**이다 — 봇도 바닥에 떨어지면
+         * 출발 발판으로 돌아간다 (worker platform/npc.ts, 사람과 같은 규칙). 여태 그 두 자리를 그냥 보간해서,
+         * 봇이 마당을 가로질러 0.1초에 미끄러져 갔다. 보간하지 않고 그 자리에 세우고, 사람과 같은 순간이동을 건다
+         * (warp.ts). 회수 기둥은 떠난 자리에, 도착 기둥은 새 자리에 — 봇이 언제 떨어졌는지는 화면이 알 수 없으니
+         * (스냅샷은 돌아온 뒤에야 그 사실을 알려 준다) 둘을 같은 시각에 세운다.
+         */
+        if (Math.hypot(s.x - cur.next.x, s.z - cur.next.z) > PLATFORM_TELEPORT_M) {
+          warp.beam(`${a.id}:out`, 'out', cur.next.x, cur.next.y, cur.next.z);
+          warp.beam(a.id, 'in', s.x, s.y, s.z);
+          cur.prev = s;
+          cur.next = s;
+        } else {
+          cur.prev = cur.next;
+          cur.next = s;
+        }
       } else bots.set(a.id, { prev: s, next: s });
     }
   },
@@ -80,6 +95,7 @@ export const platformState = {
   },
   start(startAt: number, pace: number | undefined, home: { x: number; z: number } = { x: 0, z: PAD_START_Z }): void {
     round = { startAt, pace: pace ?? 1, home, finished: false, fellAt: null, slip: null };
+    warp.clear();
   },
   /** 서버가 준 착지 미끄러짐을 건다 (trial_slip). 내 것만 여기 온다 */
   pushSlip(vx: number, vz: number, ms: number, now = Date.now()): void {
@@ -126,6 +142,11 @@ export const platformState = {
     round = null;
     bots.clear();
     botOffset = null;
+    /*
+     * 순간이동도 같이 끝낸다. 회수(out)는 도착이 덮어 줄 때까지 몸을 0 으로 줄여 두는데(warp.ts), 떨어져 있는
+     * 동안 라운드가 끝나면 덮어 줄 도착이 영영 안 온다 — 그러면 다음 판까지 내 몸이 안 보인다
+     */
+    warp.clear();
   },
   /** 라운드 시작 뒤 흐른 ms */
   elapsed(now = Date.now()): number {
