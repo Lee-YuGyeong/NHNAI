@@ -1,6 +1,6 @@
 /**
  * 물리 미니게임 방 — /trial. 정지선(?game=stopline, 기본) · 낙하 생존(?game=fall) · 색 사냥(?game=colorhunt) · 움직이는 플랫폼(?game=platform) ·
- * 회전 원판(?game=disc) · 무게 중심 다리(?game=seesaw).
+ * 회전 원판(?game=disc) · 무게 중심 다리(?game=seesaw) · 폭발 충격파 피하기(?game=blast).
  * 방 번호는 ?code= 로 받는다(없으면 '1234' — /world 와 같은 개발 편의 기본값). 복도의 살아있는
  * WS 를 이어받지 않고 새로 연다(TrialConnection 머리말) — `idFromName(roomCode)`가 같은
  * RoomDO 로 보내주므로 로스터는 그대로 이어진다.
@@ -14,6 +14,7 @@ import { BackToRoot } from '@/shared/BackToRoot';
 import { loadGuestNick } from '@/shared/guest';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import type { BodyId } from '@/world/mp/bodies';
+import { BLAST_CROUCH_Y, BLAST_FUSE_MS, BLAST_R, BLAST_STAND_Y, isShielded } from '@/world/mp/blast';
 import { HUNT_LIGHT_RAMP_MS, SEESAW_TILT_MAX, STOPLINE_MAX_ATTEMPTS, TRIAL_PHASE_MS, TRIAL_SUMMARY_MS } from '@/world/mp/constants';
 import type { AnimState, PlayerSnapshot, TrialGame } from '@/world/mp/protocol';
 import { remotePlayers } from '@/world/net/remote-players';
@@ -22,6 +23,8 @@ import { huntState, softLight } from './games/color-hunt/huntState';
 import { DiscScene } from './games/disc/DiscScene';
 import { discState } from './games/disc/discState';
 import { FallScene } from './games/fall/FallScene';
+import { BlastScene } from './games/blast/BlastScene';
+import { blastState } from './games/blast/blastState';
 import { SeesawScene } from './games/seesaw/SeesawScene';
 import { seesawState } from './games/seesaw/seesawState';
 import { PlatformScene } from './games/platform/PlatformScene';
@@ -51,7 +54,9 @@ export function TrialFeature() {
             ? 'disc'
             : params.get('game') === 'seesaw'
               ? 'seesaw'
-              : 'stopline';
+              : params.get('game') === 'blast'
+                ? 'blast'
+                : 'stopline';
   const nickname = useMemo(() => loadGuestNick() || `테스터${Math.floor(100 + Math.random() * 900)}`, []);
 
   const status = useAppSelector(trialSelectors.selectStatus);
@@ -66,6 +71,7 @@ export function TrialFeature() {
   const myFalls = useAppSelector(trialSelectors.selectMyFalls);
   const discOmega = useAppSelector(trialSelectors.selectDiscOmega);
   const seesawTilt = useAppSelector(trialSelectors.selectSeesawTilt);
+  const blastHud = useAppSelector(trialSelectors.selectBlastHud);
   const myAttempts = useAppSelector(trialSelectors.selectMyAttempts);
   const myPicks = useAppSelector(trialSelectors.selectMyPicks);
   const hunt = useAppSelector(trialSelectors.selectHunt);
@@ -105,6 +111,7 @@ export function TrialFeature() {
     huntState.clear();
     discState.clear();
     seesawState.clear();
+    blastState.clear();
     remotePlayers.clear();
     setAiIds([]);
     setMyBody(null);
@@ -141,6 +148,7 @@ export function TrialFeature() {
         huntState.clear();
         discState.clear();
         seesawState.clear();
+        blastState.clear();
         // 움직이는 플랫폼 — 발판 열은 platformState 가 서버와 같은 함수로 그린다 (interrogation/scene/platformState)
         if (g === 'platform') platformState.start(startAt, pace);
         else platformState.clear();
@@ -186,6 +194,33 @@ export function TrialFeature() {
         for (const p of msg.players) if (p.id.startsWith('SUBJECT_')) seeParticipant(p.id);
         seesawState.push(msg);
         dispatch(trialActions.seesawSynced(msg.phi));
+      },
+      onBlast: (msg) => {
+        // 폭발 충격파 — AI 좌석은 여기 처음 등장한다. 자리는 blastState(가변), HUD 계기(가장 가까운 폭약 · 엄폐 · 자세)만 슬라이스
+        for (const p of msg.players) if (p.id.startsWith('SUBJECT_')) seeParticipant(p.id);
+        blastState.push(msg);
+        const me = msg.players.find((p) => p.id === selfIdRef.current);
+        let hud: { near: number; fuseMs: number; shielded: boolean; crouch: boolean } | null = null;
+        if (me) {
+          let best: (typeof msg.charges)[number] | null = null;
+          let bestD = Number.POSITIVE_INFINITY;
+          for (const c of msg.charges) {
+            const d = Math.hypot(c.x - me.x, c.z - me.z);
+            if (d < bestD) {
+              bestD = d;
+              best = c;
+            }
+          }
+          if (best && bestD <= BLAST_R + 2) {
+            hud = {
+              near: Math.round(bestD * 10) / 10,
+              fuseMs: Math.max(0, Math.round((best.boomAt - msg.at) / 100) * 100),
+              shielded: isShielded(best.x, best.z, me.x, me.z, me.c === 1 ? BLAST_CROUCH_Y : BLAST_STAND_Y),
+              crouch: me.c === 1,
+            };
+          } else hud = { near: Number.NaN, fuseMs: 0, shielded: false, crouch: me.c === 1 };
+        }
+        dispatch(trialActions.blastSynced(hud));
       },
       onSlip: (id, vx, vz, ms) => {
         // 움직이는 플랫폼 — 내 발이 밀린 것만 내 몸에 건다. 남의 미끄러짐은 그 사람 화면이 그린다
@@ -252,6 +287,7 @@ export function TrialFeature() {
   const others = useMemo(() => Object.keys(roster).filter((id) => id !== selfId).map((id) => ({ id })), [roster, selfId]);
   const othersNamed = useMemo(() => Object.entries(roster).filter(([id]) => id !== selfId).map(([id, nickname]) => ({ id, nickname })), [roster, selfId]);
   const sendWalk = useCallback((x: number, z: number) => connRef.current?.sendWalk(x, z), []);
+  const sendCrouch = useCallback((on: boolean) => connRef.current?.sendCrouch(on), []);
 
   const secondsLeft = roundDurationMs === null ? 0 : Math.max(0, Math.ceil((roundStartAt + roundDurationMs - clock) / 1000));
   const over = liveResult !== null || (round > 0 && roundDurationMs !== null && secondsLeft === 0);
@@ -272,6 +308,8 @@ export function TrialFeature() {
               ? `맞음 ${myHits} — WASD 로 피해라. 바닥 그림자가 진해지면 온다`
               : game === 'platform'
                 ? '움직이는 발판을 건너라 — W 앞으로 · Space 점프 · 발판 한가운데에 내려라. 떨어지면 출발로 돌아간다'
+              : game === 'blast'
+                ? `날아감 ${myHits}회 — 장애물 뒤에 숨거나 C 로 자세를 낮춰라. 가까우면 멀리 날아간다. WASD 걷기 · Shift 달리기`
               : game === 'seesaw'
                 ? `낙하 ${myFalls}회 · 기울기 ${Math.abs((seesawTilt * 180) / Math.PI).toFixed(0)}° — 무리의 무게중심을 축에 맞춰라. 상자가 떨어지면 반대쪽으로. WASD 걷기 · Shift 달리기`
               : game === 'disc'
@@ -295,7 +333,9 @@ export function TrialFeature() {
             ? '회전 원판 생존'
             : shownGame === 'seesaw'
               ? '무게 중심 다리'
-              : '정지선';
+              : shownGame === 'blast'
+                ? '폭발 충격파'
+                : '정지선';
   const flashing = Date.now() - flash < 350;
 
   return (
@@ -310,6 +350,8 @@ export function TrialFeature() {
         <DiscScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} />
       ) : shownGame === 'seesaw' ? (
         <SeesawScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} />
+      ) : shownGame === 'blast' ? (
+        <BlastScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} sendCrouch={sendCrouch} />
       ) : (
         <StopLineScene
           myId={selfId}
@@ -418,6 +460,40 @@ export function TrialFeature() {
             </g>
             <polygon points="0,4 -6,14 6,14" fill="var(--dust)" />
           </svg>
+        </div>
+      ) : null}
+      {/* 폭발 충격파 — 위험 계기 (UX Pilot 시안 「BlastDodge - GameHUD」): 가장 가까운 폭약까지 거리와 도화선 막대, 옆에 엄폐 · 자세 칩.
+          전부 눈에 보이는 값이다 — 세기는 없다(P8). 폭약이 가까우면(도화선이 짧으면) 붉어진다 */}
+      {round > 0 && shownGame === 'blast' && blastHud && !over ? (
+        <div aria-live="off" style={{ position: 'absolute', top: 66, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'none' }}>
+          <div
+            style={{
+              position: 'relative',
+              overflow: 'hidden',
+              minWidth: 250,
+              padding: '6px 14px',
+              borderRadius: 999,
+              background: 'rgba(0,0,0,0.65)',
+              border: `1px solid ${Number.isFinite(blastHud.near) && blastHud.near < 4 ? 'rgba(255,77,58,0.7)' : 'rgba(95,184,232,0.35)'}`,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              fontWeight: 700,
+              color: 'var(--linen)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            <span aria-hidden style={{ position: 'absolute', left: 0, bottom: 0, height: 2, width: `${Number.isFinite(blastHud.near) ? (100 * blastHud.fuseMs) / BLAST_FUSE_MS : 0}%`, background: blastHud.near < 4 ? 'var(--signal)' : '#5fb8e8', transition: 'width 0.1s linear' }} />
+            <span>{Number.isFinite(blastHud.near) ? `가장 가까운 폭약 ${blastHud.near.toFixed(1)}m` : '가까운 폭약 없음'}</span>
+            <span style={{ color: Number.isFinite(blastHud.near) && blastHud.near < 4 ? 'var(--signal)' : 'var(--dust)' }}>{Number.isFinite(blastHud.near) ? `${(blastHud.fuseMs / 1000).toFixed(1)}s` : ''}</span>
+          </div>
+          <span style={{ padding: '5px 10px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, background: 'rgba(0,0,0,0.65)', border: `1px solid ${blastHud.shielded ? '#4fd08a' : 'rgba(255,255,255,0.18)'}`, color: blastHud.shielded ? '#4fd08a' : 'var(--dust)' }}>
+            엄폐 {blastHud.shielded ? '✓' : '—'}
+          </span>
+          <span style={{ padding: '5px 10px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, background: 'rgba(0,0,0,0.65)', border: `1px solid ${blastHud.crouch ? '#e8b34a' : 'rgba(255,255,255,0.18)'}`, color: blastHud.crouch ? '#e8b34a' : 'var(--dust)' }}>
+            자세 {blastHud.crouch ? '↓' : 'C'}
+          </span>
         </div>
       ) : null}
       <nav style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>

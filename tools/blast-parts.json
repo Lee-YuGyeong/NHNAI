@@ -1,0 +1,14 @@
+[
+  {
+    "id": "blast_barrier",
+    "prompt": "Heavy concrete jersey barrier block for a military blast test range: a wide low trapezoid concrete wall segment about twice as long as tall, chipped weathered gray concrete with rebar lifting hooks on top, a faded yellow and black hazard stripe along the base, scorch marks on one side, standing upright, centered, simple clean geometry, game prop"
+  },
+  {
+    "id": "blast_charge",
+    "prompt": "Sci-fi demolition charge canister: a squat cylindrical steel explosive charge with a domed top, a red blinking warning lamp on top, black rubber base ring, yellow hazard stripes and stencil markings on the body, a small antenna, dark gunmetal, standing upright, centered, simple clean geometry, game prop"
+  },
+  {
+    "id": "blast_sandbag",
+    "prompt": "Stacked sandbag wall segment for a blast shelter: two rows of olive drab burlap sandbags stacked in a low wall about three times as long as tall, slightly sagging bags, dusty, standing upright, centered, simple clean geometry, game prop"
+  }
+]

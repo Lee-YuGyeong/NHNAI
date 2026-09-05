@@ -146,6 +146,14 @@ export const ASSETS = {
    */
   seesaw_pivot: { url: '/world/seesaw/seesaw_pivot.glb' },
   seesaw_stop: { url: '/world/seesaw/seesaw_stop.glb' },
+  /**
+   * 폭발 충격파 피하기(features/trial/games/blast, 2026-09-05) — 콘크리트 방호벽 · 모래주머니 벽 · 폭약 통. Tripo Studio(tools/blast-parts.json →
+   * tripo-studio-parts.sh → blast-glb.sh). 방호벽의 베이크 텍스처는 줄이며 번져 BlastStage 가 콘크리트 단색으로 덮는다. 상자 장애물은 cargo_container 재사용.
+   * 화염 · 그을음은 힉스필드 텍스처(public/textures/blast/). HUD 시안은 UX Pilot(page 9Hb4VtAmMxmCnsE3pvAB)
+   */
+  blast_barrier: { url: '/world/blast/blast_barrier.glb' },
+  blast_sandbag: { url: '/world/blast/blast_sandbag.glb' },
+  blast_charge: { url: '/world/blast/blast_charge.glb' },
 
   /**
    * 물리 미니게임 — 정지선(features/trial). 심문소 홀 안에 레인을 깔고 그 위에 세우는 소품 둘:

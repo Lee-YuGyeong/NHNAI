@@ -21,6 +21,11 @@ export interface TrialState {
   discOmega: number;
   /** 무게 중심 다리 — 지금 판자 기울기(rad, 0.01 단위). HUD 의 기울기 계기 — 눈에 보이는 값이라 비밀이 아니다 */
   seesawTilt: number;
+  /**
+   * 폭발 충격파 — HUD 계기: 가장 가까운 폭약까지 거리(m, 0.1 단위)와 남은 도화선(ms, 100 단위), 내가 그 폭약에서 가려져 있나 · 자세를 낮췄나.
+   * 전부 눈에 보이는 값이다(장애물 배치 · 내 자리 · 깜박이는 등). 세기는 없다
+   */
+  blastHud: { near: number; fuseMs: number; shielded: boolean; crouch: boolean } | null;
   /** 이번 라운드에 내가 마친 시행 수(0~3) — StopLineScene 이 다음 W 를 언제 받을지 여기로 안다 */
   myAttemptsThisRound: number;
   /** 색 사냥 — 이번 라운드에 내가 주운 횟수. 정오는 여기 없다 — 서버만 알고, 전원이 결과에서 처음 본다 */
@@ -46,6 +51,7 @@ const initialState: TrialState = {
   myFallsThisRound: 0,
   discOmega: 0,
   seesawTilt: 0,
+  blastHud: null,
   myAttemptsThisRound: 0,
   myPicksThisRound: 0,
   hunt: null,
@@ -85,6 +91,7 @@ export const trialSlice = createSlice({
       s.myFallsThisRound = 0;
       s.discOmega = 0;
       s.seesawTilt = 0;
+      s.blastHud = null;
       s.myPicksThisRound = 0;
       s.hunt = null;
       s.liveResult = null;
@@ -114,6 +121,13 @@ export const trialSlice = createSlice({
     seesawSynced(s, a: PayloadAction<number>) {
       const v = Math.round(a.payload * 100) / 100;
       if (v !== s.seesawTilt) s.seesawTilt = v;
+    },
+    /** 폭발 충격파 — 스냅샷마다 계기값. 같은 값이면 안 바꾼다(리렌더 절약) */
+    blastSynced(s, a: PayloadAction<{ near: number; fuseMs: number; shielded: boolean; crouch: boolean } | null>) {
+      const v = a.payload;
+      const o = s.blastHud;
+      if (v === null ? o === null : o !== null && o.near === v.near && o.fuseMs === v.fuseMs && o.shielded === v.shielded && o.crouch === v.crouch) return;
+      s.blastHud = v;
     },
     /** 시행 하나가 서버 판정을 받았다(trial_stopline_waypoints) — 그게 내 id일 때만 센다 */
     attemptRecorded(s, a: PayloadAction<string>) {
@@ -146,6 +160,7 @@ export const trialSlice = createSlice({
     selectMyFalls: (s) => s.myFallsThisRound,
     selectDiscOmega: (s) => s.discOmega,
     selectSeesawTilt: (s) => s.seesawTilt,
+    selectBlastHud: (s) => s.blastHud,
     selectMyPicks: (s) => s.myPicksThisRound,
     selectHunt: (s) => s.hunt,
     selectRoundStartAt: (s) => s.roundStartAt,

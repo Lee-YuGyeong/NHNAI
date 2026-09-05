@@ -18,7 +18,16 @@ import { selfPose } from './selfPose';
  * @param groundY 발이 닿는 바닥 높이 — 회전 원판(0.75m 단) 위에서는 그 높이가 「땅」이다. 없으면 0.
  *   함수면 프레임마다 묻는다 — 무게 중심 다리처럼 발밑이 오르내리는 판 위에서는 「땅」이 곧 지금 발 높이다(점프가 없으니)
  */
-export function SelfAvatar({ body, groundY = 0 }: { body?: BodyId | null; groundY?: number | (() => number) }) {
+export function SelfAvatar({
+  body,
+  groundY = 0,
+  pose,
+}: {
+  body?: BodyId | null;
+  groundY?: number | (() => number);
+  /** 프레임마다 묻는 덧자세 — 쓰러짐(눕는다) · 세로 배율(낮은 자세). 폭발 마당이 쓴다. 없으면 서 있는 몸 */
+  pose?: () => { lie: boolean; scaleY: number };
+}) {
   const group = useRef<Group>(null);
   const shadow = useRef<Mesh>(null);
   const ground = () => (typeof groundY === 'function' ? groundY() : groundY);
@@ -27,6 +36,11 @@ export function SelfAvatar({ body, groundY = 0 }: { body?: BodyId | null; ground
     if (!g) return;
     g.position.set(selfPose.x, selfPose.y, selfPose.z);
     g.rotation.y = selfPose.heading;
+    if (pose) {
+      const x = pose();
+      g.rotation.x = x.lie ? -Math.PI / 2 : 0;
+      g.scale.y = x.scaleY;
+    }
     // 그림자는 늘 바닥에 — 점프가 "위로 간 것"으로 읽히게 (WorldScene 의 RemoteAvatar 와 같다)
     if (shadow.current) {
       const gy = ground();

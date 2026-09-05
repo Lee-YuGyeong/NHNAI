@@ -21,7 +21,7 @@ export const ENGINES: Partial<Record<TrialGame, () => GameEngine>> = {
   platform: () => new PlatformEngine(),
   // 회전 원판 — 홀 가운데 마당(DISC_CENTER)에 원판이 서고, 자리는 서버가 적분한다 (HallScene 의 DiscStage · DiscRig)
   disc: () => new DiscEngine(),
-  // 무게 중심 다리(worker/src/trial/seesaw)는 **꽂지 않는다** — 검문소 홀(HallScene)에 그 무대가 아직 없다. /trial 에서만 열린다.
+  // 무게 중심 다리(worker/src/trial/seesaw) · 폭발 충격파(worker/src/trial/blast)는 **꽂지 않는다** — 검문소 홀(HallScene)에 그 무대가 아직 없다. /trial 에서만 열린다.
   // 차례표에 넣으려면 HallScene 에 SeesawStage · SeesawRig 를 세우고 InterrogationFeature 가 trial_seesaw 를 받게 한 뒤 여기 한 줄
 };
 
@@ -32,6 +32,7 @@ export const INSTRUCTION: Record<TrialGame, string> = {
   platform: '움직이는 발판을 점프로 건너라. W 로 나아가고 Space 로 뛴다. 발판 한가운데에 내려라. 떨어지면 출발로 돌아간다. 30초.',
   disc: '도는 원판 위에서 버텨라. WASD 로 걷고 Shift 로 달린다. 밖으로 밀려나면 떨어진다.',
   seesaw: '축 하나로 선 판자 위에서 무리의 무게중심을 축에 맞춰라. 상자가 떨어지면 반대쪽으로 옮겨 가라. 기울면 미끄러지고, 끝을 넘으면 떨어진다.',
+  blast: '마당 여기저기서 폭약이 터진다. 폭발이 아니라 충격파를 피하라 — 장애물 뒤에 숨거나 C 로 자세를 낮춰라. 가까우면 멀리 날아간다.',
 };
 
 export function availableGames(): TrialGame[] {
