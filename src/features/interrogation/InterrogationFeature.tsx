@@ -407,14 +407,22 @@ export function InterrogationFeature() {
   /** 소리가 스피커에 닿기까지의 늦음(ms) — 자막을 그만큼 늦게 연다 (prologueVoice 의 prologueLagMs) */
   const [prologueLag, setPrologueLag] = useState(0);
   const startedAt = wire?.startedAt ?? null;
-  const testsDone = wire?.testsDone ?? 0;
+  /**
+   * **서버가 판을 붙잡고 있는가** — 대본을 트는 조건은 이것 하나다 (GameStateWire.prologue).
+   *
+   * 여기를 「첫 토론이고 시험이 없으면」으로 두면 화면이 서버와 어긋난다: 방송이 끝난 뒤
+   * 새로고침하면 대본을 처음부터 다시 트는데 서버의 40초는 이미 돌고 있고, 워커가 되살린
+   * 판도 첫 토론으로 보여 같은 일이 난다. 둘 다 방송이 대화와 겹치는 자리다
+   * (2026-09-05 사용자: 「지금 프롤로그를 껴서 겹치거든」).
+   */
+  const prologueDue = wire?.prologue ?? false;
   useEffect(() => {
     if (phase === 'lobby') {
       setPrologue([]);
       setPrologueUp(false);
       return;
     }
-    if (phase !== 'discussion' || testsDone !== 0 || startedAt === null) return;
+    if (!prologueDue || startedAt === null) return;
     if (prologuePlayed.current === startedAt) return;
     prologuePlayed.current = startedAt;
     /*
@@ -432,7 +440,7 @@ export function InterrogationFeature() {
     prologueReported.current = false;
     setPrologueUp(true);
     setPrologue(prologueLines(seatsRef.current, startedAt));
-  }, [phase, testsDone, startedAt]);
+  }, [phase, prologueDue, startedAt]);
 
   /**
    * 상자가 서고 사라지는 것 — 채팅 판을 올리고 내리는 갈림이자(prologueUp), **서버에 알리는 방송의 끝**이다.

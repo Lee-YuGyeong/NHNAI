@@ -94,6 +94,21 @@ export interface GameStateWire {
   outcome: GameOutcome | null;
   /** 판이 열린 서버 시각 — 하드캡 표시용 */
   startedAt: number | null;
+  /**
+   * **검문소 프롤로그를 틀 자리인가** (features/interrogation/prologue.ts).
+   *
+   * 대본은 화면에서만 나지만 **틀지 말지는 서버가 정한다.** 여태 화면이 혼자
+   * 「첫 토론이고 시험이 없으면 튼다」로 정했는데, 그러면 서버가 판을 붙잡고 있는 중인지
+   * 이미 걷고 40초를 세는 중인지를 화면이 모른다. 그 둘이 어긋나는 자리에서 방송이 대화와
+   * 겹쳤다 (2026-09-05 사용자: 「지금 프롤로그를 껴서 겹치거든」):
+   *
+   *   · 방송이 끝난 뒤 새로고침하면 화면은 대본을 처음부터 다시 트는데 서버의 40초는 이미 돌고 있다.
+   *   · 워커가 되살린 판(restoreIfNeeded)은 붙잡기 없이 열리는데 화면은 그것도 첫 토론으로 본다.
+   *
+   * 그래서 「지금 붙잡고 있다」(runtime 의 prologueHold)를 그대로 내려보낸다. 참인 동안만 틀고,
+   * 다 튼 화면이 game_prologue_done 을 올리면 서버가 걷으면서 이 값이 거짓이 된다.
+   */
+  prologue: boolean;
 }
 
 /** 관리 AI 방송의 결 — 화면 배너·TTS 가 같은 값을 본다 (shared/broadcast-kind 의 부분집합) */
