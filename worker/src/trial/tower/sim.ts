@@ -12,6 +12,7 @@ import { GRAVITY } from '../../../../src/world/mp/constants';
 import {
   TOWER_BODY_R,
   TOWER_DAMPING,
+  TOWER_IMPACT_K,
   TOWER_N,
   TOWER_PUSH_ARC,
   TOWER_PUSH_R,
@@ -21,6 +22,8 @@ import {
   TOWER_RUN_SPEED,
   TOWER_SLAB_INERTIA,
   TOWER_SPRING,
+  TOWER_STEP,
+  TOWER_TOP,
   TOWER_TILT_BREAK,
   slabCenter,
   slabIndexAt,
@@ -49,10 +52,12 @@ export interface Slab {
   state: SlabState;
   /** 상태가 바뀐 시각 — 경고면 떨어질 시각을 여기서 센다 */
   at: number;
+  /** 마모(0~1) — 서 있는 무게 × 시간. 1 이면 경고 */
+  wear: number;
 }
 
 export function makeSlabs(): Slab[] {
-  return Array.from({ length: TOWER_N * TOWER_N }, (_, idx) => ({ idx, tx: 0, tz: 0, vx: 0, vz: 0, state: 0 as SlabState, at: 0 }));
+  return Array.from({ length: TOWER_N * TOWER_N }, (_, idx) => ({ idx, tx: 0, tz: 0, vx: 0, vz: 0, state: 0 as SlabState, at: 0, wear: 0 }));
 }
 
 /** 발판 위의 무게 하나 — 발판 중심에서의 자리와 질량 */
@@ -62,14 +67,18 @@ export interface SlabLoad {
   mass: number;
 }
 
-/** 한 틱 — 토크 · 감쇠 · 스프링으로 기울기를 적분한다. 부서지면 true */
-export function stepSlab(s: Slab, loads: readonly SlabLoad[], dtSec: number): boolean {
+/**
+ * 한 틱 — 토크 · 감쇠 · 스프링으로 기울기를 적분하고, 서 있는 무게만큼 닳는다. 부서지면 true.
+ * @param wearPerKgSec 질량 1kg 이 1초 서 있을 때 차는 마모 — 기준 몸이 TOWER_WEAR_S 초면 1 이 되게 엔진이 준다. 0 이면 안 닳는다
+ */
+export function stepSlab(s: Slab, loads: readonly SlabLoad[], dtSec: number, wearPerKgSec = 0): boolean {
   if (s.state >= 2) return false;
   let mx = 0;
   let mz = 0;
   for (const l of loads) {
     mx += l.mass * l.dx;
     mz += l.mass * l.dz;
+    if (s.state === 0) s.wear = Math.min(1, s.wear + l.mass * wearPerKgSec * dtSec);
   }
   const ax = (G * mx - TOWER_DAMPING * s.vx - TOWER_SPRING * s.tx) / TOWER_SLAB_INERTIA;
   const az = (G * mz - TOWER_DAMPING * s.vz - TOWER_SPRING * s.tz) / TOWER_SLAB_INERTIA;
@@ -108,6 +117,10 @@ export interface TowerBody {
   heading: number;
   pushAt: number;
   falls: number;
+  /** 공중이 점프인가(발판에 다시 내려앉을 수 있다) — 떨어진 것이면 false */
+  jumping: boolean;
+  jumpAt: number;
+  jumps: number;
 }
 
 export function makeBody(id: string, x: number, z: number, mass = 1): TowerBody {
@@ -132,6 +145,9 @@ export function makeBody(id: string, x: number, z: number, mass = 1): TowerBody 
     heading: 0,
     pushAt: 0,
     falls: 0,
+    jumping: false,
+    jumpAt: 0,
+    jumps: 0,
   };
 }
 
@@ -149,10 +165,12 @@ export function standable(slabs: readonly Slab[], idx: number): boolean {
 
 export interface StepOut {
   walked: number;
-  /** 이번 틱에 지지를 잃고 떨어지기 시작했다 */
+  /** 이번 틱에 지지를 잃고 떨어지기 시작했다(점프가 빈 자리로 떨어진 것도 여기서 한 번) */
   fell: boolean;
   /** 이번 틱에 바닥에 닿았다 */
   landed: boolean;
+  /** 이번 틱에 점프에서 발판에 내려앉았다 — 그 발판과 착지 속도(충격) */
+  touchdown: { slab: number; speed: number } | null;
   /** 이번 틱에 필요했던 마찰(m/s²) · 실제 미끄러진 속도(m/s) */
   need: number;
   slide: number;
@@ -163,13 +181,39 @@ export interface StepOut {
  * @param mu 이 구간의 숨은 마찰 × 몸 배율
  */
 export function stepBody(b: TowerBody, slabs: readonly Slab[], wx: number, wz: number, mu: number, dtSec: number, now: number): StepOut {
-  const out: StepOut = { walked: 0, fell: false, landed: false, need: 0, slide: 0 };
+  const out: StepOut = { walked: 0, fell: false, landed: false, touchdown: null, need: 0, slide: 0 };
 
   if (b.stance === 'air') {
     b.vy -= GRAVITY * dtSec;
     b.x += b.vx * dtSec;
     b.z += b.vz * dtSec;
     b.y += b.vy * dtSec;
+    if (b.jumping) {
+      // 내려오는 중 — 발밑에 발판이 있고 그 윗면 아래로 내려왔으면 착지. 빈 자리면 가장 낮은 발판 높이 밑에서 「떨어졌다」
+      const idx = slabIndexAt(b.x, b.z);
+      if (b.vy <= 0 && standable(slabs, idx)) {
+        const surf = slabSurfaceY(idx, slabs[idx].tx, slabs[idx].tz, b.x, b.z, slabs[idx].wear);
+        if (b.y <= surf) {
+          const speed = Math.hypot(b.vx, b.vz, b.vy);
+          b.y = surf;
+          b.slab = idx;
+          b.stance = 'stand';
+          b.jumping = false;
+          // 수평 속도는 미끄러짐으로 이어진다(마찰이 세운다), 수직은 사라진다
+          b.sx = b.vx;
+          b.sz = b.vz;
+          b.vx = 0;
+          b.vz = 0;
+          b.vy = 0;
+          out.touchdown = { slab: idx, speed };
+          return out;
+        }
+      } else if (b.y < TOWER_TOP - TOWER_STEP * 2 - 0.6 && !standable(slabs, idx)) {
+        b.jumping = false;
+        b.falls += 1;
+        out.fell = true;
+      }
+    }
     if (b.y <= 0) {
       b.y = 0;
       b.vx = 0;
@@ -232,13 +276,14 @@ export function stepBody(b: TowerBody, slabs: readonly Slab[], wx: number, wz: n
     return out;
   }
   b.slab = idx;
-  b.y = slabSurfaceY(idx, slabs[idx].tx, slabs[idx].tz, b.x, b.z);
+  b.y = slabSurfaceY(idx, slabs[idx].tx, slabs[idx].tz, b.x, b.z, slabs[idx].wear);
   return out;
 }
 
 /** 지지를 잃었다 — 그 속도로 날아 떨어진다 */
 export function fall(b: TowerBody, vx: number, vz: number): void {
   b.stance = 'air';
+  b.jumping = false;
   b.slab = -1;
   b.vx = vx;
   b.vz = vz;
@@ -246,6 +291,30 @@ export function fall(b: TowerBody, vx: number, vz: number): void {
   b.sx = 0;
   b.sz = 0;
   b.falls += 1;
+}
+
+/** 뛴다 — 지금 걷기 + 미끄러짐을 수평 속도로 안고 vJump 로 뜬다. 서 있을 때만 */
+export function jump(b: TowerBody, wx: number, wz: number, vJump: number, now: number): boolean {
+  if (b.stance !== 'stand') return false;
+  b.stance = 'air';
+  b.jumping = true;
+  b.jumpAt = now;
+  b.jumps += 1;
+  b.vx = wx + b.sx;
+  b.vz = wz + b.sz;
+  b.vy = vJump;
+  b.sx = 0;
+  b.sz = 0;
+  b.slab = -1;
+  return true;
+}
+
+/** 착지 충격 — 발판 중심에서 떨어진 자리에 내려앉은 무게 × 속도만큼 그쪽으로 기울기 속도가 붙는다 */
+export function impact(s: Slab, dx: number, dz: number, massKg: number, speed: number): void {
+  if (s.state >= 2) return;
+  const k = (TOWER_IMPACT_K * (massKg / 75) * speed) / TOWER_SLAB_INERTIA;
+  s.vx += dx * k;
+  s.vz += dz * k;
 }
 
 /** 다시 선다 — 주어진 발판 가운데 */
@@ -260,7 +329,7 @@ export function respawn(b: TowerBody, slabs: readonly Slab[], idx: number, dx = 
   b.vx = 0;
   b.vz = 0;
   b.vy = 0;
-  b.y = slabSurfaceY(idx, slabs[idx].tx, slabs[idx].tz, b.x, b.z);
+  b.y = slabSurfaceY(idx, slabs[idx].tx, slabs[idx].tz, b.x, b.z, slabs[idx].wear);
 }
 
 /** 몸끼리 겹치면 질량 반비례로 밀어낸다 — 서 있는 몸끼리만 */

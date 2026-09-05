@@ -302,7 +302,7 @@ export function TrialFeature() {
               : game === 'platform'
                 ? '움직이는 발판을 건너라 — W 앞으로 · Space 점프 · 발판 한가운데에 내려라. 떨어지면 출발로 돌아간다'
               : game === 'tower'
-                ? `낙하 ${myFalls}회 · 밀림 ${myHits}회 — 발판 가운데에 서라. 무게가 몰리면 기울어 무너진다. WASD 걷기 · Shift 달리기 · Space 밀치기`
+                ? `낙하 ${myFalls}회 · 밀림 ${myHits}회 — 발판 가운데에 서라. 무게가 몰리면 기울어 무너진다. WASD 걷기 · Shift 달리기 · Space 점프 · E 밀치기`
               : game === 'seesaw'
                 ? `낙하 ${myFalls}회 · 기울기 ${Math.abs((seesawTilt * 180) / Math.PI).toFixed(0)}° — 무리의 무게중심을 축에 맞춰라. 상자가 떨어지면 반대쪽으로. WASD 걷기 · Shift 달리기`
               : game === 'bar'
@@ -348,7 +348,7 @@ export function TrialFeature() {
       ) : shownGame === 'seesaw' ? (
         <SeesawScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} />
       ) : shownGame === 'tower' ? (
-        <TowerScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} sendPush={sendPush} />
+        <TowerScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} sendPush={sendPush} sendJump={onJump} />
       ) : shownGame === 'bar' ? (
         <BarScene selfId={selfId} myBody={myBody} roster={othersNamed} aiIds={aiIds} sendWalk={sendWalk} sendJump={onJump} />
       ) : (

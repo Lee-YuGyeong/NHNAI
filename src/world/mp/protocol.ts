@@ -274,15 +274,17 @@ export type S2CMessage =
     }
   /**
    * 무너지는 타워 — 서버 물리 스냅샷(~10Hz). `slabs` 는 아직 있는 발판(없는 것은 안 실린다): 번호 `i`, 기울기 벡터 `tx · tz`(낮은 쪽, tan),
-   * 상태 `s`(0 성함 · 1 경고 · 2 떨어지는 중)와 그 상태가 된 시각 `at`. `players` 는 전원의 월드 자리(사람의 자리도 서버가 적분한다):
+   * 상태 `s`(0 성함 · 1 경고 · 2 떨어지는 중)와 그 상태가 된 시각 `at`, 마모 `w`(0~1 — 닳을수록 가라앉고 붉어진다).
+   * `quakeAt` 은 다음(또는 방금) 진동의 서버 시각 — 클라는 그 1초 전부터 떨고 그 순간 카메라를 흔든다. `players` 는 전원의 월드 자리(사람의 자리도 서버가 적분한다):
    * `y` 는 발 높이, `f` 는 0 서 있음 · 1 떨어지는 중 · 2 바닥에 누움, `m` 은 걷기(1) · 달리기(2), `h` 는 보는 방향,
-   * `sx · sz` 는 미끄러짐·밀림 속도(자기 몸의 예측용). 마찰계수는 없다(P8)
+   * `sx · sz` 는 미끄러짐·밀림 속도(자기 몸의 예측용), `vx · vy · vz` 는 떨어지는 중의 속도(포물선을 잇는 데). 마찰계수는 없다(P8)
    */
   | {
       t: 'trial_tower';
       at: number;
-      slabs: { i: number; tx: number; tz: number; s: number; at: number }[];
-      players: { id: string; x: number; z: number; y: number; h: number; m: number; f: number; sx: number; sz: number }[];
+      slabs: { i: number; tx: number; tz: number; s: number; at: number; w: number }[];
+      players: { id: string; x: number; z: number; y: number; h: number; m: number; f: number; sx: number; sz: number; vx: number; vy: number; vz: number }[];
+      quakeAt: number;
     }
   /**
    * 회전 봉 넘기 — 서버 물리 스냅샷(~10Hz). `theta` 는 봉의 각도(rad, +y 축) · `omega` 는 각속도 — 클라는 다음 스냅샷까지

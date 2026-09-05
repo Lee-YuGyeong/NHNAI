@@ -39,6 +39,8 @@ export interface SlabFrame {
   state: number;
   /** 상태가 된 로컬 시각 */
   atLocal: number;
+  /** 마모 0~1 */
+  wear: number;
 }
 
 export const towerState = {
@@ -69,7 +71,7 @@ export const towerState = {
   /** 발판 하나 — 기울기는 한 스냅샷 늦게 보간. 스냅샷에 없으면 「없다」 */
   slabAt(idx: number, nowLocal: number): SlabFrame {
     const b = next?.slabs.find((s) => s.i === idx);
-    if (!next || !b) return { idx, tx: 0, tz: 0, state: 3, atLocal: 0 };
+    if (!next || !b) return { idx, tx: 0, tz: 0, state: 3, atLocal: 0, wear: 0 };
     const a = prev?.slabs.find((s) => s.i === idx);
     const t = nowLocal + clockOffset - DELAY_MS;
     let tx = b.tx;
@@ -79,7 +81,21 @@ export const towerState = {
       tx = lerp(a.tx, b.tx, u);
       tz = lerp(a.tz, b.tz, u);
     }
-    return { idx, tx, tz, state: b.s, atLocal: b.at - clockOffset };
+    return { idx, tx, tz, state: b.s, atLocal: b.at - clockOffset, wear: b.w };
+  },
+  /** 다음(또는 방금) 진동의 로컬 시각 — 없으면 0 */
+  quakeAtLocal(): number {
+    return next ? next.quakeAt - clockOffset : 0;
+  },
+  /**
+   * 진동의 세기(0~1) — 1초 전부터 커지며 떨고, 그 순간 1, 0.7초에 걸쳐 잦아든다. 발판의 잔떨림과 카메라 흔들림이 같은 값을 본다
+   */
+  quakeAmp(nowLocal: number): number {
+    if (!next) return 0;
+    const dt = nowLocal - (next.quakeAt - clockOffset);
+    if (dt < -1000 || dt > 700) return 0;
+    if (dt < 0) return 0.35 * (1 + dt / 1000);
+    return 1 - dt / 700;
   },
   /** 모든 발판 상태 — HUD 지도용 (0~3) */
   slabStates(): number[] {
@@ -92,7 +108,7 @@ export const towerState = {
   surfaceAt(idx: number, x: number, z: number, nowLocal: number): number | null {
     const s = towerState.slabAt(idx, nowLocal);
     if (s.state >= 2) return null;
-    return slabSurfaceY(idx, s.tx, s.tz, x, z);
+    return slabSurfaceY(idx, s.tx, s.tz, x, z, s.wear);
   },
   /** 남의 몸 · AI 몸 — 한 스냅샷 늦게 보간. 상태가 바뀐 사이는 보간 없이 새 것 */
   playerAt(id: string, nowLocal: number): TowerPlayerFrame | null {

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>AI 활용</title>
+<meta name="viewport" content="width=1920, height=1080">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg-deep:#05080f;--bg-mid:#0b1220;--cyan:#5fb8e8;--amber:#e8b34a;--line:rgba(95,184,232,0.18);}
+  html,body{background:var(--bg-deep);}
+  .font-mono{font-family:'JetBrains Mono',monospace;}
+  .font-kr{font-family:'Noto Sans KR',sans-serif;}
+  #stage{width:1920px;height:1080px;position:relative;overflow:hidden;
+    background:radial-gradient(ellipse at 20% 0%, rgba(95,184,232,0.08) 0%, transparent 55%),radial-gradient(ellipse at 85% 100%, rgba(232,179,74,0.05) 0%, transparent 50%),linear-gradient(180deg,#05080f 0%, #0b1220 100%);}
+  .grid-overlay{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(95,184,232,0.05) 1px, transparent 1px),linear-gradient(90deg, rgba(95,184,232,0.05) 1px, transparent 1px);background-size:64px 64px;-webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.9) 100%);}
+  .scanlines{position:absolute;inset:0;pointer-events:none;background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 3px);}
+  .vignette{position:absolute;inset:0;pointer-events:none;box-shadow: inset 0 0 220px 40px rgba(0,0,0,0.65);}
+  .chamfer{clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);}
+  .chamfer-sm{clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);}
+  .panel{background: linear-gradient(180deg, rgba(20,35,55,0.55) 0%, rgba(10,18,32,0.55) 100%);border: 1px solid var(--line);}
+  .header-label{font-family:'JetBrains Mono',monospace;letter-spacing:0.12em;}
+  .tag{font-family:'JetBrains Mono',monospace; background:rgba(95,184,232,0.1); border:1px solid rgba(95,184,232,0.3);}
+</style>
+</head>
+<body class="m-0 p-0">
+<div id="stage">
+  <div class="grid-overlay"></div>
+  <div class="scanlines"></div>
+
+  <header id="header" class="absolute top-0 left-0 w-full flex items-center justify-between" style="padding:56px 80px 0 80px;">
+    <div class="flex items-center gap-3">
+      <span class="header-label text-[20px] text-[#5fb8e8]">06 //</span>
+      <span class="header-label text-[20px] text-white/70">AI</span>
+    </div>
+    <div class="header-label text-[16px] text-white/30 tracking-widest">WHO IS HUMAN · SYSTEM ONLINE</div>
+  </header>
+
+  <main class="absolute" style="left:80px;top:150px;width:1760px;height:800px;">
+    <h1 class="font-kr font-black text-white leading-[1.05]" style="font-size:66px;">AI 는 세 가지 용도로 나눠 썼다</h1>
+    <p class="font-kr font-bold text-white/70 mt-3" style="font-size:26px;">게임 안에서 도는 LLM · 에셋을 만든 생성기 · 코드를 함께 쓴 개발 도구.</p>
+
+    <div class="grid grid-cols-3 gap-8 mt-10">
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:560px;">
+        <p class="font-kr font-black text-[#5fb8e8] text-[27px] mb-6">① 게임 안 실시간 LLM</p>
+        <div class="flex flex-wrap gap-2 mb-6">
+          <span class="tag px-3 py-1.5 rounded text-[15px] text-white/85">gpt-6-astra · gpt-5.6-terra 배포</span>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-6">
+          <span class="tag px-3 py-1.5 rounded text-[15px] text-white/85">Claude Agent SDK 로컬</span>
+        </div>
+        <p class="font-kr font-semibold text-white/75 text-[21px] leading-[1.6] mt-auto pt-6 border-t border-white/10">대사 생성 · 전략 결정 · 대화 분석 모두 대화 중에만 호출</p>
+      </div>
+
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:560px;">
+        <p class="font-kr font-black text-[#5fb8e8] text-[27px] mb-6">② 에셋 생성</p>
+        <div class="space-y-4 flex-1">
+          <div class="flex gap-3"><i class="fa-solid fa-cube text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Tripo</span> — 3D 모델(GLB)</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-person-walking text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Meshy</span> — AI 캐릭터 애니메이션</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-swatchbook text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Higgsfield</span> — 텍스처 · 참고 이미지</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-film text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">Kling AI</span> — 인트로 배경 영상</p></div>
+          <div class="flex gap-3"><i class="fa-solid fa-pen-ruler text-[#5fb8e8] text-[16px] mt-1.5"></i><p class="font-kr font-semibold text-white/85 text-[20px]"><span class="font-mono text-white">UX Pilot</span> — 화면 시안</p></div>
+        </div>
+      </div>
+
+      <div class="panel chamfer p-8 flex flex-col" style="min-height:560px; border-color: rgba(232,179,74,0.4);">
+        <p class="font-kr font-black text-[#e8b34a] text-[27px] mb-6">③ 개발 도구</p>
+        <p class="font-mono text-white/85 text-[18px] leading-[1.6] mb-4">Claude Code — Opus 4.8 · Fable 5.1 · Opus 5 · Sonnet 5</p>
+        <p class="font-kr font-semibold text-white/75 text-[20px] leading-[1.6] mb-8">구현 · 리팩터링 · 테스트 · 문서화</p>
+        <div class="mt-auto pt-6 border-t border-white/10 text-center">
+          <p class="font-mono font-black text-[#e8b34a]" style="font-size:58px; line-height:1;">99%</p>
+          <p class="font-kr font-bold text-white/80 text-[20px] mt-3">172커밋 중 170건(99%) 공동 작성</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer id="footer" class="absolute bottom-0 left-0 w-full flex items-center justify-between" style="padding:0 80px 48px 80px;">
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">WHO IS HUMAN · 특수인공지능대응센터</span>
+    <span class="font-mono text-white/40 text-[16px] tracking-wider">07 / 13</span>
+  </footer>
+
+  <div class="vignette"></div>
+</div>
+</body>
+</html>

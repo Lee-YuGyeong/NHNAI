@@ -66,7 +66,8 @@ function dangerOf(slabs: readonly Slab[], idx: number, bodies: readonly TowerBod
   if (!s || s.state !== 0) return Number.POSITIVE_INFINITY;
   let crowd = 0;
   for (const b of bodies) if (b.id !== selfId && b.stance === 'stand' && b.slab === idx) crowd += b.mass;
-  return ringOf(idx) * 1.0 + crowd * 0.9 + Math.hypot(s.tx, s.tz) * 4;
+  // 닳은 발판은 곧 무너진다 — 계산하는 좌석은 그걸 안다(눈에 보이는 값이다: 가라앉고 붉다)
+  return ringOf(idx) * 1.0 + crowd * 0.9 + Math.hypot(s.tx, s.tz) * 4 + s.wear * 3;
 }
 
 export function stepBot(bot: TowerBot, slabs: readonly Slab[], bodies: readonly TowerBody[], now: number, dtSec: number, rand: () => number = Math.random): BotOut {
@@ -99,7 +100,8 @@ export function stepBot(bot: TowerBot, slabs: readonly Slab[], bodies: readonly 
       const mine = dangerOf(slabs, b.slab, bodies, b.id);
       const cands = neighborsOf(b.slab).filter((i) => slabs[i]?.state === 0);
       const best = cands.sort((x, y) => dangerOf(slabs, x, bodies, b.id) - dangerOf(slabs, y, bodies, b.id))[0];
-      if (best !== undefined && dangerOf(slabs, best, bodies, b.id) < mine - 0.8 && !bot.goal) bot.goal = slabCenter(best);
+      // 뚜렷이 안전한 이웃이 있거나, 내 발판이 반 넘게 닳았으면 옮긴다 — 다 닳기 전에
+      if (best !== undefined && !bot.goal && (dangerOf(slabs, best, bodies, b.id) < mine - 0.8 || here.wear > 0.55)) bot.goal = slabCenter(best);
       if (!bot.goal) {
         const c = slabCenter(b.slab);
         const tilt = Math.hypot(here.tx, here.tz);

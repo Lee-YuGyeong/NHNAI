@@ -104,6 +104,7 @@ const SPEC: Record<TrialGame, Spec> = {
       { key: 'centerDist', label: '탑 가운데에서 떨어져 선 거리 평균', unit: 'm', digits: 2 },
       { key: 'pushes', label: '밀침', unit: '회', digits: 0 },
       { key: 'shoved', label: '밀림', unit: '회', digits: 0 },
+      { key: 'jumps', label: '점프', unit: '회', digits: 0 },
       { key: 'reactionMs', label: '발판 경고 뒤 반응까지', unit: 'ms', digits: 0 },
       { key: 'transitionError', label: '바닥이 바뀐 직후 미끄러진 거리', unit: 'm', digits: 2 },
       { key: 'walked', label: '이동거리', unit: 'm', digits: 1 },
