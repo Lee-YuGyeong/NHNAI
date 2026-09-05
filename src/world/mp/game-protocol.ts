@@ -485,6 +485,7 @@ export function heldSecondsFor(game: TrialGame, metrics: Record<string, number>,
     case 'fall':
     case 'disc':
     case 'seesaw':
+    case 'tower':
       seconds = num(metrics.survivalTime);
       break;
     case 'platform': {

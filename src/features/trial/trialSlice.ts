@@ -21,6 +21,8 @@ export interface TrialState {
   discOmega: number;
   /** 무게 중심 다리 — 지금 판자 기울기(rad, 0.01 단위). HUD 의 기울기 계기 — 눈에 보이는 값이라 비밀이 아니다 */
   seesawTilt: number;
+  /** 무너지는 타워 — HUD 지도: 발판 25장의 상태(0 성함 · 1 경고 · 2 떨어지는 중 · 3 없다)와 내가 선 발판 번호(−1 이면 공중·바닥). 눈에 보이는 값 */
+  towerHud: { slabs: number[]; mine: number } | null;
   /** 이번 라운드에 내가 마친 시행 수(0~3) — StopLineScene 이 다음 W 를 언제 받을지 여기로 안다 */
   myAttemptsThisRound: number;
   /** 색 사냥 — 이번 라운드에 내가 주운 횟수. 정오는 여기 없다 — 서버만 알고, 전원이 결과에서 처음 본다 */
@@ -46,6 +48,7 @@ const initialState: TrialState = {
   myFallsThisRound: 0,
   discOmega: 0,
   seesawTilt: 0,
+  towerHud: null,
   myAttemptsThisRound: 0,
   myPicksThisRound: 0,
   hunt: null,
@@ -85,6 +88,7 @@ export const trialSlice = createSlice({
       s.myFallsThisRound = 0;
       s.discOmega = 0;
       s.seesawTilt = 0;
+      s.towerHud = null;
       s.myPicksThisRound = 0;
       s.hunt = null;
       s.liveResult = null;
@@ -114,6 +118,12 @@ export const trialSlice = createSlice({
     seesawSynced(s, a: PayloadAction<number>) {
       const v = Math.round(a.payload * 100) / 100;
       if (v !== s.seesawTilt) s.seesawTilt = v;
+    },
+    /** 무너지는 타워 — 스냅샷마다 지도. 같으면 안 바꾼다(발판 상태는 드물게 바뀐다) */
+    towerSynced(s, a: PayloadAction<{ slabs: number[]; mine: number }>) {
+      const o = s.towerHud;
+      if (o && o.mine === a.payload.mine && o.slabs.length === a.payload.slabs.length && o.slabs.every((v, i) => v === a.payload.slabs[i])) return;
+      s.towerHud = a.payload;
     },
     /** 시행 하나가 서버 판정을 받았다(trial_stopline_waypoints) — 그게 내 id일 때만 센다 */
     attemptRecorded(s, a: PayloadAction<string>) {
@@ -146,6 +156,7 @@ export const trialSlice = createSlice({
     selectMyFalls: (s) => s.myFallsThisRound,
     selectDiscOmega: (s) => s.discOmega,
     selectSeesawTilt: (s) => s.seesawTilt,
+    selectTowerHud: (s) => s.towerHud,
     selectMyPicks: (s) => s.myPicksThisRound,
     selectHunt: (s) => s.hunt,
     selectRoundStartAt: (s) => s.roundStartAt,
