@@ -149,6 +149,16 @@ const BOT_TALK_JITTER_MS = 6_500;
  */
 const BOT_TALK_CONCURRENCY = 2;
 /**
+ * 이만큼(ms) 한 마디도 안 하면 **조용한 좌석**이다 — 봇의 차례 가중치(botTurn)와 봇이 보는 사실(facts.quiet)이
+ * 같은 값을 쓴다. 두 자리가 다른 값을 보면 「오래 조용하다」는 말의 뜻이 판 안에서 갈린다.
+ *
+ * 왜 봇에게 알려 주나 — 판의 모든 문이 **말**에 매여 있다: 말 읽기는 발언을 읽고, 지목은 발언에서 나오고,
+ * 회피(duck)는 「불렀는데 안 답한 것」만 문다. 그래서 입을 다물면 어느 문에도 안 걸린다
+ * (2026-09-05 사용자: "AI 가 나한테 말도 안걸고 의심도 안해"). 침묵을 직접 무는 대신 **봇이 이름을 부르게** 한다 —
+ * 그러면 그 자리는 호명이 되고, 계속 안 답하면 회피가 문다. 규칙은 그대로 두고 판이 사람을 향하게 하는 길이다.
+ */
+const QUIET_MS = 30_000;
+/**
  * 토론이 닫히기 이만큼 전에 남은 말을 **마지막으로 한 번** 읽는다.
  * openDiscussion 이 unread 를 비우므로(시험을 건너온 말은 지난 장면이다), 이 한 번이 없으면 토론 막판에
  * 친 말은 통째로 버려진다 — 사람이 "말했는데 아무 반응이 없다"고 느끼던 자리다.
@@ -345,9 +355,15 @@ export class GameRuntime {
       if (this.engine) this.engine.onMove(seat.id, x, z, now, y);
       return;
     }
-    // 토론 중의 몸 — 굳음과 뒷걸음을 재는 자리다 (docs/SUSPICION.md 「몸」). 자리만 적어 두고 판정은 idleTick 이 한다:
-    // 클라는 **자리가 바뀔 때만** move 를 보내므로(WorldScene 의 changed &&), 굳어 있으면 여기가 아예 안 불린다.
-    if (this.phase !== 'discussion') return;
+    /*
+     * 몸 — 굳음과 뒷걸음을 재는 자리다 (docs/SUSPICION.md 「몸」). 자리만 적어 두고 판정은 idleTick 이 한다:
+     * 클라는 **자리가 바뀔 때만** move 를 보내므로(WorldScene 의 changed &&), 굳어 있으면 여기가 아예 안 불린다.
+     *
+     * 브리핑의 자리도 적는다. 토론이 열릴 때 사람이 이미 굳어 있으면 그 뒤로 move 가 영영 안 오는데,
+     * 여기서 브리핑을 버리면 **그 좌석은 판 내내 표본이 0개**가 된다 — 가만히 있는 것이 굳음을 피하는 길이었다
+     * (2026-09-05 사용자: "나 안움직이고 있는데 의심도 안올라"). 시험 중의 자리는 시험판 좌표라 여기 안 들어온다.
+     */
+    if (this.phase !== 'discussion' && this.phase !== 'briefing') return;
     const prev = this.humanPos.get(seat.id);
     const backing = prev ? isBacking(x - prev.x, z - prev.z, heading) : false;
     this.humanPos.set(seat.id, { x, z, backing, at: now });
@@ -655,9 +671,12 @@ export class GameRuntime {
      * 몸과 호명도 토론마다 새로 센다 — 시험 30초 동안 몸은 시험판을 돌아다녔고(굳음이 아니다),
      * 시험을 사이에 두고 불린 사람에게 「대답이 없다」고 하는 것도 말이 안 된다 (docs/SUSPICION.md ⑦⑧).
      * 누계(tellNth)는 안 지운다 — 거듭 걸린 것은 판이 끝날 때까지 남는다.
+     *
+     * **시계를 되감는 것은 bodyWatch.clear() 하나다.** humanPos 는 판정이 아니라 「마지막으로 알려진 자리」라
+     * 같이 지우면 안 된다 — 지우면 토론이 열린 뒤 처음 움직이는 사람만 표본이 생기고, 끝까지 가만히 선 사람은
+     * 표본이 없어서 굳음이 영영 안 걸린다. 그 자리는 다음 move 가 오면 알아서 갱신된다.
      */
     this.bodyWatch.clear();
-    this.humanPos.clear();
     this.called.clear();
     /*
      * 몰이 상한도 토론마다 새로 센다 (SuspicionBook.newRound). 겨눔은 안 지워지므로 2차 토론부터는
@@ -1174,7 +1193,7 @@ export class GameRuntime {
     if (!bots.length) return;
     const now = this.now();
     // 지목당한 봇이 먼저, 오래 조용했던 봇이 다음 — 그 안에서 무작위
-    const weight = (s: Seat) => (this.book.accusersOf(s.id).length ? 3 : 1) * (now - s.lastSpokeAt > 30_000 ? 1.6 : 1) * (0.5 + this.rand());
+    const weight = (s: Seat) => (this.book.accusersOf(s.id).length ? 3 : 1) * (now - s.lastSpokeAt > QUIET_MS ? 1.6 : 1) * (0.5 + this.rand());
     const pick = [...bots].sort((a, b) => weight(b) - weight(a))[0];
     if (!pick?.persona) return;
 
@@ -1454,7 +1473,20 @@ export class GameRuntime {
       latest: this.latestResult,
       nameOf: (id) => this.nameOf(id),
       testsDone: this.testsDone,
+      quiet: this.quietSeats(),
     };
+  }
+
+  /**
+   * QUIET_MS 넘게 한 마디도 안 한 좌석들 — 봇이 보는 사실에 실린다 (QUIET_MS 머리말).
+   *
+   * 판이 막 열렸을 때는 비워 둔다: 그때는 전원이 lastSpokeAt 0 이라 「방 전체가 조용하다」가 되고,
+   * 그건 아무 정보도 아니면서 첫 마디를 「너 왜 조용해」로 만든다 (sayAs 의 opening 과 같은 문턱).
+   */
+  private quietSeats(): string[] {
+    if (this.log.length < 3) return [];
+    const now = this.now();
+    return this.seats.filter((s) => !s.isolated && now - s.lastSpokeAt > QUIET_MS).map((s) => s.name);
   }
 
   private leader(text: string, kind: LeaderKind): void {

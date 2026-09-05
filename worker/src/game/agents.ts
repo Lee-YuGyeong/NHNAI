@@ -219,6 +219,8 @@ export interface RoomFacts {
   latest: TrialResultWire | null;
   nameOf: (id: string) => string;
   testsDone: number;
+  /** 한참 한 마디도 안 한 좌석의 이름 (runtime.quietSeats · QUIET_MS) — 판이 막 열렸을 때는 비어 있다 */
+  quiet: string[];
 }
 
 /**
@@ -333,11 +335,21 @@ ${COMMON_RULES}`;
   const heat = a.accusedBy.length
     ? `\n\n**${a.accusedBy.map(facts.nameOf).join(', ')} 이(가) 지금 너를 지목하고 있다.** 해명하든, 되받아치든, 남 얘기로 돌리든 성격대로.`
     : '';
+  /*
+   * 조용한 사람 — 이름을 불러 주라고 시키는 자리다 (runtime 의 QUIET_MS 머리말).
+   * 방의 문은 전부 말에 매여 있어서, 아무도 안 부르면 입 다문 좌석은 판정에 한 번도 안 걸린다.
+   * 「의심하라」가 아니라 「물어봐라」다: 근거 없이 몰면 애먼 사람이 격리되고 그건 AI 의 승리다 (identity).
+   */
+  const quiet = facts.quiet.filter((n) => n !== me);
+  const silence = quiet.length
+    ? `\n\n**${quiet.join(', ')} 은(는) 한참 아무 말이 없다.** 조용한 것 자체가 죄는 아니지만 이 방에서 볼 수 있는 건 말과 기록뿐이다 —
+성격에 맞으면 그중 한 사람의 **이름을 불러 직접 물어라** ("${quiet[0]} 너는 어떻게 생각해?" 처럼).`
+    : '';
 
   const out = await brain.ask({
     model: self.persona.model,
     system,
-    user: `${factsText(facts)}${situation}${heat}
+    user: `${factsText(facts)}${situation}${heat}${silence}
 
 지금 네 차례다. 한 줄만.`,
     tool: SAY_TOOL,
