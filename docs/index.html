@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>특수인공지능대응센터 — 문서 묶음</title>
+<style>
+:root{--ink:#1a1a1a;--dim:#5c5c5c;--line:#d9d9d9;--key:#0b5cad}
+body{margin:0;color:var(--ink);font-family:-apple-system,"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;line-height:1.7;word-break:keep-all;background:#fff}
+.page{max-width:900px;margin:0 auto;padding:48px 36px 80px}
+.kicker{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;letter-spacing:.2em;color:var(--dim)}
+h1{font-size:2.2rem;margin:.2em 0 .1em;line-height:1.2}
+.sub{color:var(--dim);margin-bottom:28px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:24px 0 36px}
+.card{border:1px solid var(--line);padding:18px 20px;text-decoration:none;color:inherit;display:block}
+.card:hover{border-color:var(--key)}
+.card .n{font-family:ui-monospace,Menlo,monospace;font-size:.75rem;letter-spacing:.2em;color:var(--dim)}
+.card h2{font-size:1.15rem;margin:.3em 0 .3em}
+.card p{margin:0;font-size:.92rem;color:var(--dim)}
+h2.sec{font-size:1.2rem;margin:36px 0 10px;padding-top:12px;border-top:1px solid var(--line)}
+pre{background:#f5f5f5;border:1px solid var(--line);padding:12px 14px;overflow:auto;font-size:.86rem}
+code{font-family:ui-monospace,Menlo,monospace;background:#f2f2f2;padding:1px 5px;border-radius:3px;font-size:.88em}
+ol,ul{padding-left:1.4em}
+figure{margin:18px 0;border:1px solid var(--line)}
+figure img{width:100%;display:block}
+footer{margin-top:48px;padding-top:14px;border-top:1px solid var(--line);font-size:.8rem;color:var(--dim)}
+@page{size:A4;margin:16mm 14mm}
+@media print{.page{max-width:none;padding:0}a{color:inherit;text-decoration:none}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="kicker">WHO IS HUMAN · DOCS</div>
+  <h1>특수인공지능대응센터 — 문서 묶음</h1>
+  <p class="sub">2026년, 식별 표지 없는 군용 AI 휴머노이드가 새어 나왔다. 비밀 시설의 판별 테스트에서 누가 인간이고 누가 AI인지 가려내는 3D 심리 추리 게임의 설명서·빌드 안내·기술설명서.</p>
+
+  <div class="cards">
+    <a class="card" href="game-manual.html"><div class="n">01</div><h2>게임설명서</h2><p>세계관 · 배역 · 화면 안내 · 한 판의 흐름 · 세 시험 · 대화와 의심도 · 승패 · 전략</p></a>
+    <a class="card" href="build-guide.html"><div class="n">02</div><h2>게임 빌드 · 실행 · 배포</h2><p>요구 사항 · 설치 · 로컬 실행 · 테스트 · 빌드 · Cloudflare 배포 · 운영 · 문제 해결</p></a>
+    <a class="card" href="tech-spec.html"><div class="n">03</div><h2>기술설명서</h2><p>시스템 구조 · 프로토콜 · 판의 상태기계 · 물리 시험 엔진 · 의심도 · 발언권 · AI · 음성 · 테스트</p></a>
+  </div>
+
+  <figure><img src="img/intro-hero.jpg" alt="인트로 표지"></figure>
+
+  <h2 class="sec">PDF 로 내보내기</h2>
+  <p>세 문서는 외부 리소스 없이 파일 하나로 렌더링되고, A4 인쇄 규칙(<code>@page</code>)이 들어 있다. 두 가지 방법 중 하나로 PDF 를 만든다.</p>
+  <ol>
+    <li><b>브라우저 인쇄</b> — 문서를 Chrome 으로 열고 <code>⌘P</code> → 대상 「PDF 로 저장」 → 용지 A4 · 여백 기본 · 「배경 그래픽」 켜기. 표지·목차·큰 절마다 쪽이 나뉜다.</li>
+    <li><b>명령줄(Chrome 헤드리스)</b> — 저장소 루트에서:
+<pre><code>CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+for f in game-manual build-guide tech-spec; do
+  "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer \
+    --print-to-pdf="docs/$f.pdf" "file://$PWD/docs/$f.html"
+done</code></pre>
+    </li>
+  </ol>
+  <p>스크린샷은 <code>docs/img/</code> 에 PNG 로 들어 있다. 화면이 바뀌면 같은 이름으로 다시 찍어 넣으면 세 문서에 그대로 반영된다.</p>
+
+  <h2 class="sec">문서 관리</h2>
+  <ul>
+    <li>세 문서의 수치는 코드의 상수(<code>src/world/mp/game-protocol.ts</code> 등)를 그대로 옮긴 것이다. 규칙을 바꾸면 문서의 표도 같이 고친다.</li>
+    <li>범위: 인트로 → 로그인 → 방 목록/대기방 → 검문실 판. 실험용 페이지(3D 월드 · 창고 · 중앙 시설 · 재검실 등)는 문서 범위 밖이다.</li>
+    <li>같은 폴더의 <code>DEVELOPMENT.md</code> · <code>SUSPICION.md</code> · <code>SPEECH.md</code> · <code>VOICE.md</code> 는 개발 중 메모로, 기술설명서가 그 내용을 정리해 담는다.</li>
+  </ul>
+  <footer>who-is-human · docs v1.0 · 2026-09-05</footer>
+</div>
+</body>
+</html>

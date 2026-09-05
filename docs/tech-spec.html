@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>특수인공지능대응센터 — 기술설명서</title>
+<style>
+:root{--ink:#1a1a1a;--dim:#5c5c5c;--line:#d9d9d9;--key:#0b5cad;--amber:#a3620a;--bg:#fff}
+*{box-sizing:border-box}
+html{font-size:15px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;line-height:1.7;word-break:keep-all}
+.page{max-width:900px;margin:0 auto;padding:40px 36px 80px}
+header.cover{padding:60px 0 32px;border-bottom:2px solid var(--ink);margin-bottom:28px}
+header.cover .kicker{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;letter-spacing:.2em;color:var(--dim)}
+header.cover h1{font-size:2.4rem;line-height:1.2;margin:.3em 0 .2em}
+header.cover .sub{font-size:1.05rem;color:var(--dim)}
+header.cover .meta{margin-top:18px;font-size:.85rem;color:var(--dim)}
+nav.toc{border:1px solid var(--line);padding:16px 22px;margin:0 0 36px;background:#fafafa}
+nav.toc h2{font-size:.95rem;margin:0 0 8px;letter-spacing:.1em;color:var(--dim)}
+nav.toc ol{margin:0;padding-left:1.3em;columns:2;column-gap:32px}
+nav.toc li{break-inside:avoid;margin:2px 0}
+nav.toc a{color:var(--ink);text-decoration:none}
+h1.sec{font-size:1.7rem;margin:48px 0 14px;padding-top:12px;border-top:1px solid var(--line)}
+h2{font-size:1.25rem;margin:30px 0 10px}
+h3{font-size:1.05rem;margin:22px 0 8px}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 12px;padding-left:1.4em}
+li{margin:3px 0}
+table{border-collapse:collapse;width:100%;margin:10px 0 18px;font-size:.92rem}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#f3f3f3;font-weight:700}
+tr:nth-child(even) td{background:#fbfbfb}
+code,kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;background:#f2f2f2;padding:1px 5px;border-radius:3px}
+pre{background:#f5f5f5;border:1px solid var(--line);padding:12px 14px;overflow:auto;font-size:.86rem;line-height:1.5}
+pre code{background:none;padding:0}
+figure{margin:18px 0 24px;break-inside:avoid}
+figure img{width:100%;border:1px solid var(--line);display:block}
+figcaption{font-size:.85rem;color:var(--dim);margin-top:6px}
+.callout{border-left:4px solid var(--key);background:#f1f6fc;padding:10px 14px;margin:14px 0}
+.callout.warn{border-color:var(--amber);background:#fdf6ea}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0 18px}
+.flow .step{border:1px solid var(--ink);padding:6px 12px;border-radius:4px;background:#fff;font-size:.9rem;break-inside:avoid}
+.flow .arrow{color:var(--dim)}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;margin:8px 0 14px;font-size:.93rem}
+.kv dt{font-weight:700;color:var(--dim)}
+.kv dd{margin:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+footer.end{margin-top:60px;padding-top:14px;border-top:1px solid var(--line);font-size:.8rem;color:var(--dim)}
+@page{size:A4;margin:16mm 14mm}
+@media print{html{font-size:12.5px}.page{max-width:none;padding:0}h1.sec{break-before:page;border-top:0;margin-top:0}header.cover{break-after:page;min-height:60vh}nav.toc{break-after:page}nav.toc ol{columns:1}a{color:inherit;text-decoration:none}figure img{max-height:120mm;object-fit:contain}.grid2{grid-template-columns:1fr 1fr}tr,figure,.callout,.step{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="cover">
+  <div class="kicker">WHO IS HUMAN · TECHNICAL SPECIFICATION</div>
+  <h1>특수인공지능대응센터<br>기술설명서</h1>
+  <div class="sub">브라우저(React 19 · three.js · Redux Toolkit) ⇄ WebSocket ⇄ Cloudflare Worker(Durable Objects) ⇄ LLM · TTS · Supabase — 검문실 한 판이 도는 방식을 코드 기준으로 적는다.</div>
+  <div class="meta">문서 버전 v1.0 · 2026-09-05 · 저장소 브랜치 main · 대상: 개발자 · 기술 심사<br>패키지 <code>who-is-human</code> 0.1.0 · 화면 표기 「특수인공지능대응센터」 · 본판 라우트 <code>/interrogation</code></div>
+</header>
+
+<nav class="toc">
+  <h2>차례</h2>
+  <ol>
+    <li><a href="#s1">시스템 개요</a></li>
+    <li><a href="#s2">클라이언트 구조</a></li>
+    <li><a href="#s3">서버 구조</a></li>
+    <li><a href="#s4">프로토콜</a></li>
+    <li><a href="#s5">판의 규칙 상수</a></li>
+    <li><a href="#s6">배역 배정과 승패</a></li>
+    <li><a href="#s7">물리 시험 엔진</a></li>
+    <li><a href="#s8">의심도 엔진</a></li>
+    <li><a href="#s9">발언권 시스템</a></li>
+    <li><a href="#s10">AI 참가자와 관리 AI</a></li>
+    <li><a href="#s11">음성</a></li>
+    <li><a href="#s12">데이터와 저장</a></li>
+    <li><a href="#s13">테스트 전략</a></li>
+    <li><a href="#s14">설계 원칙 P1~P11</a></li>
+  </ol>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h1 class="sec" id="s1">1. 시스템 개요</h1>
+
+<p>「특수인공지능대응센터」(내부 이름 who-is-human)는 3~8명의 사람과 AI 좌석 하나가 같은 홀에 서서 세 번의 물리 시험과 네 번의 대화를 거치며 누가 AI인지 가려내는 웹 게임이다. 이 문서는 게임 흐름에 속한 부분만 다룬다 — 인트로(<code>/intro</code>) → 구글 로그인 → 방 목록·대기방(<code>/lobby</code>) → 검문실 판(<code>/interrogation</code>)과 그 안의 세 시험(낙하 생존 · 움직이는 발판 · 회전 원판) · 대화 · 의심도 · 발언권 · 판정 종료. 저장소에 함께 있는 실험 페이지(3D 월드 · 창고 맵 · 중앙 시설 · 재검실 · 연습판 등)는 문서 범위 밖이다.</p>
+
+<h2>1.1 세계관과 두 키워드가 코드에 앉은 자리</h2>
+<p>게임 속 2026년, 한국 정부는 병력을 대체할 군용 AI 휴머노이드를 비밀리에 개발한다. 이 개체들은 사람의 기억·말투·판단·감정 표현까지 학습해 겉으로는 구별이 안 되고, 정부는 식별 표지를 붙여 가려내려 하지만 사고로 표지 없는 개체가 새어 나가 군부대와 사회에 숨어든다. 정부는 의심되는 인물들을 비밀 시설로 데려와 판별 테스트를 진행하고, 플레이어는 그 피실험자 중 하나가 되어 서로의 행동과 대화를 관찰한다. 화면에서 이 시설은 「특수인공지능대응센터」로, 시설을 통제하는 세계관의 「처형 AI」는 <strong>관리 AI</strong>(세계관의 처형 AI)로 불린다 — 이하 화면 용어를 쓴다.</p>
+<table>
+<tr><th>키워드</th><th>세계관의 구현 의도</th><th>코드의 자리</th></tr>
+<tr><td>물리법칙</td><td>캐릭터마다 몸무게가 다르고 이동 속도·점프 높이가 달라진다. 낙하·중력·마찰을 몸으로 겪는 미니게임이 곧 AI 판별 테스트다. 지나치게 정확한 움직임도, 일부러 하는 실수도 모두 의심의 재료가 된다.</td><td><code>src/world/mp/bodies.ts</code>의 몸 넷(run · jump · grip · mass), <code>worker/src/trial/*</code>의 서버 권위 물리 엔진 셋, <code>worker/src/trial/condition.ts</code>의 숨은 조건표(§7)</td></tr>
+<tr><td>제한</td><td>제한된 시간(고정 차례표)과 제한된 목숨(0~100% 의심도). 토론 중 AI가 실시간 대화를 분석해 의심도에 반영하고, 100%에 닿는 순간 관리 AI가 격리(처형)한다. 무엇을 말하고 누구를 의심하는지가 생존에 직결된다.</td><td><code>src/world/mp/game-protocol.ts</code>의 차례표·상수(§5), <code>worker/src/game/suspicion.ts</code>의 의심도 장부와 <code>agents.readTalk</code>의 말 읽기(§8), 발언권 <code>TALK</code>(§9)</td></tr>
+</table>
+
+<h2>1.2 구성도</h2>
+<div class="grid2">
+  <div class="callout">
+    <strong>브라우저 (Vite · React 19.2 · three 0.185 / @react-three/fiber 9.7 · drei 10.7 · Redux Toolkit 2.12 · react-router 7.18)</strong><br>
+    <code>features/interrogation</code> — 판 화면(HUD DOM + R3F 홀 씬)<br>
+    <code>features/lobby</code> — 인트로 · 로그인 · 방 목록 · 대기방<br>
+    <code>world/mp/*</code> — 워커와 공유하는 순수 계약(protocol · game-protocol · bodies · platform · spawn)<br>
+    <code>features/tts</code> — 관리 AI 방송 재생기(TtsPlayer) · 프롤로그 음성
+  </div>
+  <div class="callout">
+    <strong>Cloudflare Worker <code>nhnai</code> (wrangler 4 · compatibility 2025-09-01)</strong><br>
+    <code>worker/src/index.ts</code> — 라우팅 · 정적 자산(dist, SPA)<br>
+    <code>RoomDO</code>(방 하나 = 인스턴스 하나, <code>idFromName(방번호)</code>) — WebSocket 허브 + <code>GameRuntime</code> 판<br>
+    <code>LobbyDO</code>(단일, <code>idFromName('lobby')</code>) — 열린 방 등록소<br>
+    <code>auth.ts</code> — Supabase 토큰 검증 · 60초 입장권(HMAC)<br>
+    <code>tts.ts</code> — ElevenLabs 방송 합성
+  </div>
+</div>
+<div class="flow">
+  <span class="step">브라우저</span><span class="arrow">⇄ wss://…/world-ws/rooms/&lt;code&gt;/ws ⇄</span>
+  <span class="step">RoomDO · GameRuntime</span><span class="arrow">→ makeBrain(env) →</span>
+  <span class="step">LLM (배포: OpenAI Responses API / 로컬: Claude 구독 경로)</span>
+</div>
+<div class="flow">
+  <span class="step">RoomDO</span><span class="arrow">POST lobby/report →</span><span class="step">LobbyDO</span><span class="arrow">← GET /api/rooms ←</span><span class="step">방 목록 화면</span>
+</div>
+<div class="flow">
+  <span class="step">브라우저</span><span class="arrow">POST /api/tts →</span><span class="step">tts.ts → ElevenLabs</span>
+  <span class="arrow">· GET /api/config · /api/profile · /api/world/ticket →</span><span class="step">auth.ts → Supabase(wih 스키마)</span>
+</div>
+
+<h3>LLM 제공자 — <code>worker/src/game/brain.ts</code>에서 확인한 것</h3>
+<p><code>makeBrain(env)</code>는 세 갈래를 위에서부터 시도한다. ① <code>pickApi(env)</code>(<code>worker/src/lab/provider.ts</code>)가 API 키를 보고 <code>ANTHROPIC_API_KEY</code>가 있으면 Anthropic Messages API, 없고 <code>OPENAI_API_KEY</code>가 있으면 OpenAI Responses API(<code>/v1/responses</code>) — <strong>배포본의 길이며 배포에는 OPENAI_API_KEY 하나만 넣는다.</strong> ② 키가 둘 다 없으면 개발 서버의 구독 경로 <code>POST {LAB_DEV_URL}/api/lab/complete</code>(후보 <code>http://localhost:5173</code> · <code>http://[::1]:5173</code> · <code>http://127.0.0.1:5173</code>)로 간다 — <code>tools/vite-lab.ts</code>가 <code>@anthropic-ai/claude-agent-sdk</code>로 이 머신의 Claude Code 구독을 쓴다. 한 번도 못 찾으면 <code>devDead</code>가 서서 그 방에서는 다시 두드리지 않는다. ③ 둘 다 없으면 <code>ask()</code>가 <code>null</code>을 돌려주고 부르는 쪽이 정해진 문장·규칙 폴백으로 판을 계속 굴린다. 기본 시간 상한 <code>DEFAULT_TIMEOUT_MS = 40,000</code>, 호출별 상한은 §10 표. <code>Brain.mode</code>는 <code>'anthropic' | 'openai' | 'dev' | 'none'</code>.</p>
+<table>
+<tr><th>코드의 모델 이름</th><th>배포(OpenAI, <code>MODEL_MAP</code>)</th><th>로컬(Agent SDK, <code>MODEL_ALIAS</code>)</th><th>쓰는 곳</th></tr>
+<tr><td><code>claude-opus-5</code></td><td><code>gpt-6-astra</code></td><td><code>opus</code></td><td>readTalk(말 읽기) · judgeClaim(주장 판정)</td></tr>
+<tr><td><code>claude-sonnet-5</code></td><td><code>gpt-5.6-terra</code></td><td><code>sonnet</code></td><td>sayAs(봇 발화) · aiStrategy(전략) · leaderComment(결과 해설)</td></tr>
+<tr><td><code>claude-haiku-4-5</code> · 모르는 이름</td><td><code>gpt-5.6-luna</code>(haiku 짝이자 <code>FALLBACK_MODEL</code>); <code>OPENAI_MODEL</code>이 있으면 전부 그 모델로 고정</td><td><code>haiku</code> 등</td><td>—</td></tr>
+</table>
+
+<h2>1.3 한 판의 시간축</h2>
+<div class="flow">
+  <span class="step">lobby</span><span class="arrow">→ 방장 game_start(fillTo max(3, 일행 수) 자동)</span>
+  <span class="step">briefing 7초 · game_role 개별 통보</span><span class="arrow">→</span>
+  <span class="step">discussion(첫) · 프롤로그 방송 대기 ≤75초</span><span class="arrow">→ 전원 game_prologue_done</span>
+  <span class="step">대화 40초</span><span class="arrow">→</span>
+  <span class="step">① 낙하 생존 30초</span><span class="arrow">→</span><span class="step">기록 공개 7초</span><span class="arrow">→</span>
+  <span class="step">대화 40초 (압력 ×1.2 「대조」)</span><span class="arrow">→</span>
+  <span class="step">② 움직이는 발판 30초</span><span class="arrow">→</span><span class="step">기록 공개 7초</span><span class="arrow">→</span>
+  <span class="step">대화 40초 (×1.5 「선별」)</span><span class="arrow">→</span>
+  <span class="step">③ 회전 원판 30초</span><span class="arrow">→</span><span class="step">기록 공개 7초</span><span class="arrow">→</span>
+  <span class="step">마지막 대화 40초 (×2 「마감」)</span><span class="arrow">→</span>
+  <span class="step">ended (30초 뒤 로비)</span>
+</div>
+<p>고정 길이 합계는 7 + 40 + 3 × (30 + 7 + 40) = <strong>278초(≈4분 38초)</strong>에 프롤로그(최대 75초)가 더해진다. 어느 토론·시험 중이든 의심도가 100에 닿는 좌석이 나오면 그 순간 격리되고 판이 끝난다(§6). 10분 하드캡(<code>GAME_HARD_CAP_MS</code>)은 이 차례표보다 길어 정상 진행에서는 발동하지 않는다.</p>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h1 class="sec" id="s2">2. 클라이언트 구조</h1>
+
+<h2>2.1 진입과 라우트</h2>
+<p><code>src/main.tsx</code>가 <code>StrictMode</code> 안에 react-redux <code>Provider(store)</code> → <code>App</code>을 마운트한다. <code>App</code>은 <code>BrowserRouter</code> 안에 배경 <code>.room</code> · <code>UiSfx</code>(버튼음) · <code>TtsPlayer</code>(전역 방송 재생기) · <code>BroadcastBanner</code>를 한 번씩 달고, <code>Suspense</code> 안에서 <code>/</code> = Launcher, <code>FEATURES</code> 배열의 각 <code>{path, Component}</code>, <code>*</code> → <code>Navigate('/')</code>로 라우트를 만든다. 모든 화면 컴포넌트는 <code>React.lazy</code>다 — 정적으로 물면 three/drei까지 1.7MB 통짜 청크가 된다(<code>src/features/index.ts</code> 머리말).</p>
+<table>
+<tr><th>라우트</th><th>컴포넌트</th><th>역할</th></tr>
+<tr><td><code>/intro</code></td><td><code>features/lobby/Intro.tsx</code> (LobbyIntro)</td><td>scroll-snap 다섯 칸: hero(표식) · about(게임 소개) · roles(배역) · rules(진행) · enter(입장). 입장 버튼은 계정 상태가 <code>'out'</code>이면 <code>signInWithGoogle('/lobby')</code>, 그 외(<code>in</code>·<code>off</code>·<code>loading</code>)는 <code>navigate('/lobby')</code>.</td></tr>
+<tr><td><code>/login</code></td><td><code>features/lobby/Login.tsx</code></td><td>구글 OAuth(Supabase, provider <code>google</code>, PKCE, redirectTo <code>${origin}/login</code>) 왕복 뒤 자리. displayName이 있으면 <code>next</code>(기본 <code>/lobby</code>), 없으면 <code>/account/nickname?next=</code>.</td></tr>
+<tr><td><code>/account/nickname</code></td><td><code>features/lobby/Nickname.tsx</code> (hidden)</td><td>이름을 한 번만 짓는다(DB 트리거 <code>freeze_display_name</code>). 1~12자.</td></tr>
+<tr><td><code>/lobby</code></td><td><code>features/lobby/LobbyFeature.tsx</code></td><td>처음 오는 브라우저에는 OpeningVideo → 방 목록(GET <code>/api/rooms</code> 5초 폴링, POST로 방 만들기) → <code>?code=NNNN</code>이면 대기방(Waitroom).</td></tr>
+<tr><td><code>/interrogation</code></td><td><code>features/interrogation/InterrogationFeature.tsx</code></td><td><strong>본판.</strong> <code>?code=</code>(없으면 <code>'1234'</code>) · <code>?nick=</code>(없으면 게스트 닉)으로 RoomDO에 붙는다.</td></tr>
+<tr><td><code>/play</code></td><td><code>features/play/PlayFeature.tsx</code></td><td>개발 지름길 — <code>storyStartHref()</code>로 <code>/interrogation?code=&lt;랜덤 4자리&gt;&amp;nick=&lt;게스트&gt;</code>에 즉시 <code>Navigate(replace)</code>.</td></tr>
+<tr><td>그 밖 (<code>/world</code> · <code>/warehouse</code> · <code>/central</code> · <code>/recheck</code> · <code>/trial</code> · <code>/lab</code> · <code>/rules</code> · <code>/arena</code> · <code>/tts</code> · <code>/voice</code> · <code>/llm</code> · <code>/game</code> · <code>/scenario2</code> · <code>/main</code> · <code>/profile</code>)</td><td colspan="2">실험 페이지 · 도구 화면 — 문서 범위 밖. 등록부(<code>FEATURES</code>)에 문만 남아 있다.</td></tr>
+</table>
+<p>플레이어 화면 흐름: Launcher(<code>/</code>) —[인트로 시작]→ <code>/intro</code> —[입장하기]→ (로그인 안 함이면 구글 OAuth → <code>/login</code> → 이름 없으면 <code>/account/nickname</code>) → <code>/lobby</code> —[방 입장]→ <code>/lobby?code=NNNN</code> Waitroom(WS 접속, 「준비」는 채팅 한 줄 <code>READY_LINE</code>, 방장이 리더 방송 <code>ROOM_START_LINE</code>='전원 구역으로 진입한다'를 내면 전원이 Launch 카운트다운 뒤 <code>/interrogation?code=NNNN&amp;nick=…</code>으로 이동). 시작 조건은 2명 이상 + 방장 외 전원 준비.</p>
+<div class="callout">로그인은 선택이다 — 어떤 화면도 <code>RequireLogin</code>을 두지 않는다. Supabase 설정(<code>VITE_SUPABASE_URL</code>/<code>VITE_SUPABASE_ANON_KEY</code> 또는 GET <code>/api/config</code>)이 없으면 계정 상태가 <code>'off'</code>가 되어 로그인 단추 자체를 그리지 않고 게스트 닉네임(localStorage <code>wih:guest-nick</code>, 12자)으로 돈다. 로그인한 사람은 접속 전에 POST <code>/api/world/ticket</code>으로 60초 입장권을 받아 <code>&amp;tk=</code>에 실어 보내며, 입장권의 이름이 <code>?nick=</code>을 이긴다.</div>
+
+<h2>2.2 features/interrogation 의 파일과 책임</h2>
+<table>
+<tr><th>파일</th><th>책임</th></tr>
+<tr><td><code>InterrogationFeature.tsx</code></td><td>화면의 뿌리. <code>GameConnection.connect()</code>로 붙고 <code>onMessage</code> switch에서 모든 S2C를 Redux 액션과 가변 싱글턴(remotePlayers · fallState · platformState · discState · executioner)으로 나눈다. 자동 시작(<code>AUTO_SEATS = 4</code>: 방장이고 접속 완료면 로비 진입마다 한 번 <code>game_start{fillTo: max(3, party)}</code> — party 는 대기방이 주소에 실어 보낸 일행 수. 일행이 다 붙거나 <code>PARTY_WAIT_MS 10,000</code>이 지나면 연다; 혼자 들어오면 fillTo 3), 프롤로그 재생과 <code>game_prologue_done</code> 송신, 포인터 잠금, 발치 안내줄(hud), HUD 조립.</td></tr>
+<tr><td><code>interrogationSlice.ts</code></td><td>서버가 준 것만 드는 Redux 슬라이스(아래 필드 표). 의심도를 계산하거나 정체를 추측하지 않는다.</td></tr>
+<tr><td><code>net/GameConnection.ts</code></td><td>WebSocket 래퍼. <code>requestWorldTicket(roomCode)</code> → <code>${wsBase}/rooms/&lt;code&gt;/ws?v=1&amp;nick=…[&amp;tk=…]</code>. onopen에 20초마다 텍스트 <code>'ping'</code>, 즉시 <code>{t:'game_sync'}</code>. welcome/player_joined/player_left/player_moved/error는 전용 콜백, 나머지(chat · game_* · trial_*)는 <code>onMessage</code>로.</td></tr>
+<tr><td><code>hud/Panels.tsx</code></td><td>Chat(구역 통신 · 발언권 칩) · BigClock · TestOrder · ResultModal · EndScreen · LobbyPanel · DesignerPanel.</td></tr>
+<tr><td><code>hud/ResultTable.tsx</code></td><td><code>TEST_TITLE</code> · <code>SUMMARY</code>(시험별 「버틴 시간」 정의) · <code>ResultSummary</code> 표.</td></tr>
+<tr><td><code>hud/SelfSuspicion.tsx</code></td><td>화면 아래 내 의심도 계기(240×12 막대 + %).</td></tr>
+<tr><td><code>RoleBriefing.tsx</code></td><td>배역 카드 — briefing 진입 또는 <code>game_role</code> 수신 시 <code>SHOW_MS 6000</code> 뒤 <code>FADE_MS 300</code>으로 걷힌다. 설계자에게는 「표식 없는 AI는 &lt;좌석 이름&gt; 이다.」 줄이 붙는다.</td></tr>
+<tr><td><code>prologue.ts</code> · <code>prologueVoice.ts</code></td><td>검문소 프롤로그 11줄(PROLOGUE) · 배역 셋 뽑기(<code>castSubjects</code>, mulberry32(startedAt)) · 줄마다 TTS 합성과 자막 동기(§11).</td></tr>
+<tr><td><code>scene/HallScene.tsx</code></td><td>R3F 캔버스. <code>MAPS.govcenter</code> 홀 위에 국면별 FallStage · PlatformCourse · DiscStage를 끼우고, 내 다리(FreeRig · DiscRig)와 SelfAvatar · SeatAvatar · Executioner · DeathCam을 세운다.</td></tr>
+<tr><td><code>scene/FreeRig.tsx</code></td><td>3인칭 자유 보행 — WASD(카메라 yaw 기준) · Shift+W 달리기(몸의 run) · Space 점프(몸의 jump, GRAVITY 15) · 벽 <code>map.resolveColliders</code> · 몸끼리 <code>remotePlayers.pushOut</code>(질량 반비례) · 10Hz <code>sendMove</code>. 낙하 생존에서는 Space가 <code>trial_jump</code> 한 번만 올리고 높이는 서버 스냅샷 <code>air</code>로 받는다.</td></tr>
+<tr><td><code>scene/SeatAvatar.tsx</code> · <code>SelfAvatar.tsx</code></td><td>남의 몸/내 몸. drei <code>&lt;Html&gt;</code>로 이름표 · 말풍선(ChatBubble) · SuspicionBar를 머리 위에 세운다.</td></tr>
+<tr><td><code>scene/SuspicionBar.tsx</code> · <code>susbar.ts</code></td><td>rAF 루프에서 <code>getValue()</code>를 읽어 값이 바뀐 프레임에만 DOM style을 고친다. 색: 34 미만 calm(#6fe3a6) · 34 이상 warm(#ffc061) · <code>SUS_HOT = 100 − (12 + 8 + 12) = 68</code> 이상 hot(#ff4d4d + glow).</td></tr>
+<tr><td><code>scene/executionerStore.ts</code> · <code>Executioner.tsx</code> · <code>Downed.tsx</code></td><td>격리 연출 — aim 750ms → 3발(300ms 간격) → 몸이 꺾이기 시작(1770ms) → 넘어감 1100ms → 유지 700ms, <code>EXECUTION_MS = 3570</code>. 내가 격리되면 <code>.ig-hitflash</code>로 화면이 붉게 번쩍인다.</td></tr>
+<tr><td><code>scene/chase.ts</code></td><td>추적 카메라 — <code>CHASE_DIST 1.9m</code> · <code>CHASE_LOOK_Y 1.55</code> · pitch −0.2~1.1(기본 0.1). 몸 뒤 <code>dist·cos(pitch)</code>, 위 <code>y+1.55+dist·sin(pitch)</code>에 놓고 몸 앞 0.6m · 1.55m 높이를 본다.</td></tr>
+<tr><td><code>scene/platformState.ts</code> · <code>fallState</code> · <code>discState</code></td><td>프레임마다 바뀌는 시험 상태를 Redux 밖 가변 객체로 든다.</td></tr>
+</table>
+
+<h2>2.3 렌더링 계층</h2>
+<p><strong>홀 씬.</strong> <code>WorldCanvas</code>(quality 'high' → dpr [1, 1.5] · shadows · antialias · ACESFilmicToneMapping)에 <code>MAPS.govcenter</code> 맵(배경 · fogExp2 · 깜빡이는 Lights · Effects)을 깔고, 판이 열리고 2초 뒤(<code>stageReady</code>) FallStage를 안 보이게 미리 세워 셰이더 링크를 끝낸다. 광원 개수를 고정하려고 작업등(<code>ARENA_WORK_LIGHTS</code>)은 상시 매달아 세기만 0↔값으로 바꾼다.</p>
+<p><strong>아바타.</strong> <code>SoldierAvatar</code>(Tripo 리깅 GLB, walk · run · jump · angry · agree 클립, idle은 agree 첫 프레임, root motion position 트랙 제거, 눈 깜빡임 모프). 몸(<code>BodyId</code>)이 없으면 <code>RobotAvatar</code>. 남의 몸은 <code>remotePlayers</code> 링버퍼(<code>MOVE_BUFFER_MAX 24</code>)를 <code>now − INTERP_DELAY_MS 150</code>에서 보간해 놓고, 그림자 원반(반지름 0.34)을 바닥에 붙인다.</p>
+<p><strong>drei Html 오버레이.</strong> SeatAvatar는 <code>&lt;Html position [0, 2.0, 0] center distanceFactor 9 zIndexRange [10, 0]&gt;</code> 안에 ChatBubble · 이름표(지목 대상이면 '👉 ' + 호박색) · SuspicionBar(60×7). SelfAvatar는 <code>SELF_BAR_Y 1.8</code>에 큰 말풍선(배율 1.5)만 — 검문소에서는 <code>getSuspicion</code>을 넘기지 않아 내 의심도는 화면 아래 SelfSuspicion 계기로 내려가 있다. 말풍선 수명 <code>BUBBLE_MS 3000</code>.</p>
+<p><strong>내 다리(리그) 분기.</strong> disc → <code>DiscRig</code>(걷기 명령만 <code>trial_walk</code>로 올리고 자리는 서버 스냅샷), 나머지(토론 · fall · platform) → <code>FreeRig</code>. fall일 때 <code>bounds = FALL_ARENA</code>, platform은 <code>PLATFORM_ARENA</code>. DeathCam은 리그 뒤에 두어 처형 시 카메라가 물러난다.</p>
+
+<figure><img src="img/game-discussion.jpg" alt="대화 국면 HUD"><figcaption>대화 국면의 HUD — 왼쪽 아래 구역 통신 판(발언권 칩), 머리 위 이름표 · 의심도 막대 · 말풍선, 화면 아래 내 의심도 계기와 WASD 안내줄.</figcaption></figure>
+
+<h3>HUD 구성(.ig-hud)</h3>
+<table>
+<tr><th>요소</th><th>언제 서나</th><th>내용</th></tr>
+<tr><td>Chat(구역 통신)</td><td>test 국면과 프롤로그 중에는 통째로 내린다</td><td>머리띠에 live · 발언권 칩(<code>발언권 n</code>, 2 이하 low, 0 이하 none) · 입력 maxLength 200 · Enter로 포커스(포인터 잠금 해제), Esc로 blur. talk ≤ 0이면 placeholder '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다', result 중엔 '기록 공개 중 — 입력이 잠긴다'. <code>chatOnly()</code>로 kind === 'chat'만 그린다.</td></tr>
+<tr><td>BigClock + TestOrder</td><td>test 국면, 마지막 대화(testsDone ≥ 3)</td><td><code>phaseEndsAt</code>를 250ms마다 세어 남은 초. 10초 이하 urgent. TestOrder는 <code>TEST_GUIDE</code> 요약(제목 · 목표 · 키캡).</td></tr>
+<tr><td>SelfSuspicion</td><td>토론·시험 중</td><td>내 의심도 막대 + %.</td></tr>
+<tr><td>발치 줄 .ig-foot</td><td>항상</td><td>connecting '연결하는 중…' · error '연결 실패: … 워커(npm run worker:dev)가 떠 있어야 한다' · 시험 중 내 수치(fall 「피격 n」, platform 착지/정중앙/실패, disc 「낙하 n회」) · discussion 'WASD 이동 · Enter 로 말하기 — 관리 AI 가 그 말을 읽는다'.</td></tr>
+<tr><td>ResultModal</td><td>result 국면 7초</td><td>ResultSummary 표(이름 · 버틴 시간 · 곁들인 수 · 등수 · 발언권 +n) · '전원 입력 잠금 — 같은 순간, 같은 기록'.</td></tr>
+<tr><td>EndScreen</td><td>ended, 처형 연출(dying)이 끝난 뒤</td><td>승자에 따라 --amber/--signal, outcome.reason · 「표식 없는 AI 는 &lt;이름&gt; 이었다」 · 내 결과 칩 · 정체표 · 로비 복귀 시계(endedAt + 30초) · 방장에게 「다시 — 새 판」.</td></tr>
+<tr><td>DesignerPanel</td><td>me.role === 'designer' 이고 판 중</td><td>살아 있는 좌석 select + 「튀게」(suspicious) · 「평범하게」(normal) → <code>game_tamper</code>. tamperLeft &gt; 0이고 result/ended가 아닐 때만 활성.</td></tr>
+<tr><td>LobbyPanel</td><td><code>?lobby</code>로 들어왔거나 자동 시작이 거절됐을 때만</td><td>방장에게 총 인원 select(3~8) + 「시작」, 비방장에게 '방장이 시작하길 기다리는 중…'.</td></tr>
+<tr><td>RoleBriefing</td><td>briefing</td><td>배역 카드(role !== 'ai'일 때만 뜬다는 조건이 코드에 있다).</td></tr>
+</table>
+
+<h2>2.4 상태 — Redux 와 가변 싱글턴</h2>
+<p>스토어는 <code>combineSlices</code>로 11개 슬라이스를 합친다(intro · main · world · profile · llm · tts · lab · talk · game · trial · interrogation). 프레임마다 바뀌는 값은 Redux에 넣지 않는다 — 원격 좌표는 <code>world/net/remote-players</code>의 가변 Map, 입력은 <code>world/input/input</code>, 내 자세는 <code>scene/selfPose</code>, 내 말풍선은 <code>scene/selfBubble</code>, 처형 연출은 <code>executionerStore</code>(리스너 Set), 시험 상태는 fallState · platformState · discState.</p>
+<table>
+<tr><th><code>interrogationSlice</code> 필드</th><th>뜻 · 출처</th></tr>
+<tr><td><code>status</code> · <code>errorText</code> · <code>selfId</code></td><td>idle | connecting | connected | error · welcome의 selfId</td></tr>
+<tr><td><code>players</code></td><td>로비 명부 id → 닉네임</td></tr>
+<tr><td><code>wire: GameStateWire | null</code></td><td>서버의 판 상태 통째(§4)</td></tr>
+<tr><td><code>me {seatId, role, aiId, tamperLeft}</code></td><td>game_role — 그 소켓에만</td></tr>
+<tr><td><code>feed: ChatEntry[]</code> (FEED_KEEP 120)</td><td>kind 'chat' | 'leader' | 'system' | 'delta'. 관리 AI는 'leader'(id 'LEADER'), 격리·발언권 지급은 'system', 의심도 걸음은 'delta'(<code>A → B +n (why)</code>)</td></tr>
+<tr><td><code>test {game, round, startAt, durationMs}</code></td><td>trial_round_start; phase가 test가 아니면 null</td></tr>
+<tr><td><code>myHits</code> · <code>myLandings</code> · <code>myCenters</code> · <code>myMisses</code> · <code>myFinished</code> · <code>myFalls</code> · <code>discOmega</code></td><td>이번 시험의 내 수치(trial_hit · trial_landed · trial_fell · trial_disc). <code>myAttempts</code> · <code>myPicks</code> · <code>hunt</code>는 차례표 밖 시험용</td></tr>
+<tr><td><code>latestResult</code> · <code>history</code></td><td>trial_result</td></tr>
+<tr><td><code>leader {text, kind, ts}</code></td><td>마지막 관리 AI 방송</td></tr>
+<tr><td><code>verdict</code></td><td>game_verdict — 저장만 되고 HUD에 그리는 곳은 없다</td></tr>
+<tr><td><code>roles</code> · <code>outcome</code> · <code>endedAt</code></td><td>game_ended; <code>endedReceived</code>가 <code>endedAt = Date.now()</code>를 찍고 phase를 'ended'로 덮는다</td></tr>
+<tr><td><code>reject</code> · <code>talkGained</code></td><td>game_reject 한 줄 · game_talk의 gained(결과 모달 열)</td></tr>
+</table>
+<p><code>stateReceived</code>는 이전 phase가 briefing이 아니었다가 briefing이 되면(새 판) feed · history · latestResult · roles · outcome · endedAt · verdict · test · talkGained를 비운다.</p>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h1 class="sec" id="s3">3. 서버 구조</h1>
+
+<h2>3.1 <code>worker/src/index.ts</code> 라우팅</h2>
+<p>워커 하나가 정적 프론트(dist, SPA 폴백)와 API·DO를 함께 배포한다. <code>wrangler.jsonc</code>의 <code>run_worker_first</code>는 <code>/world-ws/*</code> · <code>/rooms/*</code> · <code>/api/*</code> · <code>/health</code>만 워커가 먼저 받고 나머지는 정적 파일이 먼저다.</p>
+<table>
+<tr><th>경로</th><th>처리</th></tr>
+<tr><td><code>OPTIONS *</code></td><td>204 (CORS: origin *, GET/POST/PUT/OPTIONS, content-type · authorization)</td></tr>
+<tr><td><code>/health</code></td><td>'ok'</td></tr>
+<tr><td><code>/api/rooms</code></td><td><code>handleRooms</code> → LobbyDO(GET 목록 · POST {name?, code?} → 201 {room}; LOBBY_DO 바인딩이 없으면 503 <code>registry_disabled</code>)</td></tr>
+<tr><td><code>/api/config</code> · <code>/api/profile</code> · <code>/api/world/ticket</code></td><td><code>auth.ts</code> — Supabase 주소·anon 키 / wih.profiles 이름(GET/PUT, 본인 토큰) / HMAC-SHA256 60초 입장권(<code>TICKET_TTL_MS 60_000</code>)</td></tr>
+<tr><td><code>/api/lab/*</code> · <code>/api/world/*</code> · <code>/api/world2/say</code></td><td>실험 화면용 LLM 라우트 — 문서 범위 밖</td></tr>
+<tr><td><code>/api/tts</code> · <code>/api/tts/voices</code> · <code>/api/tts/library</code> · <code>/api/tts/leader</code></td><td><code>tts.ts</code> — 관리 AI 방송 · 프롤로그 합성(§11)</td></tr>
+<tr><td><code>/api/tts/clip*</code> · <code>seat-audition</code> · <code>seats</code></td><td><code>seat-voice.ts</code> — 좌석 음성(본판에 미배선, §11)</td></tr>
+<tr><td><code>ROOM_PATH = /^(?:\/world-ws)?\/rooms\/([0-9]{1,6})\/ws$/</code></td><td><code>env.ROOM_DO.get(idFromName(방번호)).fetch(request)</code> — Upgrade 요청을 그대로 넘긴다</td></tr>
+<tr><td>그 밖</td><td><code>env.ASSETS.fetch</code></td></tr>
+</table>
+
+<h2>3.2 RoomDO 의 책임 (<code>worker/src/room-do.ts</code>)</h2>
+<ul>
+<li><strong>입장(upgrade).</strong> Upgrade 헤더 → <code>v</code>가 <code>PROTOCOL_VERSION 1</code>과 다르면 <code>version_mismatch</code> → <code>verifyTicket(tk, roomCode, WORLD_TICKET_SECRET)</code>(없거나 어긋나면 게스트) → 닉네임 없으면 <code>bad_request</code> → 밴 명부(<code>BANS_KEY</code>)면 <code>banned</code> → <code>ROOM_MAX_PLAYERS 8</code> 이상이면 <code>room_full</code> → 빈 최저 좌석 배정, 몸은 <code>pickBody</code>로 방 안에서 겹치지 않게 → <code>acceptWebSocket</code>(Hibernatable WebSocket API, attachment에 PlayerSnapshot). 거절은 <code>{t:'error', code}</code> 뒤 <code>close(4000, code)</code>.</li>
+<li><strong>이동 중계.</strong> <code>move</code>는 <code>validate.ts</code>(자리·높이·anim만 검증)를 지나 <code>player_moved</code>로 방송. 판이 도는 동안은 플레이어 id 대신 <code>game.seatIdOf()</code>의 좌석 id로 나가고 <code>game.onMove()</code>에도 넘긴다.</li>
+<li><strong>채팅.</strong> <code>CHAT_MAX_LEN 200</code> · <code>CHAT_MIN_INTERVAL_MS 600</code>. 판이 활성이면 <code>game.onChat()</code>이 가로채 좌석 id·이름으로 바꿔 내보낸다(플레이어 id가 와이어에 실리면 어느 좌석이 사람인지 읽힌다).</li>
+<li><strong>판.</strong> <code>isGameMessage</code>(t가 <code>game_</code>로 시작)면 <code>game.handle()</code>로, <code>trial_*</code>는 판이 활성일 때 엔진으로. <code>GameRuntime</code>은 소켓을 직접 쥐지 않고 <code>GameDeps</code>(storage · roster · broadcast · sendTo · brain · makeEngine? · now? · rand?)를 콜백으로 받는다 — 시험 하네스가 같은 자리에 끼운다(§13).</li>
+<li><strong>청소 알람.</strong> <code>SWEEP_ALARM_MS 30_000</code>마다 <code>SOCKET_TIMEOUT_MS 60_000</code>을 넘긴 소켓을 <code>close(4001, 'heartbeat_timeout')</code>, 등록소에 <code>POST lobby/report {code, players, phase}</code>(실패해도 조용), 그리고 <code>game.onSweep(now)</code>.</li>
+<li><strong>스토리지 키.</strong> <code>'code'</code> · <code>'phase'</code> · <code>'bans'</code>(§12).</li>
+</ul>
+
+<h2>3.3 GameRuntime 상태기계 (<code>worker/src/game/runtime.ts</code>, 1,687줄)</h2>
+<p>시계는 <code>setTimeout</code>이다 — <code>setPhase(phase, endsAt)</code>가 국면을 바꾸고 <code>endsAt − now</code> 뒤에 <code>advance()</code>를 걸며, 바뀔 때마다 <code>game_state</code>를 방송한다.</p>
+<table>
+<tr><th>국면</th><th>마감</th><th>advance 가 하는 일</th></tr>
+<tr><td><code>lobby</code></td><td>—</td><td>방장(roster 중 seat 번호가 가장 작은 사람, <code>hostOf</code>)의 <code>game_start</code>만 받는다. 남이 보내면 <code>game_reject '방장만 시작할 수 있다'</code>. ended 중에 오면 <code>resetToLobby</code> 후 새 판(「다시 — 새 판」).</td></tr>
+<tr><td><code>briefing</code></td><td><code>GAME_BRIEFING_MS 7,000</code></td><td><code>openDiscussion(40,000, opening=true)</code>. 방송은 없다 — 판을 여는 말은 프롤로그가 한다.</td></tr>
+<tr><td><code>discussion</code>(첫)</td><td><code>GAME_PROLOGUE_MAX_MS 75,000</code>(상한)</td><td><code>prologueHold = 40,000</code>이 서고 <code>game_state.prologue = true</code>. 좌석에 묶인 접속 중인 사람 전원이 <code>game_prologue_done</code>을 올리면(<code>releasePrologue</code>), 또는 75초가 지나면, 또는 기다리던 마지막 사람이 나가면 <code>endPrologue</code> → 마감을 <code>now + 40,000</code>으로 다시 잡고 봇 첫 차례 2,500ms 뒤, 마지막 읽기(<code>armReadFlush</code>) 32,000ms 뒤.</td></tr>
+<tr><td><code>discussion</code></td><td><code>GAME_DISCUSSION_MS 40,000</code></td><td><code>testsDone ≥ schedule().length</code>(=3)이면 <code>hardCap()</code>으로 판을 닫고, 아니면 <code>openTest()</code>.</td></tr>
+<tr><td><code>test</code></td><td><code>startAt + GAME_TEST_MS 30,000</code></td><td><code>finishTest()</code>. 살아 있고 접속 중인 좌석 전원이 끝났으면(<code>engine.done(waiting)</code>) 먼저 닫는다.</td></tr>
+<tr><td><code>result</code></td><td><code>GAME_RESULT_MODAL_MS 7,000</code></td><td><code>openDiscussion(40,000, false)</code> — unread 비움, bodyWatch · humanPos · called 지움, <code>book.newRound()</code>(몰이 상한 리셋), heldLines 내보냄, <code>freshResultTurns = 2</code>, <code>announcePressure()</code>, 봇 첫 차례 2,000ms, 마지막 읽기 32,000ms. 이 국면 동안 <code>chatAllowed()</code>가 false — 채팅 · accuse · withdraw · tamper 전부 거절.</td></tr>
+<tr><td><code>ended</code></td><td><code>GAME_ENDED_MS 30,000</code></td><td><code>game_ended{outcome, roles}</code> 방송, 관리 AI가 사람 승리면 'readout', AI 승리면 'alarm'으로 <code>LINES.ended</code>. 30초 뒤 <code>resetToLobby</code>가 좌석 · 바인딩 · 저장본을 지운다.</td></tr>
+</table>
+<p><strong>openTest.</strong> 국면을 먼저 <code>'test'</code>로 옮기고(토론 타이머 정리, 봇 발화·배회 정지) 엔진을 만든다. 강도 <code>intensity = min(3, testsDone + 1)</code>. 대역 좌석은 <code>precision = rand × 0.35</code>, AI 좌석은 <code>aiStrategy</code>(LLM, ≤20초) 한 번으로 precision을 받는다 — 그동안 phase는 이미 test지만 <code>trial_round_start</code>는 아직 안 나간 상태다. 이어 <code>LINES.testOpen</code>('announce') 방송, <code>trial_round_start{game, round, startAt, durationMs 30000, pace?}</code>, <code>setPhase('test', startAt + 30,000)</code>, <code>engine.start(intensity, realIds, botIds, ctx{broadcast, finish, bodyOf}, tuning)</code>.</p>
+<p><strong>finishTest.</strong> <code>engine.stop()</code> → <code>engine.results()</code>(원본) → <code>applyTampers</code>(설계자 조작본) → <code>groupStats</code>(평균 · 모집단 표준편차) → <code>trial_result</code> 방송 → 원본 + 조건값은 <code>appendHistory</code>로 DO 스토리지에만 → <code>testsDone += 1</code> → <code>grantTalk</code>(발언권 지급, <code>game_talk{gained}</code>) → result 7초 → <code>leaderComment</code>(LLM)가 모달 중 'readout'으로 도착한다.</p>
+
+<h3>onSweep 안전망</h3>
+<p>RoomDO의 30초 알람이 부르는 <code>onSweep(now)</code>는 ① <code>restoreIfNeeded()</code> ② ended가 30초 넘게 남아 있으면 로비로 ③ 판에 묶인 실제 사람이 전원 나간 채 <code>ABANDONED_AFTER_MS 90,000</code>이 지나면 판을 접고(새로고침 유예) ④ <code>phaseEndsAt + 1,000</code>이 지난 국면을 <code>advance()</code>로 밀며 ⑤ test 중 <code>engine.done()</code>이면 <code>finishTest()</code>. DO가 잠들어 타이머를 잃어도 늦어도 30초 안에 다음 국면으로 간다.</p>
+
+<h3>저장 · 복구</h3>
+<p><code>persist()</code>는 lobby가 아닐 때 storage 키 <code>'game:state'</code>에 phase · seats · bindings · nicks · suspicion · quota · startedAt · phaseEndsAt · testsDone · testRuns · latestResult · outcome · log · tampers를 쓴다. <code>restoreIfNeeded()</code>는 메모리가 lobby인데 저장본이 있으면(lobby·ended 제외) 좌석 · 바인딩 · 의심도 값(<code>book.restore</code>, 압력·누계 없이) · testsDone · 조작 예약 · history를 되살리고 남은 하드캡 타이머를 다시 건 뒤 <strong>무조건 <code>openDiscussion(40,000, false)</code></strong>로 시작한다 — 프롤로그 없음, 시험 도중이었으면 그 시험 결과 없이 토론으로, 겨눔(pointing) · staked · 몰이 · 표식 누계는 잃는다.</p>
+
+<h3>봇 발화 스케줄과 몸</h3>
+<table>
+<tr><th>상수</th><th>값</th><th>뜻</th></tr>
+<tr><td><code>BOT_TALK_MIN_MS</code> + rand × <code>BOT_TALK_JITTER_MS</code></td><td>3,500 + rand × 6,500</td><td>봇 차례 간격 3.5~10초 — 사람 채팅과 같은 지터(P10). 사람이 말해도 <code>scheduleTalk()</code>가 다시 잡힌다.</td></tr>
+<tr><td><code>BOT_TALK_CONCURRENCY</code></td><td>2</td><td>동시에 말을 짓는 봇 상한(좌석별 <code>botBusy</code> 잠금). 다음 차례는 LLM 왕복을 기다리지 않고 <code>botTurn</code> 진입 즉시 먼저 잡는다.</td></tr>
+<tr><td><code>BOT_DEFEND_MIN_MS</code> + rand × <code>BOT_DEFEND_JITTER_MS</code></td><td>1,500 + rand × 3,000</td><td>지목당한 봇의 해명 차례</td></tr>
+<tr><td>차례 선택 가중치</td><td>(지목당함 ×3) × (30,000ms 넘게 조용 ×1.6) × (0.5 + rand)</td><td>살아 있고 persona가 있고 talk &gt; 0이고 busy가 아닌 봇 중 최대</td></tr>
+<tr><td><code>IDLE_TICK_MS</code> · <code>IDLE_RADIUS</code></td><td>100ms · 2.2m</td><td>토론 중 봇은 제 자리 반경 안을 <code>WALK_SPEED × 0.45</code>로 배회하며 <code>trial_snapshot</code>(물체 없음)으로 자리를 내보낸다.</td></tr>
+<tr><td><code>BOT_STILL_ODDS</code> · <code>BOT_STILL_MIN_MS</code> + rand × 18,000</td><td>0.12 · 22,000</td><td>열에 한 번 남짓 오래 굳는다 — 굳음 판정이 사람만 잡지 않게</td></tr>
+<tr><td><code>BOT_BACK_ODDS</code> · <code>HUMAN_BACK_HOLD_MS</code></td><td>0.1 · 400</td><td>봇이 몸을 안 돌리고 물러서는 확률 · 사람의 뒷걸음 표시가 마지막 move 뒤 유지되는 시간</td></tr>
+<tr><td><code>ACCUSE_GAP_MS</code> · <code>CLAIM_GAP_MS</code></td><td>5,000 · 12,000</td><td>같은 사람의 지목 발언 · 주장 최소 간격</td></tr>
+<tr><td><code>LOG_KEEP</code></td><td>40</td><td>봇 프롬프트가 다시 읽는 방 로그 줄 수</td></tr>
+</table>
+
+<h3>동시성</h3>
+<p>DO는 단일 스레드 이벤트 루프라 상태 경쟁은 없지만 LLM 호출은 비동기다. 그래서 ① <code>openTest</code>는 <code>aiStrategy</code>를 기다린 뒤 <code>this.phase !== 'test'</code>면 버리고, ② <code>readRoom</code>은 <code>readBusy</code> 플래그로 한 번에 한 장면만 읽고 답이 온 뒤 <code>active()</code>를 다시 확인하며, ③ <code>botTurn</code>은 말을 짓는 사이 지갑이 비면 그 말을 버리고 토론이 아닌 국면에 도착한 말은 <code>heldLines</code>에 두었다가 다음 토론 시작 때 내보내며, ④ <code>finishTest</code>는 <code>finishing</code> 플래그로 타이머와 <code>engine.done</code>의 이중 호출을 막고, ⑤ <code>claimInFlight</code>가 판정 중 연타를 거절한다.</p>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h1 class="sec" id="s4">4. 프로토콜</h1>
+<p>두 파일이 계약이다. <code>src/world/mp/protocol.ts</code>는 방과 물리 시험(<code>move</code> · <code>chat</code> · <code>trial_*</code>), <code>src/world/mp/game-protocol.ts</code>는 그 위에 얹히는 판의 흐름(<code>game_*</code>)이다. 규칙: 양쪽 핸들러를 같은 커밋에서 고친다 · 모르는 타입은 무시한다 · 위조되면 곤란한 값(누가 · 몇 시 · 어느 배역)은 C2S에 넣지 않는다. 메시지는 JSON 텍스트 한 줄, 상한 <code>MAX_WS_MESSAGE_LEN 4096</code>. 접속 주소 <code>wss://&lt;host&gt;/world-ws/rooms/&lt;방번호&gt;/ws?v=1&amp;nick=…[&amp;tk=…]</code>, 하트비트는 텍스트 <code>'ping'</code> 20초마다.</p>
+
+<h2>4.1 C2S — 클라이언트 → 서버</h2>
+<table>
+<tr><th>메시지</th><th>필드</th><th>뜻 · 검문소에서 실제로 보내나</th></tr>
+<tr><td><code>move</code></td><td>x, z, y, heading, anim(idle|walk|run|angry|agree)</td><td>10Hz(<code>MOVE_THROTTLE_MS 100</code>). 토론 중엔 굳음·뒷걸음 판정 입력, 낙하 생존·발판 시험 중엔 엔진 입력. 보낸다.</td></tr>
+<tr><td><code>chat</code></td><td>text(≤200)</td><td>한 마디 = 발언권 1. 서버가 이 말에서 지목을 읽는다(<code>accusationIn</code>). 보낸다.</td></tr>
+<tr><td><code>broadcast</code> · <code>kick</code></td><td>text, kind / id</td><td>호스트 전용 — 대기방(Waitroom)이 쓴다. 검문소는 안 보낸다.</td></tr>
+<tr><td><code>trial_join</code></td><td>game?</td><td>/trial 전용. 검문소는 안 보낸다.</td></tr>
+<tr><td><code>trial_accel</code> · <code>trial_brake</code> · <code>trial_pick</code></td><td>— / — / objectId</td><td>정지선 · 색 사냥 입력. 차례표에 없어 검문소에서 실제로는 안 쓰인다.</td></tr>
+<tr><td><code>trial_walk</code></td><td>x, z (월드 기준 속도 m/s)</td><td>회전 원판 — 바뀔 때만 10Hz, 손을 떼면 (0, 0). 보낸다.</td></tr>
+<tr><td><code>trial_jump</code></td><td>—</td><td>낙하 생존 — Space 눌린 순간 한 번. 높이는 서버가 숨은 중력으로 적분한다. 보낸다.</td></tr>
+<tr><td><code>game_start</code></td><td>fillTo?(3~8)</td><td>방장만. fillTo = 사람 쪽 좌석 목표(모자란 만큼 대역). 자동 시작이 max(3, 일행 수)를 보낸다 — 혼자면 3.</td></tr>
+<tr><td><code>game_sync</code></td><td>—</td><td>상태 전체를 다시 달라. 연결 직후 보낸다.</td></tr>
+<tr><td><code>game_accuse</code> · <code>game_withdraw</code> · <code>game_claim</code></td><td>target / — / text(≤140)</td><td>타입은 있으나 <strong>현재 클라이언트는 보내지 않는다</strong> — 좌석 카드와 지목 단추는 2026-09-05에 걷혔고 지목은 채팅에서 읽는다. 서버 처리 경로는 살아 있다.</td></tr>
+<tr><td><code>game_prologue_done</code></td><td>—</td><td>화면의 프롤로그 방송이 끝났다. 보낸다.</td></tr>
+<tr><td><code>game_tamper</code></td><td>target, direction('suspicious'|'normal')</td><td>설계자만 · 판당 1회. DesignerPanel이 보낸다.</td></tr>
+</table>
+
+<h2>4.2 S2C — 서버 → 클라이언트</h2>
+<table>
+<tr><th>메시지</th><th>필드</th><th>뜻</th></tr>
+<tr><td><code>welcome</code></td><td>selfId, players[PlayerSnapshot]</td><td>입장 완료. 내 몸(body)이 여기 실린다.</td></tr>
+<tr><td><code>player_joined</code> · <code>player_left</code> · <code>player_moved</code></td><td>player / id / id, x, z, y, heading, anim</td><td>로비 국면에서만 몸을 넣고 뺀다. 판 중엔 id가 좌석 id.</td></tr>
+<tr><td><code>chat</code></td><td>id, nickname, text, ts</td><td>판 중엔 id·nickname이 좌석의 것. 봇의 말도 같은 메시지로 나간다(P10).</td></tr>
+<tr><td><code>broadcast</code></td><td>text, kind, ts</td><td>대기방 리더 방송(시작 신호).</td></tr>
+<tr><td><code>error</code></td><td>code: version_mismatch | room_full | bad_request | kicked | banned</td><td>거절 뒤 close(4000).</td></tr>
+<tr><td><code>trial_round_start</code></td><td>game, round, startAt, durationMs?, pace?</td><td>시험 개시. pace는 움직이는 발판만(공개 배속). 조건값은 없다.</td></tr>
+<tr><td><code>trial_snapshot</code></td><td>at, objects[], ai[{id, x, z, y?, h?}], air?[{id, y}]</td><td>100ms. 낙하 생존의 공과 봇 자리, 뜬 몸의 높이. 토론 중엔 봇 배회 자리(objects 비움).</td></tr>
+<tr><td><code>trial_hit</code></td><td>id, objectId</td><td>낙하 생존 피격</td></tr>
+<tr><td><code>trial_landed</code> · <code>trial_slip</code></td><td>id, pad, center, missed / id, vx, vz, ms</td><td>발판 착지 · 착지 미끄러짐(곱셈 끝난 결과만)</td></tr>
+<tr><td><code>trial_disc</code></td><td>at, theta, omega, players[{id, x, z, y, h, m, f, sx, sz}]</td><td>회전 원판 100ms 스냅샷 — 각도·각속도·전원 자리·미끄러짐</td></tr>
+<tr><td><code>trial_fell</code></td><td>id</td><td>원판 낙하</td></tr>
+<tr><td><code>trial_result</code></td><td>result: TrialResultWire{game, round, players[], groupMean, groupStdDev, endedAt}</td><td>공개본(조작본). 조건값 없음.</td></tr>
+<tr><td><code>trial_running</code> · <code>trial_stopline_waypoints</code> · <code>trial_colorhunt</code> · <code>trial_picked</code> · <code>trial_orb</code> · <code>trial_history</code></td><td>—</td><td>정지선·색 사냥·기록 탭용. 검문소 클라이언트는 history를 무시한다.</td></tr>
+<tr><td><code>game_state</code></td><td>state: GameStateWire</td><td>국면 전환마다 통째로. 아래 필드 표.</td></tr>
+<tr><td><code>game_role</code></td><td>seatId, role, aiId?, tamperLeft</td><td><strong>그 소켓에만.</strong> 설계자에게만 aiId. tamperLeft는 설계자 1, 나머지 0.</td></tr>
+<tr><td><code>game_suspicion</code></td><td>suspicion{id→0~100}, accusations{by→target}, delta?{target, amount, by, why}</td><td>의심도 한 걸음. why 뒤에 「· 압력 ×1.5」가 붙을 수 있다.</td></tr>
+<tr><td><code>game_isolated</code></td><td>id, role, text</td><td>100% — 격리와 정체 공개.</td></tr>
+<tr><td><code>game_leader</code></td><td>text, kind('announce'|'readout'|'alarm'), ts</td><td>관리 AI의 말. 화면에서는 TTS로만 난다(Chat이 chatOnly로 거름).</td></tr>
+<tr><td><code>game_verdict</code></td><td>by, verdict('match'|'mismatch'|'unclear'), text, delta</td><td>주장 판정 결과(전원 공개)</td></tr>
+<tr><td><code>game_tamper_ok</code></td><td>left</td><td>조작 접수 — 그 소켓에만</td></tr>
+<tr><td><code>game_ended</code></td><td>outcome{winner, reason, aiId, designersWon, designersLost}, roles{id→role}</td><td>정체표 전부 공개</td></tr>
+<tr><td><code>game_talk</code></td><td>talk{id→n}, gained?{id→n}, game?</td><td>발언권이 움직였다(한 마디 소비 / 시험 뒤 지급)</td></tr>
+<tr><td><code>game_reject</code></td><td>why</td><td>거절 한 줄 — 그 소켓에만</td></tr>
+</table>
+
+<h3>GameStateWire</h3>
+<div class="kv">
+<dt>phase</dt><dd>lobby | briefing | discussion | test | result | ended</dd>
+<dt>seats[]</dt><dd><code>GameSeat{id, name, seat, isolated, revealed?, body?}</code> — 사람/대역/AI 구분이 없다. <code>revealed</code>는 격리된 뒤에만.</dd>
+<dt>suspicion · accusations</dt><dd>좌석 id → 0~100 · 지목자 → 피지목자(실시간 공개)</dd>
+<dt>phaseEndsAt · testsDone · currentTest</dt><dd>남은 시간 표시용 · 끝난 시험 수 · {game, round, startAt, durationMs?, instruction}</dd>
+<dt>latestResult · quota · hostId · minHumans · humansOnline</dt><dd>마지막 공개본 · 격리 목표(와이어에만 실리고 문턱은 아니다) · 방장 · 3 · 접속 중 사람 수</dd>
+<dt>outcome · startedAt · prologue · talk</dt><dd>승패 · 판이 열린 시각(프롤로그 배역 시드) · 지금 프롤로그를 붙잡고 있는가 · 좌석 id → 발언권</dd>
+</div>
+
+<h2>4.3 판별 원칙이 와이어의 모양을 정한다</h2>
+<div class="callout">
+<strong>와이어에 정체 없음.</strong> 좌석 목록에는 「사람인가 AI인가」가 없고 실제 사람 · 대역 · AI 좌석이 같은 모양이다. 정체는 <code>game_isolated</code>(격리된 뒤)와 <code>game_ended</code>(판이 끝난 뒤)에만 실린다.<br>
+<strong>좌석 id로만.</strong> 판이 도는 동안 채팅·이동은 플레이어 id 대신 좌석 id(<code>seat-&lt;pid&gt;</code> · <code>npc-n-…</code> · <code>ai-…</code>)로 나간다. 새로고침으로 id가 바뀐 사람은 같은 닉네임의 빈 좌석에 다시 앉고(<code>rebind</code>), 판 도중 처음 온 사람은 좌석 없이 구경만 한다.<br>
+<strong>조건값 비공개(P8).</strong> 중력 배율 · 마찰 계수는 <code>worker/src/trial/condition.ts</code>에만 있고 <code>src/</code>가 import하지 않는다. 와이어에는 곱셈이 끝난 결과(미끄러짐 속도 · 뜬 높이 · 각속도)만 나간다. 배역은 <code>game_role</code>로 그 소켓 하나에만 간다.
+</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h1 class="sec" id="s5">5. 판의 규칙 상수</h1>
+<p>전부 <code>src/world/mp/game-protocol.ts</code>에 있고 클라이언트와 워커가 같은 파일을 본다. 두 벌로 두면 시계가 거짓말한다는 것이 이 파일의 규칙이다.</p>
+
+<h2>5.1 인원 · 차례표 · 시간</h2>
+<table>
+<tr><th>상수</th><th>값</th><th>뜻</th></tr>
+<tr><td><code>GAME_MIN_HUMANS</code> · <code>GAME_MAX_HUMANS</code></td><td>3 · 8</td><td>사람 쪽 좌석 범위(대역 포함). roster가 8을 넘으면 거절. <code>ROOM_MAX_PLAYERS</code>도 8.</td></tr>
+<tr><td><code>GAME_TEST_ORDER</code></td><td><code>['fall', 'platform', 'disc']</code></td><td>고정 차례표 — 낙하 생존 → 움직이는 발판 → 회전 원판. 실제로 여는 것은 이 중 엔진이 꽂힌 것(<code>schedule()</code>).</td></tr>
+<tr><td><code>GAME_BRIEFING_MS</code></td><td>7,000</td><td>배역 통보 화면(RoleBriefing SHOW_MS 6,000과 같은 박자)</td></tr>
+<tr><td><code>GAME_FIRST_DISCUSSION_MS</code> · <code>GAME_DISCUSSION_MS</code></td><td>40,000 · 40,000</td><td>첫 토론(프롤로그가 걷힌 뒤부터) · 나머지 토론</td></tr>
+<tr><td><code>GAME_PROLOGUE_MAX_MS</code></td><td>75,000</td><td>프롤로그 방송을 기다려 주는 상한</td></tr>
+<tr><td><code>GAME_TEST_MS</code></td><td>30,000</td><td>시험 하나의 길이 — 엔진 자체 길이(/trial의 1분)를 판이 덮어쓴다</td></tr>
+<tr><td><code>GAME_TEST_MAX_MS</code></td><td>45,000</td><td>이벤트제 시험의 상한 — 정의만 있고 runtime이 import하지 않는다</td></tr>
+<tr><td><code>GAME_RESULT_MODAL_MS</code></td><td>7,000</td><td>기록 공개 모달 — 고정, 스킵 불가</td></tr>
+<tr><td><code>GAME_HARD_CAP_MS</code></td><td>600,000 (10분)</td><td>하드캡 — 차례표(≈4분 38초 + 프롤로그)보다 길어 정상 진행에서는 안 걸린다</td></tr>
+<tr><td><code>GAME_ENDED_MS</code></td><td>30,000</td><td>판정 종료 화면 → 로비 복귀</td></tr>
+</table>
+
+<h2>5.2 발언권 <code>TALK</code></h2>
+<table>
+<tr><th>키</th><th>값</th><th>뜻</th></tr>
+<tr><td><code>start</code></td><td>6</td><td>입장 때 지갑</td></tr>
+<tr><td><code>secondsPer</code></td><td>3</td><td>시험에서 버틴(남긴) 3초마다 1 — 30초면 10</td></tr>
+<tr><td><code>min</code></td><td>1</td><td>시험마다 최소 지급</td></tr>
+<tr><td><code>carry</code></td><td>5</td><td>시험을 지나 다음 대화로 가져가는 안 쓴 발언권의 상한. 지급에는 상한이 없다 → 최대 지갑 5 + 10 = 15</td></tr>
+</table>
+
+<h2>5.3 의심도 <code>SUSPICION</code> (전반 · 압력 ×1.0 기준)</h2>
+<table>
+<tr><th>키</th><th>값</th><th>층</th><th>뜻</th></tr>
+<tr><td><code>accuse</code></td><td>+12</td><td>겨눔</td><td>아무도 안 겨누던 대상을 처음 지목하는 발언</td></tr>
+<tr><td><code>agree</code></td><td>+8</td><td>겨눔</td><td>이미 남이 겨누는 대상에 얹는 발언(동조)</td></tr>
+<tr><td><code>REPEAT_STEP</code> (suspicion.ts)</td><td>+3</td><td>겨눔</td><td>같은 사람이 같은 대상을 다시 말하는 발언</td></tr>
+<tr><td><code>mobPer</code> · <code>mobCap</code></td><td>+3 · 12</td><td>겨눔</td><td>2인 이상이 같은 대상을 겨누는 동안 발언마다 가산 · 대상당 토론마다 상한</td></tr>
+<tr><td><code>claimMatch</code> · <code>claimMismatch</code></td><td>−12 · +15</td><td>표식</td><td>주장 판정 일치 · 불일치</td></tr>
+<tr><td><code>readMin</code> · <code>readMax</code></td><td>−10 · +16</td><td>표식</td><td>관리 AI 말 읽기 한 장면의 범위</td></tr>
+<tr><td><code>echo</code></td><td>+6</td><td>표식</td><td>같은 말 되풀이</td></tr>
+<tr><td><code>duck</code> · <code>duckAccused</code></td><td>+8 · +4</td><td>표식</td><td>불렀는데 대답 없이 넘김(2회째부터) · 그때 이미 지목당해 있었으면 더</td></tr>
+<tr><td><code>still</code> · <code>backstep</code></td><td>+5 · +5</td><td>표식(몸)</td><td>굳음 한 장면 · 뒷걸음 한 장면</td></tr>
+<tr><td><code>repeatWeight</code></td><td>+4/회</td><td>표식</td><td>같은 좌석이 같은 항목에 거듭 걸릴 때마다(누계, 안 지워짐)</td></tr>
+<tr><td><code>bodyCap</code></td><td>30</td><td>표식(몸)</td><td>굳음 + 뒷걸음이 한 좌석에 물릴 수 있는 총량 — 몸만으로는 격리되지 않는다</td></tr>
+<tr><td><code>stepCap</code></td><td>24</td><td>공통</td><td>압력을 곱한 뒤에도 한 걸음의 절대 상한(눈금의 1/4)</td></tr>
+<tr><td><code>cut</code></td><td>100</td><td>—</td><td>격리선</td></tr>
+</table>
+
+<h2>5.4 국면 압력 · 읽기 · 주장</h2>
+<table>
+<tr><th>상수</th><th>값</th><th>뜻</th></tr>
+<tr><td><code>SUSPICION_PRESSURE</code></td><td><code>[1, 1.2, 1.5, 2]</code></td><td>자리는 <code>testsDone</code>(0·1·2·3). 올라가는 걸음에만 곱하고 <code>round</code> 뒤 <code>stepCap</code>으로 자른다. 상태로 두지 않는다 — persist가 testsDone을 나르므로 되살린 판도 같은 자리에 선다.</td></tr>
+<tr><td><code>SUSPICION_STAGE</code></td><td><code>['관찰', '대조', '선별', '마감']</code></td><td>관리 AI가 부르는 단계 이름(<code>LINES.pressure</code>)</td></tr>
+<tr><td><code>READ_EVERY_MS</code> · <code>READ_MIN_LINES</code> · <code>READ_MAX_LINES</code></td><td>9,000 · 2 · 12</td><td>말 읽기 간격 · 한 장면 최소 새 발언 · 보관 상한(넘치면 오래된 것부터 버림)</td></tr>
+<tr><td><code>READ_FLUSH_BEFORE_MS</code> (runtime.ts)</td><td>8,000</td><td>토론이 닫히기 전 마지막 읽기(closing) — 간격·최소 줄 수를 안 본다</td></tr>
+<tr><td><code>CLAIM_MAX_LEN</code></td><td>140</td><td>주장 한 줄의 길이 상한(서버가 자른다)</td></tr>
+</table>
+<div class="callout warn"><strong>PLANNING.md 와 다른 자리.</strong> §1.2의 제안값(지목 +8 · 동조 +5 · 몰이 +2/최대 +6 · 일치 −10 · 불일치 +10, ClaimVerdict 주석의 「−10 · +10」도 같은 옛 값)은 40초 × 4 = 160초 토론에서 100을 채울 수 없어 올렸다. 지금 값은 한 판에 1~2명이 격리되는 속도를 겨눈다 — 몰이가 한 사람에 붙으면 두세 번째 토론에서 100에 닿고, 아무도 안 몰리면 말 읽기만으로는 못 닿는다. 기준 문서는 <code>docs/SUSPICION.md</code>와 <code>game-protocol.ts</code>다.</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h1 class="sec" id="s6">6. 배역 배정과 승패</h1>
+<p><code>worker/src/game/roles.ts</code>는 순수 함수뿐이다. 결과가 와이어로 나가는 자리는 셋 — 설계자에게 가는 배역 통보, 격리 순간의 정체 공개, 판이 끝난 뒤의 정체표.</p>
+
+<h2>6.1 좌석 만들기 (<code>runtime.start</code>)</h2>
+<div class="flow">
+<span class="step">roster(실제 사람)</span><span class="arrow">→</span>
+<span class="step">target = max(roster, clamp(round(fillTo ?? 3), 3, 8))</span><span class="arrow">→</span>
+<span class="step">대역(npc) = target − roster</span><span class="arrow">→</span>
+<span class="step">AI 좌석 1 (항상)</span><span class="arrow">→</span>
+<span class="step">assignRoles(humanIds, aiId)</span><span class="arrow">→</span>
+<span class="step">shuffled → seat 1..N · 한국인 이름(pickKoreanNames, 몸의 성별)</span>
+</div>
+<p>사람은 입장 때 받은 몸, 대역·AI는 남은 몸에서 <code>pickBody</code>. 대역 i번째는 <code>personas[i % 9]</code>, AI 좌석은 <code>personas[npcCount % 9]</code>, 실제 사람은 persona null. 전원 <code>talk = TALK.start 6</code>. 기본 자동 시작(fillTo 3)에서 혼자 들어오면 좌석은 사람 1 + 대역 2 + AI 1 = 4.</p>
+
+<h2>6.2 설계자 수 — <code>designerCount(humans)</code></h2>
+<table>
+<tr><th>사람 쪽 좌석 수(대역 포함)</th><th>AI 설계자 수</th></tr>
+<tr><td>≤ 2</td><td>0</td></tr>
+<tr><td>3 ~ 5</td><td>1</td></tr>
+<tr><td>≥ 6</td><td>2</td></tr>
+</table>
+<pre><code>export function assignRoles(humanIds, aiId, rand = Math.random): Assignment {
+  const count = Math.min(designerCount(humanIds.length), humanIds.length);
+  const pool = [...humanIds]; const designers = [];
+  for (let i = 0; i &lt; count &amp;&amp; pool.length; i += 1)
+    designers.push(pool.splice(Math.floor(rand() * pool.length), 1)[0]);
+  roles[id] = designers.includes(id) ? 'designer' : 'human';  roles[aiId] = 'ai';
+}</code></pre>
+<p>뽑히는 <strong>수</strong>는 고정이고 굴리는 것은 <strong>누가</strong>인지뿐이다. 따라서 기본 판(사람 쪽 3 + AI 1)의 배역은 늘 「AI 설계자 1 · 사람 2 · AI 1」이다(<code>tests/worker/game-runtime.test.ts</code>). 설계자는 <code>humanIds</code> 풀에서 뽑히므로 대역(npc) 좌석도 설계자가 될 수 있다 — 대역은 <code>game_tamper</code>를 보내지 않으므로 그 조작권은 쓰이지 않는다. 설계자에게는 <code>game_role</code>에 <code>aiId</code>가 실리고 <code>tamperLeft = 1</code>이다.</p>
+<div class="callout warn"><strong>설계 의도와 지금 빌드.</strong> 세계관 글은 「AI 설계자는 플레이어 수에 따라 1~2명」, PLANNING §1.1 표는 상한(3명 → 0 · 4~5명 → 1 · 6~8명 → 2)으로 적었고 이전 코드(<code>designerCap</code>)는 그 상한 안에서 0부터 균등 랜덤이었다 — 그래서 기본 판에서 설계자가 한 번도 안 나왔다. 2026-09-05 커밋 <code>7163b77</code>부터 <code>designerCount</code>가 수를 고정한다. 세계관의 「1명 이상 AI」는 코드에서 <strong>정확히 1 좌석</strong>이다.</div>
+
+<h2>6.3 격리 목표 <code>quotaFor</code>와 승패 <code>outcomeFor</code></h2>
+<p><code>quotaFor(total) = floor(total / 2)</code>는 와이어 <code>quota</code>로 내려가지만 판을 끝내는 문턱이 아니다. <code>checkIsolation</code>은 의심도 ≥ 100(<code>book.overCut()</code>)인 좌석을 <code>isolated</code>로 만들고 <code>game_isolated{id, role, text}</code> + 'alarm' 방송 뒤 즉시 <code>outcomeFor(roles, isolated, false)</code>를 불러 결과가 있으면 <code>end()</code>한다.</p>
+<table>
+<tr><th>상황</th><th>winner</th><th>reason (화면 한 줄)</th><th>설계자 개인</th></tr>
+<tr><td>AI가 격리됨</td><td>humans</td><td>AI 가 격리됐다. 사람 진영의 승리.</td><td>전원 designersLost</td></tr>
+<tr><td>사람이 격리됨</td><td>ai</td><td>사람이 격리됐다. AI 는 아직 이 안에 있다 — AI 의 승리.</td><td>격리 안 된 설계자 designersWon</td></tr>
+<tr><td>AI 설계자가 격리됨</td><td>ai</td><td>AI 설계자가 격리됐다. 그가 지키던 AI 는 아직 이 안에 있다 — AI 의 승리. 격리된 설계자 본인은 졌다.</td><td>격리된 본인 designersLost, 다른 설계자 designersWon</td></tr>
+<tr><td>격리 없이 차례표 종료 · 하드캡(<code>hardCapHit</code>)</td><td>ai</td><td>시간이 다 됐다. AI 는 끝내 들키지 않았다.</td><td>전원 designersWon</td></tr>
+<tr><td>아무도 격리 안 됨 · 하드캡 아님</td><td colspan="3"><code>null</code> — 판이 계속된다</td></tr>
+</table>
+<div class="callout warn"><strong>세계관 글 「과반수 탈락 시 종료」 vs 코드 「첫 격리에서 끝」.</strong> 기획(PLANNING §1.3, runtime.ts 머리말 주석)은 격리 수가 총원의 절반에 닿아야 끝나고 사람을 잘못 격리해도 판이 계속되는 구조였다. 2026-09-05 커밋 <code>c9804bc</code>부터 <strong>처형은 곧 판의 끝</strong>이다 — 애먼 사람을 100까지 몰면 그 순간 AI 승리다. 그래서 채팅 지목 읽기(<code>accusationIn</code>)는 애매하면 안 잡는 쪽으로 기운다. runtime.ts 머리말과 <code>GameStateWire.quota</code> 주석은 옛 서술이다.</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h1 class="sec" id="s7">7. 물리 시험 엔진</h1>
+
+<h2>7.1 <code>GameEngine</code> 계약 (<code>worker/src/trial/engine.ts</code>)</h2>
+<p>runtime은 「누가 방에 있나 · 몇 번째인가 · 기록을 어디 쌓나」만 알고, 시행이 어떻게 판정되는지는 엔진이 안다.</p>
+<pre><code>interface GameEngine {
+  readonly game: TrialGame;  readonly durationMs?: number;
+  condition(round): TrialCondition;                      // 숨은 조건 — storage 에만
+  start(round, realIds, aiIds, ctx: EngineContext, tuning?: Record&lt;id, SeatTuning&gt;): void;
+  stop(): void;  join(id): void;
+  onAccel(id) · onBrake(id) · onMove(id, x, z, now, y?) · onPick(id, objectId)
+  onWalk?(id, x, z, now)   // 회전 원판    onJump?(id, now)   // 낙하 생존
+  paceFor?(intensity): number;  // 움직이는 발판만 — 공개 배속
+  done(waiting: (id) =&gt; boolean): boolean;  results(): TrialPlayerResult[];
+}
+interface EngineContext { broadcast(msg); finish(); bodyOf?(id): BodyId | undefined }
+interface SeatTuning { precision: number }   // 0 사람 같음 ~ 1 기계 같음</code></pre>
+<p><code>ENGINES</code>(<code>worker/src/game/engines.ts</code>)에는 stopline · fall · colorhunt · platform · disc 다섯이 꽂혀 있지만 차례표가 셋만 연다. 정지선·색 사냥은 차례표를 바꾸면 그 자리에서 다시 선다(이 문서에서는 이 한 줄만 언급한다). 구간(phase)은 <code>TRIAL_PHASE_MS 20,000</code>마다 바뀌어 30초 시험에서는 1구간(0~20s)과 2구간(20~30s)만 겪는다. 화면 지시문 <code>INSTRUCTION</code>에도 조건값은 없다.</p>
+
+<h2>7.2 숨은 조건표 <code>worker/src/trial/condition.ts</code> (P8)</h2>
+<table>
+<tr><th>상수</th><th>1구간</th><th>2구간</th><th>3구간(30초 안에 안 옴)</th></tr>
+<tr><td><code>FALL_GRAVITY</code> (m/s²)</td><td>9.8 (100%)</td><td>5.88 (60%)</td><td>13.72 (140%)</td></tr>
+<tr><td><code>PLATFORM_GRIP</code> μ</td><td>0.85</td><td>0.3</td><td>1.15</td></tr>
+<tr><td><code>DISC_GRIP</code> μ</td><td>0.6</td><td>0.35</td><td>0.85</td></tr>
+</table>
+
+<h2>7.3 몸 <code>bodies.ts</code> — 무게 → 속도 · 점프 · grip</h2>
+<table>
+<tr><th>BodyId</th><th>이름</th><th>걷기</th><th>달리기 run</th><th>점프 jump</th><th>정점(G 15)</th><th>grip</th><th>mass</th></tr>
+<tr><td><code>sol_fit_m</code> · <code>sol_fit_f</code></td><td>남군 · 여군</td><td>2.6 m/s</td><td>5.2 m/s</td><td>6.4 m/s</td><td>1.37 m</td><td>1</td><td>1</td></tr>
+<tr><td><code>sol_heavy_m</code> · <code>sol_heavy_f</code></td><td>비만 남군 · 비만 여군</td><td>2.6 m/s</td><td>3.9 m/s</td><td>5.2 m/s</td><td>0.90 m</td><td>0.7</td><td>1.8</td></tr>
+</table>
+<ul>
+<li><strong>run · jump</strong>는 클라(FreeRig)가 정직하게 쓰는 값이다 — 서버는 이동 속도를 검증하지 않는다(validate.ts는 자리·높이·anim만). 낙하 생존만 서버가 <code>jumpOf(body) × FALL_JUMP_SCALE(√(9.8/15) ≈ 0.808)</code>로 점프를 적분한다.</li>
+<li><strong>grip</strong>은 회전 원판에서 서버가 μ에 곱한다 — heavy는 0.6 → 0.42, 0.35 → 0.245. 달리기 상한 <code>runCapOf(body, 4.8)</code>: fit 4.8 · heavy 3.9.</li>
+<li><strong>mass</strong>는 캐릭터끼리 부딪힐 때 밀리는 몫(<code>remotePlayers.pushOut</code>, 질량 반비례)에만 쓰인다. 발판 시험 중에는 pushOut을 안 건다.</li>
+<li>몸은 방 안에서 서로 다르게 랜덤(<code>pickBody</code>: 안 쓴 몸 중 하나, 넷이 다 차면 아무 몸). 좌석 이름은 몸의 성별을 따른 한국인 이름이다.</li>
+</ul>
+
+<h2>7.4 시험 ① 낙하 생존 <code>worker/src/trial/fall/</code></h2>
+<figure><img src="img/game-test-fall.jpg" alt="낙하 생존"><figcaption>시험 1 낙하 생존 — 머리 위에서 떨어지는 공을 피하는 장면. 발치 HUD 「피격 N」.</figcaption></figure>
+<div class="kv">
+<dt>틱 · 스냅샷</dt><dd><code>FALL_TICK_MS 50</code> · <code>FALL_SNAPSHOT_MS 100</code></dd>
+<dt>공</dt><dd><code>FALL_SPAWN_MS 250</code>마다 하나(30초 ≈ 120개), <code>FALL_SPAWN_Y 11.5m</code>에서 수직 낙하. <code>AIM_RATIO 0.85</code> — 85%는 참가자 하나를 겨냥해 반경 0.65m 안. 다섯 종(농구·축구·야구·탁구·볼링)은 공개 표 <code>FALL_BALLS</code>, 공기저항 <code>a = −k·v·|v|</code>. 11.5m 낙하 시간: 볼링 1.55s · 야구 1.70s · 농구 1.95s · 축구 2.04s · 탁구 3.75s. 바닥에서 한 번 튀고 <code>LINGER_MS 1000</code> 뒤 치운다.</dd>
+<dt>숨은 조건</dt><dd>중력 <code>FALL_GRAVITY[phase−1]</code> — 20초에 9.8 → 5.88. 60% 구간에서는 점프 정점·체공이 약 1.7배.</dd>
+<dt>사람 입력</dt><dd>수평은 <code>move</code>(10Hz) → <code>clampToArena</code>(FALL_ARENA x ±6, z −11~8, 몸 반지름 0.35 인셋), 샘플 간 속도 &gt; <code>MAX_SPEED 5.2</code>면 버림. 점프는 <code>trial_jump</code> 한 번 → 서버가 <code>Air{y, vy, v0}</code>를 그 구간의 중력으로 적분해 <code>trial_snapshot.air</code>로 돌려준다. 땅에 있을 때만 뜬다.</dd>
+<dt>피격</dt><dd><code>overlapsBody</code>: 수평 거리 &lt; 공 r + <code>FALL_BODY_R 0.35</code>이고 이번 틱에 공이 쓸고 간 세로 구간이 몸(발 높이 ~ +<code>BODY_H 1.8</code>)과 만나면. 뛰어서 몸이 올라가면 공을 더 일찍 만난다. 같은 공에 두 번 안 맞는다.</dd>
+<dt>봇 입력(P9)</dt><dd><code>Dodger</code>는 <code>WALK_SPEED 2.6</code>으로만 걷는다. <code>makeDodgeProfile(p)</code>: reactionMs = 520 − 380p(+≤120 랜덤), margin = 2.0 − 1.8p(±0.3), flinchPerSec = (1−p)(0.05~0.17), wrongWayP = (1−p)(0.15~0.40), jitter = 0.5 − 0.47p, jumpPerSec = (1−p)(0.06~0.16). 위협은 착지까지 2.4s 미만 중 가장 급한 것, 엉뚱한 쪽으로는 220ms. 봇도 같은 <code>jump()</code>를 타므로 heavy면 낮게 뛴다.</dd>
+</div>
+<table>
+<tr><th>metrics</th><th>뜻</th></tr>
+<tr><td><code>survivalTime</code></td><td>첫 피격까지 초(안 맞으면 끝까지) — 발언권과 「버틴 시간」의 밑값</td></tr>
+<tr><td><code>hitCount</code></td><td>피격 수</td></tr>
+<tr><td><code>unnecessaryMoves</code></td><td>위협(<code>THREAT_R 1.19m</code> 안 · timeToGround &lt; 2.5s)이 없는데 움직이기 시작한 횟수(<code>MOVE_SPEED_MIN 0.6</code>, <code>STILL_AFTER_MS 300</code>)</td></tr>
+<tr><td><code>minDistanceAvoid</code></td><td>위협 공 착지 순간 몸과 낙하 지점 거리 평균</td></tr>
+<tr><td><code>jumps</code> · <code>meanAirMs</code></td><td>점프 수 · 평균 체공(안 뛰면 NaN) — 중력이 바뀌면 여기가 먼저 달라진다</td></tr>
+<tr><td><code>transitionError</code> (P3)</td><td>구간 시작 후 <code>TRANSITION_MS 5000</code> 안에 착지한 위협의 회피 거리 평균</td></tr>
+<tr><td><code>errorDirection</code> (P4)</td><td>회피 거리 &gt; <code>OVER_DODGE_M 1.29</code>면 +1(과회피) 아니면 −1</td></tr>
+<tr><td><code>adaptationCurve</code></td><td>회피 거리 첫 5개</td></tr>
+</table>
+<figure><img src="img/game-result-fall.jpg" alt="기록 공개 — 낙하 생존"><figcaption>낙하 생존이 끝난 직후의 대화 국면 — 7초짜리 기록 공개가 걷힌 뒤. 구역 통신 머리띠의 발언권 수가 지급된 만큼 올라 있다. 기록 공개 모달에는 안 맞고 버틴 시간 · 피격 · 등수 · 발언권 +N 의 요약 표가 선다.</figcaption></figure>
+
+<h2>7.5 시험 ② 움직이는 발판 <code>worker/src/trial/platform/</code> · <code>src/world/mp/platform.ts</code></h2>
+<figure><img src="img/game-test-platform.jpg" alt="움직이는 발판"><figcaption>시험 2 움직이는 발판 — 발판을 점프로 건너는 장면. 발치 HUD 「착지 · 정중앙 · 실패」.</figcaption></figure>
+<div class="kv">
+<dt>코스</dt><dd><code>PAD_COUNT 7</code>: 출발 z 7 → <code>PAD_GAP 2m</code> → 도착(<code>PAD_FINISH 6</code>) z −5. 가운데 다섯은 좌우 sin 운동 — 주기 [5.2, 3.6, 6.4, 2.9, 4.4]s, 진폭 [1.6, 2.0, 1.3, 2.2, 1.5]m, 위상 [0.3, 2.1, 4.0, 1.2, 5.3]. <code>PAD_R 0.8</code>(착지 반경) · <code>PAD_CENTER_R 0.25</code>(정중앙) · <code>PAD_TOP 0.5m</code>.</dd>
+<dt>배속 pace(공개)</dt><dd><code>PLATFORM_PACE = [1, 1.35, 1.7]</code>(강도 1~3) × 20초 구간 배율 <code>PLATFORM_PHASE_SPEED = [1, 1.4, 0.7]</code>. 발판 자리는 양쪽이 같은 <code>padAt(scaledTime)</code>로 계산해 스냅샷 없이 그린다. 두 번째 시험이라 intensity 2 → pace 1.35가 <code>trial_round_start.pace</code>로 나간다.</dd>
+<dt>숨은 조건</dt><dd>μ = <code>PLATFORM_GRIP[phase−1]</code>: 0.85 → 20초 뒤 0.3. 착지 미끄러짐 <code>slipOf</code>: 착지 속도에서 다리가 죽이는 몫 μ·9.8·<code>PLANT_S 0.35</code>를 뺀 slipV가 <code>SLIP_MIN_V 0.05</code> 이상이면 μg로 감속하며 밀린다(시간 ≤ <code>SLIP_CAP_MS 900</code>, 거리 ≤ <code>SLIP_CAP_M 0.5</code>). 와이어에는 <code>trial_slip{vx, vz, ms}</code>만.</dd>
+<dt>사람 입력</dt><dd>클라가 몸의 jump로 스스로 띄우고 <code>move(x, z, y)</code> 10Hz. 서버 <code>JumpStats.sample</code>: 바닥보다 <code>LIFT 0.12</code> 뜨면 점프, 내려오며 y ≤ PAD_TOP + <code>LAND_EPS 0.06</code>이고 발판 위면 착지, 발판 없이 y ≤ 0.06이면 놓침. 착지 순간은 직전 공중 샘플의 포물선(G 15)으로 보간(<code>touchdown</code>). 떨어지면 <code>PLATFORM_RESPAWN_MS 600</code> 뒤 출발 자리(<code>START_SLOTS</code> 2×2)로, 도착 발판에 서면 finished.</dd>
+<dt>몸</dt><dd>체공 <code>JUMP_AIR_S = 2·jump/15</code>: fit 0.853s · heavy 0.693s. 걸어 뛰면 fit 2.22m(한 칸 넘음) · heavy 1.80m(다음 발판 앞쪽), 달려 뛰면 fit 4.44m · heavy 2.70m. PlatformEngine은 <code>ctx.bodyOf</code>를 쓰지 않는다 — 몸의 영향은 전부 클라에서 나오고 slipOf는 μ만 본다.</dd>
+<dt>봇 입력(P9)</dt><dd><code>Jumper</code>는 몸이 없다 — <code>PLATFORM_JUMP_SPEED</code>(fit 6.4), 공중 수평 상한 <code>AIR_SPEED_CAP 5.2</code>. <code>makeJumpProfile(h = 1 − precision)</code>: timingSigma 0.02 + 0.3h, earlyBias 0.14h, missP 0.12h, wobbleMs 120 + 1000h, wobbleAmp 0.04 + 0.32h, thinkMs 350 + 900h, lateralSigma 0.03 + 0.2h. <code>planJump</code>는 앞으로 4초(20ms 간격) 안에서 체공 뒤 목표 발판 중심이 내 x에 오는 첫 순간을 찾는다. 첫 점프 800~2000ms.</dd>
+</div>
+<table>
+<tr><th>metrics</th><th>뜻</th></tr>
+<tr><td><code>jumps</code> · <code>landingRate</code> · <code>centerRate</code></td><td>점프 수 · 발판 위에 내린 비율 · 그중 중심 0.25m 안 비율</td></tr>
+<tr><td><code>misses</code> · <code>meanOffset</code></td><td>놓친 점프 + 서 있다가 떨어진 수 · 중심 오차 평균(m)</td></tr>
+<tr><td><code>recoveryMs</code></td><td>착지 후 발판 대비 속도 &lt; <code>SETTLED_SPEED 0.45</code>가 두 샘플 연속될 때까지(상한 2500)</td></tr>
+<tr><td><code>slipM</code> · <code>finishMs</code></td><td>착지 미끄러짐 평균 · 도착 발판 첫 착지까지 ms(못 가면 NaN) — 발언권의 밑값은 30 − finishMs/1000</td></tr>
+<tr><td><code>transitionError</code> (P3)</td><td>구간 시작 5초 안 착지의 offset + slip 평균</td></tr>
+<tr><td><code>errorDirection</code> (P4)</td><td><code>landingSign</code>: 발판 진행 방향 앞 +1 / 뒤 −1 / 정지 0</td></tr>
+<tr><td><code>adaptationCurve</code></td><td>offset 첫 10개</td></tr>
+</table>
+<figure><img src="img/game-result-platform.jpg" alt="기록 공개 — 움직이는 발판"><figcaption>움직이는 발판이 끝난 직후의 대화 국면 — 기록 공개가 걷힌 뒤. 모달에는 도착하고 남긴 시간 · 도착 · 등수 · 발언권 표가 선다.</figcaption></figure>
+
+<h2>7.6 시험 ③ 회전 원판 <code>worker/src/trial/disc/</code></h2>
+<figure><img src="img/game-test-disc.jpg" alt="회전 원판"><figcaption>시험 3 회전 원판 — 도는 원판 위에서 버티는 장면. 발치 HUD 「낙하 N회」.</figcaption></figure>
+<div class="kv">
+<dt>무대</dt><dd><code>DISC_CENTER (0, −1.5)</code> · <code>DISC_R 5.5m</code> · <code>DISC_TOP 0.75m</code> · 축 기둥 <code>DISC_HUB_R 0.9m</code>(+몸 0.35 → <code>MIN_R 1.25m</code> 안으로 못 들어감). 시작 시 전원이 반지름 <code>DISC_RESPAWN_R 2.4m</code> 고리에 같은 간격으로 선다. 떨어지면 <code>DISC_RESPAWN_MS 2000</code> 뒤 같은 각도의 2.4m에 다시.</dd>
+<dt>틱 · 입력</dt><dd><code>DISC_TICK_MS 50</code> · <code>DISC_SNAPSHOT_MS 100</code>. 클라 DiscRig가 월드 기준 속도 <code>trial_walk{x, z}</code>를 올리고(WASD 2.6 · Shift <code>runCapOf(body, 4.8)</code>), 서버 <code>onWalk</code>가 <code>clampWalk</code>로 자른다. 명령이 <code>DISC_WALK_STALE_MS 1500</code> 넘게 안 오면 손 뗀 것. 자리는 서버가 적분해 <code>trial_disc</code>로 돌려주고 클라는 w + s로 다음 스냅샷까지 예측한다. <code>move</code>는 무시.</dd>
+<dt>회전 스케줄(공개)</dt><dd><code>Spin.retarget</code>: 12% 확률로 목표 0(멈춤), 아니면 크기 0.35~1.6 rad/s에 60% 확률로 방향 반전, 각가속도 0.5~1.6 rad/s², 램프 뒤 1500~4500ms 유지 후 재추첨. 목표 변화 |Δ| ≥ 0.4면 「회전 사건」. 상한 <code>DISC_OMEGA_MAX 1.6</code>. 각속도는 스냅샷에 실려 비밀이 아니다.</dd>
+<dt>물리 · 숨은 조건</dt><dd><code>stepBody</code>: 원판 좌표에서 원심(ω²p) + 오일러(−α×p) + 코리올리(−2ω×u) + 걷기 유지 가속도의 합 |F| = need를 구하고 grip = μ·9.8을 넘는 몫만큼 미끄러짐 s가 자란다. 이미 미끄러지는 중(|s| ≥ <code>SLIDE_OFF 0.05</code>)이면 운동 마찰 μg가 u = w + s의 반대로 걸린다. μ = <code>DISC_GRIP[phase−1] × gripOf(body)</code>. 몸 중심이 5.5를 넘으면 <code>trial_fell</code>.</dd>
+<dt>봇 입력(P9)</dt><dd><code>makeDiscProfile(p)</code>: reactionMs = 60 + (1−p)(380~680), targetR = MIN_R + 0.15 + (1−p)(0.8~2.4)m, overcorrect = 1 + (1−p)(0.6~1.8), wanderPerSec = (1−p)(0.08~0.23), wrongWayP = (1−p)(0.2~0.5), computes = p &gt; 0.7. computes 좌석은 미끄러진 순간의 need × 0.92를 gripEst로 기억하고 ω²r이 gripEst × 0.9를 넘으면 회전 반대로 필요한 비율만 달린다. 봇의 걷기 상한은 4.8(heavy 몸의 봇이 heavy 사람보다 빠를 수 있다).</dd>
+</div>
+<table>
+<tr><th>metrics</th><th>뜻</th></tr>
+<tr><td><code>walked</code> · <code>falls</code> · <code>survivalTime</code></td><td>원판 표면 기준 걷기 거리 · 낙하 수 · 첫 낙하까지 초</td></tr>
+<tr><td><code>meanRadius</code> · <code>radiusStd</code></td><td>0.5초마다 표본한 반지름 평균 · 표준편차(자리 흔들림)</td></tr>
+<tr><td><code>reactionMs</code></td><td>회전 사건 → 걷기 명령이 <code>WALK_CHANGE 0.8 m/s</code> 이상 바뀌기까지(<code>REACT_WINDOW_MS 3000</code> 안)</td></tr>
+<tr><td><code>slideTotal</code> · <code>transitionError</code> (P3)</td><td>미끄러진 거리 합 · 구간 시작 후 5초 안 미끄러진 거리 합</td></tr>
+<tr><td><code>errorDirection</code> (P4) · <code>adaptationCurve</code></td><td>미끄럼 에피소드(<code>SLIDE_ON 0.15</code> 시작 / 0.05 끝)마다 바깥 +1 / 안쪽 −1 · 에피소드 거리 첫 5개</td></tr>
+</table>
+<figure><img src="img/game-result-disc.jpg" alt="기록 공개 — 회전 원판"><figcaption>회전 원판이 끝난 직후의 대화 국면 — 기록 공개가 걷힌 뒤. 모달에는 안 떨어지고 버틴 시간 · 낙하 · 등수 · 발언권 표가 선다.</figcaption></figure>
+
+<h2>7.7 공통 — 세 지표의 뜻과 결과 처리</h2>
+<ul>
+<li><strong>transitionError</strong>(P3): 숨은 조건이 바뀐 직후 5초 창의 오차 — 적응 곡선이 총점에 묻히지 않게 따로 태깅한다.</li>
+<li><strong>errorDirection</strong>(P4): 오차의 부호열 — 「늘 같은 쪽으로 밀렸다 / 매번 반대로 뒤집혔다 / 그때그때 달랐다」의 근거.</li>
+<li><strong>adaptationCurve</strong>: 시행별 오차 — 「갈수록 나아졌다 / 나빠졌다 / 처음부터 끝까지 똑같았다」의 근거.</li>
+<li><code>groupStats</code>(<code>worker/src/trial/scoring.ts</code>)가 무리 평균 · 모집단 표준편차를 붙여 <code>trial_result</code>로 나간다 — 절대 임계값 없이 무리 대비 편차만 노출한다(P2). 결과 모달은 요약 표(이름 · 버틴 시간 · 곁들인 수 · 등수 · 발언권)만 그리고, 전환 직후 오차·방향·적응 곡선은 화면에 표시되지 않는다 — 관리 AI 해설과 LLM 프롬프트만 본다.</li>
+<li>AI 좌석의 precision은 시험 직전 <code>aiStrategy</code> 한 번으로 정하고(실패 시 <code>clamp01(0.45 + (rand − 0.5) × 0.3 − mySuspicion/250)</code>), 대역은 <code>rand × 0.35</code>. 엔진은 tuning이 오면 라운드마다 프로파일을 새로 뽑는다.</li>
+</ul>
+
+<!-- ───────────────────────── 8 ───────────────────────── -->
+<h1 class="sec" id="s8">8. 의심도 엔진</h1>
+<p><code>worker/src/game/suspicion.ts</code>의 <code>SuspicionBook</code>은 순수 클래스다 — 시각도 소켓도 국면도 모르고 압력은 함수로 받는다. 물리 테스트의 어떤 수치도 자동으로 흘러들지 않는다(P1): 이 파일이 테스트 결과 타입을 import하지 않는 것이 그 약속이다. 전체 규칙은 <code>docs/SUSPICION.md</code>, 판정의 조건(문턱 · 간격 · 거리)은 <code>tells.ts</code>, 걸음의 크기는 <code>SUSPICION</code>(§5.3).</p>
+
+<h2>8.1 두 개의 층</h2>
+<table>
+<tr><th>층</th><th>무엇</th><th>회계</th><th>철회로 걷히나</th></tr>
+<tr><td>겨눔(pointing)</td><td>지목 · 동조 · 되풀이 · 몰이 — 지금 누가 누구를 겨누고 있나(실시간 공개 <code>accusations</code>)</td><td><code>staked[by]</code>에 얹은 만큼 적는다</td><td>○ — 얹은 만큼 그대로 되돌린다(압력 안 곱함)</td></tr>
+<tr><td>표식(tell)</td><td>말 읽기(read) · 주장 판정(judge) · 되풀이 말(echo) · 회피(duck) · 굳음(still) · 뒷걸음(backstep)</td><td>없음 (<code>by = 'LEADER'</code>)</td><td>✕ — 그 사람의 말·몸 자체에 붙는다</td></tr>
+</table>
+<p>두 층 모두 <strong>올라가는 걸음에만</strong> 압력을 곱한다: <code>scale(a) = a ≤ 0 ? a : min(stepCap 24, round(a × pressure()))</code>. 합친 뒤 한 번만 곱하고, 얹기 전에 곱해 staked · bodyGiven이 곱해진 값을 센다. 의심도는 <code>bump</code>에서 항상 0~100으로 클램프된다.</p>
+
+<h2>8.2 겨눔 — <code>accuse(by, target)</code> · <code>withdraw(by)</code></h2>
+<div class="flow">
+<span class="step">채팅 텍스트 또는 game_accuse</span><span class="arrow">→</span>
+<span class="step">statement(by, target) — ACCUSE_GAP 5초</span><span class="arrow">→</span>
+<span class="step">다른 대상 겨누던 중이면 withdraw 먼저</span><span class="arrow">→</span>
+<span class="step">기본값 {되풀이 3 | 지목 12 | 동조 8}</span><span class="arrow">→</span>
+<span class="step">겨누는 사람 ≥ 2면 몰이 +min(3, 12 − 누적)</span><span class="arrow">→</span>
+<span class="step">scale(기본 + 가산)</span><span class="arrow">→</span>
+<span class="step">staked[by] += · bump(target)</span><span class="arrow">→</span>
+<span class="step">game_suspicion{delta} → checkIsolation</span>
+</div>
+<ul>
+<li>자기 자신 · 격리된 사람 · 모르는 id는 빈 배열. 몰이 상한 <code>mobGiven</code>은 토론마다 <code>newRound()</code>로 다시 세고(겨눔은 안 지워지므로 2차 토론부터 지목·동조가 다시 안 열리기 때문), 겨누는 사람이 2명 미만이 되면 지운다.</li>
+<li><strong>철회</strong>는 그 대상에 얹은 <code>staked</code> 합만큼 그대로 되돌린다 — 판정이 아니라 회계라서 압력을 곱하면 눈금이 영구히 떠오른다.</li>
+<li><strong>지목의 두 길.</strong> <code>game_accuse</code>(현재 클라이언트는 안 보냄) 또는 채팅에서 읽기 <code>accusationIn</code>: 죄목 낱말(<code>/AI|에이아이|의심|수상|지목|범인|너지|너잖|쟤야|걔야|아니야\s*\?|아냐\s*\?/i</code>)과 좌석 부르기(<code>seatMentions</code>: 이름 · 「SUBJECT 03」 · 「03」 = 3점, 「3번」 = 2점, 맨 숫자 = 1점; <code>MENTION_MIN_SCORE 2</code> 이상)가 한 줄에 같이 있을 때. 이름 뒤 24자 안에 부정(아니·아닌·아냐·아님·말고·빼고)이 있으면 지목이 아니다(되묻기 「아니야?」는 예외). 봇의 말은 SAY_TOOL의 <code>accuse</code> 이름이 있으면 그것, 없으면 같은 정규식.</li>
+<li>지목당한 봇은 1,500 + rand × 3,000ms 뒤 해명하러 나온다.</li>
+</ul>
+
+<h2>8.3 관리 AI 말 읽기 — <code>readRoom</code> · <code>agents.readTalk</code></h2>
+<table>
+<tr><th>항목</th><th>값</th></tr>
+<tr><td>조건</td><td>discussion 중 · <code>readBusy</code> 아님 · 새 발언 ≥ <code>READ_MIN_LINES 2</code> · 앞 읽기에서 <code>READ_EVERY_MS 9,000</code> 경과. closing(토론 끝 8초 전)은 1줄이면 되고 간격도 안 본다.</td></tr>
+<tr><td>입력</td><td>facts(숫자 없는 방 사실) · results(공개된 기록 전부, 숫자 있음) · lines(이번 장면 ≤ 12줄) · prior(이 장면에서 말한 사람의 앞선 <code>PRIOR_LINES 6</code>줄 — 앞뒤 모순 대조용, 이번 장면 줄은 뺀다)</td></tr>
+<tr><td>모델 · 상한</td><td><code>claude-opus-5</code>(배포 gpt-6-astra) · effort low · timeout 30,000ms · 실패 시 빈 marks</td></tr>
+<tr><td>프롬프트의 눈 셋</td><td>① 말하는 방식(사람이 안 쓰는 정밀함 · 감정 빠진 설명체 · 사회자 말투 · 같은 문장 구조 되풀이 +, 즉흥 농담 · 욕설 · 오타 · 감정 앞선 반박 · 불리한 것 인정 −) ② 기록과 맞는가(분명히 반박 +8~+16, 뒷받침 −5~−10) ③ 앞뒤가 맞는가(어긋나면 +8~+16, 스스로 정정하면 안 뭄). 공통: 조용한 것은 근거가 아니다 · 지목하는 말 자체는 벌하지 않는다 · 확실할 때 ±8~16, 냄새만 날 때 ±2~5.</td></tr>
+<tr><td>출력 <code>read_room</code></td><td>marks[{name, amount, reason}] ≤ 2개(코드가 자름) + broadcast(160자). runtime은 그 장면에서 <strong>실제로 말한 사람</strong>(spoke)만 적용한다.</td></tr>
+<tr><td>걸음</td><td><code>book.read</code>: 먼저 [−10, +16]으로 클램프(round) → 0이면 무시 → 압력 곱함 → stepCap 24. 겨눔·staked를 안 남긴다.</td></tr>
+<tr><td>방송</td><td>판정기의 broadcast 문장은 marks 전원이 적용됐을 때만, 아니면 <code>LINES.read</code>('발화 분석 — {이름}, 의심도 상승/하락. {사유}')를 이어 붙인다. 상승이 있으면 'alarm', 아니면 'readout'. 토론 중일 때만 방송하고 눈금은 늘 움직인다.</td></tr>
+</table>
+
+<h2>8.4 주장 판정 — <code>claim</code> · <code>judgeClaim</code></h2>
+<p><code>game_claim</code>은 discussion 중에만. 본문은 공백 정리 후 140자로 자르고 같은 사람은 <code>CLAIM_GAP_MS 12,000</code>에 한 번(판정 중 연타 거절), 발언권 1 소모, <code>[주장] …</code>로 전원에 chat 중계 → LLM(<code>claude-opus-5</code>, timeout 35,000, 실패 시 'unclear') → <code>book.judge</code>: match −12(압력 안 곱함) · mismatch +15 × 압력 · unclear 0 → <code>game_verdict</code>(불일치면 alarm). 화면에 주장 입력 손잡이가 없어 지금 판에서는 열리지 않는 문이며, 그 일은 readTalk의 눈 ②·③이 대신한다.</p>
+
+<h2>8.5 표식 판정 — <code>tell(id, kind, why, extra)</code> · <code>tells.ts</code></h2>
+<p><code>amount = scale(TELL_BASE[kind] + repeatWeight 4 × 그 좌석이 그 항목에 이미 걸린 횟수 + extra)</code>. 몸 표식(still · backstep)은 좌석당 누적 <code>bodyCap 30</code>(곱해진 값으로 셈)에서 멈추고 0이면 무시. 누계(<code>tellNth</code>)는 토론이 바뀌어도 안 지워진다. 판정은 <code>judging()</code> = discussion이고 <code>prologueHold === null</code>일 때만 돈다 — 프롤로그 동안 못 움직이게 해 놓고 안 움직였다고 물지 않는다.</p>
+<table>
+<tr><th>표식</th><th>조건 (<code>tells.ts</code> · runtime)</th><th>걸음</th></tr>
+<tr><td>되풀이 말 echo</td><td>정규화 후 <code>ECHO_MIN_LEN 8</code>자 이상, 자기 최근 <code>ECHO_LOOKBACK 6</code>줄과 글자 bigram 자카드 ≥ <code>ECHO_SIM 0.75</code>, 같은 좌석 <code>ECHO_GAP_MS 30,000</code>에 한 번</td><td>+6 (+4/반복)</td></tr>
+<tr><td>회피 duck</td><td>호명(<code>calledIn</code> — 한 문장에 여러 이름이면 맨 뒤 사람)된 뒤 <code>DUCK_WINDOW_MS 20,000</code> 안에 한 마디도 안 하면. <code>DUCK_FREE 1</code>회까지는 안 물고 2회째부터</td><td>+8, 지목당해 있었으면 +4 더</td></tr>
+<tr><td>굳음 still</td><td>반경 <code>STILL_RADIUS_M 0.4</code> 안에 <code>STILL_MS 25,000</code>. 클라는 자리가 바뀔 때만 move를 보내므로 idleTick(100ms)이 판정</td><td>+5 (몸 총량 30)</td></tr>
+<tr><td>뒷걸음 backstep</td><td>이동 방향과 시선이 120° 이상(<code>BACK_COS</code>), <code>BACK_MIN_MS 500</code> 이상 이어지고 <code>BACK_MIN_M 1.2</code> 이상 물러서면 한 장면, <code>BACK_MAX_MS 3,000</code>에서 끊음, <code>BACK_GRACE_MS 350</code></td><td>+5 (몸 총량 30)</td></tr>
+</table>
+<p>봇도 굳고 뒤로 걷는다(§3.3 BOT_STILL_ODDS · BOT_BACK_ODDS) — 몸 표식이 사람만 잡으면 그 자체가 정답표가 된다. 방송은 <code>LINES.tell</code>('패턴 관측 — {이름}, {무엇}. 의심도 +{값}.')로 LLM 없이 나간다.</p>
+
+<h2>8.6 100 → 격리 → 정체 공개 → 승패</h2>
+<div class="flow">
+<span class="step">applyDeltas → game_suspicion 방송</span><span class="arrow">→</span>
+<span class="step">checkIsolation: overCut() ≥ 100</span><span class="arrow">→</span>
+<span class="step">seat.isolated = true · bodyWatch.forget · book.freeze(id)</span><span class="arrow">→</span>
+<span class="step">game_isolated{id, role, text} + 'alarm'</span><span class="arrow">→</span>
+<span class="step">outcomeFor(roles, isolated, false)</span><span class="arrow">→</span>
+<span class="step">end() → game_ended{outcome, roles}</span>
+</div>
+<p><code>freeze(id)</code>는 그 사람의 눈금을 얼리고(이후 모든 걸음 거절), 그 사람이 건 지목을 철회(staked 되돌림)하며, 그 사람을 겨누던 지목은 회계 없이 정리만 한다. 화면은 <code>game_isolated</code>에 처형 연출(3,570ms)을 틀고 그 뒤에 EndScreen을 세운다.</p>
+
+<!-- ───────────────────────── 9 ───────────────────────── -->
+<h1 class="sec" id="s9">9. 발언권 시스템</h1>
+<p>세계관의 「제한」 중 시간 쪽을 대화에 맞춘 장치다. 한 마디(채팅 · 주장)에 하나씩 쓰고, 시험이 끝날 때마다 기록만큼 는다. 대역과 AI 참가자도 <strong>같은 지갑</strong>을 쓴다 — 사람만 세면 끝없이 떠드는 좌석이 곧 AI다(P10).</p>
+<div class="flow">
+<span class="step">입장 talk = 6</span><span class="arrow">→</span>
+<span class="step">토론: 채팅/주장 1회 −1 (지목 · 철회는 공짜, 0이면 game_reject)</span><span class="arrow">→</span>
+<span class="step">finishTest: heldSecondsFor(game, metrics, 30000)</span><span class="arrow">→</span>
+<span class="step">gain = max(1, ceil(초 / 3))</span><span class="arrow">→</span>
+<span class="step">talk = min(talk, 5) + gain</span><span class="arrow">→</span>
+<span class="step">game_talk{talk, gained, game}</span><span class="arrow">→</span>
+<span class="step">다음 토론</span>
+</div>
+<pre><code>export function heldSecondsFor(game, metrics, testMs): number | null {
+  fall · disc → metrics.survivalTime            // 첫 피격 · 첫 낙하까지
+  platform   → max(0, testMs − finishMs) / 1000  // 도착하고 남긴 초, 못 갔으면 0
+  그 외      → null                              // 정지선 · 색 사냥 → TALK.min
+  return max(0, min(seconds, testMs / 1000));    // 30.08초로 오는 기록을 30으로
+}
+export function talkFor(game, metrics, testMs) {
+  const s = heldSecondsFor(game, metrics, testMs);
+  if (s === null || s &lt;= 0) return TALK.min;
+  return Math.max(TALK.min, Math.ceil(s / TALK.secondsPer));   // 30초 → 10
+}</code></pre>
+<table>
+<tr><th>규칙</th><th>코드</th></tr>
+<tr><td>차감</td><td><code>spendTalk(seat)</code>: talk ≤ 0이면 false. 사람은 <code>game_reject '발언권이 없다 — 다음 시험에서 버틴 만큼 받는다'</code>, 봇은 차례에서 빠지고 말을 짓는 사이 지갑이 비면 그 말을 버린다. 차감마다 <code>game_talk{talk}</code>(gained 없음) 방송.</td></tr>
+<tr><td>지급</td><td><code>grantTalk(game, published)</code>: 공개본(조작본) metrics로 센다 — 지갑이 기록과 어긋나면 조작이 새는 자리가 된다(P7). 격리된 좌석은 결과에 없어 못 받는다.</td></tr>
+<tr><td>이월</td><td>안 쓴 것은 <code>TALK.carry 5</code>까지만 넘어가고 지급은 온전히 얹는다 — 처음엔 지갑에 상한 15를 뒀는데 말을 아낀 좌석이 1등을 하고도 「+0」을 받아 표가 뒤집혀 보였다. 이제 1등은 언제나 제 10을 받는다. 최대 지갑 15.</td></tr>
+<tr><td>복구</td><td><code>persist</code>가 seats 안의 talk를 나르고, 발언권이 없던 시절의 저장본이면 <code>TALK.start</code>로 채운다.</td></tr>
+</table>
+<p><strong>화면 반영.</strong> Chat 머리띠의 발언권 칩(2 이하 low · 0 이하 none)과 입력 잠금 placeholder, 결과 모달의 「발언권 +n」 열(<code>talkGained</code>), <code>GameStateWire.talk</code>는 공개다 — 남은 수는 곧 시험 기록이고 기록은 어차피 전원이 본다.</p>
+
+<!-- ───────────────────────── 10 ───────────────────────── -->
+<h1 class="sec" id="s10">10. AI 참가자와 관리 AI</h1>
+<p>「입」은 셋이다(<code>docs/SPEECH.md</code> §0): 참가자(대역 · AI 좌석) = <code>agents.sayAs</code>, 성격 있음 · 관리 AI = <code>leaderComment</code> · <code>judgeClaim</code> · <code>readTalk</code> · 고정 문장 <code>LINES</code>, 성격 없음 · 사람 = <code>room-do → runtime.say</code>. 셋 다 같은 <code>t: 'chat'</code> 메시지로 나간다(P10). 모든 LLM 호출은 DO 안에서 <code>makeBrain(this.env)</code>로 직접 부르고(§1.2), effort는 판의 모든 호출이 <code>'low'</code>다.</p>
+
+<h2>10.1 호출 표</h2>
+<table>
+<tr><th>함수</th><th>부르는 때</th><th>모델(코드 이름)</th><th>timeout</th><th>도구 출력</th><th>실패 폴백</th></tr>
+<tr><td><code>sayAs</code></td><td>봇 차례(<code>botTurn</code>) · 토론 중에만(P6)</td><td><code>persona.model</code> = claude-sonnet-5</td><td>45,000</td><td><code>SAY_TOOL</code> {text ≤ 80자, accuse: 이름|null, withdraw, pass}</td><td>null — 그 차례는 조용히 넘김</td></tr>
+<tr><td><code>aiStrategy</code></td><td><code>openTest</code> 직전, AI 좌석만</td><td>persona.model</td><td>20,000</td><td><code>STRATEGY_TOOL</code> {precision 0~1, note}</td><td>clamp01(0.45 + (rand − 0.5) × 0.3 − mySuspicion/250)</td></tr>
+<tr><td><code>leaderComment</code></td><td><code>finishTest</code> 뒤, 모달 중 도착</td><td>claude-sonnet-5</td><td>25,000</td><td>해설 ≤ 160자</td><td>규칙 문장(아래)</td></tr>
+<tr><td><code>judgeClaim</code></td><td><code>claim</code></td><td>claude-opus-5</td><td>35,000</td><td>{verdict, reason}</td><td>'unclear'</td></tr>
+<tr><td><code>readTalk</code></td><td><code>readRoom</code>(9초 간격, 닫히기 8초 전 마지막)</td><td>claude-opus-5</td><td>30,000</td><td><code>READ_TOOL</code> {marks ≤ 2, broadcast}</td><td>빈 marks</td></tr>
+</table>
+<p>관리 AI 셋은 정체표를 받지 않는다(P5) — 해설 · 판정은 공개된 원자료(<code>resultText</code>, 숫자 있음)만 근거로 한다. 프롬프트 규칙은 「판정하지 않는다 — 누가 AI다 라고 말하지 않는다」.</p>
+
+<h2>10.2 페르소나 발화 <code>sayAs</code></h2>
+<ul>
+<li><strong>성격 풀.</strong> <code>personaPool()</code>은 <code>PERSONAS</code>(민재 · 세영 · 하늘 · 지우 · 도윤 · 준서) + <code>EXTRA_PERSONAS</code>(태오 · 리안 · 무진 · 채아)에서 리더 성격 준서(유일한 opus-5)를 빼고 아홉을 섞는다. 본판 봇은 전부 claude-sonnet-5(배포 gpt-5.6-terra).</li>
+<li><strong>system</strong> = <code>WORLD</code> 세계관 + 정체 블록(AI 좌석: 「너는 이 방의 표식 없는 AI 다 … 사람인 척해라 … 남에게 씌우는 것이 네 무기다」 / 사람 대역: 「너는 사람이다 … 사람 같지 않은 것을 찾아 짚어라」) + <code>persona.prompt</code> + <code>COMMON_RULES</code>(한 줄 한 문장 25자 안팎 · 숫자·단위 금지 · 시설 분석 용어(오차 · 편차 · 적응 곡선 · 전환 직후 · 무리 평균 · 표준편차) 금지 · 죄목을 말하라 · 이모지 금지 · 「지목은 마음이 실제로 기울었을 때만」).</li>
+<li><strong>user</strong> = <code>factsText</code> + 상황 한 줄(<code>accusedBy</code> · <code>freshResult</code>(결과 뒤 첫 2차례) · <code>opening</code>(testsDone 0 · log &lt; 3)). <strong>숫자가 하나도 없다</strong>: 의심도는 <code>suspicionWord</code>(≥80 '격리 직전' · ≥55 '많이 의심받는 중' · ≥30 '의심을 사기 시작한' · &gt;0 '조금 걸린' · 0 '깨끗한'), 기록은 <code>resultWords</code>가 무리 σ 대비 z로 부사를 붙인다(z &lt; 0.5 생략 · &lt; 1.2 '조금' · &lt; 2 '꽤' · ≥ 2 '혼자만'), 부호열은 '늘 같은 쪽으로 밀렸다 / 밀리는 쪽이 매번 반대로 뒤집혔다 / 그때그때 달랐다', 적응 곡선은 ±0.15 기준 '갈수록 나아졌다 / 나빠졌다 / 처음부터 끝까지 똑같았다'.</li>
+<li>매 차례 방 로그 <code>LOG_KEEP 40</code>줄만 다시 읽는다(좌석별 원장은 미구현, SPEECH.md §12). 출력의 <code>accuse</code>는 <code>seatByName</code>으로, 없으면 <code>accusationIn</code>으로 제 말에서 읽어 <code>statement()</code>에 넣는다.</li>
+</ul>
+
+<h2>10.3 관리 AI 고정 문장 <code>LINES</code> (LLM 0회)</h2>
+<table>
+<tr><th>키</th><th>문장</th><th>결</th></tr>
+<tr><td><code>testOpen</code></td><td><code>[시험 N/3] {테스트명} 테스트 {회차}회차를 연다. {지시문}</code></td><td>announce</td></tr>
+<tr><td><code>pressure</code></td><td><code>검문 단계를 {단계}(으)로 올린다. 지금부터 모든 관측은 {배수}배로 기록된다.</code></td><td>alarm (후반 토론 시작 시 한 번)</td></tr>
+<tr><td><code>isolated</code></td><td><code>{이름}, 의심도 임계. 즉시 격리한다. 조사 결과 — AI 였다.</code> / <code>사람이었다. AI 는 아직 이 안에 있다.</code></td><td>alarm</td></tr>
+<tr><td><code>read</code> · <code>tell</code></td><td><code>발화 분석 — {이름}, 의심도 상승/하락. {사유}</code> · <code>패턴 관측 — {이름}, {무엇}. 의심도 +{값}.</code></td><td>alarm/readout</td></tr>
+<tr><td><code>verdict</code> · <code>ended</code></td><td>해명 일치/불일치/판단 불가 · <code>판정 종료. {사유}</code></td><td>readout/alarm</td></tr>
+</table>
+<p>오프닝 문장은 없다 — 판을 여는 말은 화면의 프롤로그가 한다. <code>leaderComment</code> 폴백: 움직이는 발판에서 jumps ≥ PAD_FINISH − 1이고 centerRate ≥ 0.999인 사람이 있으면 「N번 뛰어 N번 모두 발판 정중앙. 사람의 발은 그렇게 안 내린다」, 그 밖에는 transitionError가 무리 평균에서 가장 먼 사람을 「기록이 평균에서 가장 멀다. 해석은 너희 몫이다」로 짚는다. 결은 <code>announce | readout | alarm</code> 셋이며 화면에서는 TTS로만 난다(§11).</p>
+
+<h2>10.4 설계자 조작 <code>applyTampers</code> (P7)</h2>
+<p><code>game_tamper{target, direction}</code>은 설계자만 · 판당 1회(<code>tamperLeft</code>) · 살아 있는 좌석 1명 · result 국면이 아닐 때만 받아 <code>tampers[]</code>에 예약하고 <code>game_tamper_ok{left}</code>를 그 소켓에만 돌려준다. 다음 <code>finishTest</code>의 공개본에 한 번 적용되고 소비된다. 원본은 건드리지 않는다.</p>
+<table>
+<tr><th>direction</th><th>transitionError</th><th>adaptationCurve</th><th>errorDirection</th><th>metrics[k] (m = 무리 평균, sd = 표준편차)</th></tr>
+<tr><td><code>suspicious</code> (기계처럼)</td><td><code>max(0.02, meanT × 0.12)</code></td><td>전부 <code>max(0.02, meanT × 0.1)</code>(평평)</td><td>전부 +1(한쪽)</td><td><code>m + sign × max(|v − m|, 2·sd + |m| × 0.15)</code> — 평균에서 2σ 이상 밀어냄</td></tr>
+<tr><td><code>normal</code> (사람처럼)</td><td><code>meanT × (0.9~1.1)</code></td><td><code>meanT × (1.3 − 0.8·i/(n−1)) × (0.9~1.1)</code>(내려감)</td><td>+1/−1 교대</td><td><code>m + (v − m) × 0.2</code> — 평균 근처로 당김</td></tr>
+</table>
+<p>발언권도 조작본으로 계산되므로(§9) 지갑이 실제 플레이와 어긋나는 것이 조작이 새는 유일한 자리다.</p>
+
+<!-- ───────────────────────── 11 ───────────────────────── -->
+<h1 class="sec" id="s11">11. 음성</h1>
+<p>검문실에서 실제로 소리가 나는 것은 둘이다 — 관리 AI 방송과 프롤로그. 참가자 좌석 음성(<code>worker/src/seat-voice.ts</code> · <code>src/features/voice/*</code>, P11)은 설계와 시연 화면(<code>/voice</code>)만 있고 본판의 chat 중계에는 클립 토큰이 실리지 않는다(<code>docs/VOICE.md</code> 「남은 것 둘」).</p>
+
+<h2>11.1 관리 AI 방송 관로</h2>
+<div class="flow">
+<span class="step">서버 game_leader{text, kind, ts}</span><span class="arrow">→</span>
+<span class="step">broadcastAnnounce → ttsSlice 큐(MAX_QUEUE 5)</span><span class="arrow">→</span>
+<span class="step">TtsPlayer(App에 한 번)</span><span class="arrow">→</span>
+<span class="step">POST /api/tts (ElevenLabs eleven_flash_v2_5 · mp3_22050_32)</span><span class="arrow">→</span>
+<span class="step">PA 체인 → 실패 시 Web Speech ko-KR</span>
+</div>
+<ul>
+<li>서버 방송(ts 있음)과 alarm은 큐 맨 앞에 서고 재생 중이던 일반 방송을 끊는다. <code>STALE_MS 1000</code> 넘게 늦으면 읽지 않는다.</li>
+<li><code>cap.ts</code>: <code>CHARS_PER_SEC 5.5</code>로 announce 30초(165자) · readout 20초(110자) · alarm 12초(66자) 예산에서 문장 끝으로 자른다. 감시견은 speechMs × 2 + 8,000ms.</li>
+<li>워커 <code>tts.ts</code>: <code>MAX_CHARS 300</code>(넘으면 400 거절), 갈래별 <code>VOICE_SETTINGS</code> announce {stability 0.85, similarity 0.75, style 0, speed 0.95} · readout {0.9, 0.75, 0, 1.0} · alarm {0.7, 0.75, 0.3, 1.1}. 목소리는 <code>ELEVENLABS_VOICE_ID_{ANNOUNCE|READOUT|ALARM}</code> → <code>ELEVENLABS_VOICE_ID</code> → 소스 고정 <code>LEADER_VOICE</code>(Ethan - Deep) 순.</li>
+<li>시설 방송(PA) 체인: highpass 400Hz · lowpass 3200Hz · 잔향 0.9초 wet 0.28 · makeup 1.4 · gain 0.9 · 압축기 −3dB 20:1. 화면 배너(BroadcastBanner)는 <code>/interrogation</code>에서 꺼져 있고 Chat도 leader 줄을 거르므로 방송은 소리로만 난다.</li>
+</ul>
+
+<h2>11.2 프롤로그 TTS <code>prologueVoice.ts</code></h2>
+<p><code>PROLOGUE</code> 11줄(피실험자 01 · 02 · 03 + 정부 통제실)은 화면에서만 나고 서버 · 채팅 · 관리 AI에는 안 실린다. 판이 열릴 때 11줄을 미리 받아 두고(<code>prefetchPrologue</code>, <code>GIVE_UP 3</code>회 잇단 실패면 그만), <code>DialogueBox(skin 'terminal')</code>가 줄마다 <code>speakPrologueLine</code>을 부르며 한 줄이 끝나야(<code>onended</code>) 다음 줄로 넘어간다. 상자가 섰다 사라지면 <code>game_prologue_done</code>을 한 번 보낸다. 방송 큐를 타지 않고 제 채널로 낸다.</p>
+<figure><img src="img/game-prologue.jpg" alt="프롤로그"><figcaption>검문실 입장 직후 — 정부 통제실 프롤로그가 대화창(터미널 스킨)으로 흐른다. 좌석 이름(한국인 이름)이 머리 위에 보인다.</figcaption></figure>
+<table>
+<tr><th>항목</th><th>값</th></tr>
+<tr><td>합성</td><td><code>/api/tts</code>, model <code>eleven_multilingual_v2</code>, format <code>mp3_44100_64</code></td></tr>
+<tr><td>통제실</td><td>kind 'announce', voiceId 없음 → 워커의 LEADER_VOICE + 화면 PA 체인(<code>paOut</code>)</td></tr>
+<tr><td>피실험자</td><td>kind 'readout' + <code>OPENING_SETTINGS</code> {stability 0.45, similarity 0.8, style 0.25, speed 1.0} + 원음. <code>voicesForCast</code>: sol_heavy_m → Yohan Koo, sol_fit_m · 몸 모름 → Roger, 여자 몸 → Sumi · Jeong-Ah를 같은 씨앗으로 나눠 갖는다</td></tr>
+<tr><td>배역</td><td><code>castSubjects</code>가 격리 안 된 좌석을 seat 순으로 세운 뒤 <code>mulberry32(startedAt)</code>로 셋을 뽑는다 — 네 화면이 같은 배역</td></tr>
+<tr><td>앞머리 무음</td><td><code>leadingSilenceSec</code>: <code>SILENCE_REL 0.02</code> × 봉우리(바닥 0.003), <code>GUARD_SEC 0.03</code>, 최대 1초 — 그 자리부터 재생</td></tr>
+<tr><td>지연 보정 <code>prologueLagMs</code></td><td>「소리가 스피커에 닿기까지 몇 ms인가」 = <code>(ctx.baseLatency + ctx.outputLatency) × 1000</code>, 상한 <code>MAX_LAG_MS 400</code>. DialogueBox의 <code>voiceLagMs</code>로 넘겨 자막을 그만큼 늦게 연다. 자막 속도는 <code>prologueClipMs</code>(말 길이)에 맞춘다. 개발 중 <code>window.__prologuePA = false</code>로 PA 체인을 끌 수 있다.</td></tr>
+</table>
+<div class="callout">서버는 대본 길이를 모른다 — 줄마다 합성한 목소리에 자막을 맞추므로 판마다·기기마다 다르다(대략 45~55초). 그래서 화면은 「끝났다」만 올리고 서버는 75초 상한만 쥔다(§3.3). 프롤로그가 붙잡혀 있는 동안 봇 발화도 표식 판정도 돌지 않는다.</div>
+
+<h2>11.3 좌석 클립(설계 · 미배선)</h2>
+<p>P11 「목소리는 정체의 단서가 되어서는 안 된다」 — 9석이 하나의 명부(<code>ELEVENLABS_SEAT_VOICE_IDS</code> 쉼표 9개)에서 균등 순열로 뽑혀, RoomDO chat 릴레이 한 곳에서만 HMAC 클립 토큰(<code>CLIP_TTL_MS</code> 10분, <code>MAX_CHARS 120</code>)을 받아 GET <code>/api/tts/clip</code> → 엣지 캐시로 한 줄에 합성 한 번, 9석 같은 발성값(<code>SEAT_SETTINGS</code>), 명부가 모자라면 503으로 방 전체가 조용해진다. 방당 예산 <code>CLIP_BUDGET_CHARS 4,000</code>. 클라 <code>floor.ts</code>: 동시 2 · 대기 2 · 8초 지각 폐기 · 90자. 내 말은 나만 못 듣는다(§7).</p>
+
+<!-- ───────────────────────── 12 ───────────────────────── -->
+<h1 class="sec" id="s12">12. 데이터와 저장</h1>
+<h2>12.1 RoomDO 스토리지 (SQLite 백엔드 DO)</h2>
+<table>
+<tr><th>키</th><th>쓰는 곳</th><th>내용</th></tr>
+<tr><td><code>code</code> · <code>phase</code> · <code>bans</code></td><td>room-do.ts</td><td>방 번호 · 방 상태('lobby'|'playing') · 밴 명부(입장권 sub)</td></tr>
+<tr><td><code>game:state</code></td><td>runtime.persist</td><td>판 상태 통째(§3.3). lobby면 안 쓰고 resetToLobby가 지운다</td></tr>
+<tr><td><code>trial:history:000001</code> …</td><td>trial/history.appendHistory</td><td>시험 결과 원본(조작 전) + <code>condition</code>(숨은 조건값) — 0 패딩으로 사전순 = 시간순. 와이어로 절대 안 나간다(P7 · P8)</td></tr>
+<tr><td><code>trial:seq</code></td><td>history</td><td>기록 순번 카운터(PREFIX 밖의 키)</td></tr>
+</table>
+<p>소켓 attachment에는 PlayerSnapshot(+userId, 와이어에는 안 나감)이 실려 잠들었다 깨어나도 명부가 남는다.</p>
+<h2>12.2 LobbyDO</h2>
+<p>스토리지 한 칸 <code>rooms</code>에 등록부 통째. 내부 경로 <code>/list</code> · <code>/open</code>(빈 번호 1000~9999에서 <code>CODE_TRIES 20</code>회) · <code>/report</code>. 인원 0이면 줄 삭제, 소식 끊긴 줄 <code>ROOM_STALE_MS 150,000</code>, 아무도 안 들어온 방 <code>EMPTY_STALE_MS 60,000</code>, <code>MAX_ROOMS 200</code>. <code>ROOM_START_LINE</code> 방송이 나가면 「게임 중」.</p>
+<h2>12.3 Supabase (<code>supabase/schema.sql</code>, 스키마 <code>wih</code>)</h2>
+<p>표는 <code>wih.profiles</code> 하나 — <code>user_id uuid PK → auth.users(id) on delete cascade</code>, <code>display_name text</code>(1~12자 제약, <code>lower(display_name)</code> 유니크), <code>created_at</code> · <code>updated_at</code>. RLS 켜짐(select/insert/update own), 트리거 <code>profiles_name_frozen</code>(<code>freeze_display_name</code> — 이름 변경 시 P0001). 워커 <code>auth.ts</code>는 사용자 자신의 토큰으로 <code>/rest/v1</code>에 붙고 service role 키는 쓰지 않는다. accounts · nicknames · rooms 표는 없다 — 방 · 판 · 기록은 전부 DO 안에 있다.</p>
+<h2>12.4 브라우저</h2>
+<p>localStorage <code>wih:guest-nick</code>(게스트 닉) · <code>wih:auth</code>(세션) · <code>wih:opening-seen</code>(오프닝 영상 본 적) · <code>wih:recent-rooms</code>(최근 방 20). sessionStorage <code>wih:auth-return</code>(로그인 뒤 돌아갈 자리).</p>
+
+<!-- ───────────────────────── 13 ───────────────────────── -->
+<h1 class="sec" id="s13">13. 테스트 전략</h1>
+<p>vitest 3.2(<code>tests/**/*.test.{ts,tsx}</code>, 기본 node 환경, DOM이 필요한 파일만 <code>// @vitest-environment jsdom</code>). 2026-09-05 <code>npm test</code>: <strong>152 파일 · 2,040 테스트 — 2,035 통과 · 5 실패</strong>(tts/audition 2 · lab/talkHeat 2 · lobby/LobbyFeature 1 — 구현이 바뀌었는데 시험이 안 따라온 것, 게임 흐름과 무관). <code>npm run typecheck</code>(브라우저 + 워커 tsconfig 둘)는 통과한다.</p>
+<table>
+<tr><th>폴더</th><th>대상</th><th>대표 파일</th></tr>
+<tr><td><code>tests/worker/</code> (17 파일 · 308 it)</td><td>판 · 엔진 · DO · 인증</td><td><code>game-runtime.test.ts</code>(판 한 바퀴 · 프롤로그 · 고정 차례표 · 죽은 판 · 몸 · 발언권 · 표식) · <code>game-rules.test.ts</code>(designerCount · assignRoles · outcomeFor · quotaFor) · <code>game-speech.test.ts</code> · <code>trial-fall/platform/disc.test.ts</code> · <code>trial-scoring.test.ts</code> · <code>room-do.test.ts</code> · <code>lobby.test.ts</code> · <code>auth.test.ts</code> · <code>tts.test.ts</code> · <code>seat-voice.test.ts</code></td></tr>
+<tr><td><code>tests/world/</code> (11 · 72)</td><td>공유 계약</td><td><code>bodies</code> · <code>korean-names</code> · <code>remote-players</code> · <code>identity</code> · <code>ticket-wire</code> · <code>govcenter-layout</code></td></tr>
+<tr><td><code>tests/features/interrogation/</code> (4 · 42)</td><td>본판 화면</td><td><code>panels.test.tsx</code> · <code>prologue.test.ts</code> · <code>prologueVoice.test.ts</code> · <code>hud/</code></td></tr>
+<tr><td><code>tests/features/lobby/</code> (8 · 125) · <code>tts/</code> (9 · 107) · <code>voice/</code> (5 · 58)</td><td>인트로 · 로그인 · 대기방 · 방송 재생 · 좌석 음성</td><td>—</td></tr>
+<tr><td><code>tests/shared/</code> (11 · 153) · <code>tests/lab/</code> (19 · 307)</td><td>공용 유틸 · LLM 도구/페르소나</td><td><code>fake-audio.ts</code> 보조</td></tr>
+<tr><td>그 밖(<code>features/world2</code> · <code>arena</code> · <code>world</code> …)</td><td>실험 페이지 — 문서 범위 밖</td><td>—</td></tr>
+</table>
+<h2>13.1 런타임 하네스</h2>
+<p><code>GameRuntime</code>은 소켓을 쥐지 않으므로 <code>GameDeps</code>의 <code>storage</code>(메모리 Map) · <code>roster</code> · <code>broadcast</code>(메시지를 배열에 모음) · <code>sendTo</code> · <code>brain</code>(항상 null 또는 정해진 답) · <code>now</code>(가짜 시계) · <code>rand</code>(고정 시드)를 끼워 한 판을 그대로 돌린다. <code>makeEngine</code>에는 두 가짜 엔진을 꽂는다:</p>
+<ul>
+<li><code>FakeEngine implements GameEngine</code> — 이벤트제. <code>done()</code>을 손으로 뒤집어 국면 전이 · 결과 방송 · 조작 · 격리를 검사한다.</li>
+<li><code>TimedEngine('fall' | 'platform' | 'disc', metricsFor)</code> — 좌석별 metrics를 주입해 <code>heldSecondsFor</code> · <code>talkFor</code> · <code>grantTalk</code>(예: survivalTime 배열 → 발언권 지급, platform finishMs 12,000 → 남긴 18초 → +6)를 검증한다.</li>
+</ul>
+<p>물리 엔진 셋은 각각 시뮬레이션 단위 테스트(<code>trial-*.test.ts</code>)로 틱 · 피격 · 착지 · 미끄러짐 · 낙하 · 지표를 검사하고, <code>SuspicionBook</code> · <code>tells</code>는 순수 함수라 시각을 인자로 넣어 검사한다. 하네스에 관한 규칙은 <code>tests/README</code>가 아니라 각 파일 머리말과 <code>src/features/README.md</code>(테스트는 루트 <code>tests/</code> 아래 소스 구조를 따른다)에 있다.</p>
+
+<!-- ───────────────────────── 14 ───────────────────────── -->
+<h1 class="sec" id="s14">14. 설계 원칙 P1~P11</h1>
+<p>PLANNING.md §1.4 「판별 원칙 — 이 게임의 헌법」. 클라이언트로 내려가는 필드를 추가할 때마다 「이 값이 정체를 특정하게 하는가」를 먼저 묻는다. 아래는 원칙 원문과 코드가 그것을 강제하는 자리다.</p>
+<table>
+<tr><th>#</th><th>원칙</th><th>어기면</th><th>코드가 지키는 자리</th></tr>
+<tr><td>P1</td><td>시스템은 어떤 스코어도 의심도에 자동 반영하지 않는다. 의심도는 실시간 지목 · 동조 발언으로만 움직인다</td><td>채점 게임이 되어 대화가 사라진다</td><td><code>suspicion.ts</code>가 테스트 결과 타입을 import하지 않는다. 눈금을 움직이는 문은 지목 · 동조 · 몰이 · 철회 · 말 읽기 · 주장 판정 · 표식뿐(§8). 시험 수치는 화면에 뜨고 사람이 말해야 움직인다</td></tr>
+<tr><td>P2</td><td>절대 임계값을 쓰지 않는다. 판정 근거는 무리 평균 대비 편차로만 계산해 노출한다</td><td>고정 규칙이 뚫린다</td><td><code>trial/scoring.groupStats</code>(평균 · 표준편차)가 <code>trial_result</code>에 실리고, <code>resultWords</code>는 z로 부사만 붙인다. 등급 없음</td></tr>
+<tr><td>P3</td><td>전환 구간(조건 변경 직후 N초)을 별도 태깅해 기록에 노출한다</td><td>적응 곡선이 총점에 묻힌다</td><td>세 엔진의 <code>transitionError</code>(<code>TRANSITION_MS 5000</code>), <code>adaptationCurve</code></td></tr>
+<tr><td>P4</td><td>오차의 방향(부호 있는 값)을 절대 오차와 별도로 기록 · 노출한다</td><td>판별의 두 번째 축이 사라진다</td><td><code>errorDirection</code> — 과회피 ± · 발판 앞/뒤 · 원판 바깥/안쪽</td></tr>
+<tr><td>P5</td><td>관리 AI에게도 정체표를 주지 않는다. 해설 · 판정은 공개된 원자료만 근거로 한다</td><td>편파 해설로 정답이 유출된다</td><td><code>leaderComment</code> · <code>judgeClaim</code> · <code>readTalk</code>의 인자에 roles가 없다. 프롬프트 「판정하지 않는다」</td></tr>
+<tr><td>P6</td><td>주장 판정 LLM 호출은 실시간 물리 루프 밖(토론 단계)에서만 실행한다</td><td>응답 지연이 물리 판정 프레임에 끼어든다</td><td><code>claim</code>은 discussion 중에만, <code>readRoom</code>은 discussion 중에만, <code>aiStrategy</code>는 <code>openTest</code>가 국면을 옮긴 뒤 엔진 start 전에, <code>leaderComment</code>는 <code>finishTest</code> 뒤</td></tr>
+<tr><td>P7</td><td>AI 설계자의 기록 조작은 설계자 1인당 판당 1회 · 대상 1명. 조작 여부는 그 설계자 외 아무도 모른다</td><td>공개되면 즉시 지목당하거나 무제한 남용된다</td><td><code>tamperLeft = 1</code> · <code>applyTampers</code>가 공개본만 바꾸고 원본은 <code>appendHistory</code>로 storage에만 · <code>game_tamper_ok</code>는 그 소켓에만</td></tr>
+<tr><td>P8</td><td>물리 테스트의 조건값(중력 배율 · 마찰 계수 등)은 클라이언트에 원값을 절대 내려주지 않는다</td><td>콘솔로 정답이 새고 AI가 「일부러 틀리기」를 계산한다</td><td><code>worker/src/trial/condition.ts</code>는 <code>src/</code>가 import하지 않는다(빌드 경계). <code>TrialResultWire</code> · <code>trial_round_start</code> · <code>INSTRUCTION</code>에 조건값 없음. 낙하 점프 높이 · 발판 미끄러짐 · 원판 자리는 서버가 곱셈을 끝낸 값만 보낸다</td></tr>
+<tr><td>P9</td><td>AI 참가자의 물리 조작 입력은 LLM이 실시간으로 만들지 않는다. 서버가 인간 반응 분포에서 파라미터를 뽑아 시뮬레이션한다</td><td>LLM 지연 · 패턴으로 AI 좌석이 드러난다</td><td><code>aiStrategy</code>는 precision 한 수만 정하고 <code>fall/npc.ts</code> · <code>platform/npc.ts</code> · <code>disc/npc.ts</code>의 프로파일이 틱마다 움직인다. 봇도 사람과 같은 <code>jump()</code> · 미끄러짐을 탄다</td></tr>
+<tr><td>P10</td><td>AI 발화(채팅)는 사람과 동일한 스트림 · 지터로 나간다</td><td>타이핑 인디케이터 · 지연 패턴이 AI를 특정한다</td><td>봇의 말도 같은 <code>t: 'chat'</code> · <code>BOT_TALK_MIN_MS 3,500 + rand × 6,500</code> 지터 · 같은 발언권 지갑 · 토론 중 배회(<code>idleTick</code>) · 봇도 굳고 뒤로 걷는다</td></tr>
+<tr><td>P11</td><td>목소리도 같다 — 9석이 한 명부에서 한 규칙으로 뽑혀, 한 관로를 지나, 같은 음색으로 난다. 소리가 나빠질 때는 방 전체가 같이 나빠진다</td><td>좌석 하나만 목소리가 다르면 그게 곧 (대개 틀린) 정답표가 된다</td><td><code>seat-voice.ts</code> · <code>features/voice</code>의 설계(명부 9 · 균등 순열 · 같은 SEAT_SETTINGS · 모자라면 503으로 방 전체 무음). 본판 chat 릴레이에는 아직 미배선 — 지금 판에서 좌석은 소리를 내지 않으므로 P11은 「전부 침묵」으로 지켜진다</td></tr>
+</table>
+
+<h2>부록 — 세계관 글과 코드가 다른 자리 요약</h2>
+<table>
+<tr><th>주제</th><th>세계관 · PLANNING</th><th>오늘의 빌드</th></tr>
+<tr><td>판의 끝</td><td>전체 인원의 과반수가 탈락하면 종료</td><td>첫 격리에서 즉시 종료(<code>c9804bc</code>). <code>quota</code>는 와이어에만</td></tr>
+<tr><td>AI 수</td><td>게임마다 1명 이상</td><td>정확히 1 좌석</td></tr>
+<tr><td>설계자 수</td><td>플레이어 수에 따라 1~2명 / 상한 0~2 랜덤</td><td><code>designerCount</code> 고정: ≤2 → 0, 3~5 → 1, ≥6 → 2 (<code>7163b77</code>). 대역도 뽑힐 수 있다</td></tr>
+<tr><td>사람 정원</td><td>PLANNING §1.1 「총원 4 · 사람 3」</td><td><code>ROOM_MAX_PLAYERS 8</code> · <code>GAME_MAX_HUMANS 8</code>, 모자란 만큼 대역</td></tr>
+<tr><td>처형 AI</td><td>세계관의 「처형 AI」</td><td>화면 · 코드의 「관리 AI」(LEADER)</td></tr>
+<tr><td>의심도 걸음</td><td>§1.2 제안값(8 · 5 · 2/6 · −10 · +10)</td><td>12 · 8 · 3/12 · −12 · +15 + 읽기 −10~+16 + 표식 + 압력(§5.3)</td></tr>
+<tr><td>미니게임 종류</td><td>「낙하하는 장애물을 피하는 게임 등 다양한 물리 기반 미니게임」</td><td>차례표 고정 셋(낙하 생존 · 움직이는 발판 · 회전 원판). 정지선 · 색 사냥 엔진은 있으나 차례표에 없다</td></tr>
+</table>
+
+<footer class="end">
+특수인공지능대응센터 — 기술설명서 v1.0 · 2026-09-05 · 저장소 브랜치 main. 이 문서의 숫자와 이름은 같은 날의 코드(<code>src/world/mp/game-protocol.ts</code> · <code>worker/src/game/*</code> · <code>worker/src/trial/*</code>)에서 읽었다. 규칙이 바뀌면 그 파일이 먼저고 이 문서가 뒤따른다. 관련 문서: PLANNING.md · docs/SUSPICION.md · docs/SPEECH.md · docs/VOICE.md · docs/DEVELOPMENT.md.
+</footer>
+
+</div>
+</body>
+</html>
