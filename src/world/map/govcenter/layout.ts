@@ -5,10 +5,15 @@
  * 「대한민국 정부 특수인공지능대응센터」 간판. 양 옆벽엔 2층 메자닌 유리 관제실(중앙 통제실·연구구역)과 1층 유리실(서버실·AI 분석실),
  * 형광등 천장, 광택 콘크리트 바닥에 노란 차선. 앞쪽 끝벽·옆벽에 철문과 호박색 벽등.
  *
- * ★ **발자국·충돌은 격납고 홀(warehouse/layout.ts) 그대로다.** 게임(features/arena)의 바닥 치수(ARENA)·오브젝트 카탈로그(lab/objects.ts)·
- *   시행 판정이 전부 그 파일의 COLLIDERS 를 순서대로 읽는다 — 여기서 무대·콘솔·컨테이너를 옮기면 게임이 같이 움직인다.
- *   그래서 이 파일은 **보이는 것**만 정한다. 벽 x ±12 · z −20~12 · 무대 · 계단 · 리브 · 콘솔 16 · 컨테이너 6 · 도크 4 는 재수출한다.
- *   방(알코브)은 전부 벽면 **바깥**(|x| > 12)에 파고, 메자닌은 머리 위(y ≥ 4.5)라 충돌 상자가 필요 없다.
+ * ★ **발자국·충돌은 격납고 홀(warehouse/layout.ts) 그대로다 — 무대와 계단만 뺀다.** 게임(features/arena)의 바닥 치수(ARENA)·
+ *   오브젝트 카탈로그(lab/objects.ts)·시행 판정이 전부 그 파일의 COLLIDERS 를 순서대로 읽는다 — 여기서 콘솔·컨테이너를 옮기면
+ *   게임이 같이 움직인다. 그래서 이 파일은 **보이는 것**만 정한다. 벽 x ±12 · z −20~12 · 리브 · 콘솔 16 · 컨테이너 6 · 도크 4 는
+ *   재수출한다. 방(알코브)은 전부 벽면 **바깥**(|x| > 12)에 파고, 메자닌은 머리 위(y ≥ 4.5)라 충돌 상자가 필요 없다.
+ * ★ **단상(무대턱 0.75m · 계단 셋)은 없다** (2026-09-05 사용자: "단상 없애줘"). 끝벽 앞은 평평한 바닥이고 처형자는 거기 선다.
+ * ★ **등 뒤 벽의 격납문·격벽 링·충전 도크 넷도 없다** (2026-09-05 사용자: "이 앞의 문과 거치대가 좀 이상한데"). 격납고 부품을
+ *   노멀맵만 남기고 가져온 것이라 이 홀의 빛에서는 도크가 구겨진 철판으로, 격납문은 링 안에 안 맞는 문짝으로 읽혔다. 그 자리에는
+ *   이 홀의 **철문 두 짝**(STEEL_DOOR, BACK_DOOR_XS)과 벽등이 선다 — 끝벽·옆벽의 문과 같은 얼굴이다.
+ *   충돌 목록은 무대·계단·도크를 뺀 HALL_COLLIDERS 다 — 격납고의 COLLIDERS 는 순서로 읽히는 카탈로그라 거기서 빼면 안 되고, 여기서 거른다.
  *
  * three.js 를 끌어오지 않는 순수 파일이다.
  */
@@ -19,9 +24,6 @@ export {
   CARGOS,
   COLLIDERS,
   CONSOLE_BAYS,
-  DOCK,
-  DOCK_XS,
-  DOOR,
   DRONE,
   FAR_Z,
   FOCUS,
@@ -29,19 +31,25 @@ export {
   NEAR_Z,
   RIB,
   RIB_ZS,
-  RING,
-  STAGE,
-  STAGE_FRONT_Z,
-  STAGE_MARK,
-  STAGE_STRIP,
   STAGE_Z,
-  STEPS,
   WALL_X,
   cargoFootprint,
   type CargoPlace,
 } from '../warehouse/layout';
 
-import { FAR_Z, NEAR_Z, RIB_ZS, STAGE_Z, WALL_X } from '../warehouse/layout';
+import { COLLIDERS, DOCK, DOCK_XS, FAR_Z, NEAR_Z, RIB_ZS, STAGE, STAGE_Z, STEPS, WALL_X } from '../warehouse/layout';
+
+/**
+ * 이 홀의 충돌 상자 — 격납고의 COLLIDERS 에서 **무대 1 + 계단 STEPS.n + 도크 DOCK_XS.length** 를 뺀 것 (머리말 ★). 자리로 안
+ * 자르고 모양으로 거른다: 무대는 x 0 · z STAGE_Z · 윗면 STAGE.h, 계단은 x 0 의 낮은 단(윗면 ≤ rise × n · 폭 STEPS.w), 도크는
+ * 등 뒤 벽(z NEAR_Z 쪽)에 붙은 DOCK.h 높이의 상자다. 격납고가 상자를 더 넣어도 여기서는 그 셋만 빠진다.
+ */
+export const HALL_COLLIDERS: readonly (typeof COLLIDERS)[number][] = COLLIDERS.filter((c) => {
+  const stage = c.x === 0 && c.z === STAGE_Z && c.top === STAGE.h;
+  const step = c.x === 0 && c.top <= STEPS.rise * STEPS.n + 1e-6 && Math.abs(c.hw - STEPS.w / 2) < 1e-6;
+  const dock = c.top === DOCK.h && c.z > NEAR_Z - DOCK.depth - 1e-6 && (DOCK_XS as readonly number[]).includes(c.x);
+  return !stage && !step && !dock;
+});
 
 /* ─────────────────────────────── 홀 뼈대 (직사각 콘크리트 박스) ─────────────────────────────── */
 
@@ -141,6 +149,8 @@ export const WALL_MONITOR = { zs: [-6, -2], y: 2.3, w: 2.4, h: 1.35, bezel: 0.08
  */
 export const STEEL_DOOR = { w: 1.3, h: 2.4, depth: 0.3 } as const;
 export const END_DOOR_XS = [-10.4, 10.4] as const;
+/** 등 뒤 벽 문 — 철문 두 짝이 나란히 서서 2.6m 두 짝 문이 된다 (격납문·도크가 있던 자리, 머리말 ★) */
+export const BACK_DOOR_XS = [-STEEL_DOOR.w / 2, STEEL_DOOR.w / 2] as const;
 /** 옆벽 문 — 이 bay 의 옆벽에 하나씩 (양쪽) */
 export const SIDE_DOOR_Z = 2;
 /** 호박색 벽등 — 문 옆 y 2.9. 모델은 바닥에 판이 붙은 채로 서 있어(+y 가 렌즈 쪽) 판이 벽을 보게 눕힌다. 실제 점광원은 끝벽 둘만 (조명 예산) */
@@ -152,12 +162,12 @@ export const WALL_LAMP = { y: 2.9, size: 0.34, off: 1.1 } as const;
 export const BAY_LIGHT = { y: CEILING_Y - 2.2, intensity: 24, distance: 20 } as const;
 /** 상황판 → 무대·홀 앞쪽으로 번지는 푸른 빛 */
 export const BOARD_LIGHT = { y: 6, off: 3.5, intensity: 22, distance: 16 } as const;
-/** 무대 스포트 (천장 기구에서 무대 가운데) */
+/** 끝벽 앞 스포트 (천장 기구에서 처형자가 서는 자리) — 단상은 없어졌지만 빛은 그 자리에 그대로 떨어진다 */
 export const STAGE_SPOT = { y: CEILING_Y - 0.4, intensity: 110, angle: 0.5, distance: 16 } as const;
 /** 끝벽 철문 벽등의 점광원 */
 export const DOOR_LIGHT = { intensity: 6, distance: 7 } as const;
 
 /** 리브 z 는 격납고 홀과 같다 — 옆벽 기둥이 곧 리브 충돌 상자다 */
 export const PILASTER_ZS = RIB_ZS;
-/** 무대 가운데 z — 스포트·초점 */
+/** 끝벽 앞, 처형자가 서는 자리의 z — 스포트·초점. 옛 무대의 가운데다 */
 export const STAGE_CENTER_Z = STAGE_Z;

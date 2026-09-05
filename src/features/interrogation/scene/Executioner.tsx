@@ -1,5 +1,5 @@
 /**
- * 무대 위의 처형자 — 총을 들고 홀을 내려다보다가, 의심도 100% 로 격리되는 좌석을 향해 돌아서서 쏜다 (2026-09-04 사용자).
+ * 끝벽 앞의 처형자 — 총을 들고 홀을 바라보다가, 의심도 100% 로 격리되는 좌석을 향해 돌아서서 쏜다 (2026-09-04 사용자).
  *
  * 몸: public/world/executioner/executioner.glb (사용자 제공 Tripo 리깅, 클립 없음) + gun.glb (소총 기준 좌표로 구운 총).
  * 움직임은 GLB 클립이 아니라 **코드**다 — 무장 심문 AI · 리더와 같은 자세 엔진(features/world/enforcerPose):
@@ -26,11 +26,11 @@ import { attachRifle, buildRig, curlHands, EnforcerPoser, type PoseMode } from '
 import { flashTexture, makeMuzzle } from '@/features/world/muzzle';
 import { gunshot } from '@/features/world/sfx';
 import { useAsset } from '@/world/assets/loader';
-import { STAGE, STAGE_Z } from '@/world/map/govcenter/layout';
+import { STAGE_Z } from '@/world/map/govcenter/layout';
 import { remotePlayers } from '@/world/net/remote-players';
 import { executioner, type ExecutionerPhase } from './executionerStore';
 
-/** 키(m) — 참가자(1.72)보다 조금 크다. 무대(0.75) 위라 더 커 보인다 */
+/** 키(m) — 참가자(1.72)보다 조금 크다. 단상은 없어졌으니(2026-09-05 사용자) 키 차이만이 그를 가른다 */
 const HEIGHT = 1.9;
 /** 모델(+z 를 본다)을 자세 엔진의 +x 로 — 피벗 +90°, 겉 −90° */
 const PIVOT_YAW = Math.PI / 2;
@@ -300,7 +300,8 @@ export function Executioner() {
 
   return (
     <>
-      <group ref={group} position={[0, STAGE.h, STAGE_Z]} name="처형자">
+      {/* 바닥(y 0)에 선다 — 단상(0.75)이 있던 자리 그대로, 높이만 없다 */}
+      <group ref={group} position={[0, 0, STAGE_Z]} name="처형자">
         <group scale={scale} position={[0, lift, 0]} rotation-y={MODEL_YAW}>
           <primitive object={wrap} />
         </group>
